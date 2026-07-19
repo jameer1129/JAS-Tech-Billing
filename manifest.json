@@ -1,0 +1,14 @@
+{
+  "name": "JAS Tech Billing",
+  "short_name": "JAS Billing",
+  "description": "Generate professional JAS Tech invoices in seconds — works fully offline.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#F5F7FB",
+  "theme_color": "#EEEEEE",
+  "icons": [
+    { "src": "assets/icons/app-icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

@@ -1,0 +1,1341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>JAS Tech Billing</title>
+<meta name="theme-color" content="#1565C0">
+<meta name="description" content="Professional billing software for JAS Tech — generate invoices in seconds, fully offline.">
+
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="assets/icons/app-icon.png">
+<link rel="apple-touch-icon" href="assets/icons/app-icon.png">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+<style>
+:root{
+  --primary:#012587;
+  --primary-dark:#0E358B;
+  --bg:#F5F7FB;
+  --text:#212121;
+  --muted:#6B7280;
+  --line:#E4E8EE;
+  --white:#FFFFFF;
+  --danger:#D64545;
+  --success:#1F9254;
+  --radius:12px;
+  --radius-sm:8px;
+  --shadow-sm:0 1px 3px rgba(20,30,50,.07);
+  --shadow-md:0 10px 28px rgba(20,30,50,.12);
+  --font:'Segoe UI',-apple-system,BlinkMacSystemFont,Roboto,Arial,sans-serif;
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--font);-webkit-tap-highlight-color:transparent;overflow-x:hidden;}
+body{min-height:100vh;display:flex;flex-direction:column;}
+button,input,textarea{font-family:var(--font);}
+img{max-width:100%;display:block;}
+
+.app-bar{
+  background:linear-gradient(135deg,var(--primary) 0%,var(--primary-dark) 100%);
+  color:var(--white);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 22px;position:sticky;top:0;z-index:50;box-shadow:var(--shadow-md);
+}
+.app-bar__brand{display:flex;align-items:center;gap:12px;}
+.app-bar__logo{height: 40px; width:40px;border-radius:var(--radius-sm);background:rgba(255,255,255,.14);object-fit:contain;}
+.app-bar__title h1{margin:0; font-size:16px;letter-spacing:3px;font-weight:700;}
+.app-bar__title span{font-size:10.5px;opacity:.85;letter-spacing:.4px;}
+.app-bar__reset{
+  background:rgba(255,255,255,.14);border:none;color:var(--white);width:38px;height:38px;
+  border-radius:var(--radius-sm);cursor:pointer;font-size:15px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;transition:background .15s ease,transform .08s ease;
+}
+.app-bar__reset:hover{background:rgba(255,255,255,.24);}
+.app-bar__reset:active{transform:scale(.92);}
+
+.app-shell{flex:1;width:100%;max-width:760px;margin:0 auto;padding:20px 16px 40px;display:flex;flex-direction:column;gap:16px;}
+
+.card{background:var(--white);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow-sm);border:1px solid var(--line);}
+.card__heading{margin:0 0 14px;font-size:12px;font-weight:700;text-transform:uppercase;color:var(--primary);display:flex;align-items:center;gap:8px;}
+.card__heading-row{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.card__heading-row .card__heading{margin-bottom:0;}
+
+.toggle-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+  font-weight: 600;
+}
+.toggle-container input {
+  cursor: pointer;
+  width: 15px;
+  height: 15px;
+  accent-color: var(--primary);
+  margin: 0;
+}
+
+.field-group{display:flex;flex-direction:column;gap:12px;}
+.field-group--pair{flex-direction:row;}
+.field-group--pair .field{flex:1;min-width:0;}
+.field label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;}
+.field label .optional{font-weight:400;color:var(--muted);}
+.field label .required{color:var(--danger);}
+.field input,.field textarea{
+  width:100%;padding:11px 13px;border:1.5px solid var(--line);border-radius:var(--radius-sm);
+  font-size:14.5px;color:var(--text);background:var(--white);outline:none;
+  transition:border-color .15s ease,box-shadow .15s ease;
+}
+.field textarea{resize:vertical;min-height:64px;line-height:1.5;}
+.field input:focus,.field textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(21,101,192,.14);}
+.field input[readonly]{background:#EEF4FC;color:var(--primary-dark);font-weight:600;border-color:transparent;}
+
+.btn{border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;padding:11px 18px;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:transform .08s ease,background .15s ease,box-shadow .15s ease;}
+.btn:active{transform:scale(.97);}
+.btn--primary{background:var(--primary);color:var(--white);box-shadow:0 3px 10px rgba(21,101,192,.28);}
+.btn--primary:hover{background:var(--primary-dark);}
+.btn--outline{background:var(--white);color:var(--primary);border:1.5px solid var(--primary);}
+.btn--outline:hover{background:#EEF4FC;}
+.btn--ghost{background:var(--bg);color:var(--muted);}
+.btn--ghost:hover{background:var(--line);}
+.btn--danger{background:var(--danger);color:var(--white);}
+.btn--danger:hover{background:#B93636;}
+
+.btn--sm{padding:6px 10px;font-size:11.5px;}
+
+.action-bar-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 8px;
+}
+.btn--download, .btn--preview {
+  font-size: 15px;
+  padding: 12px 16px;
+}
+
+.summary-grid{display:flex;flex-direction:column;gap:10px;}
+.summary-row{display:flex;align-items:center;justify-content:space-between;font-size:13.5px;color:var(--muted);}
+.summary-row b{color:var(--text);font-weight:700;}
+.summary-total{
+  background:linear-gradient(135deg,var(--primary) 0%,var(--primary-dark) 100%);
+  border-radius:var(--radius-sm);padding:14px 18px;display:flex;align-items:center;justify-content:space-between;
+  color:var(--white);margin-top:4px;
+}
+.summary-total .label{font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;opacity:.92;}
+.summary-total .value{font-size:24px;font-weight:700;}
+
+.empty-state{text-align:center;padding:34px 10px;color:var(--muted);}
+.empty-state i{font-size:28px;color:var(--line);margin-bottom:10px;display:block;}
+.empty-state p{margin:0 0 4px;font-weight:600;color:var(--text);}
+.empty-state span{font-size:12.5px;}
+.product-table-wrap{overflow-x:auto;border-radius:var(--radius-sm);border:1px solid var(--line);}
+.product-table{width:100%;border-collapse:collapse;font-size:13.5px;}
+.product-table thead th{background:#EEF4FC;color:var(--primary);text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;}
+.product-table tbody td{padding:12px;border-top:1px solid var(--line);vertical-align:top;}
+.product-table .prod-name{font-weight:600;}
+.product-table .prod-meta{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.5;}
+.product-table .prod-meta .sn{color:var(--primary);font-weight:600;}
+.col-qty,.col-rate,.col-amount{text-align:right;white-space:nowrap;}
+.col-idx{text-align:center;color:var(--muted);}
+.col-actions{text-align:right;white-space:nowrap;}
+.row-action-btn{background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;padding:6px 8px;border-radius:6px;}
+.row-action-btn:hover{background:var(--bg);color:var(--primary);}
+.row-action-btn.delete:hover{color:var(--danger);}
+
+.app-footer{text-align:center;font-size:11px;color:var(--muted);padding:16px 4px;}
+
+.modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.52);display:flex;align-items:flex-end;justify-content:center;z-index:100;animation:fadeIn .15s ease;}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+.modal{background:var(--white);width:100%;max-width:480px;border-radius:var(--radius) var(--radius) 0 0;max-height:92vh;overflow-y:auto;animation:slideUp .2s ease;}
+@keyframes slideUp{from{transform:translateY(24px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.modal__header{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 8px;}
+.modal__header h3{margin:0;font-size:16px;color:var(--primary);}
+.modal__close{background:var(--bg);border:none;width:32px;height:32px;border-radius:8px;cursor:pointer;color:var(--muted);font-size:14px;}
+.modal__body{padding:12px 20px;display:flex;flex-direction:column;gap:14px;}
+.modal__error{color:var(--danger);font-size:12.5px;background:#FCEBEB;border-radius:var(--radius-sm);padding:8px 12px;margin:0;}
+.modal__footer{display:flex;gap:10px;padding:8px 20px 20px;}
+.modal__footer .btn{flex:1;}
+
+.modal-overlay[hidden] {
+  display: none !important;
+}
+
+.modal--confirm{z-index:110 !important;}
+.modal--confirm .modal{max-width:380px;}
+.modal--confirm .modal__body{align-items:center;text-align:center;padding:6px 24px 4px;}
+.modal--confirm .confirm-icon{width:52px;height:52px;border-radius:50%;background:#FCEBEB;color:var(--danger);display:flex;align-items:center;justify-content:center;font-size:20px;margin:6px auto 4px;}
+.modal--confirm p{margin:0;color:var(--muted);font-size:13.5px;line-height:1.5;}
+.modal--confirm .confirm-target{color:var(--text);font-weight:700;}
+
+/* =========================================================================
+   LIVE PREVIEW OVERLAY
+   ========================================================================= */
+.modal--preview {
+  z-index: 150 !important;
+  align-items: center !important;
+}
+.modal--preview .modal {
+  max-width: 840px;
+  width: 95%;
+  border-radius: var(--radius);
+  max-height: 95vh;
+  display: flex;
+  flex-direction: column;
+}
+.modal--preview .modal__body {
+  padding: 20px 0;
+  overflow: auto;
+  background: #525659;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  min-height: 400px;
+}
+
+#previewScaleContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 24px; /* Padding between pages */
+  transform-origin: top center;
+  width: 794px; 
+}
+
+@media (min-width:640px){ .modal-overlay{align-items:center;} .modal{border-radius:var(--radius);margin-bottom:40px;} }
+
+.toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--white);
+  padding:12px 20px;border-radius:var(--radius-sm);font-size:13.5px;z-index:200;box-shadow:var(--shadow-md);
+  display:none;align-items:center;gap:8px;
+  animation:toastIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+.toast[hidden] {
+  display: none !important;
+}
+@keyframes toastIn{
+  from{opacity:0;transform:translate(-50%, 20px);}
+  to{opacity:1;transform:translate(-50%, 0);}
+}
+.toast.toast--error{background:var(--danger);}
+.toast.toast--success{background:var(--success);}
+
+/* =========================================================================
+   INVOICE (PDF) TEMPLATE - MULTI-PAGE SUPPORT
+   ========================================================================= */
+#pdfRenderWrap{position:fixed;top:0;left:-9999px;width:794px;overflow:hidden;z-index:-9999;}
+.pdf-wrapper-container{width:794px;margin:0;padding:0;background:#FFFFFF;}
+.invoice-render{width:794px;margin:0;padding:0;background:#FFFFFF;}
+
+.pdf-loading-overlay{position:fixed;inset:0;background:#FFFFFF;z-index:9999;display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;}
+.pdf-loading-overlay.active{display:flex;}
+.pdf-loading-overlay .spinner{width:40px;height:40px;border:4px solid var(--line);border-top-color:var(--primary);border-radius:50%;animation:pdfSpin .8s linear infinite;}
+.pdf-loading-overlay p{margin:0;font-size:13.5px;color:var(--muted);font-weight:600;}
+@keyframes pdfSpin{to{transform:rotate(360deg);}}
+
+.invoice-page{
+  position:relative;width:794px;
+  min-height:1122px; /* Fix 1px overlap */
+  background:#FFFFFF;
+  font-family:'Segoe UI',Arial,sans-serif;color:#212121;
+  padding:40px 45px 30px;overflow:visible;display:flex;flex-direction:column;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+  margin:0;
+  border: 1px solid #E4E8EE; /* Ensure pages stand out visually in preview */
+  page-break-after: always;
+  left:0; top:0;
+}
+
+.invoice-page:last-child {
+  page-break-after: auto;
+}
+
+/* Force elements to avoid split tearing across sheets */
+.inv-bottom-row, .inv-footer {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+/* WATERMARK */
+.inv-watermark{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-30deg);
+  width:550px;opacity:0.05;pointer-events:none;z-index:999 !important;
+}
+
+.inv-header { display:flex; justify-content:space-between; align-items:center; width:100%; position:relative; z-index:5;}
+
+/* ---- FIXED LOGO HEIGHT TO REMOVE EXCESSIVE PADDING ---- */
+.inv-header__logo { width:auto; max-width:450px; object-fit:contain; margin:0;}
+
+.inv-header__right { text-align:right; display:flex; flex-direction:column; align-items:flex-end; }
+
+/* ----------------------------------------------------------------
+   REPLACED RIBBON: No clip-path, uses Transform Skew for PDF safety
+   ---------------------------------------------------------------- */
+.inv-header__ribbon {
+  display: inline-block;
+  position: relative;
+  background: var(--primary);
+  transform: skewX(-25deg);
+  padding: 6px 40px 6px 25px;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: 1px;
+  line-height: 1.2;
+  margin:5px;
+}
+.inv-header__ribbon-text {
+  display: inline-block;
+  transform: skewX(25deg);
+}
+.inv-header__ribbon-stripe {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 15px;
+  width: 2.5px;
+  background: #ffffff;
+}
+.inv-header__ribbon-stripe:nth-child(1) { right: 6px; }
+.inv-header__ribbon-stripe:nth-child(2) { right: 7px; }
+
+.inv-header__meta { font-size:14px; color:#212121; }
+.inv-header__meta .row { display:flex; justify-content:flex-end; align-items:center; margin:6px 0; }
+.inv-header__meta .row .k { width:85px; text-align:left; color:#000000; font-weight:700; }
+.inv-header__meta .row .sep { font-weight:700; color:#000000; margin-right:8px; }
+.inv-header__meta .row .v { font-weight:700; color:var(--primary); min-width:85px; text-align:left; }
+
+/* ---- REDUCED TOP MARGIN ON DIVIDER ---- */
+.inv-divider { border:none; border-top:2px solid var(--primary); width:100%; position:relative; z-index:5;}
+
+/* ---- REDUCED TOP MARGIN ON CUSTOMER SECTION ---- */
+.inv-customer { display:flex; gap:14px; align-items:flex-start; position:relative; z-index:5;}
+.inv-customer__icon { width:34px; height:34px; border-radius:50%; background:var(--primary); color:#FFFFFF; display:flex; align-items:center; justify-content:center; font-size:16px; margin-top:2px; flex-shrink:0;}
+.inv-customer__details { display:flex; flex-direction:column; gap:4px; }
+.inv-customer__label { font-size:13px; font-weight:700; letter-spacing:0.8px; color:var(--primary); text-transform:uppercase; line-height:1; margin-bottom:2px;margin-top:12px;}
+.inv-customer__name { font-size:18px; font-weight:700; color:#000000;}
+.inv-customer__line { font-size:14px; color:#000000; font-weight:600; }
+
+/* PAGE 2+ HEADER (Continuation) */
+.invoice-page.page-continuation { padding-top: 40px; }
+.page-continuation-header {
+  display: flex; justify-content: space-between; align-items: center; width: 100%;
+  margin-bottom: 24px; padding-bottom: 12px; border-bottom: 2px solid var(--primary);
+  position: relative; z-index: 5;
+}
+.cont-left { display: flex; align-items: center; }
+.cont-logo { height: 34px; width: auto; margin-right: 12px; object-fit: contain; }
+.cont-title { font-size: 15px; font-weight: 700; color: #000; letter-spacing: 0.5px; }
+.cont-page-count { font-weight: 600; color: #6B7280; font-size: 12px; margin-left: 8px; }
+.cont-inv-no { font-weight: 700; color: var(--primary); font-size: 13.5px; }
+
+.inv-table-wrap { width:100%; flex:1; display:flex; flex-direction:column; position:relative; z-index:5;}
+.inv-table { width:100%; border-collapse:separate;border-spacing: 0; margin-top:12px; font-size:13.5px; table-layout:fixed; border:1px solid #CBD5E1;border-radius: 8px;overflow: hidden; }
+.inv-table thead th { background:var(--primary) !important; color:#FFFFFF !important; padding:12px 14px; font-size:12px; text-transform:uppercase; font-weight:700; border:none; text-align:center;border-right:1px solid #FFFFFF;letter-spacing:0.8px;}
+.inv-table thead th:nth-child(2) { text-align:left; }
+.inv-table thead th.idx { width:45px; }
+.inv-table thead th.col-qty { width:70px; }
+.inv-table thead th.col-rate { width:115px; }
+.inv-table thead th.col-amt { width:125px; }    
+
+.inv-table tbody td { padding:14px; border:none;border-top:1px solid #CBD5E1;border-right:1px solid #CBD5E1; vertical-align:middle; text-align:center; color:#000000; font-size:13.5px; }
+.inv-table tbody td:nth-child(2) { text-align:left; }
+.inv-table tbody tr:nth-child(odd) td { background-color: #FFFFFF !important; }
+.inv-table tbody tr:nth-child(even) td { background-color: #F8FAFC !important; }
+
+.inv-table td.num { white-space:nowrap; font-weight:600; }
+.inv-table td.idx { font-weight:700; }
+.inv-table .prod-name { font-weight:700; color:#000000; font-size:14px; margin-bottom:4px; }
+.inv-table .prod-meta { font-size:12px; color:#4B5563; line-height:1.5; }
+.inv-table .prod-meta .sn { color:var(--primary); font-weight:700; }
+
+.inv-bottom-row { display:flex; justify-content:space-between; gap:30px; margin-top:12px; align-items:flex-start; width:100%; position:relative; z-index:5;}
+
+.inv-notes { flex:1; min-width:0; padding-top:4px; display:flex; flex-direction:column; gap:8px; }
+.inv-notes__label { display:flex; align-items:center; gap:8px; font-size:14px; font-weight:700; letter-spacing:0.8px; color:var(--primary); text-transform:uppercase; }
+.inv-notes__text { font-size:13px; color:#000000; line-height:1.55; white-space:pre-line; }
+
+.inv-summary { width:370px; flex-shrink:0; border:1px solid #CBD5E1; border-radius:6px; overflow:hidden; background:#FFFFFF; }
+.inv-summary__row { display:flex; justify-content:space-between; font-size:13px; color:#000000; padding:10px 16px; border-bottom:1px solid #CBD5E1; font-weight:700; text-transform:uppercase;}
+.inv-summary__total { background:var(--primary); color:#FFFFFF; padding:12px 16px; display:flex; justify-content:space-between; align-items:center;}
+.inv-summary__total .label { font-size:16px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;}
+.inv-summary__total .value { font-size:24px; font-weight:600; }
+
+.inv-footer { margin-top:auto; width:100%; padding-top:20px; position:relative; z-index:5;}
+.inv-footer-details { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; }
+
+.contact-block { display:flex; flex-direction:column; gap:10px; }
+.contact-block div { display:flex; align-items:center; gap:12px; font-size:13px; color:#000000; font-weight:500;}
+.contact-block i { color:var(--primary); font-size:16px; width:18px; text-align:center; }
+
+.qr-block { display:flex; flex-direction:column; align-items:center; gap:4px; transform:translateY(-5px); }
+.qr-block img { width:88px; height:88px; border:2px solid #000000; border-radius:6px; padding:4px; }
+.qr-block span { background:var(--primary); color:#FFFFFF; padding:3px 10px 5px 10px; border-radius:10px; font-size:10px; font-weight:600; letter-spacing:0.5px;}
+
+.sign-block { display:flex; flex-direction:column; align-items:center; gap:4px; }
+.sign-block .for-line { color:var(--primary); font-weight:700; font-size:14px; margin-bottom:2px; }
+.sign-block img { height:55px; object-fit:contain; }
+.sign-block .auth-line { color:var(--primary); font-weight:700; font-size:12px; border-top:1.5px dashed var(--primary); padding-top:6px; min-width:190px; text-align:center;}
+
+.inv-services { background:var(--primary); color:#FFFFFF; padding:12px 18px; display:flex; justify-content:space-between; align-items:center; border-radius:4px; width:100%; }
+.inv-services__item { display:flex; align-items:center; gap:8px; font-size:10.5px; font-weight:500; letter-spacing:0.4px; text-transform:uppercase; line-height:1.2; text-align:left;}
+.inv-services__item i { font-family:'Font Awesome 6 Free', 'Font Awesome 5 Free', sans-serif !important; font-weight:900 !important; font-size:18px; }
+.inv-services__sep { width:1px; height:26px; background:rgba(255,255,255,0.4); }
+
+.inv-thanks-container { display:flex; align-items:center; justify-content:center; gap:12px; margin-top:12px; width:100%; }
+.inv-thanks-line { flex:1; height:2px; background:var(--primary); position:relative; opacity:0.8;}
+.inv-thanks-line.left::after { content:''; position:absolute; right:-2px; top:-2px; width:6px; height:6px; background:var(--primary); border-radius:50%; }
+.inv-thanks-line.right::after { content:''; position:absolute; left:-2px; top:-2px; width:6px; height:6px; background:var(--primary); border-radius:50%; }
+.inv-thanks { font-size:16px; font-weight:700; color:var(--primary); letter-spacing:0.2px; white-space:nowrap; }
+
+.inv-copy { text-align:center; font-size:11px; color:#212121; font-weight:600; margin-top:6px; }
+
+/* Dynamic Compact Classes */
+.invoice-page.compact .inv-table thead th{padding:8px 12px;}
+.invoice-page.compact .inv-table tbody td{padding:8px 12px;}
+.invoice-page.compact .inv-customer{margin-top:10px;}
+.invoice-page.compact .inv-table{margin-top:10px;}
+.invoice-page.compact .inv-bottom-row{margin-top:10px;}
+
+.invoice-page.compact-2 .inv-table thead th{padding:6px 10px;}
+.invoice-page.compact-2 .inv-table tbody td{padding:6px 10px;}
+.invoice-page.compact-2 .inv-customer{margin-top:6px;}
+.invoice-page.compact-2 .inv-table{margin-top:6px;}
+.invoice-page.compact-2 .inv-bottom-row{margin-top:6px;}
+</style>
+</head>
+<body>
+
+<header class="app-bar">
+  <div class="app-bar__brand">
+    <img src="assets/logo/logo.png" alt="Logo" class="app-bar__logo" id="appBarLogo">
+    <div class="app-bar__title">
+      <h1 id="appBarCompanyName">JAS TECH BILLING</h1>
+      <span>Invoices in seconds</span>
+    </div>
+  </div>
+  <button class="app-bar__reset" id="btnResetPage" aria-label="Reset invoice">
+    <i class="fa-solid fa-rotate-left"></i>
+  </button>
+</header>
+
+<main class="app-shell">
+  <section class="card">
+    <h2 class="card__heading"><i class="fa-regular fa-user"></i> Bill To</h2>
+    <div class="field-group">
+      <div class="field">
+        <label for="customerName">Customer Name <span class="required">*</span></label>
+        <input type="text" id="customerName" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="customerAddress">Address <span class="optional">(Optional)</span></label>
+        <input type="text" id="customerAddress" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="customerMobile">Mobile Number <span class="optional">(Optional)</span></label>
+        <input type="tel" id="customerMobile" autocomplete="off" inputmode="tel">
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2 class="card__heading"><i class="fa-regular fa-file-lines"></i> Invoice</h2>
+    <div class="field-group field-group--pair">
+      <div class="field"><label>Invoice No.</label><input type="text" id="invoiceNumber" readonly></div>
+      <div class="field"><label>Date</label><input type="text" id="invoiceDate" readonly></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card__heading-row">
+      <h2 class="card__heading"><i class="fa-solid fa-laptop"></i> Products</h2>
+      <button class="btn btn--outline btn--sm" id="btnAddProduct"><i class="fa-solid fa-plus"></i> Add Product</button>
+    </div>
+
+    <div id="productListWrap" style="padding-top:10px">
+      <div id="emptyState" class="empty-state">
+        <i class="fa-regular fa-rectangle-list"></i>
+        <p>No products added yet.</p>
+        <span>Tap "Add Product" to start building this invoice.</span>
+      </div>
+
+      <div class="product-table-wrap" id="productTableWrap" hidden>
+        <table class="product-table" id="productTable">
+          <thead>
+            <tr>
+              <th class="col-idx">#</th>
+              <th>Product</th>
+              <th class="col-qty">Qty</th>
+              <th class="col-rate">Rate</th>
+              <th class="col-amount">Amount</th>
+              <th class="col-actions"></th>
+            </tr>
+          </thead>
+          <tbody id="productTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card__heading-row">
+      <h2 class="card__heading"><i class="fa-solid fa-gear"></i> Options & Notes</h2>
+      <div style="display:flex; gap:16px;">
+        <label class="toggle-container">
+          <input type="checkbox" id="toggleWatermark" checked> Watermark
+        </label>
+        <label class="toggle-container">
+          <input type="checkbox" id="toggleNotesVisibility" checked> Notes
+        </label>
+      </div>
+    </div>
+    <div class="field" style="margin-top:10px;">
+      <textarea id="invoiceNotes" placeholder="Enter optional notes to show on the invoice..."></textarea>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2 class="card__heading"><i class="fa-solid fa-calculator"></i> Summary</h2>
+    <div class="summary-grid">
+      <div class="summary-row"><span>Total Items</span><b id="totalItems">0</b></div>
+      <div class="summary-row"><span>Total Quantity</span><b id="totalQty">0</b></div>
+      <div class="summary-total"><span class="label">Grand Total</span><span class="value" id="grandTotal">₹0</span></div>
+    </div>
+  </section>
+
+  <div class="action-bar-grid">
+    <button class="btn btn--outline btn--preview" id="btnPreview">
+      <i class="fa-regular fa-eye"></i> Preview Look
+    </button>
+    <button class="btn btn--primary btn--download" id="btnDownload">
+      <i class="fa-solid fa-download"></i> Download PDF
+    </button>
+  </div>
+</main>
+
+<footer class="app-footer">
+  <span>JAS Tech Billing v1.0</span>
+</footer>
+
+<!-- Modals -->
+<div class="modal-overlay" id="productModalOverlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal__header">
+      <h3 id="modalTitle">Add Product</h3>
+      <button class="modal__close" id="btnCloseModal" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal__body">
+      <div class="field"><label for="prodName">Product Name <span class="required">*</span></label>
+        <input type="text" id="prodName" autocomplete="off"></div>
+      <div class="field"><label for="prodDesc">Description <span class="optional">(Optional)</span></label>
+        <input type="text" id="prodDesc" autocomplete="off"></div>
+      <div class="field"><label for="prodSerial">Serial Number <span class="optional">(Optional)</span></label>
+        <input type="text" id="prodSerial" autocomplete="off"></div>
+      <div class="field-group field-group--pair">
+        <div class="field"><label for="prodQty">Qty <span class="required">*</span></label><input type="number" id="prodQty" min="1" step="1" value="1" inputmode="numeric"></div>
+        <div class="field"><label for="prodRate">Rate (₹) <span class="required">*</span></label><input type="number" id="prodRate" min="0" step="0.01" inputmode="decimal"></div>
+      </div>
+      <p class="modal__error" id="modalError" hidden></p>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--ghost" id="btnCancelProduct">Cancel</button>
+      <button class="btn btn--primary" id="btnSaveProduct">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay modal--confirm" id="deleteModalOverlay" hidden>
+  <div class="modal">
+    <div class="modal__header">
+      <h3>Delete Product</h3>
+      <button class="modal__close" id="btnCloseDeleteModal" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal__body">
+      <div class="confirm-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+      <p>Are you sure you want to delete<br><span class="confirm-target" id="deleteTargetName"></span> from this invoice?</p>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--ghost" id="btnCancelDelete">Cancel</button>
+      <button class="btn btn--danger" id="btnConfirmDelete">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay modal--preview" id="previewModalOverlay" hidden>
+  <div class="modal">
+    <div class="modal__header">
+      <h3>Invoice Preview</h3>
+      <button class="modal__close" id="btnClosePreviewModal" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal__body" id="previewModalBody">
+      <div id="previewScaleContainer"></div>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--primary" id="btnDownloadFromPreview"><i class="fa-solid fa-download"></i> Download Invoice</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay modal--confirm" id="resetModalOverlay" hidden>
+  <div class="modal">
+    <div class="modal__header">
+      <h3>Reset Invoice</h3>
+      <button class="modal__close" id="btnCloseResetModal" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal__body">
+      <div class="confirm-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+      <p>This clears the customer details, all products, and notes, and starts a fresh invoice number.<br>This can't be undone.</p>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--ghost" id="btnCancelReset">Cancel</button>
+      <button class="btn btn--danger" id="btnConfirmReset">Reset</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<div id="pdfRenderWrap">
+  <div id="pdfWrapper" class="pdf-wrapper-container">
+    <div id="invoiceRoot" class="invoice-render"></div>
+  </div>
+</div>
+
+<div class="pdf-loading-overlay" id="pdfLoadingOverlay">
+  <div class="spinner"></div>
+  <p>Generating your invoice…</p>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+const INLINE_CONFIG = {
+  "company": {
+    "name": "JAS Tech",
+    "tagline": "LAPTOP SALES • SERVICE • ACCESSORIES",
+    "addressLines": ["Hafeezpet, Hyderabad", "Telangana - 500049"],
+    "phone": "9700322231",
+    "email": "jastechhyd@gmail.com"
+  },
+  "theme": {
+    "primary": "#012587",
+    "primaryDark": "#0E358B",
+    "background": "#F8F9FC",
+    "darkText": "#212121",
+    "radius": "12px"
+  },
+  "assets": {
+    "horizontalLogo": "assets/logo/horizontal-logo.png",
+    "mainLogo": "assets/logo/logo.png",
+    "watermark": "assets/logo/main-logo.png",
+    "signature": "assets/signature/signature.png",
+    "whatsappQr": "assets/icons/whatsapp-qr.jpeg"
+  },
+  "invoice": {
+    "currencySymbol": "₹",
+    "filePrefix": "JAS_Invoice_",
+    "numberFormat": "DDMMHHMMSS",
+    "defaultNotes": "Thank you for choosing JAS Tech.\nFor any support, feel free to contact us."
+  },
+  "display": {
+    "showWatermark": true,
+    "showQr": true,
+    "showSignature": true,
+    "showNotes": true,
+    "showTotalItems": true,
+    "showTotalQuantity": true
+  },
+  "signatureBlock": {
+    "forLine": "For JAS Tech",
+    "authLine": "Authorized Signature"
+  },
+  "whatsapp": {
+    "caption": "Scan to Connect"
+  },
+  "services": [
+    { "icon": "fa-shield-halved", "label": "Genuine Laptop Products" },
+    { "icon": "fa-screwdriver-wrench", "label": "Professional Repair" },
+    { "icon": "fa-gauge-high", "label": "Fast Turnaround" },
+    { "icon": "fa-indian-rupee-sign", "label": "Affordable Pricing" },
+    { "icon": "fa-star", "label": "Customer Satisfaction" }
+  ],
+  "footer": {
+    "thankYouMessage": "Thank you for choosing JAS Tech!",
+    "copyrightLine": "© 2026 JAS Tech  |  Laptop Sales  •  Service  •  Accessories"
+  }
+};
+
+let CONFIG = null;
+let editingProductId = null;
+let pendingDeleteId = null;
+
+const state = {
+  customer: { name: '', address: '', mobile: '' },
+  invoiceNumber: '',
+  dateStr: '',
+  notes: null,
+  includeNotesOnPdf: true,
+  showWatermark: true,
+  products: [],
+  nextId: 1
+};
+
+const el = {};
+
+function cacheElements(){
+  el.appBarLogo = document.getElementById('appBarLogo');
+  el.appBarCompanyName = document.getElementById('appBarCompanyName');
+  el.customerName = document.getElementById('customerName');
+  el.customerAddress = document.getElementById('customerAddress');
+  el.customerMobile = document.getElementById('customerMobile');
+  el.invoiceNumber = document.getElementById('invoiceNumber');
+  el.invoiceDate = document.getElementById('invoiceDate');
+  el.btnAddProduct = document.getElementById('btnAddProduct');
+  el.emptyState = document.getElementById('emptyState');
+  el.productTableWrap = document.getElementById('productTableWrap');
+  el.productTableBody = document.getElementById('productTableBody');
+  el.invoiceNotes = document.getElementById('invoiceNotes');
+  el.toggleNotesVisibility = document.getElementById('toggleNotesVisibility');
+  el.toggleWatermark = document.getElementById('toggleWatermark');
+  el.totalItems = document.getElementById('totalItems');
+  el.totalQty = document.getElementById('totalQty');
+  el.grandTotal = document.getElementById('grandTotal');
+  el.btnDownload = document.getElementById('btnDownload');
+  el.btnPreview = document.getElementById('btnPreview');
+  el.productModalOverlay = document.getElementById('productModalOverlay');
+  el.modalTitle = document.getElementById('modalTitle');
+  el.btnCloseModal = document.getElementById('btnCloseModal');
+  el.btnCancelProduct = document.getElementById('btnCancelProduct');
+  el.btnSaveProduct = document.getElementById('btnSaveProduct');
+  el.modalError = document.getElementById('modalError');
+  el.prodName = document.getElementById('prodName');
+  el.prodDesc = document.getElementById('prodDesc');
+  el.prodSerial = document.getElementById('prodSerial');
+  el.prodQty = document.getElementById('prodQty');
+  el.prodRate = document.getElementById('prodRate');
+  el.deleteModalOverlay = document.getElementById('deleteModalOverlay');
+  el.deleteTargetName = document.getElementById('deleteTargetName');
+  el.btnCloseDeleteModal = document.getElementById('btnCloseDeleteModal');
+  el.btnCancelDelete = document.getElementById('btnCancelDelete');
+  el.btnConfirmDelete = document.getElementById('btnConfirmDelete');
+  el.btnResetPage = document.getElementById('btnResetPage');
+  el.resetModalOverlay = document.getElementById('resetModalOverlay');
+  el.btnCloseResetModal = document.getElementById('btnCloseResetModal');
+  el.btnCancelReset = document.getElementById('btnCancelReset');
+  el.btnConfirmReset = document.getElementById('btnConfirmReset');
+  el.previewModalOverlay = document.getElementById('previewModalOverlay');
+  el.previewModalBody = document.getElementById('previewModalBody');
+  el.btnClosePreviewModal = document.getElementById('btnClosePreviewModal');
+  el.btnDownloadFromPreview = document.getElementById('btnDownloadFromPreview');
+  el.toast = document.getElementById('toast');
+}
+
+async function loadConfig(){
+  CONFIG = INLINE_CONFIG;
+  applyConfig();
+}
+
+function applyConfig(){
+  const root = document.documentElement.style;
+  root.setProperty('--primary', CONFIG.theme.primary);
+  root.setProperty('--primary-dark', CONFIG.theme.primaryDark);
+  root.setProperty('--bg', CONFIG.theme.background);
+  root.setProperty('--text', CONFIG.theme.darkText);
+  root.setProperty('--radius', CONFIG.theme.radius);
+
+  el.appBarLogo.src = CONFIG.assets.mainLogo;
+  el.appBarCompanyName.textContent = (CONFIG.company.name + ' Billing').toUpperCase();
+  document.title = CONFIG.company.name + ' Billing';
+
+  if(CONFIG.invoice.defaultNotes) el.invoiceNotes.value = CONFIG.invoice.defaultNotes;
+  if(CONFIG.invoice.defaultNotes) state.notes = CONFIG.invoice.defaultNotes;
+}
+
+function pad(n){ return n.toString().padStart(2,'0'); }
+
+function generateInvoiceNumber(date){
+  const format = CONFIG.invoice.numberFormat;
+  let monthUsed = false;
+  return format.replace(/DD|MM|HH|SS/g, token => {
+    if(token === 'DD') return pad(date.getDate());
+    if(token === 'HH') return pad(date.getHours());
+    if(token === 'SS') return pad(date.getSeconds());
+    if(!monthUsed){ monthUsed = true; return pad(date.getMonth()+1); }
+    return pad(date.getMinutes());
+  });
+}
+
+function initInvoiceMeta(){
+  const now = new Date();
+  state.invoiceNumber = generateInvoiceNumber(now);
+  el.invoiceNumber.value = state.invoiceNumber;
+  state.dateStr = `${pad(now.getDate())}-${pad(now.getMonth()+1)}-${now.getFullYear()}`;
+  el.invoiceDate.value = state.dateStr;
+}
+
+function formatCurrency(amount, includeSymbol = true){
+  const symbol = includeSymbol ? (CONFIG.invoice.currencySymbol || '₹') : '';
+  return symbol + " " + (Number(amount) || 0).toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 });
+}
+
+function escapeHtml(str){
+  if(!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+
+// Shared by renderProducts() and renderInvoiceTemplate() so the
+// description/serial markup only has to be maintained in one place.
+function buildProductMetaHtml(p){
+  const metaBits = [];
+  if(p.description) metaBits.push(`<span>${escapeHtml(p.description)}</span>`);
+  if(p.serial) metaBits.push(`<span class="sn">S/N: ${escapeHtml(p.serial)}</span>`);
+  return metaBits.length ? `<div class="prod-meta">${metaBits.join(' &nbsp;•&nbsp; ')}</div>` : '';
+}
+
+// The `hidden` attribute and the `.hidden` property need to be kept in sync
+// everywhere an overlay is shown/hidden; centralize that here.
+function showOverlay(overlay){
+  overlay.removeAttribute('hidden');
+  overlay.hidden = false;
+}
+function hideOverlay(overlay){
+  overlay.setAttribute('hidden', 'true');
+  overlay.hidden = true;
+}
+
+function showToast(message, type){
+  el.toast.textContent = message;
+  el.toast.className = 'toast' + (type ? ` toast--${type}` : '');
+  el.toast.style.display = 'flex';
+  el.toast.removeAttribute('hidden');
+  el.toast.hidden = false;
+
+  clearTimeout(el.toast._timer);
+  el.toast._timer = setTimeout(() => {
+    el.toast.style.display = 'none';
+    el.toast.hidden = true;
+  }, 2400);
+}
+
+function openProductModal(product){
+  editingProductId = product ? product.id : null;
+  el.modalTitle.textContent = product ? 'Edit Product' : 'Add Product';
+  el.prodName.value = product ? product.name : '';
+  el.prodDesc.value = product ? (product.description || '') : '';
+  el.prodSerial.value = product ? (product.serial || '') : '';
+  el.prodQty.value = product ? product.qty : 1;
+  el.prodRate.value = product ? product.rate : '';
+  el.modalError.hidden = true;
+  showOverlay(el.productModalOverlay);
+  setTimeout(() => el.prodName.focus(), 50);
+}
+
+function closeProductModal(){
+  hideOverlay(el.productModalOverlay);
+  editingProductId = null;
+}
+
+function saveProduct(){
+  const input = {
+    name: el.prodName.value.trim(),
+    description: el.prodDesc.value.trim(),
+    serial: el.prodSerial.value.trim(),
+    qty: parseFloat(el.prodQty.value),
+    rate: parseFloat(el.prodRate.value)
+  };
+
+  if(!input.name) { el.modalError.textContent = 'Product name is required.'; el.modalError.hidden = false; return; }
+  if(isNaN(input.qty) || input.qty <= 0) { el.modalError.textContent = 'Quantity must be at least 1.'; el.modalError.hidden = false; return; }
+  if(isNaN(input.rate) || input.rate < 0) { el.modalError.textContent = 'Please enter a valid rate.'; el.modalError.hidden = false; return; }
+
+  if(editingProductId){
+    const product = state.products.find(p => p.id === editingProductId);
+    if(product) Object.assign(product, input);
+    showToast('Product updated', 'success');
+  } else {
+    state.products.push({ id: state.nextId++, ...input });
+    showToast('Product added', 'success');
+  }
+
+  renderProducts();
+  updateSummary();
+  closeProductModal();
+}
+
+function editProduct(id){
+  const product = state.products.find(p => p.id === id);
+  if(product) openProductModal(product);
+}
+
+function requestDeleteProduct(id){
+  const product = state.products.find(p => p.id === id);
+  if(!product) return;
+  closeProductModal();
+  pendingDeleteId = id;
+  el.deleteTargetName.textContent = product.name;
+  showOverlay(el.deleteModalOverlay);
+}
+
+function closeDeleteModal(){
+  hideOverlay(el.deleteModalOverlay);
+  pendingDeleteId = null;
+}
+
+function deleteProduct(){
+  if(pendingDeleteId === null) return;
+  state.products = state.products.filter(p => p.id !== pendingDeleteId);
+  renderProducts();
+  updateSummary();
+  showToast('Product removed');
+  closeDeleteModal();
+}
+
+function openResetModal(){
+  showOverlay(el.resetModalOverlay);
+}
+
+function closeResetModal(){
+  hideOverlay(el.resetModalOverlay);
+}
+
+function resetInvoice(){
+  state.customer = { name: '', address: '', mobile: '' };
+  state.products = [];
+  state.nextId = 1;
+  state.includeNotesOnPdf = true;
+  state.showWatermark = true;
+  state.notes = CONFIG.invoice.defaultNotes || '';
+
+  el.customerName.value = '';
+  el.customerAddress.value = '';
+  el.customerMobile.value = '';
+  el.invoiceNotes.value = state.notes;
+  el.toggleNotesVisibility.checked = true;
+  el.toggleWatermark.checked = true;
+
+  initInvoiceMeta();
+  renderProducts();
+  updateSummary();
+  closeResetModal();
+  showToast('Invoice reset', 'success');
+}
+
+function renderProducts(){
+  const products = state.products;
+  if(!products.length){
+    el.emptyState.hidden = false;
+    el.productTableWrap.hidden = true;
+    el.productTableBody.innerHTML = '';
+    return;
+  }
+  el.emptyState.hidden = true;
+  el.productTableWrap.hidden = false;
+
+  el.productTableBody.innerHTML = products.map((p, idx) => {
+    const metaHtml = buildProductMetaHtml(p);
+    return `
+      <tr data-id="${p.id}">
+        <td class="col-idx">${idx+1}</td>
+        <td class="col-name"><div class="prod-name">${escapeHtml(p.name)}</div>${metaHtml}</td>
+        <td class="col-qty">${p.qty}</td>
+        <td class="col-rate">${formatCurrency(p.rate)}</td>
+        <td class="col-amount">${formatCurrency(p.qty * p.rate)}</td>
+        <td class="col-actions">
+          <button class="row-action-btn" data-action="edit" data-id="${p.id}" aria-label="Edit product"><i class="fa-solid fa-pen"></i></button>
+          <button class="row-action-btn delete" data-action="delete" data-id="${p.id}" aria-label="Delete product"><i class="fa-solid fa-trash"></i></button>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+function updateSummary(){
+  const products = state.products;
+  el.totalItems.textContent = products.length;
+  el.totalQty.textContent = products.reduce((sum,p) => sum + (Number(p.qty)||0), 0);
+  el.grandTotal.textContent = formatCurrency(products.reduce((sum,p) => sum + (p.qty * p.rate), 0));
+}
+
+function formatServiceLabel(text) {
+  const words = text.split(" ");
+  if(words.length > 1) return escapeHtml(words[0]) + "<br>" + escapeHtml(words.slice(1).join(" "));
+  return escapeHtml(text);
+}
+
+// MULTI-PAGE INVOICE RENDERING
+function renderInvoiceTemplate(targetContainerId = 'invoiceRoot'){
+  const root = document.getElementById(targetContainerId);
+  const c = CONFIG;
+
+  const totalItems = state.products.length;
+  const totalQty = state.products.reduce((s,p) => s + (Number(p.qty)||0), 0);
+  const grandTotal = state.products.reduce((s,p) => s + (p.qty * p.rate), 0);
+
+  // Page 1 header HTML (UPDATED RIBBON STRUCTURE)
+  const page1HeaderHtml = `
+    <div class="inv-header">
+      <img src="${c.assets.horizontalLogo}" class="inv-header__logo" crossOrigin="anonymous" alt="${escapeHtml(c.company.name)}">
+      <div class="inv-header__right">
+        <div class="inv-header__ribbon">
+          <span class="inv-header__ribbon-text">INVOICE</span>
+          <span class="inv-header__ribbon-stripe"></span>
+          <span class="inv-header__ribbon-stripe"></span>
+        </div>
+        <div class="inv-header__meta">
+          <div class="row"><span class="k">Invoice No.</span><span class="sep">:</span><span class="v">${escapeHtml(state.invoiceNumber)}</span></div>
+          <div class="row"><span class="k">Date</span><span class="sep">:</span><span class="v">${escapeHtml(state.dateStr)}</span></div>
+        </div>
+      </div>
+    </div>
+    <hr class="inv-divider">
+    <div class="inv-customer">
+      <div class="inv-customer__icon"><i class="fa-solid fa-user"></i></div>
+      <div class="inv-customer__details">
+        <div class="inv-customer__label">BILL TO</div>
+        <div class="inv-customer__name">${escapeHtml(state.customer.name || 'Walk-in Customer')}</div>
+        ${state.customer.address ? `<div class="inv-customer__line">${escapeHtml(state.customer.address)}</div>` : ''}
+        ${state.customer.mobile ? `<div class="inv-customer__line">Mobile: ${escapeHtml(state.customer.mobile)}</div>` : ''}
+      </div>
+    </div>
+  `;
+
+  // Footer HTML (only on last page)
+  const footerHtml = `
+    <div class="inv-footer">
+      <div class="inv-footer-details">
+        <div class="contact-block">
+          <div><i class="fa-solid fa-location-dot"></i> <span>${(c.company.addressLines || []).map(escapeHtml).join('<br>')}</span></div>
+          <div><i class="fa-solid fa-phone"></i> <span>${escapeHtml(c.company.phone)}</span></div>
+          <div><i class="fa-solid fa-envelope"></i> <span>${escapeHtml(c.company.email)}</span></div>
+        </div>
+        ${c.display.showQr ? `<div class="qr-block"><img src="${c.assets.whatsappQr}" crossOrigin="anonymous" alt="WhatsApp QR"><span>${escapeHtml(c.whatsapp.caption)}</span></div>` : ''}
+        ${c.display.showSignature ? `<div class="sign-block"><div class="for-line">${escapeHtml(c.signatureBlock.forLine)}</div><img src="${c.assets.signature}" crossOrigin="anonymous" alt="Signature"><div class="auth-line">${escapeHtml(c.signatureBlock.authLine)}</div></div>` : ''}
+      </div>
+      <div class="inv-services">${(c.services || []).map((s, i) => `
+        ${i > 0 ? '<span class="inv-services__sep"></span>' : ''}
+        <div class="inv-services__item"><i class="fa-solid ${s.icon}"></i> <div>${formatServiceLabel(s.label)}</div></div>
+      `).join('')}</div>
+      <div class="inv-thanks-container"><div class="inv-thanks-line left"></div><div class="inv-thanks">${escapeHtml(c.footer.thankYouMessage)}</div><div class="inv-thanks-line right"></div></div>
+      <div class="inv-copy">${escapeHtml(c.footer.copyrightLine || '')}</div>
+    </div>
+  `;
+
+  // Notes (only on last page)
+  const notesText = state.notes === null ? (c.invoice.defaultNotes || '') : state.notes.trim();
+  const showNotes = c.display.showNotes && notesText && state.includeNotesOnPdf;
+  const notesHtml = showNotes ? `
+    <div class="inv-notes">
+      <div class="inv-notes__label"><i class="fa-solid fa-clipboard-list" style="font-size:16px"></i> NOTES</div>
+      <div class="inv-notes__text">${escapeHtml(notesText)}</div>
+    </div>` : '';
+
+  // Summary box (only on last page)
+  const summaryHtml = `
+    <div class="inv-summary">
+      ${c.display.showTotalItems ? `<div class="inv-summary__row"><span>TOTAL ITEMS</span><b>${totalItems}</b></div>` : ''}
+      ${c.display.showTotalQuantity ? `<div class="inv-summary__row"><span>TOTAL QUANTITY</span><b>${totalQty}</b></div>` : ''}
+      <div class="inv-summary__total">
+        <span class="label" style="font-size: 16px;">GRAND TOTAL</span>
+        <span class="value">${formatCurrency(grandTotal, true)}</span>
+      </div>
+    </div>
+  `;
+
+  // Watermark
+  const watermarkHtml = state.showWatermark ? `<img src="${c.assets.watermark}" class="inv-watermark" crossOrigin="anonymous" alt="Watermark Background">` : '';
+
+  // =====================================================================
+  // DYNAMIC PAGINATION LOGIC
+  // =====================================================================
+  const MAX_ITEMS_WITH_FOOTER = 8;
+  const MAX_ITEMS_WITHOUT_FOOTER = 16;
+  
+  const chunks = [];
+  let items = [...state.products];
+
+  if (items.length === 0) {
+    chunks.push({ isLast: true, products: [] });
+  } else {
+    while (items.length > 0) {
+      const remaining = items.length;
+      if (remaining <= MAX_ITEMS_WITH_FOOTER) {
+        // Everything left fits on one page alongside the footer/notes/summary.
+        chunks.push({ isLast: true, products: items.splice(0, remaining) });
+      } else {
+        // Only take as many as needed to leave a full (non-empty) last page,
+        // so we never end up with a near-blank trailing page.
+        const pageSize = Math.min(MAX_ITEMS_WITHOUT_FOOTER, remaining - MAX_ITEMS_WITH_FOOTER);
+        chunks.push({ isLast: false, products: items.splice(0, pageSize) });
+      }
+    }
+  }
+
+  const totalPages = chunks.length;
+  let pagesHtml = '';
+  let globalIdx = 1;
+
+  chunks.forEach((chunk, pageIndex) => {
+    const isFirstPage = pageIndex === 0;
+    const isLastPage = chunk.isLast;
+    const pageNum = pageIndex + 1;
+
+    let rowsHtml = chunk.products.map(p => {
+      const actualIdx = globalIdx++;
+      const metaHtml = buildProductMetaHtml(p);
+      return `
+        <tr>
+          <td class="idx">${actualIdx}.</td>
+          <td><div class="prod-name">${escapeHtml(p.name)}</div>${metaHtml}</td>
+          <td class="num" style="text-align: center; font-weight: 500;">${p.qty}</td>
+          <td class="num">${formatCurrency(p.rate, false)}</td>
+          <td class="num">${formatCurrency(p.qty * p.rate, false)}</td>
+        </tr>`;
+    }).join('');
+
+    const contPageHeaderHtml = `
+      <div class="page-continuation-header">
+        <div class="cont-left">
+          <img src="${c.assets.horizontalLogo}" class="cont-logo" crossOrigin="anonymous" alt="${escapeHtml(c.company.name)}">
+          <div class="inv-header__ribbon" style="margin-bottom:0; padding: 3px 45px 3px 25px; font-size:14px;">
+             <span class="inv-header__ribbon-text">INVOICE</span>
+             <span class="inv-header__ribbon-stripe"></span>
+             <span class="inv-header__ribbon-stripe"></span>
+          </div>
+          <span class="cont-page-count">(Page ${pageNum} of ${totalPages})</span>
+        </div>
+        <div class="cont-inv-no">No. ${escapeHtml(state.invoiceNumber)}</div>
+      </div>
+    `;
+
+    let pageContent = `
+      <div class="invoice-page ${isFirstPage ? '' : 'page-continuation'}">
+        ${isFirstPage ? page1HeaderHtml : contPageHeaderHtml}
+        
+        <div class="inv-table-wrap">
+          <table class="inv-table">
+            <thead>
+              <tr>
+                <th class="idx">#</th>
+                <th>PRODUCT / DESCRIPTION</th>
+                <th class="col-qty">QTY</th>
+                <th class="col-rate num">RATE (₹)</th>
+                <th class="col-amt num">AMOUNT (₹)</th>
+              </tr>
+            </thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </div>
+        
+        ${isLastPage ? `
+          <div class="inv-bottom-row">
+            ${notesHtml || '<div class="inv-notes" style="visibility: hidden; opacity: 0; border: none; background: none;"></div>'}
+            ${summaryHtml}
+          </div>
+          ${footerHtml}
+        ` : ''}
+        
+        ${watermarkHtml}
+      </div>
+    `;
+
+    pagesHtml += pageContent;
+  });
+
+  root.innerHTML = pagesHtml;
+}
+
+function fitInvoiceToSinglePage(){
+  const pages = document.querySelectorAll('.invoice-page');
+  const PAGE_HEIGHT = 1123;
+
+  pages.forEach(page => {
+    page.classList.remove('compact', 'compact-2');
+    if(page.scrollHeight > PAGE_HEIGHT){ page.classList.add('compact'); }
+    if(page.scrollHeight > PAGE_HEIGHT){ page.classList.add('compact-2'); }
+  });
+}
+
+function handlePreviewLayoutScaling() {
+  const wrapper = el.previewModalBody;
+  const scaleContainer = document.getElementById('previewScaleContainer');
+  if (!wrapper || !scaleContainer) return;
+
+  const baseWidth = 794;
+  const availableWidth = wrapper.clientWidth - 40;
+
+  if (availableWidth < baseWidth) {
+    const scale = availableWidth / baseWidth;
+    scaleContainer.style.transform = `scale(${scale})`;
+    
+    const heightLoss = scaleContainer.offsetHeight * (1 - scale);
+    scaleContainer.style.marginBottom = `-${heightLoss}px`;
+  } else {
+    scaleContainer.style.transform = "none";
+    scaleContainer.style.marginBottom = "0px";
+  }
+}
+
+function openPreviewModal(){
+  if(!state.products.length){ 
+    showToast('Add at least one product to generate preview.', 'error'); 
+    return; 
+  }
+  
+  showOverlay(el.previewModalOverlay);
+
+  renderInvoiceTemplate('previewScaleContainer');
+  fitInvoiceToSinglePage();
+  handlePreviewLayoutScaling();
+  
+  el.previewModalBody.scrollTop = 0;
+}
+
+function closePreviewModal(){
+  hideOverlay(el.previewModalOverlay);
+  const scaleContainer = document.getElementById('previewScaleContainer');
+  if(scaleContainer) scaleContainer.innerHTML = '';
+}
+
+async function downloadInvoice(){
+  if(!state.products.length){ showToast('Add at least one product before downloading.', 'error'); return; }
+  if(!el.previewModalOverlay.hidden) closePreviewModal();
+
+  const root = document.getElementById('invoiceRoot');
+  const overlay = document.getElementById('pdfLoadingOverlay');
+  const wrapper = document.getElementById('pdfWrapper');
+
+  try{
+    renderInvoiceTemplate('invoiceRoot');
+    overlay.classList.add('active');
+
+    const explicitImages = Array.from(root.querySelectorAll('img'));
+    await Promise.all(explicitImages.map(async (img) => {
+      try {
+        if (!img.complete) {
+          await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
+        }
+        if (typeof img.decode === 'function') await img.decode();
+      } catch (e) { console.warn("Asset load validation bypassed:", img.src); }
+    }));
+
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    fitInvoiceToSinglePage();
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+    const opt = {
+      margin: 0,
+      filename: `${CONFIG.invoice.filePrefix}${state.invoiceNumber}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true, 
+        backgroundColor: '#FFFFFF',
+        background: true,
+        logging: false,
+        width: 794,
+        windowWidth: 794,
+        scrollX: 0,
+        scrollY: 0,
+        x: 0,
+        y: 0
+      },
+      jsPDF: { unit: 'px', format: [794, 1123], orientation: 'portrait' },
+      pagebreak: { mode: ['css', 'legacy'] }
+    };
+    
+    await window.html2pdf().set(opt).from(wrapper).save();
+    showToast('Invoice downloaded', 'success');
+    initInvoiceMeta();
+  } catch(err){
+    console.error(err);
+    showToast('Could not generate PDF. Please try again.', 'error');
+  } finally {
+    overlay.classList.remove('active');
+    root.innerHTML = '';
+  }
+}
+
+function handleTableClick(e){
+  const btn = e.target.closest('button[data-action]');
+  if(!btn) return;
+  const id = Number(btn.dataset.id);
+  if(btn.dataset.action === 'edit') editProduct(id);
+  else if(btn.dataset.action === 'delete') requestDeleteProduct(id);
+}
+
+function bindEvents(){
+  el.customerName.addEventListener('input', (e) => { state.customer.name = e.target.value.trim(); });
+  el.customerAddress.addEventListener('input', (e) => { state.customer.address = e.target.value.trim(); });
+  el.customerMobile.addEventListener('input', (e) => { state.customer.mobile = e.target.value.trim(); });
+  el.invoiceNotes.addEventListener('input', (e) => { state.notes = e.target.value; });
+  
+  el.toggleNotesVisibility.addEventListener('change', (e) => { state.includeNotesOnPdf = e.target.checked; });
+  el.toggleWatermark.addEventListener('change', (e) => { state.showWatermark = e.target.checked; });
+
+  el.btnAddProduct.addEventListener('click', () => openProductModal(null));
+  el.btnCloseModal.addEventListener('click', closeProductModal);
+  el.btnCancelProduct.addEventListener('click', closeProductModal);
+  el.btnSaveProduct.addEventListener('click', saveProduct);
+  el.productTableBody.addEventListener('click', handleTableClick);
+  
+  el.btnDownload.addEventListener('click', downloadInvoice);
+  el.btnDownloadFromPreview.addEventListener('click', downloadInvoice);
+  el.btnPreview.addEventListener('click', openPreviewModal);
+  el.btnClosePreviewModal.addEventListener('click', closePreviewModal);
+
+  el.btnCloseDeleteModal.addEventListener('click', closeDeleteModal);
+  el.btnCancelDelete.addEventListener('click', closeDeleteModal);
+  el.btnConfirmDelete.addEventListener('click', deleteProduct);
+
+  el.btnResetPage.addEventListener('click', openResetModal);
+  el.btnCloseResetModal.addEventListener('click', closeResetModal);
+  el.btnCancelReset.addEventListener('click', closeResetModal);
+  el.btnConfirmReset.addEventListener('click', resetInvoice);
+
+  el.productModalOverlay.addEventListener('click', e => { if(e.target === el.productModalOverlay) closeProductModal(); });
+  el.deleteModalOverlay.addEventListener('click', e => { if(e.target === el.deleteModalOverlay) closeDeleteModal(); });
+  el.previewModalOverlay.addEventListener('click', e => { if(e.target === el.previewModalOverlay) closePreviewModal(); });
+  el.resetModalOverlay.addEventListener('click', e => { if(e.target === el.resetModalOverlay) closeResetModal(); });
+
+  window.addEventListener('resize', () => { if(!el.previewModalOverlay.hidden) handlePreviewLayoutScaling(); });
+
+  document.addEventListener('keydown', e => {
+    if(e.key === 'Escape'){
+      if(!el.productModalOverlay.hidden) closeProductModal();
+      if(!el.deleteModalOverlay.hidden) closeDeleteModal();
+      if(!el.previewModalOverlay.hidden) closePreviewModal();
+      if(!el.resetModalOverlay.hidden) closeResetModal();
+    }
+    if(e.key === 'Enter' && document.activeElement && ['prodName','prodDesc','prodSerial','prodQty','prodRate'].includes(document.activeElement.id)){
+      e.preventDefault(); saveProduct();
+    }
+  });
+}
+
+async function init(){
+  cacheElements();
+  hideOverlay(el.productModalOverlay);
+  hideOverlay(el.deleteModalOverlay);
+  hideOverlay(el.previewModalOverlay);
+  hideOverlay(el.resetModalOverlay);
+
+  await loadConfig();
+  initInvoiceMeta();
+  bindEvents();
+  renderProducts();
+  updateSummary();
+
+  if('serviceWorker' in navigator){
+    try { await navigator.serviceWorker.register('service-worker.js'); } catch(e){}
+  }
+}
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
