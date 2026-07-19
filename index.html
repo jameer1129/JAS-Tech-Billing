@@ -37,11 +37,19 @@ body{min-height:100vh;display:flex;flex-direction:column;}
 button,input,textarea{font-family:var(--font);}
 img{max-width:100%;display:block;}
 
+.hide { display: none !important; }
+
 .app-bar{
-  background:linear-gradient(135deg,var(--primary) 0%,var(--primary-dark) 100%);
-  color:var(--white);
-  display:flex;align-items:center;justify-content:space-between;
-  padding:12px 22px;position:sticky;top:0;z-index:50;box-shadow:var(--shadow-md);
+  background: var(--primary);
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 22px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  box-shadow: var(--shadow-md);
 }
 .app-bar__brand{display:flex;align-items:center;gap:12px;}
 .app-bar__logo{height: 45px; width:45px;object-fit:contain;}
@@ -72,18 +80,12 @@ img{max-width:100%;display:block;}
   user-select: none;
   font-weight: 600;
 }
-.toggle-container input {
-  cursor: pointer;
-  width: 15px;
-  height: 15px;
-  accent-color: var(--primary);
-  margin: 0;
-}
+.toggle-container input { cursor: pointer; width: 15px; height: 15px; accent-color: var(--primary); margin: 0; }
 
 .field-group{display:flex;flex-direction:column;gap:12px;}
 .field-group--pair{flex-direction:row;}
 .field-group--pair .field{flex:1;min-width:0;}
-.field label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;}
+.field label {display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;}
 .field label .optional{font-weight:400;color:var(--muted);}
 .field label .required{color:var(--danger);}
 .field input,.field textarea{
@@ -94,6 +96,11 @@ img{max-width:100%;display:block;}
 .field textarea{resize:vertical;min-height:64px;line-height:1.5;}
 .field input:focus,.field textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(21,101,192,.14);}
 .field input[readonly]{background:#EEF4FC;color:var(--primary-dark);font-weight:600;border-color:transparent;}
+
+.field input.input-error, .field textarea.input-error {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px rgba(214, 69, 69, 0.14);
+}
 
 .btn{border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;padding:11px 18px;cursor:pointer;
   display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:transform .08s ease,background .15s ease,box-shadow .15s ease;}
@@ -115,10 +122,7 @@ img{max-width:100%;display:block;}
   gap: 12px;
   margin-top: 8px;
 }
-.btn--download, .btn--preview {
-  font-size: 15px;
-  padding: 12px 16px;
-}
+.btn--download, .btn--preview { font-size: 15px; padding: 12px 16px; }
 
 .summary-grid{display:flex;flex-direction:column;gap:10px;}
 .summary-row{display:flex;align-items:center;justify-content:space-between;font-size:13.5px;color:var(--muted);}
@@ -139,9 +143,15 @@ img{max-width:100%;display:block;}
 .product-table{width:100%;border-collapse:collapse;font-size:13.5px;}
 .product-table thead th{background:#EEF4FC;color:var(--primary);text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;}
 .product-table tbody td{padding:12px;border-top:1px solid var(--line);vertical-align:top;}
-.product-table .prod-name{font-weight:600;}
-.product-table .prod-meta{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.5;}
-.product-table .prod-meta .sn{color:var(--primary);font-weight:600;}
+.product-table .prod-name{font-weight:600;color:var(--text);}
+
+.product-table .prod-meta, 
+.inv-table .prod-meta { margin-top: 4px; line-height: 1.45; }
+.prod-desc-line { color: var(--muted); font-size: 12px; margin-top: 2px; }
+.prod-sn-line { font-size: 12px; margin-top: 2px; color: var(--text) !important; }
+.prod-sn-line .sn-label { color: var(--primary) !important; font-weight: 700; }
+.prod-sn-line .sn-value { color: inherit; font-weight: 500; }
+
 .col-qty,.col-rate,.col-amount{text-align:right;white-space:nowrap;}
 .col-idx{text-align:center;color:var(--muted);}
 .col-actions{text-align:right;white-space:nowrap;}
@@ -163,10 +173,6 @@ img{max-width:100%;display:block;}
 .modal__footer{display:flex;gap:10px;padding:8px 20px 20px;}
 .modal__footer .btn{flex:1;}
 
-.modal-overlay[hidden] {
-  display: none !important;
-}
-
 .modal--confirm{z-index:110 !important;}
 .modal--confirm .modal{max-width:380px;}
 .modal--confirm .modal__body{align-items:center;text-align:center;padding:6px 24px 4px;}
@@ -174,51 +180,21 @@ img{max-width:100%;display:block;}
 .modal--confirm p{margin:0;color:var(--muted);font-size:13.5px;line-height:1.5;}
 .modal--confirm .confirm-target{color:var(--text);font-weight:700;}
 
-/* =========================================================================
-   LIVE PREVIEW OVERLAY
-   ========================================================================= */
-.modal--preview {
-  z-index: 150 !important;
-  align-items: center !important;
-}
-.modal--preview .modal {
-  max-width: 840px;
-  width: 95%;
-  border-radius: var(--radius);
-  max-height: 95vh;
-  display: flex;
-  flex-direction: column;
-}
-.modal--preview .modal__body {
-  padding: 20px 0;
-  overflow: auto;
-  background: #525659;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 20px;
-  min-height: 400px;
-}
+.modal--preview { z-index: 150 !important; align-items: center !important; }
+.modal--preview .modal { max-width: 840px; width: 95%; border-radius: var(--radius); max-height: 95vh; display: flex; flex-direction: column; }
+.modal--preview .modal__body { padding: 20px 0; overflow-y: auto; overflow-x: hidden; background: #525659; display: flex; flex-direction: column; align-items: center; gap: 20px; min-height: 400px; width: 100%; }
 
-#previewScaleContainer {
-  display: flex;
-  flex-direction: column;
-  gap: 24px; /* Padding between pages */
-  transform-origin: top center;
-  width: 794px; 
-}
+#previewScaleContainer { display: flex; flex-direction: column; gap: 24px;  transform-origin: top center; width: 794px;  }
 
 @media (min-width:640px){ .modal-overlay{align-items:center;} .modal{border-radius:var(--radius);margin-bottom:40px;} }
 
 .toast{
   position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--white);
   padding:12px 20px;border-radius:var(--radius-sm);font-size:13.5px;z-index:200;box-shadow:var(--shadow-md);
-  display:none;align-items:center;gap:8px;
+  display:flex;align-items:center;gap:8px;
   animation:toastIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
-.toast[hidden] {
-  display: none !important;
-}
+
 @keyframes toastIn{
   from{opacity:0;transform:translate(-50%, 20px);}
   to{opacity:1;transform:translate(-50%, 0);}
@@ -226,58 +202,41 @@ img{max-width:100%;display:block;}
 .toast.toast--error{background:var(--danger);}
 .toast.toast--success{background:var(--success);}
 
-/* =========================================================================
-   INVOICE (PDF) TEMPLATE - MULTI-PAGE SUPPORT
-   ========================================================================= */
 #pdfRenderWrap{position:fixed;top:0;left:-9999px;width:794px;overflow:hidden;z-index:-9999;}
 .pdf-wrapper-container{width:794px;margin:0;padding:0;background:#FFFFFF;}
 .invoice-render{width:794px;margin:0;padding:0;background:#FFFFFF;}
 
-.pdf-loading-overlay{position:fixed;inset:0;background:#FFFFFF;z-index:9999;display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;}
-.pdf-loading-overlay.active{display:flex;}
+.pdf-loading-overlay{position:fixed;inset:0;background:#FFFFFF;z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;}
 .pdf-loading-overlay .spinner{width:40px;height:40px;border:4px solid var(--line);border-top-color:var(--primary);border-radius:50%;animation:pdfSpin .8s linear infinite;}
 .pdf-loading-overlay p{margin:0;font-size:13.5px;color:var(--muted);font-weight:600;}
 @keyframes pdfSpin{to{transform:rotate(360deg);}}
 
 .invoice-page{
   position:relative;width:794px;
-  min-height:1122px; /* Fix 1px overlap */
+  min-height:1122px; 
   background:#FFFFFF;
   font-family:'Segoe UI',Arial,sans-serif;color:#212121;
   padding:40px 45px 30px;overflow:visible;display:flex;flex-direction:column;
   box-shadow: 0 4px 20px rgba(0,0,0,0.25);
   margin:0;
-  border: 1px solid #E4E8EE; /* Ensure pages stand out visually in preview */
+  border: 1px solid #E4E8EE; 
   page-break-after: always;
   left:0; top:0;
 }
 
-.invoice-page:last-child {
-  page-break-after: auto;
-}
+.invoice-page:last-child { page-break-after: auto; }
 
-/* Force elements to avoid split tearing across sheets */
-.inv-bottom-row, .inv-footer {
-  page-break-inside: avoid;
-  break-inside: avoid;
-}
+.inv-bottom-row, .inv-footer { page-break-inside: avoid; break-inside: avoid; }
 
-/* WATERMARK */
 .inv-watermark{
   position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-30deg);
   width:550px;opacity:0.05;pointer-events:none;z-index:999 !important;
 }
 
 .inv-header { display:flex; justify-content:space-between; align-items:center; width:100%; position:relative; z-index:5;}
-
-/* ---- FIXED LOGO HEIGHT TO REMOVE EXCESSIVE PADDING ---- */
 .inv-header__logo { width:auto; max-width:450px; object-fit:contain; margin:0;}
-
 .inv-header__right { text-align:right; display:flex; flex-direction:column; align-items:flex-end; }
 
-/* ----------------------------------------------------------------
-   REPLACED RIBBON: No clip-path, uses Transform Skew for PDF safety
-   ---------------------------------------------------------------- */
 .inv-header__ribbon {
   display: inline-block;
   position: relative;
@@ -291,18 +250,8 @@ img{max-width:100%;display:block;}
   line-height: 1.2;
   margin:5px;
 }
-.inv-header__ribbon-text {
-  display: inline-block;
-  transform: skewX(25deg);
-}
-.inv-header__ribbon-stripe {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  right: 15px;
-  width: 2.5px;
-  background: #ffffff;
-}
+.inv-header__ribbon-text { display: inline-block; transform: skewX(25deg); }
+.inv-header__ribbon-stripe { position: absolute; top: 0; bottom: 0; right: 15px; width: 2.5px; background: #ffffff; }
 .inv-header__ribbon-stripe:nth-child(1) { right: 6px; }
 .inv-header__ribbon-stripe:nth-child(2) { right: 7px; }
 
@@ -312,10 +261,8 @@ img{max-width:100%;display:block;}
 .inv-header__meta .row .sep { font-weight:700; color:#000000; margin-right:8px; }
 .inv-header__meta .row .v { font-weight:700; color:var(--primary); min-width:85px; text-align:left; }
 
-/* ---- REDUCED TOP MARGIN ON DIVIDER ---- */
 .inv-divider { border:none; border-top:2px solid var(--primary); width:100%; position:relative; z-index:5;}
 
-/* ---- REDUCED TOP MARGIN ON CUSTOMER SECTION ---- */
 .inv-customer { display:flex; gap:14px; align-items:flex-start; position:relative; z-index:5;}
 .inv-customer__icon { width:34px; height:34px; border-radius:50%; background:var(--primary); color:#FFFFFF; display:flex; align-items:center; justify-content:center; font-size:16px; margin-top:2px; flex-shrink:0;}
 .inv-customer__details { display:flex; flex-direction:column; gap:4px; }
@@ -323,14 +270,13 @@ img{max-width:100%;display:block;}
 .inv-customer__name { font-size:18px; font-weight:700; color:#000000;}
 .inv-customer__line { font-size:14px; color:#000000; font-weight:600; }
 
-/* PAGE 2+ HEADER (Continuation) */
 .invoice-page.page-continuation { padding-top: 40px; }
 .page-continuation-header {
   display: flex; justify-content: space-between; align-items: center; width: 100%;
-  margin-bottom: 24px; padding-bottom: 12px; border-bottom: 2px solid var(--primary);
+  padding-bottom: 12px; border-bottom: 2px solid var(--primary);
   position: relative; z-index: 5;
 }
-.cont-left { display: flex; align-items: center; }
+.cont-left { display: flex; align-items: center;gap: 110px; }
 .cont-logo { height: 34px; width: auto; margin-right: 12px; object-fit: contain; }
 .cont-title { font-size: 15px; font-weight: 700; color: #000; letter-spacing: 0.5px; }
 .cont-page-count { font-weight: 600; color: #6B7280; font-size: 12px; margin-left: 8px; }
@@ -343,9 +289,9 @@ img{max-width:100%;display:block;}
 .inv-table thead th.idx { width:45px; }
 .inv-table thead th.col-qty { width:70px; }
 .inv-table thead th.col-rate { width:115px; }
-.inv-table thead th.col-amt { width:125px; }    
+.inv-table thead th.col-amt { width:125px; }   
 
-.inv-table tbody td { padding:14px; border:none;border-top:1px solid #CBD5E1;border-right:1px solid #CBD5E1; vertical-align:middle; text-align:center; color:#000000; font-size:13.5px; }
+.inv-table tbody td { padding:6px; border:none;border-top:1px solid #CBD5E1;border-right:1px solid #CBD5E1; vertical-align:middle; text-align:center; color:#000000; font-size:13.5px; }
 .inv-table tbody td:nth-child(2) { text-align:left; }
 .inv-table tbody tr:nth-child(odd) td { background-color: #FFFFFF !important; }
 .inv-table tbody tr:nth-child(even) td { background-color: #F8FAFC !important; }
@@ -353,8 +299,6 @@ img{max-width:100%;display:block;}
 .inv-table td.num { white-space:nowrap; font-weight:600; }
 .inv-table td.idx { font-weight:700; }
 .inv-table .prod-name { font-weight:700; color:#000000; font-size:14px; margin-bottom:4px; }
-.inv-table .prod-meta { font-size:12px; color:#4B5563; line-height:1.5; }
-.inv-table .prod-meta .sn { color:var(--primary); font-weight:700; }
 
 .inv-bottom-row { display:flex; justify-content:space-between; gap:30px; margin-top:12px; align-items:flex-start; width:100%; position:relative; z-index:5;}
 
@@ -397,7 +341,6 @@ img{max-width:100%;display:block;}
 
 .inv-copy { text-align:center; font-size:11px; color:#212121; font-weight:600; margin-top:6px; }
 
-/* Dynamic Compact Classes */
 .invoice-page.compact .inv-table thead th{padding:8px 12px;}
 .invoice-page.compact .inv-table tbody td{padding:8px 12px;}
 .invoice-page.compact .inv-customer{margin-top:10px;}
@@ -466,7 +409,7 @@ img{max-width:100%;display:block;}
         <span>Tap "Add Product" to start building this invoice.</span>
       </div>
 
-      <div class="product-table-wrap" id="productTableWrap" hidden>
+      <div class="product-table-wrap hide" id="productTableWrap">
         <table class="product-table" id="productTable">
           <thead>
             <tr>
@@ -525,7 +468,7 @@ img{max-width:100%;display:block;}
 </footer>
 
 <!-- Modals -->
-<div class="modal-overlay" id="productModalOverlay" hidden>
+<div class="modal-overlay hide" id="productModalOverlay">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div class="modal__header">
       <h3 id="modalTitle">Add Product</h3>
@@ -542,7 +485,7 @@ img{max-width:100%;display:block;}
         <div class="field"><label for="prodQty">Qty <span class="required">*</span></label><input type="number" id="prodQty" min="1" step="1" value="1" inputmode="numeric"></div>
         <div class="field"><label for="prodRate">Rate (₹) <span class="required">*</span></label><input type="number" id="prodRate" min="0" step="0.01" inputmode="decimal"></div>
       </div>
-      <p class="modal__error" id="modalError" hidden></p>
+      <p class="modal__error hide" id="modalError"></p>
     </div>
     <div class="modal__footer">
       <button class="btn btn--ghost" id="btnCancelProduct">Cancel</button>
@@ -551,7 +494,7 @@ img{max-width:100%;display:block;}
   </div>
 </div>
 
-<div class="modal-overlay modal--confirm" id="deleteModalOverlay" hidden>
+<div class="modal-overlay modal--confirm hide" id="deleteModalOverlay">
   <div class="modal">
     <div class="modal__header">
       <h3>Delete Product</h3>
@@ -568,7 +511,7 @@ img{max-width:100%;display:block;}
   </div>
 </div>
 
-<div class="modal-overlay modal--preview" id="previewModalOverlay" hidden>
+<div class="modal-overlay modal--preview hide" id="previewModalOverlay">
   <div class="modal">
     <div class="modal__header">
       <h3>Invoice Preview</h3>
@@ -583,7 +526,7 @@ img{max-width:100%;display:block;}
   </div>
 </div>
 
-<div class="modal-overlay modal--confirm" id="resetModalOverlay" hidden>
+<div class="modal-overlay modal--confirm hide" id="resetModalOverlay">
   <div class="modal">
     <div class="modal__header">
       <h3>Reset Invoice</h3>
@@ -600,7 +543,7 @@ img{max-width:100%;display:block;}
   </div>
 </div>
 
-<div class="toast" id="toast" hidden></div>
+<div class="toast hide" id="toast"></div>
 
 <div id="pdfRenderWrap">
   <div id="pdfWrapper" class="pdf-wrapper-container">
@@ -608,7 +551,7 @@ img{max-width:100%;display:block;}
   </div>
 </div>
 
-<div class="pdf-loading-overlay" id="pdfLoadingOverlay">
+<div class="pdf-loading-overlay hide" id="pdfLoadingOverlay">
   <div class="spinner"></div>
   <p>Generating your invoice…</p>
 </div>
@@ -699,7 +642,6 @@ async function loadConfig(){
       footer: { thankYouMessage: '', copyrightLine: '' }
     };
   }
-
   applyConfig();
 }
 
@@ -751,38 +693,105 @@ function escapeHtml(str){
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
 }
 
-// Shared by renderProducts() and renderInvoiceTemplate() so the
-// description/serial markup only has to be maintained in one place.
 function buildProductMetaHtml(p){
   const metaBits = [];
-  if(p.description) metaBits.push(`<span>${escapeHtml(p.description)}</span>`);
-  if(p.serial) metaBits.push(`<span class="sn">S/N: ${escapeHtml(p.serial)}</span>`);
-  return metaBits.length ? `<div class="prod-meta">${metaBits.join(' &nbsp;•&nbsp; ')}</div>` : '';
+  if(p.description) {
+    metaBits.push(`<div class="prod-desc-line">${escapeHtml(p.description)}</div>`);
+  }
+  if(p.serial) {
+    metaBits.push(`<div class="prod-sn-line"><span class="sn-label">S/N:</span> <span class="sn-value">${escapeHtml(p.serial)}</span></div>`);
+  }
+  return metaBits.length ? `<div class="prod-meta">${metaBits.join('')}</div>` : '';
 }
 
-// The `hidden` attribute and the `.hidden` property need to be kept in sync
-// everywhere an overlay is shown/hidden; centralize that here.
+function buildInvRowHtml(p, idx){
+  const metaHtml = buildProductMetaHtml(p);
+  return `
+    <tr>
+      <td class="idx">${idx}.</td>
+      <td><div class="prod-name">${escapeHtml(p.name)}</div>${metaHtml}</td>
+      <td class="num" style="text-align: center; font-weight: 500;">${p.qty}</td>
+      <td class="num">${formatCurrency(p.rate, false)}</td>
+      <td class="num">${formatCurrency(p.qty * p.rate, false)}</td>
+    </tr>`;
+}
+
+function measureBlocks(blocksObj){
+  const temp = document.createElement('div');
+  temp.style.cssText = 'position:absolute;left:-9999px;top:0;width:704px;visibility:hidden;';
+  document.body.appendChild(temp);
+
+  const wrappers = {};
+  for (const key in blocksObj) {
+    const w = document.createElement('div');
+    w.innerHTML = blocksObj[key];
+    temp.appendChild(w);
+    wrappers[key] = w;
+  }
+
+  const heights = {};
+  for (const key in wrappers) {
+    heights[key] = wrappers[key].getBoundingClientRect().height;
+  }
+
+  document.body.removeChild(temp);
+  return heights;
+}
+
+function measureTableParts(products){
+  const temp = document.createElement('div');
+  temp.style.cssText = 'position:absolute;left:-9999px;top:0;width:704px;visibility:hidden;';
+  document.body.appendChild(temp);
+  temp.innerHTML = `
+    <table class="inv-table">
+      <thead>
+        <tr>
+          <th class="idx">#</th><th>PRODUCT / DESCRIPTION</th>
+          <th class="col-qty">QTY</th><th class="col-rate num">RATE (₹)</th><th class="col-amt num">AMOUNT (₹)</th>
+        </tr>
+      </thead>
+      <tbody>${products.map((p,i) => buildInvRowHtml(p, i+1)).join('')}</tbody>
+    </table>`;
+  const theadHeight = temp.querySelector('thead').getBoundingClientRect().height;
+  const rowHeights = Array.from(temp.querySelectorAll('tbody tr')).map(r => r.getBoundingClientRect().height);
+  document.body.removeChild(temp);
+  return { theadHeight, rowHeights };
+}
+
 function showOverlay(overlay){
-  overlay.removeAttribute('hidden');
-  overlay.hidden = false;
+  overlay.classList.remove('hide');
 }
 function hideOverlay(overlay){
-  overlay.setAttribute('hidden', 'true');
-  overlay.hidden = true;
+  overlay.classList.add('hide');
 }
 
 function showToast(message, type){
   el.toast.textContent = message;
-  el.toast.className = 'toast' + (type ? ` toast--${type}` : '');
-  el.toast.style.display = 'flex';
-  el.toast.removeAttribute('hidden');
-  el.toast.hidden = false;
+  el.toast.className = 'toast';
+  if (type) el.toast.classList.add(`toast--${type}`);
+  el.toast.classList.remove('hide');
 
   clearTimeout(el.toast._timer);
   el.toast._timer = setTimeout(() => {
-    el.toast.style.display = 'none';
-    el.toast.hidden = true;
+    el.toast.classList.add('hide');
   }, 2400);
+}
+
+function validateField(elInput, type = 'text') {
+  const val = elInput.value.trim();
+  if (type === 'text' && val === '') return false;
+  if (type === 'qty' && (isNaN(val) || Number(val) <= 0)) return false;
+  if (type === 'rate' && (isNaN(val) || val === '' || Number(val) < 0)) return false;
+  return true;
+}
+
+function markError(elInput, isValid) {
+  if (!isValid) {
+    elInput.classList.add('input-error');
+  } else {
+    elInput.classList.remove('input-error');
+  }
+  return isValid;
 }
 
 function openProductModal(product){
@@ -793,16 +802,24 @@ function openProductModal(product){
   el.prodSerial.value = product ? (product.serial || '') : '';
   el.prodQty.value = product ? product.qty : 1;
   el.prodRate.value = product ? product.rate : '';
-  el.modalError.hidden = true;
+  el.modalError.classList.add('hide');
+  
+  [el.prodName, el.prodQty, el.prodRate].forEach(inp => inp.classList.remove('input-error'));
   showOverlay(el.productModalOverlay);
   setTimeout(() => el.prodName.focus(), 50);
 }
 
-function closeProductModal(){
-  hideOverlay(el.productModalOverlay);
-  editingProductId = null;
-}
+function closeProductModal() {
+    document.activeElement.blur();
 
+    hideOverlay(el.productModalOverlay);
+
+    requestAnimationFrame(() => {
+        el.btnAddProduct.focus();
+    });
+
+    editingProductId = null;
+}
 function saveProduct(){
   const input = {
     name: el.prodName.value.trim(),
@@ -812,9 +829,16 @@ function saveProduct(){
     rate: parseFloat(el.prodRate.value)
   };
 
-  if(!input.name) { el.modalError.textContent = 'Product name is required.'; el.modalError.hidden = false; return; }
-  if(isNaN(input.qty) || input.qty <= 0) { el.modalError.textContent = 'Quantity must be at least 1.'; el.modalError.hidden = false; return; }
-  if(isNaN(input.rate) || input.rate < 0) { el.modalError.textContent = 'Please enter a valid rate.'; el.modalError.hidden = false; return; }
+  let isValid = true;
+  if (!markError(el.prodName, input.name !== '')) isValid = false;
+  if (!markError(el.prodQty, !isNaN(input.qty) && input.qty > 0)) isValid = false;
+  if (!markError(el.prodRate, !isNaN(input.rate) && input.rate >= 0 && el.prodRate.value.trim() !== '')) isValid = false;
+
+  if (!isValid) {
+    el.modalError.textContent = 'Please fix the highlighted fields.';
+    el.modalError.classList.remove('hide');
+    return;
+  }
 
   if(editingProductId){
     const product = state.products.find(p => p.id === editingProductId);
@@ -852,6 +876,7 @@ function closeDeleteModal(){
 function deleteProduct(){
   if(pendingDeleteId === null) return;
   state.products = state.products.filter(p => p.id !== pendingDeleteId);
+  
   renderProducts();
   updateSummary();
   showToast('Product removed');
@@ -877,11 +902,13 @@ function resetInvoice(){
   el.customerName.value = '';
   el.customerAddress.value = '';
   el.customerMobile.value = '';
+  el.customerName.classList.remove('input-error');
   el.invoiceNotes.value = state.notes;
   el.toggleNotesVisibility.checked = true;
   el.toggleWatermark.checked = true;
 
   initInvoiceMeta();
+  
   renderProducts();
   updateSummary();
   closeResetModal();
@@ -891,13 +918,13 @@ function resetInvoice(){
 function renderProducts(){
   const products = state.products;
   if(!products.length){
-    el.emptyState.hidden = false;
-    el.productTableWrap.hidden = true;
+    el.emptyState.classList.remove('hide');
+    el.productTableWrap.classList.add('hide');
     el.productTableBody.innerHTML = '';
     return;
   }
-  el.emptyState.hidden = true;
-  el.productTableWrap.hidden = false;
+  el.emptyState.classList.add('hide');
+  el.productTableWrap.classList.remove('hide');
 
   el.productTableBody.innerHTML = products.map((p, idx) => {
     const metaHtml = buildProductMetaHtml(p);
@@ -929,7 +956,6 @@ function formatServiceLabel(text) {
   return escapeHtml(text);
 }
 
-// MULTI-PAGE INVOICE RENDERING
 function renderInvoiceTemplate(targetContainerId = 'invoiceRoot'){
   const root = document.getElementById(targetContainerId);
   const c = CONFIG;
@@ -938,7 +964,6 @@ function renderInvoiceTemplate(targetContainerId = 'invoiceRoot'){
   const totalQty = state.products.reduce((s,p) => s + (Number(p.qty)||0), 0);
   const grandTotal = state.products.reduce((s,p) => s + (p.qty * p.rate), 0);
 
-  // Page 1 header HTML (UPDATED RIBBON STRUCTURE)
   const page1HeaderHtml = `
     <div class="inv-header">
       <img src="${c.assets.horizontalLogo}" class="inv-header__logo" crossOrigin="anonymous" alt="${escapeHtml(c.company.name)}">
@@ -966,7 +991,6 @@ function renderInvoiceTemplate(targetContainerId = 'invoiceRoot'){
     </div>
   `;
 
-  // Footer HTML (only on last page)
   const footerHtml = `
     <div class="inv-footer">
       <div class="inv-footer-details">
@@ -987,7 +1011,6 @@ function renderInvoiceTemplate(targetContainerId = 'invoiceRoot'){
     </div>
   `;
 
-  // Notes (only on last page)
   const notesText = state.notes === null ? (c.invoice.defaultNotes || '') : state.notes.trim();
   const showNotes = c.display.showNotes && notesText && state.includeNotesOnPdf;
   const notesHtml = showNotes ? `
@@ -996,7 +1019,6 @@ function renderInvoiceTemplate(targetContainerId = 'invoiceRoot'){
       <div class="inv-notes__text">${escapeHtml(notesText)}</div>
     </div>` : '';
 
-  // Summary box (only on last page)
   const summaryHtml = `
     <div class="inv-summary">
       ${c.display.showTotalItems ? `<div class="inv-summary__row"><span>TOTAL ITEMS</span><b>${totalItems}</b></div>` : ''}
@@ -1008,32 +1030,97 @@ function renderInvoiceTemplate(targetContainerId = 'invoiceRoot'){
     </div>
   `;
 
-  // Watermark
   const watermarkHtml = state.showWatermark ? `<img src="${c.assets.watermark}" class="inv-watermark" crossOrigin="anonymous" alt="Watermark Background">` : '';
 
-  // =====================================================================
-  // DYNAMIC PAGINATION LOGIC
-  // =====================================================================
-  const MAX_ITEMS_WITH_FOOTER = 8;
-  const MAX_ITEMS_WITHOUT_FOOTER = 16;
-  
-  const chunks = [];
-  let items = [...state.products];
+  const PAGE_HEIGHT = 1123;
+  const PAGE_PAD_TOP = 40;
+  const PAGE_PAD_BOTTOM = 30;
+  const TABLE_MARGIN_TOP = 12;
+  const TABLE_BORDER = 2;
+  const SAFETY_MARGIN = 10;
 
-  if (items.length === 0) {
-    chunks.push({ isLast: true, products: [] });
+  const products = state.products;
+  const chunks = [];
+
+  if (products.length === 0) {
+    chunks.push({ isLast: true, products: [], rowsHeight: 0 });
   } else {
-    while (items.length > 0) {
-      const remaining = items.length;
-      if (remaining <= MAX_ITEMS_WITH_FOOTER) {
-        // Everything left fits on one page alongside the footer/notes/summary.
-        chunks.push({ isLast: true, products: items.splice(0, remaining) });
-      } else {
-        // Only take as many as needed to leave a full (non-empty) last page,
-        // so we never end up with a near-blank trailing page.
-        const pageSize = Math.min(MAX_ITEMS_WITHOUT_FOOTER, remaining - MAX_ITEMS_WITH_FOOTER);
-        chunks.push({ isLast: false, products: items.splice(0, pageSize) });
+    const contPageHeaderSample = `
+      <div class="page-continuation-header">
+        <div class="cont-left">
+          <img src="${c.assets.horizontalLogo}" class="cont-logo" alt="">
+          <div class="inv-header__ribbon" style="margin-bottom:0; padding: 3px 45px 3px 25px; font-size:14px;">
+            <span class="inv-header__ribbon-text">INVOICE</span>
+          </div>
+          <span class="cont-page-count">(Page 1 of 1)</span>
+        </div>
+        <div class="cont-inv-no">No. ${escapeHtml(state.invoiceNumber)}</div>
+      </div>`;
+
+    const bottomRowHtml = `<div class="inv-bottom-row">${notesHtml || '<div class="inv-notes"></div>'}${summaryHtml}</div>`;
+
+    const blockHeights = measureBlocks({
+      page1Header: page1HeaderHtml,
+      contHeader: contPageHeaderSample,
+      bottomRow: bottomRowHtml,
+      footer: footerHtml
+    });
+    const page1HeaderHeight = blockHeights.page1Header;
+    const contHeaderHeight  = blockHeights.contHeader;
+    const bottomExtra       = blockHeights.bottomRow + blockHeights.footer + TABLE_MARGIN_TOP;
+
+    const { theadHeight, rowHeights } = measureTableParts(products);
+
+    const page1Budget = PAGE_HEIGHT - PAGE_PAD_TOP - PAGE_PAD_BOTTOM - page1HeaderHeight
+                         - TABLE_MARGIN_TOP - theadHeight - TABLE_BORDER - SAFETY_MARGIN;
+    const contBudget  = PAGE_HEIGHT - PAGE_PAD_TOP - PAGE_PAD_BOTTOM - contHeaderHeight
+                         - TABLE_MARGIN_TOP - theadHeight - TABLE_BORDER - SAFETY_MARGIN;
+
+    let i = 0;
+    const n = products.length;
+
+    while (i < n) {
+      const isFirstPage = chunks.length === 0;
+      const budget = isFirstPage ? page1Budget : contBudget;
+
+      let sum = 0;
+      let j = i;
+      
+      while (j < n) {
+        if (sum + rowHeights[j] > budget && j > i) {
+          break;
+        }
+        sum += rowHeights[j];
+        j++;
       }
+
+      chunks.push({
+        isLast: false,
+        products: products.slice(i, j),
+        rowsHeight: sum
+      });
+      i = j;
+    }
+
+    if (chunks.length === 0) {
+      chunks.push({
+        isLast: false,
+        products: [],
+        rowsHeight: 0
+      });
+    }
+
+    const lastChunk = chunks[chunks.length - 1];
+    const budgetForLast = chunks.length === 1 ? page1Budget : contBudget;
+
+    if (lastChunk.rowsHeight + bottomExtra <= budgetForLast) {
+      lastChunk.isLast = true;
+    } else {
+      chunks.push({
+        isLast: true,
+        products: [],
+        rowsHeight: 0
+      });
     }
   }
 
@@ -1063,34 +1150,40 @@ function renderInvoiceTemplate(targetContainerId = 'invoiceRoot'){
       <div class="page-continuation-header">
         <div class="cont-left">
           <img src="${c.assets.horizontalLogo}" class="cont-logo" crossOrigin="anonymous" alt="${escapeHtml(c.company.name)}">
-          <div class="inv-header__ribbon" style="margin-bottom:0; padding: 3px 45px 3px 25px; font-size:14px;">
-             <span class="inv-header__ribbon-text">INVOICE</span>
-             <span class="inv-header__ribbon-stripe"></span>
-             <span class="inv-header__ribbon-stripe"></span>
-          </div>
           <span class="cont-page-count">(Page ${pageNum} of ${totalPages})</span>
-        </div>
-        <div class="cont-inv-no">No. ${escapeHtml(state.invoiceNumber)}</div>
+          </div>
+          <div class="cont-inv-no">
+            <div class="inv-header__ribbon" style="margin-bottom:0; padding: 3px 45px 3px 25px; font-size:14px;">
+               <span class="inv-header__ribbon-text">INVOICE</span>
+               <span class="inv-header__ribbon-stripe"></span>
+               <span class="inv-header__ribbon-stripe"></span>
+            </div>
+            No. ${escapeHtml(state.invoiceNumber)}
+          </div>
       </div>
     `;
+
+    const tableHtml = chunk.products.length > 0 ? `
+      <table class="inv-table">
+        <thead>
+          <tr>
+            <th class="idx">#</th>
+            <th>PRODUCT / DESCRIPTION</th>
+            <th class="col-qty">QTY</th>
+            <th class="col-rate num">RATE (₹)</th>
+            <th class="col-amt num">AMOUNT (₹)</th>
+          </tr>
+        </thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    ` : '';
 
     let pageContent = `
       <div class="invoice-page ${isFirstPage ? '' : 'page-continuation'}">
         ${isFirstPage ? page1HeaderHtml : contPageHeaderHtml}
         
         <div class="inv-table-wrap">
-          <table class="inv-table">
-            <thead>
-              <tr>
-                <th class="idx">#</th>
-                <th>PRODUCT / DESCRIPTION</th>
-                <th class="col-qty">QTY</th>
-                <th class="col-rate num">RATE (₹)</th>
-                <th class="col-amt num">AMOUNT (₹)</th>
-              </tr>
-            </thead>
-            <tbody>${rowsHtml}</tbody>
-          </table>
+          ${tableHtml}
         </div>
         
         ${isLastPage ? `
@@ -1128,7 +1221,7 @@ function handlePreviewLayoutScaling() {
   if (!wrapper || !scaleContainer) return;
 
   const baseWidth = 794;
-  const availableWidth = wrapper.clientWidth - 40;
+  const availableWidth = wrapper.clientWidth - 24; 
 
   if (availableWidth < baseWidth) {
     const scale = availableWidth / baseWidth;
@@ -1165,7 +1258,7 @@ function closePreviewModal(){
 
 async function downloadInvoice(){
   if(!state.products.length){ showToast('Add at least one product before downloading.', 'error'); return; }
-  if(!el.previewModalOverlay.hidden) closePreviewModal();
+  if(!el.previewModalOverlay.classList.contains('hide')) closePreviewModal();
 
   const root = document.getElementById('invoiceRoot');
   const overlay = document.getElementById('pdfLoadingOverlay');
@@ -1173,7 +1266,7 @@ async function downloadInvoice(){
 
   try{
     renderInvoiceTemplate('invoiceRoot');
-    overlay.classList.add('active');
+    overlay.classList.remove('hide');
 
     const explicitImages = Array.from(root.querySelectorAll('img'));
     await Promise.all(explicitImages.map(async (img) => {
@@ -1218,7 +1311,7 @@ async function downloadInvoice(){
     console.error(err);
     showToast('Could not generate PDF. Please try again.', 'error');
   } finally {
-    overlay.classList.remove('active');
+    overlay.classList.add('hide');
     root.innerHTML = '';
   }
 }
@@ -1265,17 +1358,56 @@ function bindEvents(){
   el.previewModalOverlay.addEventListener('click', e => { if(e.target === el.previewModalOverlay) closePreviewModal(); });
   el.resetModalOverlay.addEventListener('click', e => { if(e.target === el.resetModalOverlay) closeResetModal(); });
 
-  window.addEventListener('resize', () => { if(!el.previewModalOverlay.hidden) handlePreviewLayoutScaling(); });
+  window.addEventListener('resize', () => { if(!el.previewModalOverlay.classList.contains('hide')) handlePreviewLayoutScaling(); });
+
+  [el.customerName, el.prodName, el.prodQty, el.prodRate].forEach(input => {
+    input.addEventListener('input', () => input.classList.remove('input-error'));
+  });
 
   document.addEventListener('keydown', e => {
     if(e.key === 'Escape'){
-      if(!el.productModalOverlay.hidden) closeProductModal();
-      if(!el.deleteModalOverlay.hidden) closeDeleteModal();
-      if(!el.previewModalOverlay.hidden) closePreviewModal();
-      if(!el.resetModalOverlay.hidden) closeResetModal();
+      if(!el.productModalOverlay.classList.contains('hide')) closeProductModal();
+      if(!el.deleteModalOverlay.classList.contains('hide')) closeDeleteModal();
+      if(!el.previewModalOverlay.classList.contains('hide')) closePreviewModal();
+      if(!el.resetModalOverlay.classList.contains('hide')) closeResetModal();
     }
-    if(e.key === 'Enter' && document.activeElement && ['prodName','prodDesc','prodSerial','prodQty','prodRate'].includes(document.activeElement.id)){
-      e.preventDefault(); saveProduct();
+    
+    if(e.key === 'Enter') {
+      const active = document.activeElement;
+      if (!active) return;
+
+      if(active.id === 'customerName') {
+        e.preventDefault();
+        if (markError(active, validateField(active))) {
+          el.customerAddress.focus();
+        }
+      } 
+      else if(active.id === 'customerAddress') {
+        e.preventDefault();
+        el.customerMobile.focus();
+      } 
+      else if(active.id === 'customerMobile') {
+        e.preventDefault();
+        el.btnAddProduct.click();
+      }
+      else if(['prodName', 'prodDesc', 'prodSerial', 'prodQty', 'prodRate'].includes(active.id)) {
+        e.preventDefault();
+        if(active.id === 'prodName') {
+          if (markError(active, validateField(active))) el.prodDesc.focus();
+        }
+        else if(active.id === 'prodDesc') {
+          el.prodSerial.focus();
+        }
+        else if(active.id === 'prodSerial') {
+          el.prodQty.focus();
+        }
+        else if(active.id === 'prodQty') {
+          if (markError(active, validateField(active, 'qty'))) el.prodRate.focus();
+        }
+        else if(active.id === 'prodRate') {
+          if (markError(active, validateField(active, 'rate'))) saveProduct();
+        }
+      }
     }
   });
 }
@@ -1294,7 +1426,15 @@ async function init(){
   updateSummary();
 
   if('serviceWorker' in navigator){
-    try { await navigator.serviceWorker.register('service-worker.js'); } catch(e){}
+    try {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for (let registration of registrations) {
+        await registration.unregister();
+        console.log('Old Service Worker successfully deleted.');
+      }
+    } catch(e) {
+      console.error('Service worker unregistration failed: ', e);
+    }
   }
 }
 document.addEventListener('DOMContentLoaded', init);
