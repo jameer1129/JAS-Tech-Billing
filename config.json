@@ -1,0 +1,55 @@
+{
+  "company": {
+    "name": "JAS Tech",
+    "tagline": "LAPTOP SALES • SERVICE • ACCESSORIES",
+    "addressLines": ["Hafeezpet, Hyderabad", "Telangana - 500049"],
+    "phone": "9700322231",
+    "email": "jastechhyd@gmail.com"
+  },
+  "theme": {
+    "primary": "#012587",
+    "primaryDark": "#0E358B",
+    "background": "#F8F9FC",
+    "darkText": "#212121",
+    "radius": "12px"
+  },
+  "assets": {
+    "horizontalLogo": "assets/logo/horizontal-logo.png",
+    "mainLogo": "assets/logo/logo.png",
+    "watermark": "assets/logo/main-logo.png",
+    "signature": "assets/signature/signature.png",
+    "whatsappQr": "assets/icons/whatsapp-qr.jpeg"
+  },
+  "invoice": {
+    "currencySymbol": "₹",
+    "filePrefix": "JAS_Invoice_",
+    "numberFormat": "DDMMHHMMSS",
+    "defaultNotes": "Thank you for choosing JAS Tech.\nFor any support, feel free to contact us."
+  },
+  "display": {
+    "showWatermark": true,
+    "showQr": true,
+    "showSignature": true,
+    "showNotes": true,
+    "showTotalItems": true,
+    "showTotalQuantity": true
+  },
+  "signatureBlock": {
+    "forLine": "For JAS Tech",
+    "authLine": "Authorized Signature"
+  },
+  "whatsapp": {
+    "caption": "Scan to Connect"
+  },
+  "services": [
+    { "icon": "fa-shield-halved", "label": "Genuine Laptop Products" },
+    { "icon": "fa-screwdriver-wrench", "label": "Professional Repair" },
+    { "icon": "fa-gauge-high", "label": "Fast Turnaround" },
+    { "icon": "fa-indian-rupee-sign", "label": "Affordable Pricing" },
+    { "icon": "fa-star", "label": "Customer Satisfaction" }
+  ],
+  "footer": {
+    "thankYouMessage": "Thank you for choosing JAS Tech!",
+    "copyrightLine": "© 2026 JAS Tech  |  Laptop Sales  •  Service  •  Accessories"
+  }
+}

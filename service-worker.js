@@ -11,6 +11,7 @@ const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './manifest.json',
+  './config.json',
 
   './assets/logo/horizontal-logo.png',
   './assets/logo/main-logo.png',

@@ -615,62 +615,6 @@ img{max-width:100%;display:block;}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script>
-const INLINE_CONFIG = {
-  "company": {
-    "name": "JAS Tech",
-    "tagline": "LAPTOP SALES • SERVICE • ACCESSORIES",
-    "addressLines": ["Hafeezpet, Hyderabad", "Telangana - 500049"],
-    "phone": "9700322231",
-    "email": "jastechhyd@gmail.com"
-  },
-  "theme": {
-    "primary": "#012587",
-    "primaryDark": "#0E358B",
-    "background": "#F8F9FC",
-    "darkText": "#212121",
-    "radius": "12px"
-  },
-  "assets": {
-    "horizontalLogo": "assets/logo/horizontal-logo.png",
-    "mainLogo": "assets/logo/logo.png",
-    "watermark": "assets/logo/main-logo.png",
-    "signature": "assets/signature/signature.png",
-    "whatsappQr": "assets/icons/whatsapp-qr.jpeg"
-  },
-  "invoice": {
-    "currencySymbol": "₹",
-    "filePrefix": "JAS_Invoice_",
-    "numberFormat": "DDMMHHMMSS",
-    "defaultNotes": "Thank you for choosing JAS Tech.\nFor any support, feel free to contact us."
-  },
-  "display": {
-    "showWatermark": true,
-    "showQr": true,
-    "showSignature": true,
-    "showNotes": true,
-    "showTotalItems": true,
-    "showTotalQuantity": true
-  },
-  "signatureBlock": {
-    "forLine": "For JAS Tech",
-    "authLine": "Authorized Signature"
-  },
-  "whatsapp": {
-    "caption": "Scan to Connect"
-  },
-  "services": [
-    { "icon": "fa-shield-halved", "label": "Genuine Laptop Products" },
-    { "icon": "fa-screwdriver-wrench", "label": "Professional Repair" },
-    { "icon": "fa-gauge-high", "label": "Fast Turnaround" },
-    { "icon": "fa-indian-rupee-sign", "label": "Affordable Pricing" },
-    { "icon": "fa-star", "label": "Customer Satisfaction" }
-  ],
-  "footer": {
-    "thankYouMessage": "Thank you for choosing JAS Tech!",
-    "copyrightLine": "© 2026 JAS Tech  |  Laptop Sales  •  Service  •  Accessories"
-  }
-};
-
 let CONFIG = null;
 let editingProductId = null;
 let pendingDeleteId = null;
@@ -737,7 +681,25 @@ function cacheElements(){
 }
 
 async function loadConfig(){
-  CONFIG = INLINE_CONFIG;
+  try {
+    const response = await fetch('config.json', { cache: 'no-store' });
+    if (!response.ok) throw new Error(`Failed to load config.json: ${response.status}`);
+    CONFIG = await response.json();
+  } catch (error) {
+    console.warn(error);
+    CONFIG = {
+      company: { name: 'JAS Tech' },
+      theme: { primary: '#012587', primaryDark: '#0E358B', background: '#F8F9FC', darkText: '#212121', radius: '12px' },
+      assets: { mainLogo: 'assets/logo/logo.png' },
+      invoice: { defaultNotes: '', currencySymbol: '₹', filePrefix: 'JAS_Invoice_', numberFormat: 'DDMMHHMMSS' },
+      display: { showWatermark: true, showQr: true, showSignature: true, showNotes: true, showTotalItems: true, showTotalQuantity: true },
+      signatureBlock: { forLine: 'For JAS Tech', authLine: 'Authorized Signature' },
+      whatsapp: { caption: 'Scan to Connect' },
+      services: [],
+      footer: { thankYouMessage: '', copyrightLine: '' }
+    };
+  }
+
   applyConfig();
 }
 
