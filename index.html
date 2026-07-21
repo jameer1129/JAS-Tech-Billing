@@ -947,6 +947,10 @@ function resetInvoice(){
   el.invoiceNotes.value = state.notes;
   el.toggleNotesVisibility.checked = true;
   el.toggleWatermark.checked = true;
+  
+  el.invoiceNotes.disabled = false;
+  el.invoiceNotes.style.opacity = '1';
+  el.invoiceNotes.style.cursor = 'text';
 
   initInvoiceMeta();
   
@@ -1371,7 +1375,13 @@ function bindEvents(){
   el.customerMobile.addEventListener('input', (e) => { state.customer.mobile = e.target.value.trim(); });
   el.invoiceNotes.addEventListener('input', (e) => { state.notes = e.target.value; });
   
-  el.toggleNotesVisibility.addEventListener('change', (e) => { state.includeNotesOnPdf = e.target.checked; });
+  el.toggleNotesVisibility.addEventListener('change', (e) => {
+    state.includeNotesOnPdf = e.target.checked;
+    el.invoiceNotes.disabled = !e.target.checked;
+    el.invoiceNotes.style.opacity = e.target.checked ? '1' : '0.5';
+    el.invoiceNotes.style.cursor = e.target.checked ? 'text' : 'not-allowed';
+  });
+  
   el.toggleWatermark.addEventListener('change', (e) => { state.showWatermark = e.target.checked; });
 
   el.btnAddProduct.addEventListener('click', () => openProductModal(null));
