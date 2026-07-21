@@ -249,7 +249,7 @@ img{max-width:100%;display:block;}
 .pdf-loading-overlay p{margin:0;font-size:13.5px;color:var(--text);font-weight:600;}
 @keyframes pdfSpin{to{transform:rotate(360deg);}}
 
-/* PDF Generation specific styles - These remain explicitly styled with absolute colors for printing */
+/* PDF Generation specific styles */
 .invoice-page{
   position:relative;width:794px;
   min-height:1122px; 
@@ -508,7 +508,7 @@ img{max-width:100%;display:block;}
 </main>
 
 <footer class="app-footer">
-  <span>JAS Tech Billing v1.0</span>
+  <span id="appFooterVersion">JAS Tech Billing v1.0</span>
 </footer>
 
 <!-- Modals -->
@@ -664,6 +664,7 @@ function cacheElements(){
   el.btnClosePreviewModal = document.getElementById('btnClosePreviewModal');
   el.btnDownloadFromPreview = document.getElementById('btnDownloadFromPreview');
   el.toast = document.getElementById('toast');
+  el.appFooterVersion = document.getElementById('appFooterVersion');
 }
 
 async function loadConfig(){
@@ -672,17 +673,17 @@ async function loadConfig(){
     if (!response.ok) throw new Error(`Failed to load config.json: ${response.status}`);
     CONFIG = await response.json();
   } catch (error) {
-    console.warn(error);
+    console.warn("Falling back to default config.", error);
     CONFIG = {
       company: { name: 'JAS Tech' },
       theme: { primary: '#012587', primaryDark: '#0E358B', background: '#F8F9FC', darkText: '#212121', radius: '12px' },
       assets: { mainLogo: 'assets/logo/logo.png' },
-      invoice: { defaultNotes: '', currencySymbol: '₹', filePrefix: 'JAS_Invoice_', numberFormat: 'DDMMHHMMSS' },
+      invoice: { defaultNotes: '', currencySymbol: '₹', filePrefix: 'JAS_Invoice_', numberFormat: 'DDMMHHmmss' },
       display: { showWatermark: true, showQr: true, showSignature: true, showNotes: true, showTotalItems: true, showTotalQuantity: true },
       signatureBlock: { forLine: 'For JAS Tech', authLine: 'Authorized Signature' },
       whatsapp: { caption: 'Scan to Connect' },
       services: [],
-      footer: { thankYouMessage: '', copyrightLine: '' }
+      footer: { thankYouMessage: '', copyrightLine: '', appVersion: 'v1.0' }
     };
   }
   applyConfig();
@@ -696,26 +697,31 @@ function applyConfig(){
   root.setProperty('--text', CONFIG.theme.darkText);
   root.setProperty('--radius', CONFIG.theme.radius);
 
-  el.appBarLogo.src = CONFIG.assets.mainLogo;
+  el.appBarLogo.src = CONFIG.assets.mainLogo || '';
   el.appBarCompanyName.textContent = (CONFIG.company.name + ' Billing').toUpperCase();
   document.title = CONFIG.company.name + ' Billing';
 
   if(CONFIG.invoice.defaultNotes) el.invoiceNotes.value = CONFIG.invoice.defaultNotes;
   if(CONFIG.invoice.defaultNotes) state.notes = CONFIG.invoice.defaultNotes;
+
+  if (el.appFooterVersion) {
+    const version = CONFIG.footer && CONFIG.footer.appVersion ? CONFIG.footer.appVersion : 'v1.0';
+    el.appFooterVersion.textContent = `${CONFIG.company.name} Billing ${version}`;
+  }
 }
 
 function pad(n){ return n.toString().padStart(2,'0'); }
 
 function generateInvoiceNumber(date){
-  const format = CONFIG.invoice.numberFormat;
-  let monthUsed = false;
-  return format.replace(/DD|MM|HH|SS/g, token => {
-    if(token === 'DD') return pad(date.getDate());
-    if(token === 'HH') return pad(date.getHours());
-    if(token === 'SS') return pad(date.getSeconds());
-    if(!monthUsed){ monthUsed = true; return pad(date.getMonth()+1); }
-    return pad(date.getMinutes());
-  });
+  const format = CONFIG.invoice.numberFormat || 'DDMMHHmmss';
+  return format
+    .replace('DD', pad(date.getDate()))
+    .replace('MM', pad(date.getMonth() + 1))
+    .replace('YYYY', date.getFullYear())
+    .replace('YY', String(date.getFullYear()).slice(-2))
+    .replace('HH', pad(date.getHours()))
+    .replace('mm', pad(date.getMinutes()))
+    .replace('ss', pad(date.getSeconds()));
 }
 
 function initInvoiceMeta(){
@@ -853,15 +859,11 @@ function openProductModal(product){
 
 function closeProductModal() {
     document.activeElement.blur();
-
     hideOverlay(el.productModalOverlay);
-
-    requestAnimationFrame(() => {
-        el.btnAddProduct.focus();
-    });
-
+    requestAnimationFrame(() => el.btnAddProduct.focus());
     editingProductId = null;
 }
+
 function saveProduct(){
   const input = {
     name: el.prodName.value.trim(),
@@ -890,8 +892,10 @@ function saveProduct(){
     showToast('Product added', 'success');
   }
 
-  renderProducts();
-  updateSummary();
+  requestAnimationFrame(() => {
+    renderProducts();
+    updateSummary();
+  });
   closeProductModal();
 }
 
@@ -936,21 +940,21 @@ function resetInvoice(){
   state.customer = { name: '', address: '', mobile: '' };
   state.products = [];
   state.nextId = 1;
-  state.includeNotesOnPdf = true;
-  state.showWatermark = true;
   state.notes = CONFIG.invoice.defaultNotes || '';
 
   el.customerName.value = '';
   el.customerAddress.value = '';
   el.customerMobile.value = '';
   el.customerName.classList.remove('input-error');
-  el.invoiceNotes.value = state.notes;
-  el.toggleNotesVisibility.checked = true;
-  el.toggleWatermark.checked = true;
   
-  el.invoiceNotes.disabled = false;
-  el.invoiceNotes.style.opacity = '1';
-  el.invoiceNotes.style.cursor = 'text';
+  const prefNotes = localStorage.getItem('jas_pref_notes');
+  const prefWatermark = localStorage.getItem('jas_pref_watermark');
+  
+  el.toggleNotesVisibility.checked = prefNotes !== 'false';
+  el.toggleWatermark.checked = prefWatermark !== 'false';
+  el.toggleNotesVisibility.dispatchEvent(new Event('change'));
+
+  el.invoiceNotes.value = state.notes;
 
   initInvoiceMeta();
   
@@ -1380,9 +1384,17 @@ function bindEvents(){
     el.invoiceNotes.disabled = !e.target.checked;
     el.invoiceNotes.style.opacity = e.target.checked ? '1' : '0.5';
     el.invoiceNotes.style.cursor = e.target.checked ? 'text' : 'not-allowed';
+    localStorage.setItem('jas_pref_notes', e.target.checked);
   });
   
-  el.toggleWatermark.addEventListener('change', (e) => { state.showWatermark = e.target.checked; });
+  el.toggleWatermark.addEventListener('change', (e) => { 
+    state.showWatermark = e.target.checked; 
+    localStorage.setItem('jas_pref_watermark', e.target.checked);
+  });
+
+  [el.prodQty, el.prodRate].forEach(input => {
+    input.addEventListener('focus', () => input.select());
+  });
 
   el.btnAddProduct.addEventListener('click', () => openProductModal(null));
   el.btnCloseModal.addEventListener('click', closeProductModal);
@@ -1482,6 +1494,13 @@ async function init(){
     document.body.classList.add('dark-theme');
     el.btnThemeToggle.innerHTML = '<i class="fa-solid fa-sun"></i>';
   }
+
+  const prefNotes = localStorage.getItem('jas_pref_notes');
+  if(prefNotes !== null) el.toggleNotesVisibility.checked = (prefNotes === 'true');
+  const prefWatermark = localStorage.getItem('jas_pref_watermark');
+  if(prefWatermark !== null) el.toggleWatermark.checked = (prefWatermark === 'true');
+
+  el.toggleNotesVisibility.dispatchEvent(new Event('change'));
 
   await loadConfig();
   initInvoiceMeta();

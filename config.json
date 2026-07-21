@@ -23,7 +23,7 @@
   "invoice": {
     "currencySymbol": "₹",
     "filePrefix": "JAS_Invoice_",
-    "numberFormat": "DDMMHHMMSS",
+    "numberFormat": "DDMMHHmmss",
     "defaultNotes": "Thank you for choosing JAS Tech.\nFor any support, feel free to contact us."
   },
   "display": {
@@ -50,6 +50,7 @@
   ],
   "footer": {
     "thankYouMessage": "Thank you for choosing JAS Tech!",
-    "copyrightLine": "© 2026 JAS Tech  |  Laptop Sales  •  Service  •  Accessories"
+    "copyrightLine": "© 2026 JAS Tech  |  Laptop Sales  •  Service  •  Accessories",
+    "appVersion": "v1.0"
   }
 }
