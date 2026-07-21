@@ -5,7 +5,7 @@
    Bump CACHE_NAME whenever cached files change to force refresh.
    ========================================================= */
 
-const CACHE_NAME = 'jas-tech-billing-v1.0.0';
+const CACHE_NAME = 'jas-tech-billing-v1.0';
 
 const ASSETS_TO_CACHE = [
   './',

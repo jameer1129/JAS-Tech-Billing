@@ -952,7 +952,9 @@ function resetInvoice(){
   
   el.toggleNotesVisibility.checked = prefNotes !== 'false';
   el.toggleWatermark.checked = prefWatermark !== 'false';
+  
   el.toggleNotesVisibility.dispatchEvent(new Event('change'));
+  el.toggleWatermark.dispatchEvent(new Event('change'));
 
   el.invoiceNotes.value = state.notes;
 
@@ -1495,16 +1497,22 @@ async function init(){
     el.btnThemeToggle.innerHTML = '<i class="fa-solid fa-sun"></i>';
   }
 
+  // 1. Load config and attach events FIRST
+  await loadConfig();
+  initInvoiceMeta();
+  bindEvents(); 
+
+  // 2. THEN load preferences and update checkbox status visually
   const prefNotes = localStorage.getItem('jas_pref_notes');
   if(prefNotes !== null) el.toggleNotesVisibility.checked = (prefNotes === 'true');
+  
   const prefWatermark = localStorage.getItem('jas_pref_watermark');
   if(prefWatermark !== null) el.toggleWatermark.checked = (prefWatermark === 'true');
 
+  // 3. Dispatch the events so the app state logic triggers properly
   el.toggleNotesVisibility.dispatchEvent(new Event('change'));
+  el.toggleWatermark.dispatchEvent(new Event('change'));
 
-  await loadConfig();
-  initInvoiceMeta();
-  bindEvents();
   renderProducts();
   updateSummary();
 
@@ -1520,6 +1528,7 @@ async function init(){
     }
   }
 }
+
 document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
