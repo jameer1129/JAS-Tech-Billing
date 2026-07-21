@@ -317,7 +317,6 @@ img{max-width:100%;display:block;}
 }
 .cont-left { display: flex; align-items: center;gap: 110px; }
 .cont-logo { height: 34px; width: auto; margin-right: 12px; object-fit: contain; }
-.cont-title { font-size: 15px; font-weight: 700; color: #000; letter-spacing: 0.5px; }
 .cont-page-count { font-weight: 600; color: #6B7280; font-size: 12px; margin-left: 8px; }
 .cont-inv-no { font-weight: 700; color: var(--primary); font-size: 13.5px; }
 
@@ -328,7 +327,7 @@ img{max-width:100%;display:block;}
 .inv-table thead th.idx { width:45px; }
 .inv-table thead th.col-qty { width:70px; }
 .inv-table thead th.col-rate { width:115px; }
-.inv-table thead th.col-amt { width:125px; }   
+.inv-table thead th.col-amt { width:125px; }    
 
 .inv-table tbody td { padding:6px; border:none;border-top:1px solid #CBD5E1;border-right:1px solid #CBD5E1; vertical-align:middle; text-align:center; color:#000000; font-size:13.5px; }
 .inv-table tbody td:nth-child(2) { text-align:left; }
@@ -415,7 +414,7 @@ img{max-width:100%;display:block;}
     <h2 class="card__heading"><i class="fa-regular fa-user"></i> Bill To</h2>
     <div class="field-group">
       <div class="field">
-        <label for="customerName">Customer Name <span class="required">*</span></label>
+        <label for="customerName">Customer Name <span class="optional">(Optional)</span></label>
         <input type="text" id="customerName" autocomplete="off">
       </div>
       <div class="field">
@@ -732,6 +731,16 @@ function initInvoiceMeta(){
   el.invoiceDate.value = state.dateStr;
 }
 
+function calculateTotals(products){
+  let totalQty = 0, grandTotal = 0;
+  for(const p of products){
+    const qty = Number(p.qty) || 0;
+    totalQty += qty;
+    grandTotal += qty * p.rate;
+  }
+  return { totalItems: products.length, totalQty, grandTotal };
+}
+
 function formatCurrency(amount, includeSymbol = true){
   const symbol = includeSymbol ? (CONFIG.invoice.currencySymbol || '₹') : '';
   return symbol + " " + (Number(amount) || 0).toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 });
@@ -828,7 +837,7 @@ function showToast(message, type){
 
 function validateField(elInput, type = 'text') {
   const val = elInput.value.trim();
-  if (type === 'text' && val === '') return false;
+  if (type === 'text' && val === '' && elInput.id !== 'customerName') return false;
   if (type === 'qty' && (isNaN(val) || Number(val) <= 0)) return false;
   if (type === 'rate' && (isNaN(val) || val === '' || Number(val) < 0)) return false;
   return true;
@@ -995,10 +1004,10 @@ function renderProducts(){
 }
 
 function updateSummary(){
-  const products = state.products;
-  el.totalItems.textContent = products.length;
-  el.totalQty.textContent = products.reduce((sum,p) => sum + (Number(p.qty)||0), 0);
-  el.grandTotal.textContent = formatCurrency(products.reduce((sum,p) => sum + (p.qty * p.rate), 0));
+  const { totalItems, totalQty, grandTotal } = calculateTotals(state.products);
+  el.totalItems.textContent = totalItems;
+  el.totalQty.textContent = totalQty;
+  el.grandTotal.textContent = formatCurrency(grandTotal);
 }
 
 function formatServiceLabel(text) {
@@ -1011,9 +1020,7 @@ function renderInvoiceTemplate(targetContainerId = 'invoiceRoot'){
   const root = document.getElementById(targetContainerId);
   const c = CONFIG;
 
-  const totalItems = state.products.length;
-  const totalQty = state.products.reduce((s,p) => s + (Number(p.qty)||0), 0);
-  const grandTotal = state.products.reduce((s,p) => s + (p.qty * p.rate), 0);
+  const { totalItems, totalQty, grandTotal } = calculateTotals(state.products);
 
   const page1HeaderHtml = `
     <div class="inv-header">
@@ -1123,9 +1130,9 @@ function renderInvoiceTemplate(targetContainerId = 'invoiceRoot'){
     const { theadHeight, rowHeights } = measureTableParts(products);
 
     const page1Budget = PAGE_HEIGHT - PAGE_PAD_TOP - PAGE_PAD_BOTTOM - page1HeaderHeight
-                         - TABLE_MARGIN_TOP - theadHeight - TABLE_BORDER - SAFETY_MARGIN;
+                       - TABLE_MARGIN_TOP - theadHeight - TABLE_BORDER - SAFETY_MARGIN;
     const contBudget  = PAGE_HEIGHT - PAGE_PAD_TOP - PAGE_PAD_BOTTOM - contHeaderHeight
-                         - TABLE_MARGIN_TOP - theadHeight - TABLE_BORDER - SAFETY_MARGIN;
+                       - TABLE_MARGIN_TOP - theadHeight - TABLE_BORDER - SAFETY_MARGIN;
 
     let i = 0;
     const n = products.length;
@@ -1184,18 +1191,7 @@ function renderInvoiceTemplate(targetContainerId = 'invoiceRoot'){
     const isLastPage = chunk.isLast;
     const pageNum = pageIndex + 1;
 
-    let rowsHtml = chunk.products.map(p => {
-      const actualIdx = globalIdx++;
-      const metaHtml = buildProductMetaHtml(p);
-      return `
-        <tr>
-          <td class="idx">${actualIdx}.</td>
-          <td><div class="prod-name">${escapeHtml(p.name)}</div>${metaHtml}</td>
-          <td class="num" style="text-align: center; font-weight: 500;">${p.qty}</td>
-          <td class="num">${formatCurrency(p.rate, false)}</td>
-          <td class="num">${formatCurrency(p.qty * p.rate, false)}</td>
-        </tr>`;
-    }).join('');
+    let rowsHtml = chunk.products.map(p => buildInvRowHtml(p, globalIdx++)).join('');
 
     const contPageHeaderHtml = `
       <div class="page-continuation-header">
