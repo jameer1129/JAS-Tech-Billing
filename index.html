@@ -117,8 +117,12 @@ img{max-width:100%;display:block;}
 .toggle-container input { cursor: pointer; width: 15px; height: 15px; accent-color: var(--primary); margin: 0; }
 
 .field-group{display:flex;flex-direction:column;gap:12px;}
-.field-group--pair{flex-direction:row;}
-.field-group--pair .field{flex:1;min-width:0;}
+.field-group--pair{flex-direction:row; gap: 12px;}
+
+/* Rebalanced flex ratio to give the Date field more room so year doesn't cut off */
+.field-group--pair .field:first-child { flex: 0.85; min-width: 0; }
+.field-group--pair .field:last-child { flex: 1.15; min-width: 0; }
+
 .field label {display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;}
 .field label .optional{font-weight:400;color:var(--muted);}
 .field label .required{color:var(--danger);}
@@ -135,51 +139,30 @@ img{max-width:100%;display:block;}
   box-shadow: 0 0 0 3px rgba(214, 69, 69, 0.14);
 }
 
-/* Desktop */
-.input-icon-wrap{
-    position:relative;
+/* Custom Date Icon Wrapper */
+.input-icon-wrap {
+  position: relative;
+  display: block;
+}
+.input-icon-wrap i {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none; /* Allows click to pass through to the input */
+  font-size: 15px;
 }
 
-.input-icon-wrap i{
-    position:absolute;
-    right:12px;
-    top:50%;
-    transform:translateY(-50%);
-    pointer-events:none;
-    color:var(--muted);
-    font-size:16px;
-}
-
-/* Desktop: hide native icon */
-@media (min-width:768px){
-    input[type="date"]::-webkit-calendar-picker-indicator{
-        opacity:0;
-        position:absolute;
-        inset:0;
-        width:100%;
-        height:100%;
-        cursor:pointer;
-    }
-}
-
-/* Mobile: use native Android icon */
-@media (max-width:767px){
-    .input-icon-wrap i{
-        display:none;
-    }
-
-    input[type="date"]::-webkit-calendar-picker-indicator{
-        opacity:1;
-        position:absolute;
-        right:8px;
-        width:24px;
-        height:24px;
-        cursor:pointer;
-    }
-
-    input[type="date"]{
-        padding-right:40px;
-    }
+/* 1. Force the input to drop native OS styling (removes the extra arrow on Android) */
+input[type="date"] {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  width: 100%;
+  font-size: 16px; /* Prevents Android/iOS auto-zoom and truncation */
+  padding-left: 12px;
+  padding-right: 32px; /* Leaves just enough room for the calendar icon */
 }
 
 /* 2. Hide the native spin/clear buttons that Chrome sometimes injects */
