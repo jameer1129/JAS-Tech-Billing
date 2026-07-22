@@ -135,29 +135,51 @@ img{max-width:100%;display:block;}
   box-shadow: 0 0 0 3px rgba(214, 69, 69, 0.14);
 }
 
-/* Custom Date Icon Wrapper */
-.input-icon-wrap {
-  position: relative;
-  display: block;
-}
-.input-icon-wrap i {
-  position: absolute;
-  right: 10px; /* Moved closer to the edge */
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--muted);
-  pointer-events: none; 
-  font-size: 15px;
+/* Desktop */
+.input-icon-wrap{
+    position:relative;
 }
 
-/* 1. Force the input to drop native OS styling (removes the extra arrow on Android) */
-input[type="date"] {
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-  padding-left: 10px; /* Reduced left padding slightly for more room */
-  padding-right: 28px; /* Reduced right padding so the year doesn't cut off */
-  letter-spacing: -0.2px; /* Tucks the numbers slightly closer together on small screens */
+.input-icon-wrap i{
+    position:absolute;
+    right:12px;
+    top:50%;
+    transform:translateY(-50%);
+    pointer-events:none;
+    color:var(--muted);
+    font-size:16px;
+}
+
+/* Desktop: hide native icon */
+@media (min-width:768px){
+    input[type="date"]::-webkit-calendar-picker-indicator{
+        opacity:0;
+        position:absolute;
+        inset:0;
+        width:100%;
+        height:100%;
+        cursor:pointer;
+    }
+}
+
+/* Mobile: use native Android icon */
+@media (max-width:767px){
+    .input-icon-wrap i{
+        display:none;
+    }
+
+    input[type="date"]::-webkit-calendar-picker-indicator{
+        opacity:1;
+        position:absolute;
+        right:8px;
+        width:24px;
+        height:24px;
+        cursor:pointer;
+    }
+
+    input[type="date"]{
+        padding-right:40px;
+    }
 }
 
 /* 2. Hide the native spin/clear buttons that Chrome sometimes injects */
