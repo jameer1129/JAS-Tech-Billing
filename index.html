@@ -44,7 +44,7 @@ body.dark-theme {
 
 body.dark-theme .card { background: var(--white); border-color: var(--line); }
 
-/* Force native popup boxes to use dark mode variants */
+/* Force native input elements (like the date picker calendar icon) to use their dark mode variants */
 body.dark-theme .field input, 
 body.dark-theme .field textarea { 
   background: #0A0A0A; 
@@ -117,12 +117,8 @@ img{max-width:100%;display:block;}
 .toggle-container input { cursor: pointer; width: 15px; height: 15px; accent-color: var(--primary); margin: 0; }
 
 .field-group{display:flex;flex-direction:column;gap:12px;}
-.field-group--pair{flex-direction:row; gap: 12px;}
-
-/* Rebalanced flex ratio to give the Date field more room so year doesn't cut off */
-.field-group--pair .field:first-child { flex: 0.85; min-width: 0; }
-.field-group--pair .field:last-child { flex: 1.15; min-width: 0; }
-
+.field-group--pair{flex-direction:row;}
+.field-group--pair .field{flex:1;min-width:0;}
 .field label {display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;}
 .field label .optional{font-weight:400;color:var(--muted);}
 .field label .required{color:var(--danger);}
@@ -137,52 +133,6 @@ img{max-width:100%;display:block;}
 .field input.input-error, .field textarea.input-error {
   border-color: var(--danger);
   box-shadow: 0 0 0 3px rgba(214, 69, 69, 0.14);
-}
-
-/* Custom Date Icon Wrapper */
-.input-icon-wrap {
-  position: relative;
-  display: block;
-}
-.input-icon-wrap i {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--muted);
-  pointer-events: none; /* Allows click to pass through to the input */
-  font-size: 15px;
-}
-
-/* 1. Force the input to drop native OS styling (removes the extra arrow on Android) */
-input[type="date"] {
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-  width: 100%;
-  font-size: 16px; /* Prevents Android/iOS auto-zoom and truncation */
-  padding-left: 12px;
-  padding-right: 32px; /* Leaves just enough room for the calendar icon */
-}
-
-/* 2. Hide the native spin/clear buttons that Chrome sometimes injects */
-input[type="date"]::-webkit-inner-spin-button,
-input[type="date"]::-webkit-clear-button {
-  display: none;
-  -webkit-appearance: none;
-}
-
-/* 3. Keep the invisible clickable overlay so tapping anywhere opens the calendar */
-input[type="date"]::-webkit-calendar-picker-indicator {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  opacity: 0; /* Fully invisible */
-  cursor: pointer;
 }
 
 .btn{border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;padding:11px 18px;cursor:pointer;
@@ -488,16 +438,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     <h2 class="card__heading"><i class="fa-regular fa-file-lines"></i> Invoice</h2>
     <div class="field-group field-group--pair">
       <div class="field"><label for="invoiceNumber">Invoice No.</label><input type="text" id="invoiceNumber" autocomplete="off"></div>
-      
-      <!-- Updated Date Field with Font Awesome wrapper -->
-      <div class="field">
-        <label for="invoiceDate">Date</label>
-        <div class="input-icon-wrap">
-          <input type="date" id="invoiceDate">
-          <i class="fa-regular fa-calendar"></i>
-        </div>
-      </div>
-      
+      <div class="field"><label for="invoiceDate">Date</label><input type="date" id="invoiceDate"></div>
     </div>
   </section>
 
