@@ -1,828 +1,2127 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
-<title>JAS Tech Billing</title>
-<meta name="theme-color" content="#012587">
-<meta name="description" content="Professional billing software for JAS Tech — generate invoices in seconds, fully offline.">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no"
+    />
+    <title>JAS Tech Billing</title>
+    <meta name="theme-color" content="#012587" />
+    <meta
+      name="description"
+      content="Professional billing software for JAS Tech — generate invoices in seconds, fully offline."
+    />
 
-<link rel="manifest" href="manifest.json">
-<link rel="icon" href="assets/icons/app-icon.png">
-<link rel="apple-touch-icon" href="assets/icons/app-icon.png">
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" href="assets/icons/app-icon.png" />
+    <link rel="apple-touch-icon" href="assets/icons/app-icon.png" />
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
 
-<style>
-:root{
-  --primary:#012587;
-  --primary-dark:#0E358B;
-  --bg:#F5F7FB;
-  --text:#212121;
-  --muted:#6B7280;
-  --line:#E4E8EE;
-  --white:#FFFFFF;
-  --danger:#D64545;
-  --success:#1F9254;
-  --radius:12px;
-  --radius-sm:8px;
-  --shadow-sm:0 1px 3px rgba(20,30,50,.07);
-  --shadow-md:0 10px 28px rgba(20,30,50,.12);
-  --font:'Segoe UI',-apple-system,BlinkMacSystemFont,Roboto,Arial,sans-serif;
-}
+    <style>
+      :root {
+        --primary: #012587;
+        --primary-dark: #0e358b;
+        --bg: #f5f7fb;
+        --text: #212121;
+        --muted: #6b7280;
+        --line: #e4e8ee;
+        --white: #ffffff;
+        --danger: #d64545;
+        --success: #1f9254;
+        --radius: 12px;
+        --radius-sm: 8px;
+        --shadow-sm: 0 1px 3px rgba(20, 30, 50, 0.07);
+        --shadow-md: 0 10px 28px rgba(20, 30, 50, 0.12);
+        --font:
+          "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Arial,
+          sans-serif;
+      }
 
-/* Dark Theme Overrides */
-body.dark-theme {
-  --bg: #000000f9;
-  --text: #F3F4F6;
-  --white: #000000;
-  --line: #2D3748;
-  --muted: #9CA3AF;
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.5);
-  --shadow-md: 0 10px 28px rgba(0,0,0,0.8);
-}
+      /* Dark Theme Overrides */
+      body.dark-theme {
+        --bg: #000000f9;
+        --text: #f3f4f6;
+        --white: #000000;
+        --line: #2d3748;
+        --muted: #9ca3af;
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
+        --shadow-md: 0 10px 28px rgba(0, 0, 0, 0.8);
+      }
 
-body.dark-theme .card { background: var(--white); border-color: var(--line); }
+      body.dark-theme .card {
+        background: var(--white);
+        border-color: var(--line);
+      }
 
-/* Force native popup boxes to use dark mode variants */
-body.dark-theme .field input, 
-body.dark-theme .field textarea { 
-  background: #0A0A0A; 
-  color: var(--text); 
-  color-scheme: dark; 
-}
+      body.dark-theme .field input,
+      body.dark-theme .field textarea {
+        background: #0a0a0a;
+        color: var(--text);
+        color-scheme: dark;
+      }
 
-body.dark-theme .product-table thead th { background: #1A202C; color: #63B3ED; }
-body.dark-theme .btn--outline:hover { background: #1A202C; }
-body.dark-theme .btn--ghost:hover { background: #1A202C; }
-body.dark-theme .row-action-btn:hover { background: #1A202C; }
-body.dark-theme .modal { background: #000000; border: 1px solid var(--line); }
-body.dark-theme .modal__header { border-bottom: 1px solid var(--line); }
-body.dark-theme .pdf-loading-overlay { background: rgba(0,0,0,0.9); }
-body.dark-theme .pdf-loading-overlay p { color: #FFFFFF; }
-body.dark-theme .toast { background: #1A202C; border: 1px solid var(--line); }
-body.dark-theme .empty-state p { color: var(--text); }
-body.dark-theme .prod-sn-line .sn-value { color: #9CA3AF; }
+      body.dark-theme .product-table thead th {
+        background: #1a202c;
+        color: #63b3ed;
+      }
 
-*{box-sizing:border-box;}
-html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--font);-webkit-tap-highlight-color:transparent;overflow-x:hidden; transition: background 0.3s ease, color 0.3s ease;}
-body{min-height:100vh;display:flex;flex-direction:column;}
-button,input,textarea{font-family:var(--font);}
-img{max-width:100%;display:block;}
+      body.dark-theme .btn--outline:hover {
+        background: #1a202c;
+      }
 
-.hide { display: none !important; }
+      body.dark-theme .btn--ghost:hover {
+        background: #1a202c;
+      }
 
-.app-bar{
-  background: var(--primary);
-  color: #FFFFFF;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 22px;
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  box-shadow: var(--shadow-md);
-}
-.app-bar__brand{display:flex;align-items:center;gap:12px;}
-.app-bar__logo{height: 45px; width:45px;object-fit:contain;}
-.app-bar__title h1{margin:0; font-size:16px;letter-spacing:3px;font-weight:700;}
-.app-bar__title span{font-size:10.5px;opacity:.85;letter-spacing:.4px;}
-.app-bar__actions{display:flex;gap:8px;align-items:center;}
-.app-bar__icon-btn{
-  background:rgba(255,255,255,.14);border:none;color:#FFFFFF;width:38px;height:38px;
-  border-radius:var(--radius-sm);cursor:pointer;font-size:15px;flex-shrink:0;
-  display:flex;align-items:center;justify-content:center;transition:background .15s ease,transform .08s ease;
-}
-.app-bar__icon-btn:hover{background:rgba(255,255,255,.24);}
-.app-bar__icon-btn:active{transform:scale(.92);}
+      body.dark-theme .row-action-btn:hover {
+        background: #1a202c;
+      }
 
-.app-shell{flex:1;width:100%;max-width:760px;margin:0 auto;padding:20px 16px 0px;display:flex;flex-direction:column;gap:16px;}
+      body.dark-theme .modal {
+        background: #000000;
+        border: 1px solid var(--line);
+      }
 
-.card{background:var(--white);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow-sm);border:1px solid var(--line); transition: background 0.3s ease, border-color 0.3s ease;}
-.card__heading{margin:0 0 14px;font-size:12px;font-weight:700;text-transform:uppercase;color:var(--primary);display:flex;align-items:center;gap:8px;}
-.card__heading-row{display:flex;align-items:center;justify-content:space-between;gap:8px;}
-.card__heading-row .card__heading{margin-bottom:0;}
+      body.dark-theme .modal__header {
+        border-bottom: 1px solid var(--line);
+      }
 
-.toggle-container {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12.5px;
-  color: var(--muted);
-  cursor: pointer;
-  user-select: none;
-  font-weight: 600;
-}
-.toggle-container input { cursor: pointer; width: 15px; height: 15px; accent-color: var(--primary); margin: 0; }
+      body.dark-theme .pdf-loading-overlay {
+        background: rgba(0, 0, 0, 0.9);
+      }
 
-.field-group{display:flex;flex-direction:column;gap:12px;}
-.field-group--pair{flex-direction:row;}
-.field-group--pair .field{flex:1;min-width:0;}
-.field label {display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;}
-.field label .optional{font-weight:400;color:var(--muted);}
-.field label .required{color:var(--danger);}
-.field input,.field textarea{
-  width:100%;padding:11px 13px;border:1.5px solid var(--line);border-radius:var(--radius-sm);
-  font-size:14.5px;color:var(--text);background:var(--white);outline:none;
-  transition:border-color .15s ease,box-shadow .15s ease, background 0.3s ease;
-}
-.field textarea{resize:vertical;min-height:64px;line-height:1.5;}
-.field input:focus,.field textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(21,101,192,.14);}
+      body.dark-theme .pdf-loading-overlay p {
+        color: #ffffff;
+      }
 
-.field input.input-error, .field textarea.input-error {
-  border-color: var(--danger);
-  box-shadow: 0 0 0 3px rgba(214, 69, 69, 0.14);
-}
+      body.dark-theme .toast {
+        background: #1a202c;
+        border: 1px solid var(--line);
+      }
 
-/* Custom Date Icon Wrapper */
-.input-icon-wrap {
-  position: relative;
-  display: block;
-}
-.input-icon-wrap i {
-  position: absolute;
-  right: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--muted);
-  pointer-events: none; /* Allows click to pass through to the input */
-  font-size: 15px;
-}
-/* Hide the native calendar icon and stretch it to make the whole field clickable */
-input[type="date"]::-webkit-calendar-picker-indicator {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0; /* Fully invisible */
-  cursor: pointer;
-  color: transparent;
-  background: transparent;
-}
+      body.dark-theme .empty-state p {
+        color: var(--text);
+      }
 
-.btn{border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;padding:11px 18px;cursor:pointer;
-  display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:transform .08s ease,background .15s ease,box-shadow .15s ease;}
-.btn:active{transform:scale(.97);}
-.btn--primary{background:var(--primary);color:#FFFFFF;box-shadow:0 3px 10px rgba(21,101,192,.28);}
-.btn--primary:hover{background:var(--primary-dark);}
-.btn--outline{background:var(--white);color:var(--primary);border:1.5px solid var(--primary);}
-.btn--outline:hover{background:#EEF4FC;}
-.btn--ghost{background:transparent;color:var(--muted);}
-.btn--ghost:hover{background:var(--line);}
-.btn--danger{background:var(--danger);color:#FFFFFF;}
-.btn--danger:hover{background:#B93636;}
+      body.dark-theme .prod-sn-line .sn-value {
+        color: #9ca3af;
+      }
 
-.btn--sm{padding:6px 10px;font-size:11.5px;}
+      * {
+        box-sizing: border-box;
+      }
 
-.action-bar-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-top: 8px;
-}
-.btn--download, .btn--preview { font-size: 15px; padding: 12px 16px; }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--font);
+        -webkit-tap-highlight-color: transparent;
+        overflow-x: hidden;
+        transition:
+          background 0.3s ease,
+          color 0.3s ease;
+      }
 
-.btn--reset {
-  grid-column: 1 / -1;
-  color: var(--danger);
-  padding: 12px 16px;
-  font-size: 14.5px;
-}
-.btn--reset:hover {
-  background: rgba(214, 69, 69, 0.1) !important;
-}
+      body {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
 
-.summary-grid{display:flex;flex-direction:column;gap:10px;}
-.summary-row{display:flex;align-items:center;justify-content:space-between;font-size:13.5px;color:var(--muted);}
-.summary-row b{color:var(--text);font-weight:700;}
-.summary-total{
-  background:linear-gradient(135deg,var(--primary) 0%,var(--primary-dark) 100%);
-  border-radius:var(--radius-sm);padding:14px 18px;display:flex;align-items:center;justify-content:space-between;
-  color:#FFFFFF;margin-top:4px;
-}
-.summary-total .label{font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;opacity:.92;}
-.summary-total .value{font-size:24px;font-weight:700;}
+      button,
+      input,
+      textarea {
+        font-family: var(--font);
+      }
 
-.empty-state{text-align:center;padding:34px 10px;color:var(--muted);}
-.empty-state i{font-size:28px;color:var(--line);margin-bottom:10px;display:block;}
-.empty-state p{margin:0 0 4px;font-weight:600;color:var(--text);}
-.empty-state span{font-size:12.5px;}
-.product-table-wrap{overflow-x:auto;border-radius:var(--radius-sm);border:1px solid var(--line);}
-.product-table{width:100%;border-collapse:collapse;font-size:13.5px;}
-.product-table thead th{background:#EEF4FC;color:var(--primary);text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap; transition: background 0.3s ease;}
-.product-table tbody td{padding:12px;border-top:1px solid var(--line);vertical-align:top;}
-.product-table .prod-name{font-weight:600;color:var(--text);}
+      img {
+        max-width: 100%;
+        display: block;
+      }
 
-.product-table .prod-meta, 
-.inv-table .prod-meta { margin-top: 4px; line-height: 1.45; }
-.prod-desc-line { color: var(--muted); font-size: 12px; margin-top: 2px; }
-.prod-sn-line { font-size: 12px; margin-top: 2px; color: var(--text) !important; }
-.prod-sn-line .sn-label { color: var(--primary) !important; font-weight: 700; }
-.prod-sn-line .sn-value { color: inherit; font-weight: 500; }
+      .hide {
+        display: none !important;
+      }
 
-.col-qty,.col-rate,.col-amount{white-space:nowrap;}
-.col-idx{text-align:center;color:var(--muted);}
-.col-actions{text-align:right;white-space:nowrap;}
-.row-action-btn{background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;padding:6px 8px;border-radius:6px;}
-.row-action-btn:hover{background:var(--bg);color:var(--primary);}
-.row-action-btn.delete:hover{color:var(--danger);}
+      .app-bar {
+        background: var(--primary);
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 22px;
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        box-shadow: var(--shadow-md);
+      }
 
-.app-footer{text-align:center;font-size:11px;color:var(--muted);padding:16px 4px;}
+      .app-bar__brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
 
-.modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.75);display:flex;align-items:flex-end;justify-content:center;z-index:100;animation:fadeIn .15s ease;}
-@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
-.modal{background:var(--white);width:100%;max-width:480px;border-radius:var(--radius) var(--radius) 0 0;max-height:92vh;overflow-y:auto;animation:slideUp .2s ease; transition: background 0.3s ease;}
-@keyframes slideUp{from{transform:translateY(24px);opacity:0;}to{transform:translateY(0);opacity:1;}}
-.modal__header{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 8px;}
-.modal__header h3{margin:0;font-size:16px;color:var(--primary);}
-.modal__close{background:transparent;border:none;width:32px;height:32px;border-radius:8px;cursor:pointer;color:var(--muted);font-size:14px;}
-.modal__body{padding:12px 20px;display:flex;flex-direction:column;gap:14px;}
-.modal__footer{display:flex;gap:10px;padding:8px 20px 20px;}
-.modal__footer .btn{flex:1;}
+      .app-bar__logo {
+        height: 45px;
+        width: 45px;
+        object-fit: contain;
+      }
 
-.modal--confirm{z-index:110 !important;}
-.modal--confirm .modal{max-width:380px;}
-.modal--confirm .modal__body{align-items:center;text-align:center;padding:6px 24px 4px;}
-.modal--confirm .confirm-icon{width:52px;height:52px;border-radius:50%;background:#FCEBEB;color:var(--danger);display:flex;align-items:center;justify-content:center;font-size:20px;margin:6px auto 4px;}
-.modal--confirm p{margin:0;color:var(--muted);font-size:13.5px;line-height:1.5;}
-.modal--confirm .confirm-target{color:var(--text);font-weight:700;}
+      .app-bar__title h1 {
+        margin: 0;
+        font-size: 16px;
+        letter-spacing: 3px;
+        font-weight: 700;
+      }
 
-.modal--preview { z-index: 150 !important; align-items: center !important; }
-.modal--preview .modal { max-width: 840px; width: 95%; border-radius: var(--radius); max-height: 95vh; display: flex; flex-direction: column; background: #525659 !important; }
-.modal--preview .modal__header { background: var(--white); border-radius: var(--radius) var(--radius) 0 0; }
-.modal--preview .modal__footer { background: var(--white); border-radius: 0 0 var(--radius) var(--radius); }
-.modal--preview .modal__body { padding: 20px 0; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; align-items: center; gap: 20px; min-height: 400px; width: 100%; }
+      .app-bar__title span {
+        font-size: 10.5px;
+        opacity: 0.85;
+        letter-spacing: 0.4px;
+      }
 
-#previewScaleContainer { display: flex; flex-direction: column; gap: 24px;  transform-origin: top center; width: 794px;  }
+      .app-bar__actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
 
-@media (min-width:640px){ .modal-overlay{align-items:center;} .modal{border-radius:var(--radius);margin-bottom:40px;} }
+      .app-bar__icon-btn {
+        background: rgba(255, 255, 255, 0.14);
+        border: none;
+        color: #ffffff;
+        width: 38px;
+        height: 38px;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        font-size: 15px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition:
+          background 0.15s ease,
+          transform 0.08s ease;
+      }
 
-.toast{
-  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--white);
-  padding:12px 20px;border-radius:var(--radius-sm);font-size:13.5px;z-index:200;box-shadow:var(--shadow-md);
-  display:flex;align-items:center;gap:8px;
-  animation:toastIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-}
+      .app-bar__icon-btn:hover {
+        background: rgba(255, 255, 255, 0.24);
+      }
 
-@keyframes toastIn{
-  from{opacity:0;transform:translate(-50%, 20px);}
-  to{opacity:1;transform:translate(-50%, 0);}
-}
-.toast.toast--error{background:var(--danger); color:#FFFFFF;}
-.toast.toast--success{background:var(--success); color:#FFFFFF;}
+      .app-bar__icon-btn:active {
+        transform: scale(0.92);
+      }
 
-#pdfRenderWrap{position:fixed;top:0;left:-9999px;width:794px;overflow:hidden;z-index:-9999;}
-.pdf-wrapper-container{width:794px;margin:0;padding:0;background:#FFFFFF;}
-.invoice-render{width:794px;margin:0;padding:0;background:#FFFFFF;}
+      .app-shell {
+        flex: 1;
+        width: 100%;
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 20px 16px 0px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
 
-.pdf-loading-overlay{position:fixed;inset:0;background:rgba(255,255,255,0.95);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px; transition: background 0.3s ease;}
-.pdf-loading-overlay .spinner{width:40px;height:40px;border:4px solid var(--line);border-top-color:var(--primary);border-radius:50%;animation:pdfSpin .8s linear infinite;}
-.pdf-loading-overlay p{margin:0;font-size:13.5px;color:var(--text);font-weight:600;}
-@keyframes pdfSpin{to{transform:rotate(360deg);}}
+      .card {
+        background: var(--white);
+        border-radius: var(--radius);
+        padding: 18px 20px;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--line);
+        transition:
+          background 0.3s ease,
+          border-color 0.3s ease;
+      }
 
-/* PDF Generation specific styles */
-.invoice-page{
-  position:relative;width:794px;
-  min-height:1122px; 
-  background:#FFFFFF !important;
-  font-family:'Segoe UI',Arial,sans-serif;color:#212121 !important;
-  padding:40px 45px 30px;overflow:visible;display:flex;flex-direction:column;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
-  margin:0;
-  border: 1px solid #E4E8EE; 
-  page-break-after: always;
-  left:0; top:0;
-}
+      .card__heading {
+        margin: 0 0 14px;
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--primary);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
 
-.invoice-page:last-child { page-break-after: auto; }
+      .card__heading-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
 
-.inv-bottom-row, .inv-footer { page-break-inside: avoid; break-inside: avoid; }
+      .card__heading-row .card__heading {
+        margin-bottom: 0;
+      }
 
-.inv-watermark{
-  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-30deg);
-  width:550px;opacity:0.05;pointer-events:none;z-index:999 !important;
-}
+      .toggle-container {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12.5px;
+        color: var(--muted);
+        cursor: pointer;
+        user-select: none;
+        font-weight: 600;
+      }
 
-.inv-header { display:flex; justify-content:space-between; align-items:center; width:100%; position:relative; z-index:5;}
-.inv-header__logo { width:auto; max-width:450px; object-fit:contain; margin:0;}
-.inv-header__right { text-align:right; display:flex; flex-direction:column; align-items:flex-end; }
+      .toggle-container input {
+        cursor: pointer;
+        width: 15px;
+        height: 15px;
+        accent-color: var(--primary);
+        margin: 0;
+      }
 
-.inv-header__ribbon {
-  display: inline-block;
-  position: relative;
-  background: var(--primary);
-  transform: skewX(-25deg);
-  padding: 6px 40px 6px 25px;
-  color: #ffffff;
-  font-weight: 700;
-  font-size: 18px;
-  letter-spacing: 1px;
-  line-height: 1.2;
-  margin:5px;
-}
-.inv-header__ribbon-text { display: inline-block; transform: skewX(25deg); }
-.inv-header__ribbon-stripe { position: absolute; top: 0; bottom: 0; right: 15px; width: 2.5px; background: #ffffff; }
-.inv-header__ribbon-stripe:nth-child(1) { right: 6px; }
-.inv-header__ribbon-stripe:nth-child(2) { right: 7px; }
+      .field-group {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
 
-.inv-header__meta { font-size:14px; color:#212121; }
-.inv-header__meta .row { display:flex; justify-content:flex-end; align-items:center; margin:6px 0; }
-.inv-header__meta .row .k { width:85px; text-align:left; color:#000000; font-weight:700; }
-.inv-header__meta .row .sep { font-weight:700; color:#000000; margin-right:8px; }
-.inv-header__meta .row .v { font-weight:700; color:var(--primary); min-width:85px; text-align:left; }
+      .field-group--pair {
+        flex-direction: row;
+      }
 
-.inv-divider { border:none; border-top:2px solid var(--primary); width:100%; position:relative; z-index:5;}
+      .field-group--pair .field {
+        flex: 1;
+        min-width: 0;
+      }
 
-.inv-customer { display:flex; gap:14px; align-items:flex-start; position:relative; z-index:5;}
-.inv-customer__icon { width:34px; height:34px; border-radius:50%; background:var(--primary); color:#FFFFFF; display:flex; align-items:center; justify-content:center; font-size:16px; margin-top:2px; flex-shrink:0;}
-.inv-customer__details { display:flex; flex-direction:column; gap:4px; }
-.inv-customer__label { font-size:13px; font-weight:700; letter-spacing:0.8px; color:var(--primary); text-transform:uppercase; line-height:1; margin-bottom:2px;margin-top:12px;}
-.inv-customer__name { font-size:18px; font-weight:700; color:#000000;}
-.inv-customer__line { font-size:14px; color:#000000; font-weight:600; }
+      .field label {
+        display: block;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
 
-.invoice-page.page-continuation { padding-top: 40px; }
-.page-continuation-header {
-  display: flex; justify-content: space-between; align-items: center; width: 100%;
-  padding-bottom: 12px; border-bottom: 2px solid var(--primary);
-  position: relative; z-index: 5;
-}
-.cont-left { display: flex; align-items: center;gap: 110px; }
-.cont-logo { height: 34px; width: auto; margin-right: 12px; object-fit: contain; }
-.cont-page-count { font-weight: 600; color: #6B7280; font-size: 12px; margin-left: 8px; }
-.cont-inv-no { font-weight: 700; color: var(--primary); font-size: 13.5px; }
+      .field label .optional {
+        font-weight: 400;
+        color: var(--muted);
+      }
 
-.inv-table-wrap { width:100%; flex:1; display:flex; flex-direction:column; position:relative; z-index:5;}
-.inv-table { width:100%; border-collapse:separate;border-spacing: 0; margin-top:12px; font-size:13.5px; table-layout:fixed; border:1px solid #CBD5E1;border-radius: 8px;overflow: hidden; }
-.inv-table thead th { background:var(--primary) !important; color:#FFFFFF !important; padding:12px 14px; font-size:12px; text-transform:uppercase; font-weight:700; border:none; text-align:center;border-right:1px solid #FFFFFF;letter-spacing:0.8px;}
-.inv-table thead th:nth-child(2) { text-align:left; }
-.inv-table thead th.idx { width:45px; }
-.inv-table thead th.col-qty { width:70px; }
-.inv-table thead th.col-rate { width:115px; }
-.inv-table thead th.col-amt { width:125px; }    
+      .field label .required {
+        color: var(--danger);
+      }
 
-.inv-table tbody td { padding:6px; border:none;border-top:1px solid #CBD5E1;border-right:1px solid #CBD5E1; vertical-align:middle; text-align:center; color:#000000; font-size:13.5px; }
-.inv-table tbody td:nth-child(2) { text-align:left; }
-.inv-table tbody tr:nth-child(odd) td { background-color: #FFFFFF !important; }
-.inv-table tbody tr:nth-child(even) td { background-color: #F8FAFC !important; }
+      .field input,
+      .field textarea {
+        width: 100%;
+        padding: 11px 13px;
+        border: 1.5px solid var(--line);
+        border-radius: var(--radius-sm);
+        font-size: 14.5px;
+        color: var(--text);
+        background: var(--white);
+        outline: none;
+        transition:
+          border-color 0.15s ease,
+          box-shadow 0.15s ease,
+          background 0.3s ease;
+      }
 
-.inv-table td.num { white-space:nowrap; font-weight:600; }
-.inv-table td.idx { font-weight:700; }
-.inv-table .prod-name { font-weight:700; color:#000000; font-size:14px; margin-bottom:4px; }
+      .field textarea {
+        resize: vertical;
+        min-height: 64px;
+        line-height: 1.5;
+      }
 
-.inv-bottom-row { display:flex; justify-content:space-between; gap:30px; margin-top:12px; align-items:flex-start; width:100%; position:relative; z-index:5;}
+      .field input:focus,
+      .field textarea:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(21, 101, 192, 0.14);
+      }
 
-.inv-notes { flex:1; min-width:0; padding-top:4px; display:flex; flex-direction:column; gap:8px; }
-.inv-notes__label { display:flex; align-items:center; gap:8px; font-size:14px; font-weight:700; letter-spacing:0.8px; color:var(--primary); text-transform:uppercase; }
-.inv-notes__text { font-size:13px; color:#000000; line-height:1.55; white-space:pre-line; }
+      .field input.input-error,
+      .field textarea.input-error {
+        border-color: var(--danger);
+        box-shadow: 0 0 0 3px rgba(214, 69, 69, 0.14);
+      }
 
-.inv-summary { width:370px; flex-shrink:0; border:1px solid #CBD5E1; border-radius:6px; overflow:hidden; background:#FFFFFF; }
-.inv-summary__row { display:flex; justify-content:space-between; font-size:13px; color:#000000; padding:10px 16px; border-bottom:1px solid #CBD5E1; font-weight:700; text-transform:uppercase;}
-.inv-summary__total { background:var(--primary); color:#FFFFFF; padding:12px 16px; display:flex; justify-content:space-between; align-items:center;}
-.inv-summary__total .label { font-size:16px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;}
-.inv-summary__total .value { font-size:24px; font-weight:600; }
+      /* Custom Date Icon Wrapper */
+      .input-icon-wrap {
+        position: relative;
+        display: block;
+      }
 
-.inv-footer { margin-top:auto; width:100%; padding-top:20px; position:relative; z-index:5;}
-.inv-footer-details { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; }
+      .input-icon-wrap i {
+        position: absolute;
+        right: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--muted);
+        pointer-events: none;
+        font-size: 15px;
+      }
 
-.contact-block { display:flex; flex-direction:column; gap:10px; }
-.contact-block div { display:flex; align-items:center; gap:12px; font-size:13px; color:#000000; font-weight:500;}
-.contact-block i { color:var(--primary); font-size:16px; width:18px; text-align:center; }
+      input[type="date"]::-webkit-calendar-picker-indicator {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        cursor: pointer;
+        color: transparent;
+        background: transparent;
+      }
 
-.qr-block { display:flex; flex-direction:column; align-items:center; gap:4px; transform:translateY(-5px); }
-.qr-block img { width:88px; height:88px; border:2px solid #000000; border-radius:6px; padding:4px; }
-.qr-block span { background:var(--primary); color:#FFFFFF; padding:3px 10px 5px 10px; border-radius:10px; font-size:10px; font-weight:600; letter-spacing:0.5px;}
+      .btn {
+        border: none;
+        border-radius: var(--radius-sm);
+        font-size: 14px;
+        font-weight: 600;
+        padding: 11px 18px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition:
+          transform 0.08s ease,
+          background 0.15s ease,
+          box-shadow 0.15s ease;
+      }
 
-.sign-block { display:flex; flex-direction:column; align-items:center; gap:4px; }
-.sign-block .for-line { color:var(--primary); font-weight:700; font-size:14px; margin-bottom:2px; }
-.sign-block img { height:55px; object-fit:contain; }
-.sign-block .auth-line { color:var(--primary); font-weight:700; font-size:12px; border-top:1.5px dashed var(--primary); padding-top:6px; min-width:190px; text-align:center;}
+      .btn:active {
+        transform: scale(0.97);
+      }
 
-.inv-services { background:var(--primary); color:#FFFFFF; padding:12px 18px; display:flex; justify-content:space-between; align-items:center; border-radius:4px; width:100%; }
-.inv-services__item { display:flex; align-items:center; gap:8px; font-size:10.5px; font-weight:500; letter-spacing:0.4px; text-transform:uppercase; line-height:1.2; text-align:left;}
-.inv-services__item i { font-family:'Font Awesome 6 Free', 'Font Awesome 5 Free', sans-serif !important; font-weight:900 !important; font-size:18px; }
-.inv-services__sep { width:1px; height:26px; background:rgba(255,255,255,0.4); }
+      .btn--primary {
+        background: var(--primary);
+        color: #ffffff;
+        box-shadow: 0 3px 10px rgba(21, 101, 192, 0.28);
+      }
 
-.inv-thanks-container { display:flex; align-items:center; justify-content:center; gap:12px; margin-top:12px; width:100%; }
-.inv-thanks-line { flex:1; height:2px; background:var(--primary); position:relative; opacity:0.8;}
-.inv-thanks-line.left::after { content:''; position:absolute; right:-2px; top:-2px; width:6px; height:6px; background:var(--primary); border-radius:50%; }
-.inv-thanks-line.right::after { content:''; position:absolute; left:-2px; top:-2px; width:6px; height:6px; background:var(--primary); border-radius:50%; }
-.inv-thanks { font-size:16px; font-weight:700; color:var(--primary); letter-spacing:0.2px; white-space:nowrap; }
+      .btn--primary:hover {
+        background: var(--primary-dark);
+      }
 
-.inv-copy { text-align:center; font-size:11px; color:#212121; font-weight:600; margin-top:6px; }
+      .btn--outline {
+        background: var(--white);
+        color: var(--primary);
+        border: 1.5px solid var(--primary);
+      }
 
-.invoice-page.compact .inv-table thead th{padding:8px 12px;}
-.invoice-page.compact .inv-table tbody td{padding:8px 12px;}
-.invoice-page.compact .inv-customer{margin-top:10px;}
-.invoice-page.compact .inv-table{margin-top:10px;}
-.invoice-page.compact .inv-bottom-row{margin-top:10px;}
+      .btn--outline:hover {
+        background: #eef4fc;
+      }
 
-.invoice-page.compact-2 .inv-table thead th{padding:6px 10px;}
-.invoice-page.compact-2 .inv-table tbody td{padding:6px 10px;}
-.invoice-page.compact-2 .inv-customer{margin-top:6px;}
-.invoice-page.compact-2 .inv-table{margin-top:6px;}
-.invoice-page.compact-2 .inv-bottom-row{margin-top:6px;}
-</style>
-</head>
-<body>
+      .btn--ghost {
+        background: transparent;
+        color: var(--muted);
+      }
 
-<header class="app-bar">
-  <div class="app-bar__brand">
-    <img src="assets/logo/logo.png" alt="Logo" class="app-bar__logo" id="appBarLogo">
-    <div class="app-bar__title">
-      <h1 id="appBarCompanyName">JAS TECH BILLING</h1>
-      <span>Invoices in seconds</span>
-    </div>
-  </div>
-  <div class="app-bar__actions">
-    <button class="app-bar__icon-btn" id="btnThemeToggle" aria-label="Toggle Theme">
-      <i class="fa-solid fa-moon"></i>
-    </button>
-  </div>
-</header>
+      .btn--ghost:hover {
+        background: var(--line);
+      }
 
-<main class="app-shell">
-  <section class="card">
-    <h2 class="card__heading"><i class="fa-regular fa-user"></i> Bill To</h2>
-    <div class="field-group">
-      <div class="field">
-        <label for="customerName">Customer Name <span class="optional">(Optional)</span></label>
-        <input type="text" id="customerName" autocomplete="off">
-      </div>
-      <div class="field">
-        <label for="customerAddress">Address <span class="optional">(Optional)</span></label>
-        <input type="text" id="customerAddress" autocomplete="off">
-      </div>
-      <div class="field">
-        <label for="customerMobile">Mobile Number <span class="optional">(Optional)</span></label>
-        <input type="tel" id="customerMobile" autocomplete="off" inputmode="tel">
-      </div>
-    </div>
-  </section>
+      .btn--danger {
+        background: var(--danger);
+        color: #ffffff;
+      }
 
-  <section class="card">
-    <h2 class="card__heading"><i class="fa-regular fa-file-lines"></i> Invoice</h2>
-    <div class="field-group field-group--pair">
-      <div class="field"><label for="invoiceNumber">Invoice No.</label><input type="text" id="invoiceNumber" autocomplete="off"></div>
-      
-      <!-- Updated Date Field with Font Awesome wrapper -->
-      <div class="field">
-        <label for="invoiceDate">Date</label>
-        <div class="input-icon-wrap">
-          <input type="date" id="invoiceDate">
-          <i class="fa-regular fa-calendar"></i>
+      .btn--danger:hover {
+        background: #b93636;
+      }
+
+      .btn--sm {
+        padding: 6px 10px;
+        font-size: 11.5px;
+      }
+
+      .action-bar-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-top: 8px;
+      }
+
+      .btn--download,
+      .btn--preview {
+        font-size: 15px;
+        padding: 12px 16px;
+      }
+
+      .btn--reset {
+        grid-column: 1 / -1;
+        color: var(--danger);
+        padding: 12px 16px;
+        font-size: 14.5px;
+      }
+
+      .btn--reset:hover {
+        background: rgba(214, 69, 69, 0.1) !important;
+      }
+
+      .summary-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .summary-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 13.5px;
+        color: var(--muted);
+      }
+
+      .summary-row b {
+        color: var(--text);
+        font-weight: 700;
+      }
+
+      .summary-total {
+        background: linear-gradient(
+          135deg,
+          var(--primary) 0%,
+          var(--primary-dark) 100%
+        );
+        border-radius: var(--radius-sm);
+        padding: 14px 18px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        color: #ffffff;
+        margin-top: 4px;
+      }
+
+      .summary-total .label {
+        font-size: 12.5px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        opacity: 0.92;
+      }
+
+      .summary-total .value {
+        font-size: 24px;
+        font-weight: 700;
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 34px 10px;
+        color: var(--muted);
+      }
+
+      .empty-state i {
+        font-size: 28px;
+        color: var(--line);
+        margin-bottom: 10px;
+        display: block;
+      }
+
+      .empty-state p {
+        margin: 0 0 4px;
+        font-weight: 600;
+        color: var(--text);
+      }
+
+      .empty-state span {
+        font-size: 12.5px;
+      }
+
+      .product-table-wrap {
+        overflow-x: auto;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--line);
+      }
+
+      .product-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13.5px;
+      }
+
+      .product-table thead th {
+        background: #eef4fc;
+        color: var(--primary);
+        text-align: left;
+        padding: 10px 12px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        white-space: nowrap;
+        transition: background 0.3s ease;
+      }
+
+      .product-table tbody td {
+        padding: 12px;
+        border-top: 1px solid var(--line);
+        vertical-align: top;
+      }
+
+      .product-table .prod-name {
+        font-weight: 600;
+        color: var(--text);
+      }
+
+      .product-table .prod-meta,
+      .inv-table .prod-meta {
+        margin-top: 4px;
+        line-height: 1.45;
+      }
+
+      .prod-desc-line {
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 2px;
+      }
+
+      .prod-sn-line {
+        font-size: 12px;
+        margin-top: 2px;
+        color: var(--text) !important;
+      }
+
+      .prod-sn-line .sn-label {
+        color: var(--primary) !important;
+        font-weight: 700;
+      }
+
+      .prod-sn-line .sn-value {
+        color: inherit;
+        font-weight: 500;
+      }
+
+      .col-qty,
+      .col-rate,
+      .col-amount {
+        white-space: nowrap;
+      }
+
+      .col-idx {
+        text-align: center;
+        color: var(--muted);
+      }
+
+      .col-actions {
+        text-align: right;
+        white-space: nowrap;
+      }
+
+      .row-action-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--muted);
+        font-size: 14px;
+        padding: 6px 8px;
+        border-radius: 6px;
+      }
+
+      .row-action-btn:hover {
+        background: var(--bg);
+        color: var(--primary);
+      }
+
+      .row-action-btn.delete:hover {
+        color: var(--danger);
+      }
+
+      .app-footer {
+        text-align: center;
+        font-size: 11px;
+        color: var(--muted);
+        padding: 16px 4px;
+      }
+
+      .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.75);
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        z-index: 100;
+        animation: fadeIn 0.15s ease;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+
+        to {
+          opacity: 1;
+        }
+      }
+
+      .modal {
+        background: var(--white);
+        width: 100%;
+        max-width: 480px;
+        border-radius: var(--radius) var(--radius) 0 0;
+        max-height: 92vh;
+        overflow-y: auto;
+        animation: slideUp 0.2s ease;
+        transition: background 0.3s ease;
+      }
+
+      @keyframes slideUp {
+        from {
+          transform: translateY(24px);
+          opacity: 0;
+        }
+
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      .modal__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 18px 20px 8px;
+      }
+
+      .modal__header h3 {
+        margin: 0;
+        font-size: 16px;
+        color: var(--primary);
+      }
+
+      .modal__close {
+        background: transparent;
+        border: none;
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        cursor: pointer;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .modal__body {
+        padding: 12px 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .modal__footer {
+        display: flex;
+        gap: 10px;
+        padding: 8px 20px 20px;
+      }
+
+      .modal__footer .btn {
+        flex: 1;
+      }
+
+      .modal--confirm {
+        z-index: 110 !important;
+      }
+
+      .modal--confirm .modal {
+        max-width: 380px;
+      }
+
+      .modal--confirm .modal__body {
+        align-items: center;
+        text-align: center;
+        padding: 6px 24px 4px;
+      }
+
+      .modal--confirm .confirm-icon {
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        background: #fcebeb;
+        color: var(--danger);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        margin: 6px auto 4px;
+      }
+
+      .modal--confirm p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13.5px;
+        line-height: 1.5;
+      }
+
+      .modal--confirm .confirm-target {
+        color: var(--text);
+        font-weight: 700;
+      }
+
+      .modal--preview {
+        z-index: 150 !important;
+        align-items: center !important;
+      }
+
+      .modal--preview .modal {
+        max-width: 840px;
+        width: 95%;
+        border-radius: var(--radius);
+        max-height: 95vh;
+        display: flex;
+        flex-direction: column;
+        background: #525659 !important;
+      }
+
+      .modal--preview .modal__header {
+        background: var(--white);
+        border-radius: var(--radius) var(--radius) 0 0;
+      }
+
+      .modal--preview .modal__footer {
+        background: var(--white);
+        border-radius: 0 0 var(--radius) var(--radius);
+      }
+
+      .modal--preview .modal__body {
+        padding: 20px 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+        min-height: 400px;
+        width: 100%;
+      }
+
+      #previewScaleContainer {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        transform-origin: top center;
+        width: 794px;
+      }
+
+      @media (min-width: 640px) {
+        .modal-overlay {
+          align-items: center;
+        }
+
+        .modal {
+          border-radius: var(--radius);
+          margin-bottom: 40px;
+        }
+      }
+
+      .toast {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--text);
+        color: var(--white);
+        padding: 12px 20px;
+        border-radius: var(--radius-sm);
+        font-size: 13.5px;
+        z-index: 200;
+        box-shadow: var(--shadow-md);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        animation: toastIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275)
+          forwards;
+      }
+
+      @keyframes toastIn {
+        from {
+          opacity: 0;
+          transform: translate(-50%, 20px);
+        }
+
+        to {
+          opacity: 1;
+          transform: translate(-50%, 0);
+        }
+      }
+
+      .toast.toast--error {
+        background: var(--danger);
+        color: #ffffff;
+      }
+
+      .toast.toast--success {
+        background: var(--success);
+        color: #ffffff;
+      }
+
+      #pdfRenderWrap {
+        position: fixed;
+        top: 0;
+        left: -9999px;
+        width: 794px;
+        overflow: hidden;
+        z-index: -9999;
+      }
+
+      .pdf-wrapper-container {
+        width: 794px;
+        margin: 0;
+        padding: 0;
+        background: #ffffff;
+      }
+
+      .invoice-render {
+        width: 794px;
+        margin: 0;
+        padding: 0;
+        background: #ffffff;
+      }
+
+      .pdf-loading-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(255, 255, 255, 0.95);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 14px;
+        transition: background 0.3s ease;
+      }
+
+      .pdf-loading-overlay .spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid var(--line);
+        border-top-color: var(--primary);
+        border-radius: 50%;
+        animation: pdfSpin 0.8s linear infinite;
+      }
+
+      .pdf-loading-overlay p {
+        margin: 0;
+        font-size: 13.5px;
+        color: var(--text);
+        font-weight: 600;
+      }
+
+      @keyframes pdfSpin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* PDF Generation specific styles */
+      .invoice-page {
+        position: relative;
+        width: 794px;
+        min-height: 1122px;
+        background: #ffffff !important;
+        font-family: "Segoe UI", Arial, sans-serif;
+        color: #212121 !important;
+        padding: 40px 45px 30px;
+        overflow: visible;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+        margin: 0;
+        border: 1px solid #e4e8ee;
+        page-break-after: always;
+        left: 0;
+        top: 0;
+      }
+
+      .invoice-page:last-child {
+        page-break-after: auto;
+      }
+
+      .inv-bottom-row,
+      .inv-footer {
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+
+      .inv-watermark {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) rotate(-30deg);
+        width: 550px;
+        opacity: 0.05;
+        pointer-events: none;
+        z-index: 999 !important;
+      }
+
+      .inv-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        position: relative;
+        z-index: 5;
+      }
+
+      .inv-header__logo {
+        width: auto;
+        max-width: 450px;
+        object-fit: contain;
+        margin: 0;
+      }
+
+      .inv-header__right {
+        text-align: right;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+      }
+
+      .inv-header__ribbon {
+        display: inline-block;
+        position: relative;
+        background: var(--primary);
+        transform: skewX(-25deg);
+        padding: 6px 40px 6px 25px;
+        color: #ffffff;
+        font-weight: 700;
+        font-size: 18px;
+        letter-spacing: 1px;
+        line-height: 1.2;
+        margin: 5px;
+      }
+
+      .inv-header__ribbon-text {
+        display: inline-block;
+        transform: skewX(25deg);
+      }
+
+      .inv-header__ribbon-stripe {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        right: 15px;
+        width: 2.5px;
+        background: #ffffff;
+      }
+
+      .inv-header__ribbon-stripe:nth-child(1) {
+        right: 6px;
+      }
+
+      .inv-header__ribbon-stripe:nth-child(2) {
+        right: 7px;
+      }
+
+      .inv-header__meta {
+        font-size: 14px;
+        color: #212121;
+      }
+
+      .inv-header__meta .row {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        margin: 6px 0;
+      }
+
+      .inv-header__meta .row .k {
+        width: 85px;
+        text-align: left;
+        color: #000000;
+        font-weight: 700;
+      }
+
+      .inv-header__meta .row .sep {
+        font-weight: 700;
+        color: #000000;
+        margin-right: 8px;
+      }
+
+      .inv-header__meta .row .v {
+        font-weight: 700;
+        color: var(--primary);
+        min-width: 85px;
+        text-align: left;
+      }
+
+      .inv-divider {
+        border: none;
+        border-top: 2px solid var(--primary);
+        width: 100%;
+        position: relative;
+        z-index: 5;
+      }
+
+      .inv-customer {
+        display: flex;
+        gap: 14px;
+        align-items: flex-start;
+        position: relative;
+        z-index: 5;
+      }
+
+      .inv-customer__icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: var(--primary);
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        margin-top: 2px;
+        flex-shrink: 0;
+      }
+
+      .inv-customer__details {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .inv-customer__label {
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.8px;
+        color: var(--primary);
+        text-transform: uppercase;
+        line-height: 1;
+        margin-bottom: 2px;
+        margin-top: 12px;
+      }
+
+      .inv-customer__name {
+        font-size: 18px;
+        font-weight: 700;
+        color: #000000;
+      }
+
+      .inv-customer__line {
+        font-size: 14px;
+        color: #000000;
+        font-weight: 600;
+      }
+
+      .invoice-page.page-continuation {
+        padding-top: 40px;
+      }
+
+      .page-continuation-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        padding-bottom: 12px;
+        border-bottom: 2px solid var(--primary);
+        position: relative;
+        z-index: 5;
+      }
+
+      .cont-left {
+        display: flex;
+        align-items: center;
+        gap: 110px;
+      }
+
+      .cont-logo {
+        height: 34px;
+        width: auto;
+        margin-right: 12px;
+        object-fit: contain;
+      }
+
+      .cont-page-count {
+        font-weight: 600;
+        color: #6b7280;
+        font-size: 12px;
+        margin-left: 8px;
+      }
+
+      .cont-inv-no {
+        font-weight: 700;
+        color: var(--primary);
+        font-size: 13.5px;
+      }
+
+      .inv-table-wrap {
+        width: 100%;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        z-index: 5;
+      }
+
+      .inv-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        margin-top: 12px;
+        font-size: 13.5px;
+        table-layout: fixed;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+
+      .inv-table thead th {
+        background: var(--primary) !important;
+        color: #ffffff !important;
+        padding: 12px 14px;
+        font-size: 12px;
+        text-transform: uppercase;
+        font-weight: 700;
+        border: none;
+        text-align: center;
+        border-right: 1px solid #ffffff;
+        letter-spacing: 0.8px;
+      }
+
+      .inv-table thead th:nth-child(2) {
+        text-align: left;
+      }
+
+      .inv-table thead th.idx {
+        width: 45px;
+      }
+
+      .inv-table thead th.col-qty {
+        width: 70px;
+      }
+
+      .inv-table thead th.col-rate {
+        width: 115px;
+      }
+
+      .inv-table thead th.col-amt {
+        width: 125px;
+      }
+
+      .inv-table tbody td {
+        padding: 6px;
+        border: none;
+        border-top: 1px solid #cbd5e1;
+        border-right: 1px solid #cbd5e1;
+        vertical-align: middle;
+        text-align: center;
+        color: #000000;
+        font-size: 13.5px;
+      }
+
+      .inv-table tbody td:nth-child(2) {
+        text-align: left;
+      }
+
+      .inv-table tbody tr:nth-child(odd) td {
+        background-color: #ffffff !important;
+      }
+
+      .inv-table tbody tr:nth-child(even) td {
+        background-color: #f8fafc !important;
+      }
+
+      .inv-table td.num {
+        white-space: nowrap;
+        font-weight: 600;
+      }
+
+      .inv-table td.idx {
+        font-weight: 700;
+      }
+
+      .inv-table .prod-name {
+        font-weight: 700;
+        color: #000000;
+        font-size: 14px;
+        margin-bottom: 4px;
+      }
+
+      .inv-bottom-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 30px;
+        margin-top: 12px;
+        align-items: flex-start;
+        width: 100%;
+        position: relative;
+        z-index: 5;
+      }
+
+      .inv-notes {
+        flex: 1;
+        min-width: 0;
+        padding-top: 4px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .inv-notes__label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 0.8px;
+        color: var(--primary);
+        text-transform: uppercase;
+      }
+
+      .inv-notes__text {
+        font-size: 13px;
+        color: #000000;
+        line-height: 1.55;
+        white-space: pre-line;
+      }
+
+      .inv-summary {
+        width: 370px;
+        flex-shrink: 0;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        overflow: hidden;
+        background: #ffffff;
+      }
+
+      .inv-summary__row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 13px;
+        color: #000000;
+        padding: 10px 16px;
+        border-bottom: 1px solid #cbd5e1;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
+      .inv-summary__total {
+        background: var(--primary);
+        color: #ffffff;
+        padding: 12px 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .inv-summary__total .label {
+        font-size: 16px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .inv-summary__total .value {
+        font-size: 24px;
+        font-weight: 600;
+      }
+
+      .inv-footer {
+        margin-top: auto;
+        width: 100%;
+        padding-top: 20px;
+        position: relative;
+        z-index: 5;
+      }
+
+      .inv-footer-details {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 12px;
+      }
+
+      .contact-block {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .contact-block div {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 13px;
+        color: #000000;
+        font-weight: 500;
+      }
+
+      .contact-block i {
+        color: var(--primary);
+        font-size: 16px;
+        width: 18px;
+        text-align: center;
+      }
+
+      .qr-block {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        transform: translateY(-5px);
+      }
+
+      .qr-block img {
+        width: 88px;
+        height: 88px;
+        border: 2px solid #000000;
+        border-radius: 6px;
+        padding: 4px;
+      }
+
+      .qr-block span {
+        background: var(--primary);
+        color: #ffffff;
+        padding: 3px 10px 5px 10px;
+        border-radius: 10px;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+      }
+
+      .sign-block {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .sign-block .for-line {
+        color: var(--primary);
+        font-weight: 700;
+        font-size: 14px;
+        margin-bottom: 2px;
+      }
+
+      .sign-block img {
+        height: 55px;
+        object-fit: contain;
+      }
+
+      .sign-block .auth-line {
+        color: var(--primary);
+        font-weight: 700;
+        font-size: 12px;
+        border-top: 1.5px dashed var(--primary);
+        padding-top: 6px;
+        min-width: 190px;
+        text-align: center;
+      }
+
+      .inv-services {
+        background: var(--primary);
+        color: #ffffff;
+        padding: 12px 18px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-radius: 4px;
+        width: 100%;
+      }
+
+      .inv-services__item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 10.5px;
+        font-weight: 500;
+        letter-spacing: 0.4px;
+        text-transform: uppercase;
+        line-height: 1.2;
+        text-align: left;
+      }
+
+      .inv-services__item i {
+        font-family:
+          "Font Awesome 6 Free", "Font Awesome 5 Free", sans-serif !important;
+        font-weight: 900 !important;
+        font-size: 18px;
+      }
+
+      .inv-services__sep {
+        width: 1px;
+        height: 26px;
+        background: rgba(255, 255, 255, 0.4);
+      }
+
+      .inv-thanks-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        margin-top: 12px;
+        width: 100%;
+      }
+
+      .inv-thanks-line {
+        flex: 1;
+        height: 2px;
+        background: var(--primary);
+        position: relative;
+        opacity: 0.8;
+      }
+
+      .inv-thanks-line.left::after {
+        content: "";
+        position: absolute;
+        right: -2px;
+        top: -2px;
+        width: 6px;
+        height: 6px;
+        background: var(--primary);
+        border-radius: 50%;
+      }
+
+      .inv-thanks-line.right::after {
+        content: "";
+        position: absolute;
+        left: -2px;
+        top: -2px;
+        width: 6px;
+        height: 6px;
+        background: var(--primary);
+        border-radius: 50%;
+      }
+
+      .inv-thanks {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--primary);
+        letter-spacing: 0.2px;
+        white-space: nowrap;
+      }
+
+      .inv-copy {
+        text-align: center;
+        font-size: 11px;
+        color: #212121;
+        font-weight: 600;
+        margin-top: 6px;
+      }
+
+      .invoice-page.compact .inv-table thead th {
+        padding: 8px 12px;
+      }
+
+      .invoice-page.compact .inv-table tbody td {
+        padding: 8px 12px;
+      }
+
+      .invoice-page.compact .inv-customer {
+        margin-top: 10px;
+      }
+
+      .invoice-page.compact .inv-table {
+        margin-top: 10px;
+      }
+
+      .invoice-page.compact .inv-bottom-row {
+        margin-top: 10px;
+      }
+
+      .invoice-page.compact-2 .inv-table thead th {
+        padding: 6px 10px;
+      }
+
+      .invoice-page.compact-2 .inv-table tbody td {
+        padding: 6px 10px;
+      }
+
+      .invoice-page.compact-2 .inv-customer {
+        margin-top: 6px;
+      }
+
+      .invoice-page.compact-2 .inv-table {
+        margin-top: 6px;
+      }
+
+      .invoice-page.compact-2 .inv-bottom-row {
+        margin-top: 6px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <header class="app-bar">
+      <div class="app-bar__brand">
+        <img
+          src="assets/logo/logo.png"
+          alt="Logo"
+          class="app-bar__logo"
+          id="appBarLogo"
+        />
+        <div class="app-bar__title">
+          <h1 id="appBarCompanyName">JAS TECH BILLING</h1>
+          <span>Invoices in seconds</span>
         </div>
       </div>
-      
-    </div>
-  </section>
-
-  <section class="card">
-    <div class="card__heading-row">
-      <h2 class="card__heading"><i class="fa-solid fa-laptop"></i> Products</h2>
-      <button class="btn btn--outline btn--sm" id="btnAddProduct"><i class="fa-solid fa-plus"></i> Add Product</button>
-    </div>
-
-    <div id="productListWrap" style="padding-top:10px">
-      <div id="emptyState" class="empty-state">
-        <i class="fa-regular fa-rectangle-list"></i>
-        <p>No products added yet.</p>
-        <span>Tap "Add Product" to start building this invoice.</span>
+      <div class="app-bar__actions">
+        <button
+          class="app-bar__icon-btn"
+          id="btnThemeToggle"
+          aria-label="Toggle Theme"
+        >
+          <i class="fa-solid fa-moon"></i>
+        </button>
       </div>
+    </header>
 
-      <div class="product-table-wrap hide" id="productTableWrap">
-        <table class="product-table" id="productTable">
-          <thead>
-            <tr>
-              <th class="col-idx">#</th>
-              <th>Product</th>
-              <th class="col-qty">Qty</th>
-              <th class="col-rate">Rate</th>
-              <th class="col-amount">Amount</th>
-              <th class="col-actions"></th>
-            </tr>
-          </thead>
-          <tbody id="productTableBody"></tbody>
-        </table>
+    <main class="app-shell">
+      <section class="card">
+        <h2 class="card__heading">
+          <i class="fa-regular fa-user"></i> Bill To
+        </h2>
+        <div class="field-group">
+          <div class="field">
+            <label for="customerName"
+              >Customer Name <span class="optional">(Optional)</span></label
+            >
+            <input type="text" id="customerName" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="customerAddress"
+              >Address <span class="optional">(Optional)</span></label
+            >
+            <input type="text" id="customerAddress" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="customerMobile"
+              >Mobile Number <span class="optional">(Optional)</span></label
+            >
+            <input
+              type="tel"
+              id="customerMobile"
+              autocomplete="off"
+              inputmode="tel"
+            />
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2 class="card__heading">
+          <i class="fa-regular fa-file-lines"></i> Invoice
+        </h2>
+        <div class="field-group field-group--pair">
+          <div class="field">
+            <label for="invoiceNumber">Invoice No.</label
+            ><input type="text" id="invoiceNumber" autocomplete="off" />
+          </div>
+
+          <div class="field">
+            <label for="invoiceDate">Date</label>
+            <div class="input-icon-wrap">
+              <input type="date" id="invoiceDate" />
+              <i class="fa-regular fa-calendar"></i>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card__heading-row">
+          <h2 class="card__heading">
+            <i class="fa-solid fa-laptop"></i> Products
+          </h2>
+          <button class="btn btn--outline btn--sm" id="btnAddProduct">
+            <i class="fa-solid fa-plus"></i> Add Product
+          </button>
+        </div>
+
+        <div id="productListWrap" style="padding-top: 10px">
+          <div id="emptyState" class="empty-state">
+            <i class="fa-regular fa-rectangle-list"></i>
+            <p>No products added yet.</p>
+            <span>Tap "Add Product" to start building this invoice.</span>
+          </div>
+
+          <div class="product-table-wrap hide" id="productTableWrap">
+            <table class="product-table" id="productTable">
+              <thead>
+                <tr>
+                  <th class="col-idx">#</th>
+                  <th>Product</th>
+                  <th class="col-qty">Qty</th>
+                  <th class="col-rate">Rate</th>
+                  <th class="col-amount">Amount</th>
+                  <th class="col-actions"></th>
+                </tr>
+              </thead>
+              <tbody id="productTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card__heading-row">
+          <h2 class="card__heading">
+            <i class="fa-solid fa-gear"></i> Options & Notes
+          </h2>
+          <div style="display: flex; gap: 16px">
+            <label class="toggle-container">
+              <input type="checkbox" id="toggleWatermark" checked /> Watermark
+            </label>
+            <label class="toggle-container">
+              <input type="checkbox" id="toggleNotesVisibility" checked /> Notes
+            </label>
+          </div>
+        </div>
+        <div class="field" style="margin-top: 10px">
+          <textarea
+            id="invoiceNotes"
+            placeholder="Enter optional notes to show on the invoice..."
+          ></textarea>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2 class="card__heading">
+          <i class="fa-solid fa-calculator"></i> Summary
+        </h2>
+        <div class="summary-grid">
+          <div class="summary-row">
+            <span>Total Items</span><b id="totalItems">0</b>
+          </div>
+          <div class="summary-row">
+            <span>Total Quantity</span><b id="totalQty">0</b>
+          </div>
+          <div class="summary-total">
+            <span class="label">Grand Total</span
+            ><span class="value" id="grandTotal">₹0</span>
+          </div>
+        </div>
+      </section>
+
+      <div class="action-bar-grid">
+        <button class="btn btn--outline btn--preview" id="btnPreview">
+          <i class="fa-regular fa-eye"></i> Preview Look
+        </button>
+        <button class="btn btn--primary btn--download" id="btnDownload">
+          <i class="fa-solid fa-download"></i> Download PDF
+        </button>
+        <button class="btn btn--ghost btn--reset" id="btnResetPage">
+          <i class="fa-solid fa-rotate-left"></i> Reset Invoice
+        </button>
+      </div>
+    </main>
+
+    <footer class="app-footer">
+      <span id="appFooterVersion">JAS Tech Billing v1.0</span>
+    </footer>
+
+    <div class="modal-overlay hide" id="productModalOverlay">
+      <div
+        class="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modalTitle"
+      >
+        <div class="modal__header">
+          <h3 id="modalTitle">Add Product</h3>
+          <button class="modal__close" id="btnCloseModal" aria-label="Close">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div class="modal__body">
+          <div class="field">
+            <label for="prodName"
+              >Product Name <span class="required">*</span></label
+            >
+            <input type="text" id="prodName" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="prodDesc"
+              >Description <span class="optional">(Optional)</span></label
+            >
+            <input type="text" id="prodDesc" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="prodSerial"
+              >Serial Number <span class="optional">(Optional)</span></label
+            >
+            <input type="text" id="prodSerial" autocomplete="off" />
+          </div>
+          <div class="field-group field-group--pair">
+            <div class="field">
+              <label for="prodQty">Qty <span class="required">*</span></label
+              ><input
+                type="number"
+                id="prodQty"
+                min="1"
+                step="1"
+                value="1"
+                inputmode="numeric"
+              />
+            </div>
+            <div class="field">
+              <label for="prodRate"
+                >Rate (₹) <span class="required">*</span></label
+              ><input
+                type="number"
+                id="prodRate"
+                min="0"
+                step="0.01"
+                inputmode="decimal"
+              />
+            </div>
+          </div>
+        </div>
+        <div class="modal__footer">
+          <button class="btn btn--ghost" id="btnCancelProduct">Cancel</button>
+          <button class="btn btn--primary" id="btnSaveProduct">Save</button>
+        </div>
       </div>
     </div>
-  </section>
 
-  <section class="card">
-    <div class="card__heading-row">
-      <h2 class="card__heading"><i class="fa-solid fa-gear"></i> Options & Notes</h2>
-      <div style="display:flex; gap:16px;">
-        <label class="toggle-container">
-          <input type="checkbox" id="toggleWatermark" checked> Watermark
-        </label>
-        <label class="toggle-container">
-          <input type="checkbox" id="toggleNotesVisibility" checked> Notes
-        </label>
+    <div class="modal-overlay modal--confirm hide" id="deleteModalOverlay">
+      <div class="modal">
+        <div class="modal__header">
+          <h3>Delete Product</h3>
+          <button
+            class="modal__close"
+            id="btnCloseDeleteModal"
+            aria-label="Close"
+          >
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div class="modal__body">
+          <div class="confirm-icon">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+          </div>
+          <p>
+            Are you sure you want to delete<br /><span
+              class="confirm-target"
+              id="deleteTargetName"
+            ></span>
+            from this invoice?
+          </p>
+        </div>
+        <div class="modal__footer">
+          <button class="btn btn--ghost" id="btnCancelDelete">Cancel</button>
+          <button class="btn btn--danger" id="btnConfirmDelete">Delete</button>
+        </div>
       </div>
     </div>
-    <div class="field" style="margin-top:10px;">
-      <textarea id="invoiceNotes" placeholder="Enter optional notes to show on the invoice..."></textarea>
-    </div>
-  </section>
 
-  <section class="card">
-    <h2 class="card__heading"><i class="fa-solid fa-calculator"></i> Summary</h2>
-    <div class="summary-grid">
-      <div class="summary-row"><span>Total Items</span><b id="totalItems">0</b></div>
-      <div class="summary-row"><span>Total Quantity</span><b id="totalQty">0</b></div>
-      <div class="summary-total"><span class="label">Grand Total</span><span class="value" id="grandTotal">₹0</span></div>
-    </div>
-  </section>
-
-  <div class="action-bar-grid">
-    <button class="btn btn--outline btn--preview" id="btnPreview">
-      <i class="fa-regular fa-eye"></i> Preview Look
-    </button>
-    <button class="btn btn--primary btn--download" id="btnDownload">
-      <i class="fa-solid fa-download"></i> Download PDF
-    </button>
-    <button class="btn btn--ghost btn--reset" id="btnResetPage">
-      <i class="fa-solid fa-rotate-left"></i> Reset Invoice
-    </button>
-  </div>
-</main>
-
-<footer class="app-footer">
-  <span id="appFooterVersion">JAS Tech Billing v1.0</span>
-</footer>
-
-<!-- Modals -->
-<div class="modal-overlay hide" id="productModalOverlay">
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-    <div class="modal__header">
-      <h3 id="modalTitle">Add Product</h3>
-      <button class="modal__close" id="btnCloseModal" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-    <div class="modal__body">
-      <div class="field"><label for="prodName">Product Name <span class="required">*</span></label>
-        <input type="text" id="prodName" autocomplete="off"></div>
-      <div class="field"><label for="prodDesc">Description <span class="optional">(Optional)</span></label>
-        <input type="text" id="prodDesc" autocomplete="off"></div>
-      <div class="field"><label for="prodSerial">Serial Number <span class="optional">(Optional)</span></label>
-        <input type="text" id="prodSerial" autocomplete="off"></div>
-      <div class="field-group field-group--pair">
-        <div class="field"><label for="prodQty">Qty <span class="required">*</span></label><input type="number" id="prodQty" min="1" step="1" value="1" inputmode="numeric"></div>
-        <div class="field"><label for="prodRate">Rate (₹) <span class="required">*</span></label><input type="number" id="prodRate" min="0" step="0.01" inputmode="decimal"></div>
+    <div class="modal-overlay modal--preview hide" id="previewModalOverlay">
+      <div class="modal">
+        <div class="modal__header">
+          <h3>Invoice Preview</h3>
+          <button
+            class="modal__close"
+            id="btnClosePreviewModal"
+            aria-label="Close"
+          >
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div class="modal__body" id="previewModalBody">
+          <div id="previewScaleContainer"></div>
+        </div>
+        <div class="modal__footer">
+          <button class="btn btn--primary" id="btnDownloadFromPreview">
+            <i class="fa-solid fa-download"></i> Download Invoice
+          </button>
+        </div>
       </div>
     </div>
-    <div class="modal__footer">
-      <button class="btn btn--ghost" id="btnCancelProduct">Cancel</button>
-      <button class="btn btn--primary" id="btnSaveProduct">Save</button>
+
+    <div class="modal-overlay modal--confirm hide" id="resetModalOverlay">
+      <div class="modal">
+        <div class="modal__header">
+          <h3>Reset Invoice</h3>
+          <button
+            class="modal__close"
+            id="btnCloseResetModal"
+            aria-label="Close"
+          >
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div class="modal__body">
+          <div class="confirm-icon">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+          </div>
+          <p>
+            This clears the customer details, all products, and notes, and
+            starts a fresh invoice number.<br />This can't be undone.
+          </p>
+        </div>
+        <div class="modal__footer">
+          <button class="btn btn--ghost" id="btnCancelReset">Cancel</button>
+          <button class="btn btn--danger" id="btnConfirmReset">Reset</button>
+        </div>
+      </div>
     </div>
-  </div>
-</div>
 
-<div class="modal-overlay modal--confirm hide" id="deleteModalOverlay">
-  <div class="modal">
-    <div class="modal__header">
-      <h3>Delete Product</h3>
-      <button class="modal__close" id="btnCloseDeleteModal" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    <div class="toast hide" id="toast"></div>
+
+    <div id="pdfRenderWrap">
+      <div id="pdfWrapper" class="pdf-wrapper-container">
+        <div id="invoiceRoot" class="invoice-render"></div>
+      </div>
     </div>
-    <div class="modal__body">
-      <div class="confirm-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
-      <p>Are you sure you want to delete<br><span class="confirm-target" id="deleteTargetName"></span> from this invoice?</p>
+
+    <div class="pdf-loading-overlay hide" id="pdfLoadingOverlay">
+      <div class="spinner"></div>
+      <p>Generating your invoice…</p>
     </div>
-    <div class="modal__footer">
-      <button class="btn btn--ghost" id="btnCancelDelete">Cancel</button>
-      <button class="btn btn--danger" id="btnConfirmDelete">Delete</button>
-    </div>
-  </div>
-</div>
 
-<div class="modal-overlay modal--preview hide" id="previewModalOverlay">
-  <div class="modal">
-    <div class="modal__header">
-      <h3>Invoice Preview</h3>
-      <button class="modal__close" id="btnClosePreviewModal" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-    <div class="modal__body" id="previewModalBody">
-      <div id="previewScaleContainer"></div>
-    </div>
-    <div class="modal__footer">
-      <button class="btn btn--primary" id="btnDownloadFromPreview"><i class="fa-solid fa-download"></i> Download Invoice</button>
-    </div>
-  </div>
-</div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script>
+      let CONFIG = null;
+      let editingProductId = null;
+      let pendingDeleteId = null;
 
-<div class="modal-overlay modal--confirm hide" id="resetModalOverlay">
-  <div class="modal">
-    <div class="modal__header">
-      <h3>Reset Invoice</h3>
-      <button class="modal__close" id="btnCloseResetModal" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-    <div class="modal__body">
-      <div class="confirm-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
-      <p>This clears the customer details, all products, and notes, and starts a fresh invoice number.<br>This can't be undone.</p>
-    </div>
-    <div class="modal__footer">
-      <button class="btn btn--ghost" id="btnCancelReset">Cancel</button>
-      <button class="btn btn--danger" id="btnConfirmReset">Reset</button>
-    </div>
-  </div>
-</div>
+      const state = {
+        customer: { name: "", address: "", mobile: "" },
+        invoiceNumber: "",
+        dateStr: "",
+        notes: null,
+        includeNotesOnPdf: true,
+        showWatermark: true,
+        products: [],
+        nextId: 1,
+      };
 
-<div class="toast hide" id="toast"></div>
+      const el = {};
 
-<div id="pdfRenderWrap">
-  <div id="pdfWrapper" class="pdf-wrapper-container">
-    <div id="invoiceRoot" class="invoice-render"></div>
-  </div>
-</div>
+      function cacheElements() {
+        el.appBarLogo = document.getElementById("appBarLogo");
+        el.appBarCompanyName = document.getElementById("appBarCompanyName");
+        el.btnThemeToggle = document.getElementById("btnThemeToggle");
+        el.customerName = document.getElementById("customerName");
+        el.customerAddress = document.getElementById("customerAddress");
+        el.customerMobile = document.getElementById("customerMobile");
+        el.invoiceNumber = document.getElementById("invoiceNumber");
+        el.invoiceDate = document.getElementById("invoiceDate");
+        el.btnAddProduct = document.getElementById("btnAddProduct");
+        el.emptyState = document.getElementById("emptyState");
+        el.productTableWrap = document.getElementById("productTableWrap");
+        el.productTableBody = document.getElementById("productTableBody");
+        el.invoiceNotes = document.getElementById("invoiceNotes");
+        el.toggleNotesVisibility = document.getElementById(
+          "toggleNotesVisibility",
+        );
+        el.toggleWatermark = document.getElementById("toggleWatermark");
+        el.totalItems = document.getElementById("totalItems");
+        el.totalQty = document.getElementById("totalQty");
+        el.grandTotal = document.getElementById("grandTotal");
+        el.btnDownload = document.getElementById("btnDownload");
+        el.btnPreview = document.getElementById("btnPreview");
+        el.productModalOverlay = document.getElementById("productModalOverlay");
+        el.modalTitle = document.getElementById("modalTitle");
+        el.btnCloseModal = document.getElementById("btnCloseModal");
+        el.btnCancelProduct = document.getElementById("btnCancelProduct");
+        el.btnSaveProduct = document.getElementById("btnSaveProduct");
+        el.prodName = document.getElementById("prodName");
+        el.prodDesc = document.getElementById("prodDesc");
+        el.prodSerial = document.getElementById("prodSerial");
+        el.prodQty = document.getElementById("prodQty");
+        el.prodRate = document.getElementById("prodRate");
+        el.deleteModalOverlay = document.getElementById("deleteModalOverlay");
+        el.deleteTargetName = document.getElementById("deleteTargetName");
+        el.btnCloseDeleteModal = document.getElementById("btnCloseDeleteModal");
+        el.btnCancelDelete = document.getElementById("btnCancelDelete");
+        el.btnConfirmDelete = document.getElementById("btnConfirmDelete");
+        el.btnResetPage = document.getElementById("btnResetPage");
+        el.resetModalOverlay = document.getElementById("resetModalOverlay");
+        el.btnCloseResetModal = document.getElementById("btnCloseResetModal");
+        el.btnCancelReset = document.getElementById("btnCancelReset");
+        el.btnConfirmReset = document.getElementById("btnConfirmReset");
+        el.previewModalOverlay = document.getElementById("previewModalOverlay");
+        el.previewModalBody = document.getElementById("previewModalBody");
+        el.btnClosePreviewModal = document.getElementById(
+          "btnClosePreviewModal",
+        );
+        el.btnDownloadFromPreview = document.getElementById(
+          "btnDownloadFromPreview",
+        );
+        el.toast = document.getElementById("toast");
+        el.appFooterVersion = document.getElementById("appFooterVersion");
+      }
 
-<div class="pdf-loading-overlay hide" id="pdfLoadingOverlay">
-  <div class="spinner"></div>
-  <p>Generating your invoice…</p>
-</div>
+      async function loadConfig() {
+        try {
+          const response = await fetch("config.json", { cache: "no-store" });
+          if (!response.ok)
+            throw new Error(`Failed to load config.json: ${response.status}`);
+          CONFIG = await response.json();
+        } catch (error) {
+          console.warn("Falling back to default config.", error);
+          CONFIG = {
+            company: { name: "JAS Tech" },
+            theme: {
+              primary: "#012587",
+              primaryDark: "#0E358B",
+              background: "#F8F9FC",
+              darkText: "#212121",
+              radius: "12px",
+            },
+            assets: { mainLogo: "assets/logo/logo.png" },
+            invoice: {
+              defaultNotes: "",
+              currencySymbol: "₹",
+              filePrefix: "JAS_Invoice_",
+              numberFormat: "DDMMHHmmss",
+            },
+            display: {
+              showWatermark: true,
+              showQr: true,
+              showSignature: true,
+              showNotes: true,
+              showTotalItems: true,
+              showTotalQuantity: true,
+            },
+            signatureBlock: {
+              forLine: "For JAS Tech",
+              authLine: "Authorized Signature",
+            },
+            whatsapp: { caption: "Scan to Connect" },
+            services: [],
+            footer: {
+              thankYouMessage: "",
+              copyrightLine: "",
+              appVersion: "v1.0",
+            },
+          };
+        }
+        applyConfig();
+      }
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-<script>
-let CONFIG = null;
-let editingProductId = null;
-let pendingDeleteId = null;
+      function applyConfig() {
+        const root = document.documentElement.style;
+        root.setProperty("--primary", CONFIG.theme.primary);
+        root.setProperty("--primary-dark", CONFIG.theme.primaryDark);
+        root.setProperty("--bg", CONFIG.theme.background);
+        root.setProperty("--text", CONFIG.theme.darkText);
+        root.setProperty("--radius", CONFIG.theme.radius);
 
-const state = {
-  customer: { name: '', address: '', mobile: '' },
-  invoiceNumber: '',
-  dateStr: '',
-  notes: null,
-  includeNotesOnPdf: true,
-  showWatermark: true,
-  products: [],
-  nextId: 1
-};
+        el.appBarLogo.src = CONFIG.assets.mainLogo || "";
+        el.appBarCompanyName.textContent = (
+          CONFIG.company.name + " Billing"
+        ).toUpperCase();
+        document.title = CONFIG.company.name + " Billing";
 
-const el = {};
+        if (CONFIG.invoice.defaultNotes)
+          el.invoiceNotes.value = CONFIG.invoice.defaultNotes;
+        if (CONFIG.invoice.defaultNotes)
+          state.notes = CONFIG.invoice.defaultNotes;
 
-function cacheElements(){
-  el.appBarLogo = document.getElementById('appBarLogo');
-  el.appBarCompanyName = document.getElementById('appBarCompanyName');
-  el.btnThemeToggle = document.getElementById('btnThemeToggle');
-  el.customerName = document.getElementById('customerName');
-  el.customerAddress = document.getElementById('customerAddress');
-  el.customerMobile = document.getElementById('customerMobile');
-  el.invoiceNumber = document.getElementById('invoiceNumber');
-  el.invoiceDate = document.getElementById('invoiceDate');
-  el.btnAddProduct = document.getElementById('btnAddProduct');
-  el.emptyState = document.getElementById('emptyState');
-  el.productTableWrap = document.getElementById('productTableWrap');
-  el.productTableBody = document.getElementById('productTableBody');
-  el.invoiceNotes = document.getElementById('invoiceNotes');
-  el.toggleNotesVisibility = document.getElementById('toggleNotesVisibility');
-  el.toggleWatermark = document.getElementById('toggleWatermark');
-  el.totalItems = document.getElementById('totalItems');
-  el.totalQty = document.getElementById('totalQty');
-  el.grandTotal = document.getElementById('grandTotal');
-  el.btnDownload = document.getElementById('btnDownload');
-  el.btnPreview = document.getElementById('btnPreview');
-  el.productModalOverlay = document.getElementById('productModalOverlay');
-  el.modalTitle = document.getElementById('modalTitle');
-  el.btnCloseModal = document.getElementById('btnCloseModal');
-  el.btnCancelProduct = document.getElementById('btnCancelProduct');
-  el.btnSaveProduct = document.getElementById('btnSaveProduct');
-  el.prodName = document.getElementById('prodName');
-  el.prodDesc = document.getElementById('prodDesc');
-  el.prodSerial = document.getElementById('prodSerial');
-  el.prodQty = document.getElementById('prodQty');
-  el.prodRate = document.getElementById('prodRate');
-  el.deleteModalOverlay = document.getElementById('deleteModalOverlay');
-  el.deleteTargetName = document.getElementById('deleteTargetName');
-  el.btnCloseDeleteModal = document.getElementById('btnCloseDeleteModal');
-  el.btnCancelDelete = document.getElementById('btnCancelDelete');
-  el.btnConfirmDelete = document.getElementById('btnConfirmDelete');
-  el.btnResetPage = document.getElementById('btnResetPage');
-  el.resetModalOverlay = document.getElementById('resetModalOverlay');
-  el.btnCloseResetModal = document.getElementById('btnCloseResetModal');
-  el.btnCancelReset = document.getElementById('btnCancelReset');
-  el.btnConfirmReset = document.getElementById('btnConfirmReset');
-  el.previewModalOverlay = document.getElementById('previewModalOverlay');
-  el.previewModalBody = document.getElementById('previewModalBody');
-  el.btnClosePreviewModal = document.getElementById('btnClosePreviewModal');
-  el.btnDownloadFromPreview = document.getElementById('btnDownloadFromPreview');
-  el.toast = document.getElementById('toast');
-  el.appFooterVersion = document.getElementById('appFooterVersion');
-}
+        if (el.appFooterVersion) {
+          const version =
+            CONFIG.footer && CONFIG.footer.appVersion
+              ? CONFIG.footer.appVersion
+              : "v1.0";
+          el.appFooterVersion.textContent = `${CONFIG.company.name} Billing ${version}`;
+        }
+      }
 
-async function loadConfig(){
-  try {
-    const response = await fetch('config.json', { cache: 'no-store' });
-    if (!response.ok) throw new Error(`Failed to load config.json: ${response.status}`);
-    CONFIG = await response.json();
-  } catch (error) {
-    console.warn("Falling back to default config.", error);
-    CONFIG = {
-      company: { name: 'JAS Tech' },
-      theme: { primary: '#012587', primaryDark: '#0E358B', background: '#F8F9FC', darkText: '#212121', radius: '12px' },
-      assets: { mainLogo: 'assets/logo/logo.png' },
-      invoice: { defaultNotes: '', currencySymbol: '₹', filePrefix: 'JAS_Invoice_', numberFormat: 'DDMMHHmmss' },
-      display: { showWatermark: true, showQr: true, showSignature: true, showNotes: true, showTotalItems: true, showTotalQuantity: true },
-      signatureBlock: { forLine: 'For JAS Tech', authLine: 'Authorized Signature' },
-      whatsapp: { caption: 'Scan to Connect' },
-      services: [],
-      footer: { thankYouMessage: '', copyrightLine: '', appVersion: 'v1.0' }
-    };
-  }
-  applyConfig();
-}
+      function pad(n) {
+        return n.toString().padStart(2, "0");
+      }
 
-function applyConfig(){
-  const root = document.documentElement.style;
-  root.setProperty('--primary', CONFIG.theme.primary);
-  root.setProperty('--primary-dark', CONFIG.theme.primaryDark);
-  root.setProperty('--bg', CONFIG.theme.background);
-  root.setProperty('--text', CONFIG.theme.darkText);
-  root.setProperty('--radius', CONFIG.theme.radius);
+      function generateInvoiceNumber(date) {
+        const format = CONFIG.invoice.numberFormat || "DDMMHHmmss";
+        return format
+          .replace("DD", pad(date.getDate()))
+          .replace("MM", pad(date.getMonth() + 1))
+          .replace("YYYY", date.getFullYear())
+          .replace("YY", String(date.getFullYear()).slice(-2))
+          .replace("HH", pad(date.getHours()))
+          .replace("mm", pad(date.getMinutes()))
+          .replace("ss", pad(date.getSeconds()));
+      }
 
-  el.appBarLogo.src = CONFIG.assets.mainLogo || '';
-  el.appBarCompanyName.textContent = (CONFIG.company.name + ' Billing').toUpperCase();
-  document.title = CONFIG.company.name + ' Billing';
+      function formatDateForDisplay(val) {
+        if (!val) return "";
+        const parts = val.split("-");
+        if (parts.length === 3) {
+          return `${parts[2]}-${parts[1]}-${parts[0]}`;
+        }
+        return val;
+      }
 
-  if(CONFIG.invoice.defaultNotes) el.invoiceNotes.value = CONFIG.invoice.defaultNotes;
-  if(CONFIG.invoice.defaultNotes) state.notes = CONFIG.invoice.defaultNotes;
+      function initInvoiceMeta() {
+        const now = new Date();
+        state.invoiceNumber = generateInvoiceNumber(now);
+        el.invoiceNumber.value = state.invoiceNumber;
 
-  if (el.appFooterVersion) {
-    const version = CONFIG.footer && CONFIG.footer.appVersion ? CONFIG.footer.appVersion : 'v1.0';
-    el.appFooterVersion.textContent = `${CONFIG.company.name} Billing ${version}`;
-  }
-}
+        const yyyy = now.getFullYear();
+        const mm = pad(now.getMonth() + 1);
+        const dd = pad(now.getDate());
 
-function pad(n){ return n.toString().padStart(2,'0'); }
+        el.invoiceDate.value = `${yyyy}-${mm}-${dd}`;
+        state.dateStr = `${dd}-${mm}-${yyyy}`;
+      }
 
-function generateInvoiceNumber(date){
-  const format = CONFIG.invoice.numberFormat || 'DDMMHHmmss';
-  return format
-    .replace('DD', pad(date.getDate()))
-    .replace('MM', pad(date.getMonth() + 1))
-    .replace('YYYY', date.getFullYear())
-    .replace('YY', String(date.getFullYear()).slice(-2))
-    .replace('HH', pad(date.getHours()))
-    .replace('mm', pad(date.getMinutes()))
-    .replace('ss', pad(date.getSeconds()));
-}
+      function calculateTotals(products) {
+        let totalQty = 0,
+          grandTotal = 0;
+        for (const p of products) {
+          const qty = Number(p.qty) || 0;
+          totalQty += qty;
+          grandTotal += qty * p.rate;
+        }
+        return { totalItems: products.length, totalQty, grandTotal };
+      }
 
-function formatDateForDisplay(val) {
-  if (!val) return '';
-  const parts = val.split('-');
-  if (parts.length === 3) {
-    return `${parts[2]}-${parts[1]}-${parts[0]}`;
-  }
-  return val;
-}
+      function formatCurrency(amount, includeSymbol = true) {
+        const symbol = includeSymbol
+          ? CONFIG.invoice.currencySymbol || "₹"
+          : "";
+        return (
+          symbol +
+          " " +
+          (Number(amount) || 0).toLocaleString("en-IN", {
+            maximumFractionDigits: 2,
+            minimumFractionDigits: 2,
+          })
+        );
+      }
 
-function initInvoiceMeta(){
-  const now = new Date();
-  state.invoiceNumber = generateInvoiceNumber(now);
-  el.invoiceNumber.value = state.invoiceNumber;
-  
-  const yyyy = now.getFullYear();
-  const mm = pad(now.getMonth() + 1);
-  const dd = pad(now.getDate());
-  
-  el.invoiceDate.value = `${yyyy}-${mm}-${dd}`;
-  state.dateStr = `${dd}-${mm}-${yyyy}`;
-}
+      function escapeHtml(str) {
+        if (!str) return "";
+        return String(str)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
 
-function calculateTotals(products){
-  let totalQty = 0, grandTotal = 0;
-  for(const p of products){
-    const qty = Number(p.qty) || 0;
-    totalQty += qty;
-    grandTotal += qty * p.rate;
-  }
-  return { totalItems: products.length, totalQty, grandTotal };
-}
+      function buildProductMetaHtml(p) {
+        const metaBits = [];
+        if (p.description) {
+          metaBits.push(
+            `<div class="prod-desc-line">${escapeHtml(p.description)}</div>`,
+          );
+        }
+        if (p.serial) {
+          metaBits.push(
+            `<div class="prod-sn-line"><span class="sn-label">S/N:</span> <span class="sn-value">${escapeHtml(p.serial)}</span></div>`,
+          );
+        }
+        return metaBits.length
+          ? `<div class="prod-meta">${metaBits.join("")}</div>`
+          : "";
+      }
 
-function formatCurrency(amount, includeSymbol = true){
-  const symbol = includeSymbol ? (CONFIG.invoice.currencySymbol || '₹') : '';
-  return symbol + " " + (Number(amount) || 0).toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 });
-}
-
-function escapeHtml(str){
-  if(!str) return '';
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
-}
-
-function buildProductMetaHtml(p){
-  const metaBits = [];
-  if(p.description) {
-    metaBits.push(`<div class="prod-desc-line">${escapeHtml(p.description)}</div>`);
-  }
-  if(p.serial) {
-    metaBits.push(`<div class="prod-sn-line"><span class="sn-label">S/N:</span> <span class="sn-value">${escapeHtml(p.serial)}</span></div>`);
-  }
-  return metaBits.length ? `<div class="prod-meta">${metaBits.join('')}</div>` : '';
-}
-
-function buildInvRowHtml(p, idx){
-  const metaHtml = buildProductMetaHtml(p);
-  return `
+      function buildInvRowHtml(p, idx) {
+        const metaHtml = buildProductMetaHtml(p);
+        return `
     <tr>
       <td class="idx">${idx}.</td>
       <td><div class="prod-name">${escapeHtml(p.name)}</div>${metaHtml}</td>
@@ -830,35 +2129,37 @@ function buildInvRowHtml(p, idx){
       <td class="num">${formatCurrency(p.rate, false)}</td>
       <td class="num">${formatCurrency(p.qty * p.rate, false)}</td>
     </tr>`;
-}
+      }
 
-function measureBlocks(blocksObj){
-  const temp = document.createElement('div');
-  temp.style.cssText = 'position:absolute;left:-9999px;top:0;width:704px;visibility:hidden;';
-  document.body.appendChild(temp);
+      function measureBlocks(blocksObj) {
+        const temp = document.createElement("div");
+        temp.style.cssText =
+          "position:absolute;left:-9999px;top:0;width:704px;visibility:hidden;";
+        document.body.appendChild(temp);
 
-  const wrappers = {};
-  for (const key in blocksObj) {
-    const w = document.createElement('div');
-    w.innerHTML = blocksObj[key];
-    temp.appendChild(w);
-    wrappers[key] = w;
-  }
+        const wrappers = {};
+        for (const key in blocksObj) {
+          const w = document.createElement("div");
+          w.innerHTML = blocksObj[key];
+          temp.appendChild(w);
+          wrappers[key] = w;
+        }
 
-  const heights = {};
-  for (const key in wrappers) {
-    heights[key] = wrappers[key].getBoundingClientRect().height;
-  }
+        const heights = {};
+        for (const key in wrappers) {
+          heights[key] = wrappers[key].getBoundingClientRect().height;
+        }
 
-  document.body.removeChild(temp);
-  return heights;
-}
+        document.body.removeChild(temp);
+        return heights;
+      }
 
-function measureTableParts(products){
-  const temp = document.createElement('div');
-  temp.style.cssText = 'position:absolute;left:-9999px;top:0;width:704px;visibility:hidden;';
-  document.body.appendChild(temp);
-  temp.innerHTML = `
+      function measureTableParts(products) {
+        const temp = document.createElement("div");
+        temp.style.cssText =
+          "position:absolute;left:-9999px;top:0;width:704px;visibility:hidden;";
+        document.body.appendChild(temp);
+        temp.innerHTML = `
     <table class="inv-table">
       <thead>
         <tr>
@@ -866,189 +2167,207 @@ function measureTableParts(products){
           <th class="col-qty">QTY</th><th class="col-rate num">RATE (₹)</th><th class="col-amt num">AMOUNT (₹)</th>
         </tr>
       </thead>
-      <tbody>${products.map((p,i) => buildInvRowHtml(p, i+1)).join('')}</tbody>
+      <tbody>${products.map((p, i) => buildInvRowHtml(p, i + 1)).join("")}</tbody>
     </table>`;
-  const theadHeight = temp.querySelector('thead').getBoundingClientRect().height;
-  const rowHeights = Array.from(temp.querySelectorAll('tbody tr')).map(r => r.getBoundingClientRect().height);
-  document.body.removeChild(temp);
-  return { theadHeight, rowHeights };
-}
+        const theadHeight = temp
+          .querySelector("thead")
+          .getBoundingClientRect().height;
+        const rowHeights = Array.from(temp.querySelectorAll("tbody tr")).map(
+          (r) => r.getBoundingClientRect().height,
+        );
+        document.body.removeChild(temp);
+        return { theadHeight, rowHeights };
+      }
 
-function showOverlay(overlay){
-  overlay.classList.remove('hide');
-}
-function hideOverlay(overlay){
-  overlay.classList.add('hide');
-}
+      function showOverlay(overlay) {
+        overlay.classList.remove("hide");
+      }
+      function hideOverlay(overlay) {
+        overlay.classList.add("hide");
+      }
 
-function showToast(message, type){
-  el.toast.textContent = message;
-  el.toast.className = 'toast';
-  if (type) el.toast.classList.add(`toast--${type}`);
-  el.toast.classList.remove('hide');
+      function showToast(message, type) {
+        el.toast.textContent = message;
+        el.toast.className = "toast";
+        if (type) el.toast.classList.add(`toast--${type}`);
+        el.toast.classList.remove("hide");
 
-  clearTimeout(el.toast._timer);
-  el.toast._timer = setTimeout(() => {
-    el.toast.classList.add('hide');
-  }, 2400);
-}
+        clearTimeout(el.toast._timer);
+        el.toast._timer = setTimeout(() => {
+          el.toast.classList.add("hide");
+        }, 2400);
+      }
 
-function validateField(elInput, type = 'text') {
-  const val = elInput.value.trim();
-  if (type === 'text' && val === '' && elInput.id !== 'customerName') return false;
-  if (type === 'qty' && (isNaN(val) || Number(val) <= 0)) return false;
-  if (type === 'rate' && (isNaN(val) || val === '' || Number(val) < 0)) return false;
-  return true;
-}
+      function validateField(elInput, type = "text") {
+        const val = elInput.value.trim();
+        if (type === "text" && val === "" && elInput.id !== "customerName")
+          return false;
+        if (type === "qty" && (isNaN(val) || Number(val) <= 0)) return false;
+        if (type === "rate" && (isNaN(val) || val === "" || Number(val) < 0))
+          return false;
+        return true;
+      }
 
-function markError(elInput, isValid) {
-  if (!isValid) {
-    elInput.classList.add('input-error');
-  } else {
-    elInput.classList.remove('input-error');
-  }
-  return isValid;
-}
+      function markError(elInput, isValid) {
+        if (!isValid) {
+          elInput.classList.add("input-error");
+        } else {
+          elInput.classList.remove("input-error");
+        }
+        return isValid;
+      }
 
-function openProductModal(product){
-  editingProductId = product ? product.id : null;
-  el.modalTitle.textContent = product ? 'Edit Product' : 'Add Product';
-  el.prodName.value = product ? product.name : '';
-  el.prodDesc.value = product ? (product.description || '') : '';
-  el.prodSerial.value = product ? (product.serial || '') : '';
-  el.prodQty.value = product ? product.qty : 1;
-  el.prodRate.value = product ? product.rate : '';
-  
-  [el.prodName, el.prodQty, el.prodRate].forEach(inp => inp.classList.remove('input-error'));
-  showOverlay(el.productModalOverlay);
-  setTimeout(() => el.prodName.focus(), 50);
-}
+      function openProductModal(product) {
+        editingProductId = product ? product.id : null;
+        el.modalTitle.textContent = product ? "Edit Product" : "Add Product";
+        el.prodName.value = product ? product.name : "";
+        el.prodDesc.value = product ? product.description || "" : "";
+        el.prodSerial.value = product ? product.serial || "" : "";
+        el.prodQty.value = product ? product.qty : 1;
+        el.prodRate.value = product ? product.rate : "";
 
-function closeProductModal() {
-    document.activeElement.blur();
-    hideOverlay(el.productModalOverlay);
-    requestAnimationFrame(() => el.btnAddProduct.focus());
-    editingProductId = null;
-}
+        [el.prodName, el.prodQty, el.prodRate].forEach((inp) =>
+          inp.classList.remove("input-error"),
+        );
+        showOverlay(el.productModalOverlay);
+        setTimeout(() => el.prodName.focus(), 50);
+      }
 
-function saveProduct(){
-  const input = {
-    name: el.prodName.value.trim(),
-    description: el.prodDesc.value.trim(),
-    serial: el.prodSerial.value.trim(),
-    qty: parseFloat(el.prodQty.value),
-    rate: parseFloat(el.prodRate.value)
-  };
+      function closeProductModal() {
+        document.activeElement.blur();
+        hideOverlay(el.productModalOverlay);
+        requestAnimationFrame(() => el.btnAddProduct.focus());
+        editingProductId = null;
+      }
 
-  let isValid = true;
-  if (!markError(el.prodName, input.name !== '')) isValid = false;
-  if (!markError(el.prodQty, !isNaN(input.qty) && input.qty > 0)) isValid = false;
-  if (!markError(el.prodRate, !isNaN(input.rate) && input.rate >= 0 && el.prodRate.value.trim() !== '')) isValid = false;
+      function saveProduct() {
+        const input = {
+          name: el.prodName.value.trim(),
+          description: el.prodDesc.value.trim(),
+          serial: el.prodSerial.value.trim(),
+          qty: parseFloat(el.prodQty.value),
+          rate: parseFloat(el.prodRate.value),
+        };
 
-  if (!isValid) {
-    showToast('Please fix the highlighted fields.', 'error');
-    return;
-  }
+        let isValid = true;
+        if (!markError(el.prodName, input.name !== "")) isValid = false;
+        if (!markError(el.prodQty, !isNaN(input.qty) && input.qty > 0))
+          isValid = false;
+        if (
+          !markError(
+            el.prodRate,
+            !isNaN(input.rate) &&
+              input.rate >= 0 &&
+              el.prodRate.value.trim() !== "",
+          )
+        )
+          isValid = false;
 
-  if(editingProductId){
-    const product = state.products.find(p => p.id === editingProductId);
-    if(product) Object.assign(product, input);
-    showToast('Product updated', 'success');
-  } else {
-    state.products.push({ id: state.nextId++, ...input });
-    showToast('Product added', 'success');
-  }
+        if (!isValid) {
+          showToast("Please fix the highlighted fields.", "error");
+          return;
+        }
 
-  requestAnimationFrame(() => {
-    renderProducts();
-    updateSummary();
-  });
-  closeProductModal();
-}
+        if (editingProductId) {
+          const product = state.products.find((p) => p.id === editingProductId);
+          if (product) Object.assign(product, input);
+          showToast("Product updated", "success");
+        } else {
+          state.products.push({ id: state.nextId++, ...input });
+          showToast("Product added", "success");
+        }
 
-function editProduct(id){
-  const product = state.products.find(p => p.id === id);
-  if(product) openProductModal(product);
-}
+        requestAnimationFrame(() => {
+          renderProducts();
+          updateSummary();
+        });
+        closeProductModal();
+      }
 
-function requestDeleteProduct(id){
-  const product = state.products.find(p => p.id === id);
-  if(!product) return;
-  closeProductModal();
-  pendingDeleteId = id;
-  el.deleteTargetName.textContent = product.name;
-  showOverlay(el.deleteModalOverlay);
-}
+      function editProduct(id) {
+        const product = state.products.find((p) => p.id === id);
+        if (product) openProductModal(product);
+      }
 
-function closeDeleteModal(){
-  hideOverlay(el.deleteModalOverlay);
-  pendingDeleteId = null;
-}
+      function requestDeleteProduct(id) {
+        const product = state.products.find((p) => p.id === id);
+        if (!product) return;
+        closeProductModal();
+        pendingDeleteId = id;
+        el.deleteTargetName.textContent = product.name;
+        showOverlay(el.deleteModalOverlay);
+      }
 
-function deleteProduct(){
-  if(pendingDeleteId === null) return;
-  state.products = state.products.filter(p => p.id !== pendingDeleteId);
-  
-  renderProducts();
-  updateSummary();
-  showToast('Product removed');
-  closeDeleteModal();
-}
+      function closeDeleteModal() {
+        hideOverlay(el.deleteModalOverlay);
+        pendingDeleteId = null;
+      }
 
-function openResetModal(){
-  showOverlay(el.resetModalOverlay);
-}
+      function deleteProduct() {
+        if (pendingDeleteId === null) return;
+        state.products = state.products.filter((p) => p.id !== pendingDeleteId);
 
-function closeResetModal(){
-  hideOverlay(el.resetModalOverlay);
-}
+        renderProducts();
+        updateSummary();
+        showToast("Product removed");
+        closeDeleteModal();
+      }
 
-function resetInvoice(){
-  state.customer = { name: '', address: '', mobile: '' };
-  state.products = [];
-  state.nextId = 1;
-  state.notes = CONFIG.invoice.defaultNotes || '';
+      function openResetModal() {
+        showOverlay(el.resetModalOverlay);
+      }
 
-  el.customerName.value = '';
-  el.customerAddress.value = '';
-  el.customerMobile.value = '';
-  el.customerName.classList.remove('input-error');
-  
-  const prefNotes = localStorage.getItem('jas_pref_notes');
-  const prefWatermark = localStorage.getItem('jas_pref_watermark');
-  
-  el.toggleNotesVisibility.checked = prefNotes !== 'false';
-  el.toggleWatermark.checked = prefWatermark !== 'false';
-  
-  el.toggleNotesVisibility.dispatchEvent(new Event('change'));
-  el.toggleWatermark.dispatchEvent(new Event('change'));
+      function closeResetModal() {
+        hideOverlay(el.resetModalOverlay);
+      }
 
-  el.invoiceNotes.value = state.notes;
+      function resetInvoice() {
+        state.customer = { name: "", address: "", mobile: "" };
+        state.products = [];
+        state.nextId = 1;
+        state.notes = CONFIG.invoice.defaultNotes || "";
 
-  initInvoiceMeta();
-  
-  renderProducts();
-  updateSummary();
-  closeResetModal();
-  showToast('Invoice reset', 'success');
-}
+        el.customerName.value = "";
+        el.customerAddress.value = "";
+        el.customerMobile.value = "";
+        el.customerName.classList.remove("input-error");
 
-function renderProducts(){
-  const products = state.products;
-  if(!products.length){
-    el.emptyState.classList.remove('hide');
-    el.productTableWrap.classList.add('hide');
-    el.productTableBody.innerHTML = '';
-    return;
-  }
-  el.emptyState.classList.add('hide');
-  el.productTableWrap.classList.remove('hide');
+        const prefNotes = localStorage.getItem("jas_pref_notes");
+        const prefWatermark = localStorage.getItem("jas_pref_watermark");
 
-  el.productTableBody.innerHTML = products.map((p, idx) => {
-    const metaHtml = buildProductMetaHtml(p);
-    return `
+        el.toggleNotesVisibility.checked = prefNotes !== "false";
+        el.toggleWatermark.checked = prefWatermark !== "false";
+
+        el.toggleNotesVisibility.dispatchEvent(new Event("change"));
+        el.toggleWatermark.dispatchEvent(new Event("change"));
+
+        el.invoiceNotes.value = state.notes;
+
+        initInvoiceMeta();
+
+        renderProducts();
+        updateSummary();
+        closeResetModal();
+        showToast("Invoice reset", "success");
+      }
+
+      function renderProducts() {
+        const products = state.products;
+        if (!products.length) {
+          el.emptyState.classList.remove("hide");
+          el.productTableWrap.classList.add("hide");
+          el.productTableBody.innerHTML = "";
+          return;
+        }
+        el.emptyState.classList.add("hide");
+        el.productTableWrap.classList.remove("hide");
+
+        el.productTableBody.innerHTML = products
+          .map((p, idx) => {
+            const metaHtml = buildProductMetaHtml(p);
+            return `
       <tr data-id="${p.id}">
-        <td class="col-idx">${idx+1}</td>
+        <td class="col-idx">${idx + 1}</td>
         <td class="col-name"><div class="prod-name">${escapeHtml(p.name)}</div>${metaHtml}</td>
         <td class="col-qty">${p.qty}</td>
         <td class="col-rate">${formatCurrency(p.rate)}</td>
@@ -1058,29 +2377,37 @@ function renderProducts(){
           <button class="row-action-btn delete" data-action="delete" data-id="${p.id}" aria-label="Delete product"><i class="fa-solid fa-trash"></i></button>
         </td>
       </tr>`;
-  }).join('');
-}
+          })
+          .join("");
+      }
 
-function updateSummary(){
-  const { totalItems, totalQty, grandTotal } = calculateTotals(state.products);
-  el.totalItems.textContent = totalItems;
-  el.totalQty.textContent = totalQty;
-  el.grandTotal.textContent = formatCurrency(grandTotal);
-}
+      function updateSummary() {
+        const { totalItems, totalQty, grandTotal } = calculateTotals(
+          state.products,
+        );
+        el.totalItems.textContent = totalItems;
+        el.totalQty.textContent = totalQty;
+        el.grandTotal.textContent = formatCurrency(grandTotal);
+      }
 
-function formatServiceLabel(text) {
-  const words = text.split(" ");
-  if(words.length > 1) return escapeHtml(words[0]) + "<br>" + escapeHtml(words.slice(1).join(" "));
-  return escapeHtml(text);
-}
+      function formatServiceLabel(text) {
+        const words = text.split(" ");
+        if (words.length > 1)
+          return (
+            escapeHtml(words[0]) + "<br>" + escapeHtml(words.slice(1).join(" "))
+          );
+        return escapeHtml(text);
+      }
 
-function renderInvoiceTemplate(targetContainerId = 'invoiceRoot'){
-  const root = document.getElementById(targetContainerId);
-  const c = CONFIG;
+      function renderInvoiceTemplate(targetContainerId = "invoiceRoot") {
+        const root = document.getElementById(targetContainerId);
+        const c = CONFIG;
 
-  const { totalItems, totalQty, grandTotal } = calculateTotals(state.products);
+        const { totalItems, totalQty, grandTotal } = calculateTotals(
+          state.products,
+        );
 
-  const page1HeaderHtml = `
+        const page1HeaderHtml = `
     <div class="inv-header">
       <img src="${c.assets.horizontalLogo}" class="inv-header__logo" crossOrigin="anonymous" alt="${escapeHtml(c.company.name)}">
       <div class="inv-header__right">
@@ -1100,45 +2427,55 @@ function renderInvoiceTemplate(targetContainerId = 'invoiceRoot'){
       <div class="inv-customer__icon"><i class="fa-solid fa-user"></i></div>
       <div class="inv-customer__details">
         <div class="inv-customer__label">BILL TO</div>
-        <div class="inv-customer__name">${escapeHtml(state.customer.name || 'Walk-in Customer')}</div>
-        ${state.customer.address ? `<div class="inv-customer__line">${escapeHtml(state.customer.address)}</div>` : ''}
-        ${state.customer.mobile ? `<div class="inv-customer__line">Mobile: ${escapeHtml(state.customer.mobile)}</div>` : ''}
+        <div class="inv-customer__name">${escapeHtml(state.customer.name || "Walk-in Customer")}</div>
+        ${state.customer.address ? `<div class="inv-customer__line">${escapeHtml(state.customer.address)}</div>` : ""}
+        ${state.customer.mobile ? `<div class="inv-customer__line">Mobile: ${escapeHtml(state.customer.mobile)}</div>` : ""}
       </div>
     </div>
   `;
 
-  const footerHtml = `
+        const footerHtml = `
     <div class="inv-footer">
       <div class="inv-footer-details">
         <div class="contact-block">
-          <div><i class="fa-solid fa-location-dot"></i> <span>${(c.company.addressLines || []).map(escapeHtml).join('<br>')}</span></div>
+          <div><i class="fa-solid fa-location-dot"></i> <span>${(c.company.addressLines || []).map(escapeHtml).join("<br>")}</span></div>
           <div><i class="fa-solid fa-phone"></i> <span>${escapeHtml(c.company.phone)}</span></div>
           <div><i class="fa-solid fa-envelope"></i> <span>${escapeHtml(c.company.email)}</span></div>
         </div>
-        ${c.display.showQr ? `<div class="qr-block"><img src="${c.assets.whatsappQr}" crossOrigin="anonymous" alt="WhatsApp QR"><span>${escapeHtml(c.whatsapp.caption)}</span></div>` : ''}
-        ${c.display.showSignature ? `<div class="sign-block"><div class="for-line">${escapeHtml(c.signatureBlock.forLine)}</div><img src="${c.assets.signature}" crossOrigin="anonymous" alt="Signature"><div class="auth-line">${escapeHtml(c.signatureBlock.authLine)}</div></div>` : ''}
+        ${c.display.showQr ? `<div class="qr-block"><img src="${c.assets.whatsappQr}" crossOrigin="anonymous" alt="WhatsApp QR"><span>${escapeHtml(c.whatsapp.caption)}</span></div>` : ""}
+        ${c.display.showSignature ? `<div class="sign-block"><div class="for-line">${escapeHtml(c.signatureBlock.forLine)}</div><img src="${c.assets.signature}" crossOrigin="anonymous" alt="Signature"><div class="auth-line">${escapeHtml(c.signatureBlock.authLine)}</div></div>` : ""}
       </div>
-      <div class="inv-services">${(c.services || []).map((s, i) => `
-        ${i > 0 ? '<span class="inv-services__sep"></span>' : ''}
+      <div class="inv-services">${(c.services || [])
+        .map(
+          (s, i) => `
+        ${i > 0 ? '<span class="inv-services__sep"></span>' : ""}
         <div class="inv-services__item"><i class="fa-solid ${s.icon}"></i> <div>${formatServiceLabel(s.label)}</div></div>
-      `).join('')}</div>
+      `,
+        )
+        .join("")}</div>
       <div class="inv-thanks-container"><div class="inv-thanks-line left"></div><div class="inv-thanks">${escapeHtml(c.footer.thankYouMessage)}</div><div class="inv-thanks-line right"></div></div>
-      <div class="inv-copy">${escapeHtml(c.footer.copyrightLine || '')}</div>
+      <div class="inv-copy">${escapeHtml(c.footer.copyrightLine || "")}</div>
     </div>
   `;
 
-  const notesText = state.notes === null ? (c.invoice.defaultNotes || '') : state.notes.trim();
-  const showNotes = c.display.showNotes && notesText && state.includeNotesOnPdf;
-  const notesHtml = showNotes ? `
+        const notesText =
+          state.notes === null
+            ? c.invoice.defaultNotes || ""
+            : state.notes.trim();
+        const showNotes =
+          c.display.showNotes && notesText && state.includeNotesOnPdf;
+        const notesHtml = showNotes
+          ? `
     <div class="inv-notes">
       <div class="inv-notes__label"><i class="fa-solid fa-clipboard-list" style="font-size:16px"></i> NOTES</div>
       <div class="inv-notes__text">${escapeHtml(notesText)}</div>
-    </div>` : '';
+    </div>`
+          : "";
 
-  const summaryHtml = `
+        const summaryHtml = `
     <div class="inv-summary">
-      ${c.display.showTotalItems ? `<div class="inv-summary__row"><span>TOTAL ITEMS</span><b>${totalItems}</b></div>` : ''}
-      ${c.display.showTotalQuantity ? `<div class="inv-summary__row"><span>TOTAL QUANTITY</span><b>${totalQty}</b></div>` : ''}
+      ${c.display.showTotalItems ? `<div class="inv-summary__row"><span>TOTAL ITEMS</span><b>${totalItems}</b></div>` : ""}
+      ${c.display.showTotalQuantity ? `<div class="inv-summary__row"><span>TOTAL QUANTITY</span><b>${totalQty}</b></div>` : ""}
       <div class="inv-summary__total">
         <span class="label" style="font-size: 16px;">GRAND TOTAL</span>
         <span class="value">${formatCurrency(grandTotal, true)}</span>
@@ -1146,22 +2483,24 @@ function renderInvoiceTemplate(targetContainerId = 'invoiceRoot'){
     </div>
   `;
 
-  const watermarkHtml = state.showWatermark ? `<img src="${c.assets.watermark}" class="inv-watermark" crossOrigin="anonymous" alt="Watermark Background">` : '';
+        const watermarkHtml = state.showWatermark
+          ? `<img src="${c.assets.watermark}" class="inv-watermark" crossOrigin="anonymous" alt="Watermark Background">`
+          : "";
 
-  const PAGE_HEIGHT = 1123;
-  const PAGE_PAD_TOP = 40;
-  const PAGE_PAD_BOTTOM = 30;
-  const TABLE_MARGIN_TOP = 12;
-  const TABLE_BORDER = 2;
-  const SAFETY_MARGIN = 10;
+        const PAGE_HEIGHT = 1123;
+        const PAGE_PAD_TOP = 40;
+        const PAGE_PAD_BOTTOM = 30;
+        const TABLE_MARGIN_TOP = 12;
+        const TABLE_BORDER = 2;
+        const SAFETY_MARGIN = 10;
 
-  const products = state.products;
-  const chunks = [];
+        const products = state.products;
+        const chunks = [];
 
-  if (products.length === 0) {
-    chunks.push({ isLast: true, products: [], rowsHeight: 0 });
-  } else {
-    const contPageHeaderSample = `
+        if (products.length === 0) {
+          chunks.push({ isLast: true, products: [], rowsHeight: 0 });
+        } else {
+          const contPageHeaderSample = `
       <div class="page-continuation-header">
         <div class="cont-left">
           <img src="${c.assets.horizontalLogo}" class="cont-logo" alt="">
@@ -1173,85 +2512,102 @@ function renderInvoiceTemplate(targetContainerId = 'invoiceRoot'){
         <div class="cont-inv-no">No. ${escapeHtml(state.invoiceNumber)}</div>
       </div>`;
 
-    const bottomRowHtml = `<div class="inv-bottom-row">${notesHtml || '<div class="inv-notes"></div>'}${summaryHtml}</div>`;
+          const bottomRowHtml = `<div class="inv-bottom-row">${notesHtml || '<div class="inv-notes"></div>'}${summaryHtml}</div>`;
 
-    const blockHeights = measureBlocks({
-      page1Header: page1HeaderHtml,
-      contHeader: contPageHeaderSample,
-      bottomRow: bottomRowHtml,
-      footer: footerHtml
-    });
-    const page1HeaderHeight = blockHeights.page1Header;
-    const contHeaderHeight  = blockHeights.contHeader;
-    const bottomExtra       = blockHeights.bottomRow + blockHeights.footer + TABLE_MARGIN_TOP;
+          const blockHeights = measureBlocks({
+            page1Header: page1HeaderHtml,
+            contHeader: contPageHeaderSample,
+            bottomRow: bottomRowHtml,
+            footer: footerHtml,
+          });
+          const page1HeaderHeight = blockHeights.page1Header;
+          const contHeaderHeight = blockHeights.contHeader;
+          const bottomExtra =
+            blockHeights.bottomRow + blockHeights.footer + TABLE_MARGIN_TOP;
 
-    const { theadHeight, rowHeights } = measureTableParts(products);
+          const { theadHeight, rowHeights } = measureTableParts(products);
 
-    const page1Budget = PAGE_HEIGHT - PAGE_PAD_TOP - PAGE_PAD_BOTTOM - page1HeaderHeight
-                       - TABLE_MARGIN_TOP - theadHeight - TABLE_BORDER - SAFETY_MARGIN;
-    const contBudget   = PAGE_HEIGHT - PAGE_PAD_TOP - PAGE_PAD_BOTTOM - contHeaderHeight
-                       - TABLE_MARGIN_TOP - theadHeight - TABLE_BORDER - SAFETY_MARGIN;
+          const page1Budget =
+            PAGE_HEIGHT -
+            PAGE_PAD_TOP -
+            PAGE_PAD_BOTTOM -
+            page1HeaderHeight -
+            TABLE_MARGIN_TOP -
+            theadHeight -
+            TABLE_BORDER -
+            SAFETY_MARGIN;
+          const contBudget =
+            PAGE_HEIGHT -
+            PAGE_PAD_TOP -
+            PAGE_PAD_BOTTOM -
+            contHeaderHeight -
+            TABLE_MARGIN_TOP -
+            theadHeight -
+            TABLE_BORDER -
+            SAFETY_MARGIN;
 
-    let i = 0;
-    const n = products.length;
+          let i = 0;
+          const n = products.length;
 
-    while (i < n) {
-      const isFirstPage = chunks.length === 0;
-      const budget = isFirstPage ? page1Budget : contBudget;
+          while (i < n) {
+            const isFirstPage = chunks.length === 0;
+            const budget = isFirstPage ? page1Budget : contBudget;
 
-      let sum = 0;
-      let j = i;
-      
-      while (j < n) {
-        if (sum + rowHeights[j] > budget && j > i) {
-          break;
+            let sum = 0;
+            let j = i;
+
+            while (j < n) {
+              if (sum + rowHeights[j] > budget && j > i) {
+                break;
+              }
+              sum += rowHeights[j];
+              j++;
+            }
+
+            chunks.push({
+              isLast: false,
+              products: products.slice(i, j),
+              rowsHeight: sum,
+            });
+            i = j;
+          }
+
+          if (chunks.length === 0) {
+            chunks.push({
+              isLast: false,
+              products: [],
+              rowsHeight: 0,
+            });
+          }
+
+          const lastChunk = chunks[chunks.length - 1];
+          const budgetForLast = chunks.length === 1 ? page1Budget : contBudget;
+
+          if (lastChunk.rowsHeight + bottomExtra <= budgetForLast) {
+            lastChunk.isLast = true;
+          } else {
+            chunks.push({
+              isLast: true,
+              products: [],
+              rowsHeight: 0,
+            });
+          }
         }
-        sum += rowHeights[j];
-        j++;
-      }
 
-      chunks.push({
-        isLast: false,
-        products: products.slice(i, j),
-        rowsHeight: sum
-      });
-      i = j;
-    }
+        const totalPages = chunks.length;
+        let pagesHtml = "";
+        let globalIdx = 1;
 
-    if (chunks.length === 0) {
-      chunks.push({
-        isLast: false,
-        products: [],
-        rowsHeight: 0
-      });
-    }
+        chunks.forEach((chunk, pageIndex) => {
+          const isFirstPage = pageIndex === 0;
+          const isLastPage = chunk.isLast;
+          const pageNum = pageIndex + 1;
 
-    const lastChunk = chunks[chunks.length - 1];
-    const budgetForLast = chunks.length === 1 ? page1Budget : contBudget;
+          let rowsHtml = chunk.products
+            .map((p) => buildInvRowHtml(p, globalIdx++))
+            .join("");
 
-    if (lastChunk.rowsHeight + bottomExtra <= budgetForLast) {
-      lastChunk.isLast = true;
-    } else {
-      chunks.push({
-        isLast: true,
-        products: [],
-        rowsHeight: 0
-      });
-    }
-  }
-
-  const totalPages = chunks.length;
-  let pagesHtml = '';
-  let globalIdx = 1;
-
-  chunks.forEach((chunk, pageIndex) => {
-    const isFirstPage = pageIndex === 0;
-    const isLastPage = chunk.isLast;
-    const pageNum = pageIndex + 1;
-
-    let rowsHtml = chunk.products.map(p => buildInvRowHtml(p, globalIdx++)).join('');
-
-    const contPageHeaderHtml = `
+          const contPageHeaderHtml = `
       <div class="page-continuation-header">
         <div class="cont-left">
           <img src="${c.assets.horizontalLogo}" class="cont-logo" crossOrigin="anonymous" alt="${escapeHtml(c.company.name)}">
@@ -1268,7 +2624,9 @@ function renderInvoiceTemplate(targetContainerId = 'invoiceRoot'){
       </div>
     `;
 
-    const tableHtml = chunk.products.length > 0 ? `
+          const tableHtml =
+            chunk.products.length > 0
+              ? `
       <table class="inv-table">
         <thead>
           <tr>
@@ -1281,314 +2639,384 @@ function renderInvoiceTemplate(targetContainerId = 'invoiceRoot'){
         </thead>
         <tbody>${rowsHtml}</tbody>
       </table>
-    ` : '';
+    `
+              : "";
 
-    let pageContent = `
-      <div class="invoice-page ${isFirstPage ? '' : 'page-continuation'}">
+          let pageContent = `
+      <div class="invoice-page ${isFirstPage ? "" : "page-continuation"}">
         ${isFirstPage ? page1HeaderHtml : contPageHeaderHtml}
         
         <div class="inv-table-wrap">
           ${tableHtml}
         </div>
         
-        ${isLastPage ? `
+        ${
+          isLastPage
+            ? `
           <div class="inv-bottom-row">
             ${notesHtml || '<div class="inv-notes" style="visibility: hidden; opacity: 0; border: none; background: none;"></div>'}
             ${summaryHtml}
           </div>
           ${footerHtml}
-        ` : ''}
+        `
+            : ""
+        }
         
         ${watermarkHtml}
       </div>
     `;
 
-    pagesHtml += pageContent;
-  });
+          pagesHtml += pageContent;
+        });
 
-  root.innerHTML = pagesHtml;
-}
-
-function fitInvoiceToSinglePage(){
-  const pages = document.querySelectorAll('.invoice-page');
-  const PAGE_HEIGHT = 1123;
-
-  pages.forEach(page => {
-    page.classList.remove('compact', 'compact-2');
-    if(page.scrollHeight > PAGE_HEIGHT){ page.classList.add('compact'); }
-    if(page.scrollHeight > PAGE_HEIGHT){ page.classList.add('compact-2'); }
-  });
-}
-
-function handlePreviewLayoutScaling() {
-  const wrapper = el.previewModalBody;
-  const scaleContainer = document.getElementById('previewScaleContainer');
-  if (!wrapper || !scaleContainer) return;
-
-  const baseWidth = 794;
-  const availableWidth = wrapper.clientWidth - 24; 
-
-  if (availableWidth < baseWidth) {
-    const scale = availableWidth / baseWidth;
-    scaleContainer.style.transform = `scale(${scale})`;
-    
-    const heightLoss = scaleContainer.offsetHeight * (1 - scale);
-    scaleContainer.style.marginBottom = `-${heightLoss}px`;
-  } else {
-    scaleContainer.style.transform = "none";
-    scaleContainer.style.marginBottom = "0px";
-  }
-}
-
-function openPreviewModal(){
-  if(!state.products.length){ 
-    showToast('Add at least one product to generate preview.', 'error'); 
-    return; 
-  }
-  
-  showOverlay(el.previewModalOverlay);
-
-  renderInvoiceTemplate('previewScaleContainer');
-  fitInvoiceToSinglePage();
-  handlePreviewLayoutScaling();
-  
-  el.previewModalBody.scrollTop = 0;
-}
-
-function closePreviewModal(){
-  hideOverlay(el.previewModalOverlay);
-  const scaleContainer = document.getElementById('previewScaleContainer');
-  if(scaleContainer) scaleContainer.innerHTML = '';
-}
-
-async function downloadInvoice(){
-  if(!state.products.length){ showToast('Add at least one product before downloading.', 'error'); return; }
-  if(!el.previewModalOverlay.classList.contains('hide')) closePreviewModal();
-
-  const root = document.getElementById('invoiceRoot');
-  const overlay = document.getElementById('pdfLoadingOverlay');
-  const wrapper = document.getElementById('pdfWrapper');
-
-  try{
-    renderInvoiceTemplate('invoiceRoot');
-    overlay.classList.remove('hide');
-
-    const explicitImages = Array.from(root.querySelectorAll('img'));
-    await Promise.all(explicitImages.map(async (img) => {
-      try {
-        if (!img.complete) {
-          await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
-        }
-        if (typeof img.decode === 'function') await img.decode();
-      } catch (e) { console.warn("Asset load validation bypassed:", img.src); }
-    }));
-
-    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    fitInvoiceToSinglePage();
-    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-
-    const opt = {
-      margin: 0,
-      filename: `${CONFIG.invoice.filePrefix}${state.invoiceNumber}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true, 
-        backgroundColor: '#FFFFFF',
-        background: true,
-        logging: false,
-        width: 794,
-        windowWidth: 794,
-        scrollX: 0,
-        scrollY: 0,
-        x: 0,
-        y: 0
-      },
-      jsPDF: { unit: 'px', format: [794, 1123], orientation: 'portrait' },
-      pagebreak: { mode: ['css', 'legacy'] }
-    };
-    
-    await window.html2pdf().set(opt).from(wrapper).save();
-    showToast('Invoice downloaded', 'success');
-    initInvoiceMeta();
-  } catch(err){
-    console.error(err);
-    showToast('Could not generate PDF. Please try again.', 'error');
-  } finally {
-    overlay.classList.add('hide');
-    root.innerHTML = '';
-  }
-}
-
-function handleTableClick(e){
-  const btn = e.target.closest('button[data-action]');
-  if(!btn) return;
-  const id = Number(btn.dataset.id);
-  if(btn.dataset.action === 'edit') editProduct(id);
-  else if(btn.dataset.action === 'delete') requestDeleteProduct(id);
-}
-
-function bindEvents(){
-  el.customerName.addEventListener('input', (e) => { state.customer.name = e.target.value.trim(); });
-  el.customerAddress.addEventListener('input', (e) => { state.customer.address = e.target.value.trim(); });
-  el.customerMobile.addEventListener('input', (e) => { state.customer.mobile = e.target.value.trim(); });
-  
-  el.invoiceNumber.addEventListener('input', (e) => { state.invoiceNumber = e.target.value.trim(); });
-  el.invoiceDate.addEventListener('change', (e) => { state.dateStr = formatDateForDisplay(e.target.value); });
-  el.invoiceDate.addEventListener('input', (e) => { state.dateStr = formatDateForDisplay(e.target.value); });
-
-  el.invoiceNotes.addEventListener('input', (e) => { state.notes = e.target.value; });
-  
-  el.toggleNotesVisibility.addEventListener('change', (e) => {
-    state.includeNotesOnPdf = e.target.checked;
-    el.invoiceNotes.disabled = !e.target.checked;
-    el.invoiceNotes.style.opacity = e.target.checked ? '1' : '0.5';
-    el.invoiceNotes.style.cursor = e.target.checked ? 'text' : 'not-allowed';
-    localStorage.setItem('jas_pref_notes', e.target.checked);
-  });
-  
-  el.toggleWatermark.addEventListener('change', (e) => { 
-    state.showWatermark = e.target.checked; 
-    localStorage.setItem('jas_pref_watermark', e.target.checked);
-  });
-
-  [el.prodQty, el.prodRate].forEach(input => {
-    input.addEventListener('focus', () => input.select());
-  });
-
-  el.btnAddProduct.addEventListener('click', () => openProductModal(null));
-  el.btnCloseModal.addEventListener('click', closeProductModal);
-  el.btnCancelProduct.addEventListener('click', closeProductModal);
-  el.btnSaveProduct.addEventListener('click', saveProduct);
-  el.productTableBody.addEventListener('click', handleTableClick);
-  
-  el.btnDownload.addEventListener('click', downloadInvoice);
-  el.btnDownloadFromPreview.addEventListener('click', downloadInvoice);
-  el.btnPreview.addEventListener('click', openPreviewModal);
-  el.btnClosePreviewModal.addEventListener('click', closePreviewModal);
-
-  el.btnCloseDeleteModal.addEventListener('click', closeDeleteModal);
-  el.btnCancelDelete.addEventListener('click', closeDeleteModal);
-  el.btnConfirmDelete.addEventListener('click', deleteProduct);
-
-  el.btnResetPage.addEventListener('click', openResetModal);
-  el.btnCloseResetModal.addEventListener('click', closeResetModal);
-  el.btnCancelReset.addEventListener('click', closeResetModal);
-  el.btnConfirmReset.addEventListener('click', resetInvoice);
-
-  el.btnThemeToggle.addEventListener('click', () => {
-    document.body.classList.toggle('dark-theme');
-    const isDark = document.body.classList.contains('dark-theme');
-    localStorage.setItem('jas_theme', isDark ? 'dark' : 'light');
-    el.btnThemeToggle.innerHTML = isDark ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
-  });
-
-  el.productModalOverlay.addEventListener('click', e => { if(e.target === el.productModalOverlay) closeProductModal(); });
-  el.deleteModalOverlay.addEventListener('click', e => { if(e.target === el.deleteModalOverlay) closeDeleteModal(); });
-  el.previewModalOverlay.addEventListener('click', e => { if(e.target === el.previewModalOverlay) closePreviewModal(); });
-  el.resetModalOverlay.addEventListener('click', e => { if(e.target === el.resetModalOverlay) closeResetModal(); });
-
-  window.addEventListener('resize', () => { if(!el.previewModalOverlay.classList.contains('hide')) handlePreviewLayoutScaling(); });
-
-  [el.customerName, el.prodName, el.prodQty, el.prodRate].forEach(input => {
-    input.addEventListener('input', () => input.classList.remove('input-error'));
-  });
-
-  document.addEventListener('keydown', e => {
-    if(e.key === 'Escape'){
-      if(!el.productModalOverlay.classList.contains('hide')) closeProductModal();
-      if(!el.deleteModalOverlay.classList.contains('hide')) closeDeleteModal();
-      if(!el.previewModalOverlay.classList.contains('hide')) closePreviewModal();
-      if(!el.resetModalOverlay.classList.contains('hide')) closeResetModal();
-    }
-    
-    if(e.key === 'Enter') {
-      const active = document.activeElement;
-      if (!active) return;
-
-      if(active.id === 'customerName') {
-        e.preventDefault();
-        if (markError(active, validateField(active))) {
-          el.customerAddress.focus();
-        }
-      } 
-      else if(active.id === 'customerAddress') {
-        e.preventDefault();
-        el.customerMobile.focus();
-      } 
-      else if(active.id === 'customerMobile') {
-        e.preventDefault();
-        el.btnAddProduct.click();
+        root.innerHTML = pagesHtml;
       }
-      else if(['prodName', 'prodDesc', 'prodSerial', 'prodQty', 'prodRate'].includes(active.id)) {
-        e.preventDefault();
-        if(active.id === 'prodName') {
-          if (markError(active, validateField(active))) el.prodDesc.focus();
-        }
-        else if(active.id === 'prodDesc') {
-          el.prodSerial.focus();
-        }
-        else if(active.id === 'prodSerial') {
-          el.prodQty.focus();
-        }
-        else if(active.id === 'prodQty') {
-          if (markError(active, validateField(active, 'qty'))) el.prodRate.focus();
-        }
-        else if(active.id === 'prodRate') {
-          if (markError(active, validateField(active, 'rate'))) saveProduct();
+
+      function fitInvoiceToSinglePage() {
+        const pages = document.querySelectorAll(".invoice-page");
+        const PAGE_HEIGHT = 1123;
+
+        pages.forEach((page) => {
+          page.classList.remove("compact", "compact-2");
+          if (page.scrollHeight > PAGE_HEIGHT) {
+            page.classList.add("compact");
+          }
+          if (page.scrollHeight > PAGE_HEIGHT) {
+            page.classList.add("compact-2");
+          }
+        });
+      }
+
+      function handlePreviewLayoutScaling() {
+        const wrapper = el.previewModalBody;
+        const scaleContainer = document.getElementById("previewScaleContainer");
+        if (!wrapper || !scaleContainer) return;
+
+        const baseWidth = 794;
+        const availableWidth = wrapper.clientWidth - 24;
+
+        if (availableWidth < baseWidth) {
+          const scale = availableWidth / baseWidth;
+          scaleContainer.style.transform = `scale(${scale})`;
+
+          const heightLoss = scaleContainer.offsetHeight * (1 - scale);
+          scaleContainer.style.marginBottom = `-${heightLoss}px`;
+        } else {
+          scaleContainer.style.transform = "none";
+          scaleContainer.style.marginBottom = "0px";
         }
       }
-    }
-  });
-}
 
-async function init(){
-  cacheElements();
-  hideOverlay(el.productModalOverlay);
-  hideOverlay(el.deleteModalOverlay);
-  hideOverlay(el.previewModalOverlay);
-  hideOverlay(el.resetModalOverlay);
+      function openPreviewModal() {
+        if (!state.products.length) {
+          showToast("Add at least one product to generate preview.", "error");
+          return;
+        }
 
-  const savedTheme = localStorage.getItem('jas_theme');
-  if (savedTheme === 'dark') {
-    document.body.classList.add('dark-theme');
-    el.btnThemeToggle.innerHTML = '<i class="fa-solid fa-sun"></i>';
-  }
+        showOverlay(el.previewModalOverlay);
 
-  // 1. Load config and attach events FIRST
-  await loadConfig();
-  initInvoiceMeta();
-  bindEvents(); 
+        renderInvoiceTemplate("previewScaleContainer");
+        fitInvoiceToSinglePage();
+        handlePreviewLayoutScaling();
 
-  // 2. THEN load preferences and update checkbox status visually
-  const prefNotes = localStorage.getItem('jas_pref_notes');
-  if(prefNotes !== null) el.toggleNotesVisibility.checked = (prefNotes === 'true');
-  
-  const prefWatermark = localStorage.getItem('jas_pref_watermark');
-  if(prefWatermark !== null) el.toggleWatermark.checked = (prefWatermark === 'true');
-
-  // 3. Dispatch the events so the app state logic triggers properly
-  el.toggleNotesVisibility.dispatchEvent(new Event('change'));
-  el.toggleWatermark.dispatchEvent(new Event('change'));
-
-  renderProducts();
-  updateSummary();
-
-  if('serviceWorker' in navigator){
-    try {
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      for (let registration of registrations) {
-        await registration.unregister();
-        console.log('Old Service Worker successfully deleted.');
+        el.previewModalBody.scrollTop = 0;
       }
-    } catch(e) {
-      console.error('Service worker unregistration failed: ', e);
-    }
-  }
-}
 
-document.addEventListener('DOMContentLoaded', init);
-</script>
-</body>
+      function closePreviewModal() {
+        hideOverlay(el.previewModalOverlay);
+        const scaleContainer = document.getElementById("previewScaleContainer");
+        if (scaleContainer) scaleContainer.innerHTML = "";
+      }
+
+      async function downloadInvoice() {
+        if (!state.products.length) {
+          showToast("Add at least one product before downloading.", "error");
+          return;
+        }
+        if (!el.previewModalOverlay.classList.contains("hide"))
+          closePreviewModal();
+
+        const root = document.getElementById("invoiceRoot");
+        const overlay = document.getElementById("pdfLoadingOverlay");
+        const wrapper = document.getElementById("pdfWrapper");
+
+        try {
+          renderInvoiceTemplate("invoiceRoot");
+          overlay.classList.remove("hide");
+
+          const explicitImages = Array.from(root.querySelectorAll("img"));
+          await Promise.all(
+            explicitImages.map(async (img) => {
+              try {
+                if (!img.complete) {
+                  await new Promise((res, rej) => {
+                    img.onload = res;
+                    img.onerror = rej;
+                  });
+                }
+                if (typeof img.decode === "function") await img.decode();
+              } catch (e) {
+                console.warn("Asset load validation bypassed:", img.src);
+              }
+            }),
+          );
+
+          await new Promise((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(resolve)),
+          );
+          fitInvoiceToSinglePage();
+          await new Promise((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(resolve)),
+          );
+
+          const opt = {
+            margin: 0,
+            filename: `${CONFIG.invoice.filePrefix}${state.invoiceNumber}.pdf`,
+            image: { type: "jpeg", quality: 0.98 },
+            html2canvas: {
+              scale: 2,
+              useCORS: true,
+              allowTaint: true,
+              backgroundColor: "#FFFFFF",
+              background: true,
+              logging: false,
+              width: 794,
+              windowWidth: 794,
+              scrollX: 0,
+              scrollY: 0,
+              x: 0,
+              y: 0,
+            },
+            jsPDF: { unit: "px", format: [794, 1123], orientation: "portrait" },
+            pagebreak: { mode: ["css", "legacy"] },
+          };
+
+          await window.html2pdf().set(opt).from(wrapper).save();
+          showToast("Invoice downloaded", "success");
+          initInvoiceMeta();
+        } catch (err) {
+          console.error(err);
+          showToast("Could not generate PDF. Please try again.", "error");
+        } finally {
+          overlay.classList.add("hide");
+          root.innerHTML = "";
+        }
+      }
+
+      function handleTableClick(e) {
+        const btn = e.target.closest("button[data-action]");
+        if (!btn) return;
+        const id = Number(btn.dataset.id);
+        if (btn.dataset.action === "edit") editProduct(id);
+        else if (btn.dataset.action === "delete") requestDeleteProduct(id);
+      }
+
+      function bindEvents() {
+        el.customerName.addEventListener("input", (e) => {
+          state.customer.name = e.target.value.trim();
+        });
+        el.customerAddress.addEventListener("input", (e) => {
+          state.customer.address = e.target.value.trim();
+        });
+        el.customerMobile.addEventListener("input", (e) => {
+          state.customer.mobile = e.target.value.trim();
+        });
+
+        el.invoiceNumber.addEventListener("input", (e) => {
+          state.invoiceNumber = e.target.value.trim();
+        });
+        el.invoiceDate.addEventListener("change", (e) => {
+          state.dateStr = formatDateForDisplay(e.target.value);
+        });
+        el.invoiceDate.addEventListener("input", (e) => {
+          state.dateStr = formatDateForDisplay(e.target.value);
+        });
+
+        el.invoiceNotes.addEventListener("input", (e) => {
+          state.notes = e.target.value;
+        });
+
+        el.toggleNotesVisibility.addEventListener("change", (e) => {
+          state.includeNotesOnPdf = e.target.checked;
+          el.invoiceNotes.disabled = !e.target.checked;
+          el.invoiceNotes.style.opacity = e.target.checked ? "1" : "0.5";
+          el.invoiceNotes.style.cursor = e.target.checked
+            ? "text"
+            : "not-allowed";
+          localStorage.setItem("jas_pref_notes", e.target.checked);
+        });
+
+        el.toggleWatermark.addEventListener("change", (e) => {
+          state.showWatermark = e.target.checked;
+          localStorage.setItem("jas_pref_watermark", e.target.checked);
+        });
+
+        [el.prodQty, el.prodRate].forEach((input) => {
+          input.addEventListener("focus", () => input.select());
+        });
+
+        el.btnAddProduct.addEventListener("click", () =>
+          openProductModal(null),
+        );
+        el.btnCloseModal.addEventListener("click", closeProductModal);
+        el.btnCancelProduct.addEventListener("click", closeProductModal);
+        el.btnSaveProduct.addEventListener("click", saveProduct);
+        el.productTableBody.addEventListener("click", handleTableClick);
+
+        el.btnDownload.addEventListener("click", downloadInvoice);
+        el.btnDownloadFromPreview.addEventListener("click", downloadInvoice);
+        el.btnPreview.addEventListener("click", openPreviewModal);
+        el.btnClosePreviewModal.addEventListener("click", closePreviewModal);
+
+        el.btnCloseDeleteModal.addEventListener("click", closeDeleteModal);
+        el.btnCancelDelete.addEventListener("click", closeDeleteModal);
+        el.btnConfirmDelete.addEventListener("click", deleteProduct);
+
+        el.btnResetPage.addEventListener("click", openResetModal);
+        el.btnCloseResetModal.addEventListener("click", closeResetModal);
+        el.btnCancelReset.addEventListener("click", closeResetModal);
+        el.btnConfirmReset.addEventListener("click", resetInvoice);
+
+        el.btnThemeToggle.addEventListener("click", () => {
+          document.body.classList.toggle("dark-theme");
+          const isDark = document.body.classList.contains("dark-theme");
+          localStorage.setItem("jas_theme", isDark ? "dark" : "light");
+          el.btnThemeToggle.innerHTML = isDark
+            ? '<i class="fa-solid fa-sun"></i>'
+            : '<i class="fa-solid fa-moon"></i>';
+        });
+
+        el.productModalOverlay.addEventListener("click", (e) => {
+          if (e.target === el.productModalOverlay) closeProductModal();
+        });
+        el.deleteModalOverlay.addEventListener("click", (e) => {
+          if (e.target === el.deleteModalOverlay) closeDeleteModal();
+        });
+        el.previewModalOverlay.addEventListener("click", (e) => {
+          if (e.target === el.previewModalOverlay) closePreviewModal();
+        });
+        el.resetModalOverlay.addEventListener("click", (e) => {
+          if (e.target === el.resetModalOverlay) closeResetModal();
+        });
+
+        window.addEventListener("resize", () => {
+          if (!el.previewModalOverlay.classList.contains("hide"))
+            handlePreviewLayoutScaling();
+        });
+
+        [el.customerName, el.prodName, el.prodQty, el.prodRate].forEach(
+          (input) => {
+            input.addEventListener("input", () =>
+              input.classList.remove("input-error"),
+            );
+          },
+        );
+
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "Escape") {
+            if (!el.productModalOverlay.classList.contains("hide"))
+              closeProductModal();
+            if (!el.deleteModalOverlay.classList.contains("hide"))
+              closeDeleteModal();
+            if (!el.previewModalOverlay.classList.contains("hide"))
+              closePreviewModal();
+            if (!el.resetModalOverlay.classList.contains("hide"))
+              closeResetModal();
+          }
+
+          if (e.key === "Enter") {
+            const active = document.activeElement;
+            if (!active) return;
+
+            if (active.id === "customerName") {
+              e.preventDefault();
+              if (markError(active, validateField(active))) {
+                el.customerAddress.focus();
+              }
+            } else if (active.id === "customerAddress") {
+              e.preventDefault();
+              el.customerMobile.focus();
+            } else if (active.id === "customerMobile") {
+              e.preventDefault();
+              el.btnAddProduct.click();
+            } else if (
+              [
+                "prodName",
+                "prodDesc",
+                "prodSerial",
+                "prodQty",
+                "prodRate",
+              ].includes(active.id)
+            ) {
+              e.preventDefault();
+              if (active.id === "prodName") {
+                if (markError(active, validateField(active)))
+                  el.prodDesc.focus();
+              } else if (active.id === "prodDesc") {
+                el.prodSerial.focus();
+              } else if (active.id === "prodSerial") {
+                el.prodQty.focus();
+              } else if (active.id === "prodQty") {
+                if (markError(active, validateField(active, "qty")))
+                  el.prodRate.focus();
+              } else if (active.id === "prodRate") {
+                if (markError(active, validateField(active, "rate")))
+                  saveProduct();
+              }
+            }
+          }
+        });
+      }
+
+      async function init() {
+        cacheElements();
+        hideOverlay(el.productModalOverlay);
+        hideOverlay(el.deleteModalOverlay);
+        hideOverlay(el.previewModalOverlay);
+        hideOverlay(el.resetModalOverlay);
+
+        const savedTheme = localStorage.getItem("jas_theme");
+        if (savedTheme === "dark") {
+          document.body.classList.add("dark-theme");
+          el.btnThemeToggle.innerHTML = '<i class="fa-solid fa-sun"></i>';
+        }
+
+        // 1. Load config and attach events FIRST
+        await loadConfig();
+        initInvoiceMeta();
+        bindEvents();
+
+        // 2. THEN load preferences and update checkbox status visually
+        const prefNotes = localStorage.getItem("jas_pref_notes");
+        if (prefNotes !== null)
+          el.toggleNotesVisibility.checked = prefNotes === "true";
+
+        const prefWatermark = localStorage.getItem("jas_pref_watermark");
+        if (prefWatermark !== null)
+          el.toggleWatermark.checked = prefWatermark === "true";
+
+        // 3. Dispatch the events so the app state logic triggers properly
+        el.toggleNotesVisibility.dispatchEvent(new Event("change"));
+        el.toggleWatermark.dispatchEvent(new Event("change"));
+
+        renderProducts();
+        updateSummary();
+
+        if ("serviceWorker" in navigator) {
+          try {
+            const registrations =
+              await navigator.serviceWorker.getRegistrations();
+            for (let registration of registrations) {
+              await registration.unregister();
+              console.log("Old Service Worker successfully deleted.");
+            }
+          } catch (e) {
+            console.error("Service worker unregistration failed: ", e);
+          }
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", init);
+    </script>
+  </body>
 </html>
