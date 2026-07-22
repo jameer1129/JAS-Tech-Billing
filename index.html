@@ -44,7 +44,7 @@ body.dark-theme {
 
 body.dark-theme .card { background: var(--white); border-color: var(--line); }
 
-/* Force native input elements (like the date picker calendar icon) to use their dark mode variants */
+/* Force native popup boxes to use dark mode variants */
 body.dark-theme .field input, 
 body.dark-theme .field textarea { 
   background: #0A0A0A; 
@@ -133,6 +133,35 @@ img{max-width:100%;display:block;}
 .field input.input-error, .field textarea.input-error {
   border-color: var(--danger);
   box-shadow: 0 0 0 3px rgba(214, 69, 69, 0.14);
+}
+
+/* Custom Date Icon Wrapper */
+.input-icon-wrap {
+  position: relative;
+  display: block;
+}
+.input-icon-wrap i {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none; /* Allows click to pass through to the input */
+  font-size: 15px;
+}
+/* Hide the native calendar icon and stretch it to make the whole field clickable */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0; /* Fully invisible */
+  cursor: pointer;
+  color: transparent;
+  background: transparent;
 }
 
 .btn{border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;padding:11px 18px;cursor:pointer;
@@ -438,7 +467,16 @@ img{max-width:100%;display:block;}
     <h2 class="card__heading"><i class="fa-regular fa-file-lines"></i> Invoice</h2>
     <div class="field-group field-group--pair">
       <div class="field"><label for="invoiceNumber">Invoice No.</label><input type="text" id="invoiceNumber" autocomplete="off"></div>
-      <div class="field"><label for="invoiceDate">Date</label><input type="date" id="invoiceDate"></div>
+      
+      <!-- Updated Date Field with Font Awesome wrapper -->
+      <div class="field">
+        <label for="invoiceDate">Date</label>
+        <div class="input-icon-wrap">
+          <input type="date" id="invoiceDate">
+          <i class="fa-regular fa-calendar"></i>
+        </div>
+      </div>
+      
     </div>
   </section>
 
