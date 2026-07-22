@@ -142,11 +142,11 @@ img{max-width:100%;display:block;}
 }
 .input-icon-wrap i {
   position: absolute;
-  right: 14px;
+  right: 10px; /* Moved closer to the edge */
   top: 50%;
   transform: translateY(-50%);
   color: var(--muted);
-  pointer-events: none; /* Allows click to pass through to the input */
+  pointer-events: none; 
   font-size: 15px;
 }
 
@@ -155,7 +155,9 @@ input[type="date"] {
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
-  padding-right: 36px; /* Prevents long date text from overlapping your FontAwesome icon */
+  padding-left: 10px; /* Reduced left padding slightly for more room */
+  padding-right: 28px; /* Reduced right padding so the year doesn't cut off */
+  letter-spacing: -0.2px; /* Tucks the numbers slightly closer together on small screens */
 }
 
 /* 2. Hide the native spin/clear buttons that Chrome sometimes injects */
