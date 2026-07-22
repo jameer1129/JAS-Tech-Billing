@@ -41,10 +41,17 @@ body.dark-theme {
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.5);
   --shadow-md: 0 10px 28px rgba(0,0,0,0.8);
 }
+
 body.dark-theme .card { background: var(--white); border-color: var(--line); }
+
+/* Force native input elements (like the date picker calendar icon) to use their dark mode variants */
 body.dark-theme .field input, 
-body.dark-theme .field textarea { background: #0A0A0A; color: var(--text); }
-body.dark-theme .field input[readonly] { background: #1A202C; color: #63B3ED; border-color: transparent; }
+body.dark-theme .field textarea { 
+  background: #0A0A0A; 
+  color: var(--text); 
+  color-scheme: dark; 
+}
+
 body.dark-theme .product-table thead th { background: #1A202C; color: #63B3ED; }
 body.dark-theme .btn--outline:hover { background: #1A202C; }
 body.dark-theme .btn--ghost:hover { background: #1A202C; }
@@ -122,7 +129,6 @@ img{max-width:100%;display:block;}
 }
 .field textarea{resize:vertical;min-height:64px;line-height:1.5;}
 .field input:focus,.field textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(21,101,192,.14);}
-.field input[readonly]{background:#EEF4FC;color:var(--primary-dark);font-weight:600;border-color:transparent;}
 
 .field input.input-error, .field textarea.input-error {
   border-color: var(--danger);
@@ -431,8 +437,8 @@ img{max-width:100%;display:block;}
   <section class="card">
     <h2 class="card__heading"><i class="fa-regular fa-file-lines"></i> Invoice</h2>
     <div class="field-group field-group--pair">
-      <div class="field"><label>Invoice No.</label><input type="text" id="invoiceNumber" readonly></div>
-      <div class="field"><label>Date</label><input type="text" id="invoiceDate" readonly></div>
+      <div class="field"><label for="invoiceNumber">Invoice No.</label><input type="text" id="invoiceNumber" autocomplete="off"></div>
+      <div class="field"><label for="invoiceDate">Date</label><input type="date" id="invoiceDate"></div>
     </div>
   </section>
 
@@ -723,12 +729,26 @@ function generateInvoiceNumber(date){
     .replace('ss', pad(date.getSeconds()));
 }
 
+function formatDateForDisplay(val) {
+  if (!val) return '';
+  const parts = val.split('-');
+  if (parts.length === 3) {
+    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  }
+  return val;
+}
+
 function initInvoiceMeta(){
   const now = new Date();
   state.invoiceNumber = generateInvoiceNumber(now);
   el.invoiceNumber.value = state.invoiceNumber;
-  state.dateStr = `${pad(now.getDate())}-${pad(now.getMonth()+1)}-${now.getFullYear()}`;
-  el.invoiceDate.value = state.dateStr;
+  
+  const yyyy = now.getFullYear();
+  const mm = pad(now.getMonth() + 1);
+  const dd = pad(now.getDate());
+  
+  el.invoiceDate.value = `${yyyy}-${mm}-${dd}`;
+  state.dateStr = `${dd}-${mm}-${yyyy}`;
 }
 
 function calculateTotals(products){
@@ -1131,7 +1151,7 @@ function renderInvoiceTemplate(targetContainerId = 'invoiceRoot'){
 
     const page1Budget = PAGE_HEIGHT - PAGE_PAD_TOP - PAGE_PAD_BOTTOM - page1HeaderHeight
                        - TABLE_MARGIN_TOP - theadHeight - TABLE_BORDER - SAFETY_MARGIN;
-    const contBudget  = PAGE_HEIGHT - PAGE_PAD_TOP - PAGE_PAD_BOTTOM - contHeaderHeight
+    const contBudget   = PAGE_HEIGHT - PAGE_PAD_TOP - PAGE_PAD_BOTTOM - contHeaderHeight
                        - TABLE_MARGIN_TOP - theadHeight - TABLE_BORDER - SAFETY_MARGIN;
 
     let i = 0;
@@ -1375,6 +1395,11 @@ function bindEvents(){
   el.customerName.addEventListener('input', (e) => { state.customer.name = e.target.value.trim(); });
   el.customerAddress.addEventListener('input', (e) => { state.customer.address = e.target.value.trim(); });
   el.customerMobile.addEventListener('input', (e) => { state.customer.mobile = e.target.value.trim(); });
+  
+  el.invoiceNumber.addEventListener('input', (e) => { state.invoiceNumber = e.target.value.trim(); });
+  el.invoiceDate.addEventListener('change', (e) => { state.dateStr = formatDateForDisplay(e.target.value); });
+  el.invoiceDate.addEventListener('input', (e) => { state.dateStr = formatDateForDisplay(e.target.value); });
+
   el.invoiceNotes.addEventListener('input', (e) => { state.notes = e.target.value; });
   
   el.toggleNotesVisibility.addEventListener('change', (e) => {
