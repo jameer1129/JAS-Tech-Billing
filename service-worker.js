@@ -1,74 +1,114 @@
 /* =========================================================
    JAS TECH BILLING — service-worker.js
-   Caches the entire app (including all image assets) so the
-   PWA works fully offline after the first successful load.
-   Bump CACHE_NAME whenever cached files change to force refresh.
+   Online First + Image Cache
    ========================================================= */
 
-const CACHE_NAME = "jas-tech-billing-v2.0.0";
+const CACHE_NAME = "jas-tech-assets-v1";
 
-const ASSETS_TO_CACHE = [
-  "./",
-  "./index.html",
-  "./manifest.json",
-  "./config.json",
-
-  "./assets/logo/horizontal-logo.png",
-  "./assets/logo/main-logo.png",
+// Only static assets
+const STATIC_ASSETS = [
   "./assets/logo/logo.png",
+  "./assets/logo/main-logo.png",
+  "./assets/logo/horizontal-logo.png",
   "./assets/signature/signature.png",
   "./assets/icons/app-icon.png",
-  "./assets/icons/whatsapp-qr.jpeg",
+  "./assets/icons/whatsapp-qr.jpeg"
 ];
 
-// Install: pre-cache the app shell
-self.addEventListener("install", (event) => {
+// Install
+self.addEventListener("install", event => {
   event.waitUntil(
-    caches
-      .open(CACHE_NAME)
-      .then((cache) => cache.addAll(ASSETS_TO_CACHE))
-      .then(() => self.skipWaiting()),
+    caches.open(CACHE_NAME).then(cache => cache.addAll(STATIC_ASSETS))
   );
+
+  self.skipWaiting();
 });
 
-// Activate: clean up old caches
-self.addEventListener("activate", (event) => {
+// Activate
+self.addEventListener("activate", event => {
   event.waitUntil(
-    caches
-      .keys()
-      .then((keys) =>
-        Promise.all(
-          keys
-            .filter((key) => key !== CACHE_NAME)
-            .map((key) => caches.delete(key)),
-        ),
+    caches.keys().then(keys =>
+      Promise.all(
+        keys
+          .filter(key => key !== CACHE_NAME)
+          .map(key => caches.delete(key))
       )
-      .then(() => self.clients.claim()),
+    )
   );
+
+  self.clients.claim();
 });
 
-// Fetch: cache-first, falling back to network, then caching new responses.
-self.addEventListener("fetch", (event) => {
+// Fetch
+self.addEventListener("fetch", event => {
+
   if (event.request.method !== "GET") return;
 
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) return cachedResponse;
+  const url = new URL(event.request.url);
 
-      return fetch(event.request)
-        .then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            const clone = networkResponse.clone();
-            caches
-              .open(CACHE_NAME)
-              .then((cache) => cache.put(event.request, clone));
-          }
-          return networkResponse;
-        })
-        .catch(() => {
-          if (event.request.mode === "navigate")
-            return caches.match("./index.html");
-        });
-    }),
-  );
+  // Never cache HTML
+  if (
+      event.request.mode === "navigate" ||
+      url.pathname.endsWith(".html")
+  ) {
+
+      event.respondWith(fetch(event.request));
+      return;
+  }
+
+  // Never cache config
+  if (url.pathname.endsWith("config.json")) {
+
+      event.respondWith(fetch(event.request));
+      return;
+  }
+
+  // Never cache JS
+  if (url.pathname.endsWith(".js")) {
+
+      event.respondWith(fetch(event.request));
+      return;
+  }
+
+  // Never cache CSS
+  if (url.pathname.endsWith(".css")) {
+
+      event.respondWith(fetch(event.request));
+      return;
+  }
+
+  // Cache images only
+  if (
+      event.request.destination === "image" ||
+      /\.(png|jpg|jpeg|gif|svg|webp|ico)$/i.test(url.pathname)
+  ) {
+
+      event.respondWith(
+
+          caches.match(event.request).then(cached => {
+
+              const network = fetch(event.request)
+                  .then(response => {
+
+                      if (response.ok) {
+                          const copy = response.clone();
+
+                          caches.open(CACHE_NAME)
+                              .then(cache => cache.put(event.request, copy));
+                      }
+
+                      return response;
+                  })
+                  .catch(() => cached);
+
+              return cached || network;
+          })
+
+      );
+
+      return;
+  }
+
+  // Everything else: always network
+  event.respondWith(fetch(event.request));
 });

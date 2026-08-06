@@ -1295,7 +1295,7 @@ function cacheElements(){
 
 async function loadConfig(){
   try {
-    const response = await fetch('config.json', { cache: 'no-store' });
+    const response = await fetch('./config.json');
     if (!response.ok) throw new Error(`Failed to load config.json: ${response.status}`);
     CONFIG = await response.json();
   } catch (error) {
@@ -1606,77 +1606,48 @@ async function handleLogout(){
   showScreen('auth');
 }
 
-async function fetchOwnProfile() {
-    for (let i = 0; i < 3; i++) {
-
-        const { data, error } = await supabaseClient
-            .from("profiles")
-            .select("id,name,email,role,status")
-            .eq("id", currentSession.user.id)
-            .single();
-
-        if (!error && data) {
-            return data;
-        }
-
-        console.warn(`Profile fetch failed (Attempt ${i + 1}/3)`, error);
-
-        // Wait 500ms before retrying
-        await new Promise(resolve => setTimeout(resolve, 500));
-    }
-
+async function fetchOwnProfile(){
+  const { data, error } = await supabaseClient
+    .from('profiles')
+    .select('id,name,email,role,status')
+    .eq('id', currentSession.user.id)
+    .single();
+  if (error) {
+    console.error(error);
     return null;
+  }
+  return data;
 }
 
-async function afterAuthResolved() {
+async function afterAuthResolved(){
+  currentProfile = await fetchOwnProfile();
 
-    currentProfile = await fetchOwnProfile();
+  if (!currentProfile) {
+    showAuthMsg('Could not load your profile. Please try again in a moment.');
+    showScreen('auth');
+    return;
+  }
 
-    // Could not load profile
-    if (!currentProfile) {
+  if (currentProfile.status === 'rejected') {
+    el.pendingCard.classList.add('rejected');
+    el.pendingIcon.className = 'fa-solid fa-circle-xmark';
+    el.pendingTitle.textContent = 'Access denied';
+    el.pendingText.textContent = 'Your registration request was rejected by an admin. Contact your admin if you think this is a mistake.';
+    showScreen('pending');
+    return;
+  }
 
-        // Check whether the user is actually logged out
-        const { data: { session } } = await supabaseClient.auth.getSession();
+  if (currentProfile.status === 'pending') {
+    el.pendingCard.classList.remove('rejected');
+    el.pendingIcon.className = 'fa-regular fa-clock';
+    el.pendingTitle.textContent = 'Waiting for approval';
+    el.pendingText.textContent = 'Your account has been created. An admin needs to approve it before you can log in and start billing.';
+    showScreen('pending');
+    return;
+  }
 
-        if (!session) {
-            showAuthMsg("Session expired. Please login again.");
-            showScreen("auth");
-            return;
-        }
-
-        // Session still exists.
-        // Keep showing the loader and retry once after 1 second.
-        setTimeout(async () => {
-            await afterAuthResolved();
-        }, 1000);
-
-        return;
-    }
-
-    // Rejected
-    if (currentProfile.status === "rejected") {
-        el.pendingCard.classList.add("rejected");
-        el.pendingIcon.className = "fa-solid fa-circle-xmark";
-        el.pendingTitle.textContent = "Access denied";
-        el.pendingText.textContent =
-            "Your registration request was rejected by an admin. Contact your admin if you think this is a mistake.";
-        showScreen("pending");
-        return;
-    }
-
-    // Pending
-    if (currentProfile.status === "pending") {
-        el.pendingCard.classList.remove("rejected");
-        el.pendingIcon.className = "fa-regular fa-clock";
-        el.pendingTitle.textContent = "Waiting for approval";
-        el.pendingText.textContent =
-            "Your account has been created. An admin needs to approve it before you can log in and start billing.";
-        showScreen("pending");
-        return;
-    }
-
-    // Approved
-    enterApp();
+  // approved
+  enterApp();
 }
 
 function enterApp(){
@@ -3227,20 +3198,15 @@ async function init(){
       }
     }
   });
-
-  if('serviceWorker' in navigator){
-    try {
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      for (let registration of registrations) {
-        await registration.unregister();
-      }
-    } catch(e) {
-      console.error('Service worker unregistration failed: ', e);
-    }
-  }
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js");
+  });
+}
 </script>
 </body>
 </html>
