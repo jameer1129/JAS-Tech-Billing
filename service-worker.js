@@ -3,7 +3,7 @@
    Online First + Image Cache
    ========================================================= */
 
-const CACHE_NAME = "jas-tech-assets-v1";
+const CACHE_NAME = "jas-tech-assets-v1.0.0";
 
 // Only static assets
 const STATIC_ASSETS = [
