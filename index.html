@@ -1773,7 +1773,7 @@ function closeResetModal(){
   hideOverlay(el.resetModalOverlay);
 }
 
-function resetInvoice(){
+function resetInvoice(silent = false){
   state.customer = { name: '', address: '', mobile: '' };
   state.products = [];
   state.nextId = 1;
@@ -1801,7 +1801,7 @@ function resetInvoice(){
   renderProducts();
   updateSummary();
   closeResetModal();
-  showToast('Invoice reset', 'success');
+  if (!silent) showToast('Invoice reset', 'success');
 }
 
 function renderProducts(){
@@ -2273,12 +2273,7 @@ async function handleSaveChoice(saveToDb){
     _pendingPdfFilename = result.filename;
 
     if (saveToDb) {
-      state.products = [];
-      state.nextId = 1;
-      loadedBillForPrint = null;
-      renderProducts();
-      updateSummary();
-      initInvoiceMeta();
+      resetInvoice(true);
     }
 
     openPdfActionModal(saveToDb);
@@ -2299,6 +2294,7 @@ function downloadPdfBlob(){
   setTimeout(() => URL.revokeObjectURL(url), 1000);
   showToast('Invoice downloaded', 'success');
   closePdfActionModal();
+  resetInvoice(true);
 }
 
 async function sharePdfBlob(){
@@ -2308,6 +2304,7 @@ async function sharePdfBlob(){
     const file = new File([_pendingPdfBlob], _pendingPdfFilename, { type: 'application/pdf' });
     await navigator.share({ files: [file], title: _pendingPdfFilename });
     closePdfActionModal();
+    resetInvoice(true);
   } catch(err){
     if (err.name !== 'AbortError') showToast('Could not share. Try downloading instead.', 'error');
   }
@@ -2940,7 +2937,7 @@ function bindEvents(){
   el.pdfActionModalOverlay.addEventListener('click', e => { if(e.target === el.pdfActionModalOverlay) closePdfActionModal(); });
   el.btnPdfDownload.addEventListener('click', downloadPdfBlob);
   el.btnPdfShare.addEventListener('click', sharePdfBlob);
-  el.btnDownloadFromPreview.addEventListener('click', () => { closePreviewModal(); handleSaveChoice(false); });
+  el.btnDownloadFromPreview.addEventListener('click', openSaveChoiceModal);
   el.btnPreview.addEventListener('click', openPreviewModal);
   el.btnClosePreviewModal.addEventListener('click', closePreviewModal);
 
