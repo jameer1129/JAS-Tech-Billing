@@ -256,15 +256,15 @@ img{max-width:100%;display:block;}
 .empty-state p{margin:0 0 4px;font-weight:600;color:var(--text);}
 .empty-state span{font-size:12.5px;}
 .product-table-wrap,.bills-table-wrap{overflow-x:auto;border-radius:var(--radius-sm);border:1px solid var(--line);}
-.product-table,.bills-table{width:100%;border-collapse:collapse;font-size:13.5px;}
+.product-table,.bills-table{width:100%;border-collapse:collapse;font-size:13.5px;table-layout:fixed;}
 .product-table thead th,.bills-table thead th{background:#EEF4FC;color:var(--primary);text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap; transition: background 0.3s ease;}
-.product-table tbody td,.bills-table tbody td{padding:12px;border-top:1px solid var(--line);vertical-align:top;}
-.product-table .prod-name{font-weight:600;color:var(--text);}
+.product-table tbody td,.bills-table tbody td{padding:12px;border-top:1px solid var(--line);vertical-align:top;word-break:break-word;white-space:normal;}
+.product-table .prod-name{font-weight:600;color:var(--text);white-space:normal;}
 
 .product-table .prod-meta,
 .inv-table .prod-meta { margin-top: 4px; line-height: 1.45; }
-.prod-desc-line { color: var(--muted); font-size: 12px; margin-top: 2px; }
-.prod-sn-line { font-size: 12px; margin-top: 2px; color: var(--text) !important; }
+.prod-desc-line { color: var(--muted); font-size: 12px; margin-top: 2px; white-space:normal; }
+.prod-sn-line { font-size: 12px; margin-top: 2px; color: var(--text) !important; white-space:normal; }
 .prod-sn-line .sn-label { color: var(--primary) !important; font-weight: 700; }
 .prod-sn-line .sn-value { color: var(--muted); font-weight: 500; }
 
@@ -533,7 +533,7 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{color:#63B3ED;}
 .inv-table thead th.col-rate { width:115px; }
 .inv-table thead th.col-amt { width:125px; }
 
-.inv-table tbody td { padding:6px; border:none;border-top:1px solid #CBD5E1;border-right:1px solid #CBD5E1; vertical-align:middle; text-align:center; color:#000000; font-size:13.5px; }
+.inv-table tbody td { padding:6px; border:none;border-top:1px solid #CBD5E1;border-right:1px solid #CBD5E1; vertical-align:middle; text-align:center; color:#000000; font-size:13.5px; word-break:break-word; white-space:normal; }
 .inv-table tbody td:nth-child(2) { text-align:left; }
 .inv-table tbody tr:nth-child(odd) td { background-color: #FFFFFF !important; }
 .inv-table tbody tr:nth-child(even) td { background-color: #F8FAFC !important; }
@@ -629,11 +629,11 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{color:#63B3ED;}
     <div class="auth-form" id="loginForm">
       <div class="field">
         <label for="loginEmail">Email</label>
-        <input type="email" id="loginEmail" autocomplete="username">
+        <input type="email" id="loginEmail" autocomplete="username" maxlength="100">
       </div>
       <div class="field field--password">
         <label for="loginPassword">Password</label>
-        <input type="password" id="loginPassword" autocomplete="current-password">
+        <input type="password" id="loginPassword" autocomplete="current-password" maxlength="64">
         <button type="button" class="pw-toggle-btn" data-target="loginPassword" aria-label="Show password">
           <i class="fa-regular fa-eye"></i>
         </button>
@@ -647,15 +647,15 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{color:#63B3ED;}
     <div class="auth-form hide" id="registerForm">
       <div class="field">
         <label for="regName">Full Name</label>
-        <input type="text" id="regName" autocomplete="name">
+        <input type="text" id="regName" autocomplete="name" maxlength="60">
       </div>
       <div class="field">
         <label for="regEmail">Email</label>
-        <input type="email" id="regEmail" autocomplete="username">
+        <input type="email" id="regEmail" autocomplete="username" maxlength="100">
       </div>
       <div class="field field--password">
         <label for="regPassword">Password</label>
-        <input type="password" id="regPassword" autocomplete="new-password">
+        <input type="password" id="regPassword" autocomplete="new-password" maxlength="64">
         <button type="button" class="pw-toggle-btn" data-target="regPassword" aria-label="Show password">
           <i class="fa-regular fa-eye"></i>
         </button>
@@ -719,11 +719,11 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{color:#63B3ED;}
         </div>
         <div class="field">
           <label for="customerAddress">Address <span class="optional">(Optional)</span></label>
-          <input type="text" id="customerAddress" autocomplete="off">
+          <input type="text" id="customerAddress" autocomplete="off" maxlength="100">
         </div>
         <div class="field">
           <label for="customerMobile">Mobile Number <span class="optional">(Optional)</span></label>
-          <input type="tel" id="customerMobile" autocomplete="off" inputmode="tel">
+          <input type="tel" id="customerMobile" autocomplete="off" inputmode="tel" maxlength="10">
         </div>
       </div>
     </section>
@@ -731,7 +731,7 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{color:#63B3ED;}
     <section class="card">
       <h2 class="card__heading"><i class="fa-regular fa-file-lines"></i> Invoice</h2>
       <div class="field-group field-group--pair">
-        <div class="field"><label for="invoiceNumber">Invoice No.</label><input type="text" id="invoiceNumber" autocomplete="off"></div>
+        <div class="field"><label for="invoiceNumber">Invoice No.</label><input type="text" id="invoiceNumber" autocomplete="off" maxlength="10"></div>
         <div class="field"><label for="invoiceDate">Date</label><input type="date" id="invoiceDate"></div>
       </div>
     </section>
@@ -780,7 +780,7 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{color:#63B3ED;}
         </div>
       </div>
       <div class="field" style="margin-top:10px;">
-        <textarea id="invoiceNotes" placeholder="Enter optional notes to show on the invoice..."></textarea>
+        <textarea id="invoiceNotes" maxlength="250" placeholder="Enter optional notes to show on the invoice..."></textarea>
       </div>
     </section>
 
@@ -813,7 +813,7 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{color:#63B3ED;}
       <div class="bills-search-wrap">
         <div class="bills-search-input-wrap">
           <i class="fa-solid fa-magnifying-glass search-icon"></i>
-          <input type="text" id="billSearchInput" placeholder="Search invoice, customer, phone..." autocomplete="off">
+          <input type="text" id="billSearchInput" placeholder="Search invoice, customer, phone..." autocomplete="off" maxlength="80">
           <button class="bills-search-clear hide" id="btnClearSearch" aria-label="Clear search"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="bills-filter-row">
@@ -900,13 +900,13 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{color:#63B3ED;}
     </div>
     <div class="modal__body">
       <div class="field"><label for="prodName">Product Name <span class="required">*</span></label>
-        <input type="text" id="prodName" autocomplete="off"></div>
+        <input type="text" id="prodName" autocomplete="off" maxlength="50"></div>
       <div class="field"><label for="prodDesc">Description <span class="optional">(Optional)</span></label>
-        <input type="text" id="prodDesc" autocomplete="off"></div>
+        <input type="text" id="prodDesc" autocomplete="off" maxlength="50"></div>
       <div class="field"><label for="prodSerial">Serial Number <span class="optional">(Optional)</span></label>
-        <input type="text" id="prodSerial" autocomplete="off"></div>
+        <input type="text" id="prodSerial" autocomplete="off" maxlength="40"></div>
       <div class="field-group field-group--pair">
-        <div class="field"><label for="prodQty">Qty <span class="required">*</span></label><input type="number" id="prodQty" min="1" step="1" value="1" inputmode="numeric"></div>
+        <div class="field"><label for="prodQty">Qty <span class="required">*</span></label><input type="number" id="prodQty" min="1" max="99999999" step="1" value="1" inputmode="numeric"></div>
         <div class="field"><label for="prodRate">Rate (₹) <span class="required">*</span></label><input type="number" id="prodRate" min="0" step="0.01" inputmode="decimal"></div>
       </div>
     </div>
@@ -1057,17 +1057,17 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{color:#63B3ED;}
       <div class="auth-msg" id="changePwMsg"></div>
       <div class="field field--password">
         <label for="changePwCurrent">Current Password</label>
-        <input type="password" id="changePwCurrent" autocomplete="current-password">
+        <input type="password" id="changePwCurrent" autocomplete="current-password" maxlength="64">
         <button type="button" class="pw-toggle-btn" data-target="changePwCurrent" aria-label="Show password"><i class="fa-regular fa-eye"></i></button>
       </div>
       <div class="field field--password">
         <label for="changePwNew">New Password</label>
-        <input type="password" id="changePwNew" autocomplete="new-password" placeholder="At least 6 characters">
+        <input type="password" id="changePwNew" autocomplete="new-password" placeholder="At least 6 characters" maxlength="64">
         <button type="button" class="pw-toggle-btn" data-target="changePwNew" aria-label="Show password"><i class="fa-regular fa-eye"></i></button>
       </div>
       <div class="field field--password">
         <label for="changePwConfirm">Confirm New Password</label>
-        <input type="password" id="changePwConfirm" autocomplete="new-password">
+        <input type="password" id="changePwConfirm" autocomplete="new-password" maxlength="64">
         <button type="button" class="pw-toggle-btn" data-target="changePwConfirm" aria-label="Show password"><i class="fa-regular fa-eye"></i></button>
       </div>
     </div>
@@ -2903,7 +2903,9 @@ function bindEvents(){
   el.invoiceDate.addEventListener('change', (e) => { state.dateStr = formatDateForDisplay(e.target.value); });
   el.invoiceDate.addEventListener('input', (e) => { state.dateStr = formatDateForDisplay(e.target.value); });
 
-  el.invoiceNotes.addEventListener('input', (e) => { state.notes = e.target.value; });
+  el.invoiceNotes.addEventListener('input', (e) => {
+    state.notes = e.target.value;
+  });
 
   el.toggleNotesVisibility.addEventListener('change', (e) => {
     state.includeNotesOnPdf = e.target.checked;
@@ -3176,6 +3178,24 @@ async function init(){
     if (event === 'SIGNED_OUT') {
       currentSession = null;
       currentProfile = null;
+      showScreen('auth');
+    } else if (event === 'SIGNED_IN' && session) {
+      currentSession = session;
+      afterAuthResolved().catch(console.error);
+    }
+  });
+
+  document.addEventListener('visibilitychange', async () => {
+    if (!document.hidden && supabaseClient && !currentSession) {
+      try {
+        const { data: { session: visibleSession } } = await supabaseClient.auth.getSession();
+        if (visibleSession) {
+          currentSession = visibleSession;
+          await afterAuthResolved();
+        }
+      } catch (err) {
+        console.error('Auth visibility refresh failed', err);
+      }
     }
   });
 
