@@ -1607,7 +1607,6 @@ async function handleLogout(){
 }
 
 async function fetchOwnProfile() {
-
     for (let i = 0; i < 3; i++) {
 
         const { data, error } = await supabaseClient
@@ -1616,34 +1615,68 @@ async function fetchOwnProfile() {
             .eq("id", currentSession.user.id)
             .single();
 
-        if (!error)
+        if (!error && data) {
             return data;
+        }
 
-        await new Promise(r => setTimeout(r, 500));
+        console.warn(`Profile fetch failed (Attempt ${i + 1}/3)`, error);
+
+        // Wait 500ms before retrying
+        await new Promise(resolve => setTimeout(resolve, 500));
     }
 
     return null;
 }
 
 async function afterAuthResolved() {
+
     currentProfile = await fetchOwnProfile();
 
+    // Could not load profile
     if (!currentProfile) {
 
-        // Check whether the user is REALLY logged out
+        // Check whether the user is actually logged out
         const { data: { session } } = await supabaseClient.auth.getSession();
 
         if (!session) {
+            showAuthMsg("Session expired. Please login again.");
             showScreen("auth");
             return;
         }
 
-        // Session still exists → retry after a short delay
-        setTimeout(afterAuthResolved, 1000);
+        // Session still exists.
+        // Keep showing the loader and retry once after 1 second.
+        setTimeout(async () => {
+            await afterAuthResolved();
+        }, 1000);
+
         return;
     }
 
-    // Continue normally...
+    // Rejected
+    if (currentProfile.status === "rejected") {
+        el.pendingCard.classList.add("rejected");
+        el.pendingIcon.className = "fa-solid fa-circle-xmark";
+        el.pendingTitle.textContent = "Access denied";
+        el.pendingText.textContent =
+            "Your registration request was rejected by an admin. Contact your admin if you think this is a mistake.";
+        showScreen("pending");
+        return;
+    }
+
+    // Pending
+    if (currentProfile.status === "pending") {
+        el.pendingCard.classList.remove("rejected");
+        el.pendingIcon.className = "fa-regular fa-clock";
+        el.pendingTitle.textContent = "Waiting for approval";
+        el.pendingText.textContent =
+            "Your account has been created. An admin needs to approve it before you can log in and start billing.";
+        showScreen("pending");
+        return;
+    }
+
+    // Approved
+    enterApp();
 }
 
 function enterApp(){
