@@ -255,8 +255,8 @@ img{max-width:100%;display:block;}
 .empty-state i{font-size:28px;color:var(--line);margin-bottom:10px;display:block;}
 .empty-state p{margin:0 0 4px;font-weight:600;color:var(--text);}
 .empty-state span{font-size:12.5px;}
-.product-table-wrap,.bills-table-wrap{overflow-x:auto;border-radius:var(--radius-sm);border:1px solid var(--line);}
-.product-table,.bills-table{width:100%;border-collapse:collapse;font-size:13.5px;table-layout:fixed;}
+.product-table-wrap,.bills-table-wrap{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;border-radius:var(--radius-sm);border:1px solid var(--line);}
+.product-table,.bills-table{width:100%;min-width:620px;border-collapse:collapse;font-size:13.5px;table-layout:fixed;}
 .product-table thead th,.bills-table thead th{background:#EEF4FC;color:var(--primary);text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap; transition: background 0.3s ease;}
 .product-table tbody td,.bills-table tbody td{padding:12px;border-top:1px solid var(--line);vertical-align:top;word-break:break-word;white-space:normal;}
 .product-table .prod-name{font-weight:600;color:var(--text);white-space:normal;}
@@ -1510,6 +1510,13 @@ function markError(elInput, isValid) {
   return isValid;
 }
 
+function syncCustomerFieldsFromState() {
+  el.customerName.value = state.customer.name || '';
+  el.customerAddress.value = state.customer.address || '';
+  el.customerMobile.value = state.customer.mobile || '';
+  markError(el.customerName, !!state.customer.name);
+}
+
 /* ===================================================================
    AUTH
    =================================================================== */
@@ -1672,6 +1679,10 @@ function switchView(view){
   el.viewPreviousBills.classList.toggle('hide', view !== 'previousBills');
   el.viewAdmin.classList.toggle('hide', view !== 'admin');
 
+  if (view === 'newBill' && loadedBillForPrint !== null) {
+    resetInvoice(true);
+  }
+
   if (view === 'previousBills') loadBills();
   if (view === 'admin' && currentProfile.role === 'admin') { loadPendingUsers(); loadAllUsers(); }
 }
@@ -1780,9 +1791,7 @@ function resetInvoice(silent = false){
   state.notes = CONFIG.invoice.defaultNotes || '';
   loadedBillForPrint = null;
 
-  el.customerName.value = '';
-  el.customerAddress.value = '';
-  el.customerMobile.value = '';
+  syncCustomerFieldsFromState();
   el.customerName.classList.remove('input-error');
 
   const prefNotes = localStorage.getItem('jas_pref_notes');
@@ -2523,6 +2532,7 @@ async function reprintBill(billId){
     address: bill.customer_address || '',
     mobile: bill.customer_phone || ''
   };
+  syncCustomerFieldsFromState();
   state.invoiceNumber = bill.invoice_no;
   state.dateStr = bill.bill_date ? formatDateForDisplay(bill.bill_date) : '';
   state.notes = bill.notes || '';
