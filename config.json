@@ -1,7 +1,6 @@
 {
   "company": {
     "name": "JAS Tech",
-    "tagline": "LAPTOP SALES • SERVICE • ACCESSORIES",
     "addressLines": [
       "Hafeezpet, Hyderabad",
       "Telangana - 500049"
@@ -11,10 +10,20 @@
   },
 
   "theme": {
-    "primary": "#012587",
-    "primaryDark": "#0E358B",
-    "background": "#F8F9FC",
-    "darkText": "#212121",
+    "light": {
+      "primary": "#012587",
+      "background": "#F8F9FC",
+      "surface": "#FFFFFF",
+      "text": "#212121",
+      "border": "#E5E7EB"
+    },
+    "dark": {
+      "primary": "#012587",
+      "background": "#0A0A0A",
+      "surface": "#000000",
+      "text": "#F3F4F6",
+      "border": "#2D3748"
+    },
     "radius": "12px"
   },
 
@@ -40,11 +49,6 @@
     "showTotalQuantity": true
   },
   
-  "auth": {
-    "adminApproval": true,
-    "allowRegistration": true
-  },
-
   "invoice": {
     "currencySymbol": "₹",
     "filePrefix": "JAS_Invoice_",
