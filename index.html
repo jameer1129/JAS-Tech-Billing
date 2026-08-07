@@ -2242,7 +2242,7 @@ async function generatePdfBlob(){
   }
 }
 
-function openSaveChoiceModal(){
+async function openSaveChoiceModal(){
   if(!validateField(el.customerName)){
     showToast('Enter customer name before downloading invoice.', 'error');
     markError(el.customerName, false);
@@ -2257,8 +2257,24 @@ function closeSaveChoiceModal(){
   hideOverlay(el.saveChoiceModalOverlay);
 }
 
+async function handlePreviewDownload(){
+  if (loadedBillForPrint !== null) {
+    if(!state.products.length){ showToast('Add at least one product before downloading.', 'error'); return; }
+    if(!el.previewModalOverlay.classList.contains('hide')) closePreviewModal();
+    await handleSaveChoice(false);
+    return;
+  }
+  openSaveChoiceModal();
+}
+
 function openPdfActionModal(saved){
-  el.pdfActionMsg.textContent = saved ? 'Invoice saved to database and ready.' : 'Invoice ready (not saved to database).';
+  if (saved) {
+    el.pdfActionMsg.textContent = 'Invoice saved to database and ready.';
+  } else if (loadedBillForPrint !== null) {
+    el.pdfActionMsg.textContent = 'Invoice ready.';
+  } else {
+    el.pdfActionMsg.textContent = 'Invoice ready (not saved to database).';
+  }
   showOverlay(el.pdfActionModalOverlay);
 }
 function closePdfActionModal(){
@@ -2955,7 +2971,7 @@ function bindEvents(){
   el.pdfActionModalOverlay.addEventListener('click', e => { if(e.target === el.pdfActionModalOverlay) closePdfActionModal(); });
   el.btnPdfDownload.addEventListener('click', downloadPdfBlob);
   el.btnPdfShare.addEventListener('click', sharePdfBlob);
-  el.btnDownloadFromPreview.addEventListener('click', openSaveChoiceModal);
+  el.btnDownloadFromPreview.addEventListener('click', handlePreviewDownload);
   el.btnPreview.addEventListener('click', openPreviewModal);
   el.btnClosePreviewModal.addEventListener('click', closePreviewModal);
 
