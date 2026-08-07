@@ -19,7 +19,7 @@
     },
     "dark": {
       "primary": "#012587",
-      "background": "#0A0A0A",
+      "background": "#050505",
       "surface": "#000000",
       "text": "#F3F4F6",
       "border": "#2D3748"
@@ -52,7 +52,7 @@
   "invoice": {
     "currencySymbol": "₹",
     "filePrefix": "JAS_Invoice_",
-    "numberFormat": "DDMMHHmmss",
+    "numberFormat": "MMDDHHmmss",
     "defaultNotes": "Thank you for choosing JAS Tech.\nFor any support, feel free to contact us."
   },
 

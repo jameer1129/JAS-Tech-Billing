@@ -1,77 +1,105 @@
 # JAS Tech Billing
 
-JAS Tech Billing is a lightweight, offline-capable invoicing web app built with plain HTML, CSS and JavaScript. It helps small businesses create, save, and export professional invoices quickly — no server required.
+JAS Tech Billing is an **online invoicing web app** built with plain HTML, CSS and JavaScript (single-file, no build step, no framework). It runs entirely in the browser and uses **Supabase** as its backend for authentication, user approval, and bill storage — an internet connection is required to log in, save invoices, and load previous bills.
 
 ## Key Features
 
-- Customer management: name, address, phone
-- Product management: add/edit/delete products, qty, price, serial, description
-- Invoice generation: auto invoice numbers, invoice date, notes, line-item totals
-- High-quality PDF export (A4) with company logo, signature, and configurable footer
-- Optional offline support: a `service-worker.js` file is included, but the service worker is not registered by default. Optional Supabase sync is available for persistence.
-- Usability: responsive UI, keyboard shortcuts, preview, and printable layouts
+**Authentication & Access Control**
+- Email/password sign-up and login via Supabase Auth
+- New accounts start as `pending` and must be approved by an admin before they can use the app
+- Two roles: `admin` and `employee`, with row-level security enforced in the database
+- Change password from within the app
+
+**Billing**
+- Customer details: name, address, mobile number
+- Auto-generated invoice number (configurable format) and date
+- Product line items: name, description, serial number, quantity, rate — with add/edit/delete
+- Live summary: total items, total quantity, grand total
+- Optional invoice notes and watermark, toggleable per invoice
+- Preview the invoice exactly as it will look before generating it
+- High-quality, automatically paginated **PDF export** (A4) with company logo, signature, QR code and footer, generated client-side via `html2pdf.js`
+- Download or share the generated PDF directly
+
+**Previous Bills**
+- Save invoices to Supabase and browse them later
+- Search by invoice number, customer name, or phone
+- Filter by date range (today, yesterday, last 7 days, this month, last month, or a custom date)
+- Sort by any column, with server-side pagination
+- Reprint (regenerate PDF) or delete a saved bill
+
+**Admin Panel**
+- Approve or reject pending sign-ups
+- View all users, their role, and their approval status
+- Promote/demote roles and manage account status
+
+**Appearance & Config**
+- Light/dark theme toggle (persisted locally)
+- All company info, branding colors, logos, currency symbol, and footer text are driven by `config.json` — no code changes needed to rebrand
+- Responsive layout with a mobile drawer menu
 
 ## Quick Start
 
-1. Open the app in a browser (double-click `index.html` or serve the folder).
-2. Configure company details in `config.json` (name, logo, colors, footer, default notes).
-3. Create a bill: add customer details, add products, then Preview or Download PDF.
-
-Notes:
-- No build step required — the app runs locally in modern browsers.
-- The repository includes `service-worker.js` for caching, but the app does not enable it automatically. To enable offline caching, register the service worker in `index.html` or serve the app as a PWA.
+1. Serve the folder with a local web server (double-clicking `index.html` won't work correctly because it needs to `fetch()` `config.json` and load the Supabase client) — e.g. `npx http-server` or `python -m http.server`.
+2. Set up your Supabase project using `schema.sql` (see below).
+3. Fill in `config.json` with your company details and Supabase project URL/anon key.
+4. Open the app, register an account, then promote yourself to `admin` in Supabase (see the commented-out SQL at the bottom of `schema.sql`) so you can approve future sign-ups.
+5. Log in, add customer + product details, then Preview or Download the PDF.
 
 ## Configuration
 
-Edit `config.json` to set company info and appearance. Common keys:
+Edit `config.json` to control company info, theming, and invoice content. Common keys:
 
-- `company.name`
-- `company.address`
-- `company.phone`
-- `assets.horizontalLogo` (path to logo used on invoices)
-- `invoice.filePrefix` (PDF filename prefix)
-- `invoice.defaultNotes`
+- `company.name`, `company.addressLines`, `company.phone`, `company.email`
+- `theme.light` / `theme.dark` (colors) and `theme.radius`
+- `assets.*` — paths to logo, watermark, signature, WhatsApp QR
+- `supabase.url`, `supabase.anonKey` — required for the app to function
+- `invoice.currencySymbol`, `invoice.filePrefix`, `invoice.numberFormat`, `invoice.defaultNotes`
+- `display.*` — toggle which optional sections appear on the invoice
+- `services` — the row of feature icons shown in the invoice footer
 
-Limitations:
+Changes to `config.json` are picked up on page reload; no code changes needed.
 
-- Customer name input is limited to 60 characters to ensure invoice layout and listings remain readable.
+**Limitation:** customer name input is capped at 60 characters to keep invoice layout and listings readable.
 
-Changes in `config.json` are picked up when the page reloads; no code changes needed.
+## Backend (Supabase)
 
-## Persistence & Optional Backend
+Run `schema.sql` once in your Supabase project's SQL Editor. It creates:
 
-- The app includes a service worker for offline caching, but it is not enabled by default. Data is stored locally in the browser while using the app; enable the service worker to cache assets for full offline loading.
-- Optional Supabase integration is available (configure `CONFIG.supabase` in `config.json`) to save and list bills.
+- `profiles` — one row per user, tracking role (`admin`/`employee`) and approval status
+- `bills` and `bill_items` — saved invoices and their line items
+- A trigger that auto-creates a `profiles` row (as a pending employee) on sign-up
+- Row Level Security policies so employees can only read/write what they're allowed to, and only admins can delete bills or manage users
+
+## Asset Caching (Service Worker)
+
+The app registers `service-worker.js` automatically on load. It does **not** make the app work offline — it only caches static images (logos, signature, icons) for faster repeat visits. HTML, JavaScript, CSS, and `config.json` are always fetched fresh from the network, and Supabase calls always require a live connection.
 
 ## File Structure
 
 ```
 JAS-Tech-Billing/
 ├─ index.html            # Single-file app (UI + logic)
-├─ config.json           # Company and app configuration
-├─ service-worker.js     # Offline caching
-├─ manifest.json         # PWA metadata
-└─ assets/               # logos, icons, signatures
+├─ config.json            # Company and app configuration
+├─ manifest.json           # PWA metadata (installable app icon/name)
+├─ service-worker.js       # Image asset caching only (not for offline use)
+├─ schema.sql              # Supabase database schema, RLS policies, triggers
+└─ assets/                 # logos, icons, signature, WhatsApp QR
 ```
 
 ## Development
 
-- Edit `index.html` to change UI or behavior (the app is intentionally single-file for portability).
+- Edit `index.html` to change UI or behavior — the app is intentionally single-file for portability.
 - Run via a static server for best results (e.g., `npx http-server` or `python -m http.server`).
 
 ## Support & Contribution
 
-If you want feature changes or help integrating Supabase backups, open an issue or contact the maintainers. Small, focused PRs are welcome.
+If you want feature changes or help with the Supabase backend, open an issue or contact the maintainers. Small, focused PRs are welcome.
 
 ## Privacy & Data
 
-- Local-first: customer and invoice data are stored locally unless Supabase is configured.
-- If using Supabase, ensure you configure and secure your project keys appropriately.
+- All invoice and user data is stored in your configured Supabase project — there is no local-only mode.
+- Secure your `config.json` Supabase keys appropriately; the anon key is safe to expose client-side only because access is restricted by Row Level Security policies in `schema.sql`.
 
 ## License
 
 This repository contains code developed for **JAS Tech**. For licensing or redistribution, contact the project owner.
-
----
-
-If you want a shorter one-page README or a version tailored for distribution to customers, tell me which sections to highlight and I will produce that variant.

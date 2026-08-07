@@ -52,14 +52,14 @@ body.dark-theme .field textarea {
   color-scheme: dark;
 }
 body.dark-theme .modal { background: var(--surface); border: 1px solid var(--line); }
-body.dark-theme .nav-tabs { background: var(--white); }
+body.dark-theme .nav-tabs,
 body.dark-theme .auth-card { background: var(--white); }
 body.dark-theme .pdf-loading-overlay .bar-card { background: var(--surface); }
 body.dark-theme .bills-search-input-wrap input { background: var(--surface); color: var(--text); }
-body.dark-theme .product-table thead th { background: #1A202C; color: #63B3ED; }
+body.dark-theme .product-table thead th,
 body.dark-theme .bills-table thead th { background: #1A202C; color: #63B3ED; }
-body.dark-theme .btn--outline:hover { background: #1A202C; }
-body.dark-theme .btn--ghost:hover { background: #1A202C; }
+body.dark-theme .btn--outline:hover,
+body.dark-theme .btn--ghost:hover,
 body.dark-theme .row-action-btn:hover { background: #1A202C; }
 body.dark-theme .modal__header { border-bottom: 1px solid var(--line); }
 
@@ -244,37 +244,36 @@ img{max-width:100%;display:block;}
 }
 
 .summary-grid{display:flex;flex-direction:column;gap:10px;}
-.summary-row{display:flex;align-items:center;justify-content:space-between;font-size:13.5px;color:var(--muted);}
-.summary-row b{color:var(--text);font-weight:700;}
+.summary-row{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13.5px;color:var(--muted);}
+.summary-row b{color:var(--text);font-weight:700;word-break:break-word;overflow-wrap:break-word;text-align:right;}
 .summary-total{
   background:linear-gradient(135deg,var(--primary) 0%,var(--primary-dark) 100%);
-  border-radius:var(--radius-sm);padding:14px 18px;display:flex;align-items:center;justify-content:space-between;
+  border-radius:var(--radius-sm);padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:10px;
   color:#FFFFFF;margin-top:4px;
 }
 .summary-total .label{font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;opacity:.92;}
-.summary-total .value{font-size:24px;font-weight:700;}
+.summary-total .value{font-size:24px;font-weight:700;word-break:break-word;overflow-wrap:break-word;text-align:right;}
 
 .empty-state{text-align:center;padding:34px 10px;color:var(--muted);}
 .empty-state i{font-size:28px;color:var(--line);margin-bottom:10px;display:block;}
 .empty-state p{margin:0 0 4px;font-weight:600;color:var(--text);}
 .empty-state span{font-size:12.5px;}
 .product-table-wrap,.bills-table-wrap{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;border-radius:var(--radius-sm);border:1px solid var(--line);}
-.product-table{width:100%;min-width:620px;border-collapse:collapse;font-size:13.5px;table-layout:auto;}
-.bills-table{width:100%;min-width:620px;border-collapse:collapse;font-size:13.5px;table-layout:auto;}
+.product-table,.bills-table{width:100%;min-width:620px;border-collapse:collapse;font-size:13.5px;table-layout:auto;}
 .product-table thead th,.bills-table thead th{background:#EEF4FC;color:var(--primary);text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap; transition: background 0.3s ease;}
 .product-table tbody td,.bills-table tbody td{padding:12px;border-top:1px solid var(--line);vertical-align:top;word-break:break-word;white-space:normal;min-width:0;overflow:hidden;}
-.product-table .prod-name{font-weight:600;color:var(--text);white-space:normal;overflow:hidden;text-overflow:ellipsis;display:block;}
+.product-table .prod-name{font-weight:600;color:var(--text);white-space:normal;word-break:break-word;overflow-wrap:break-word;display:block;}
 
 .product-table .prod-meta,
 .inv-table .prod-meta { margin-top: 4px; line-height: 1.45; }
-.prod-desc-line { color: var(--muted); font-size: 12px; margin-top: 2px; white-space:normal; }
-.prod-sn-line { font-size: 12px; margin-top: 2px; color: var(--text) !important; white-space:normal; }
+.prod-desc-line { color: var(--muted); font-size: 12px; margin-top: 2px; white-space:normal; word-break:break-word; overflow-wrap:break-word; }
+.prod-sn-line { font-size: 12px; margin-top: 2px; color: var(--text) !important; white-space:normal; word-break:break-word; overflow-wrap:break-word; }
 .prod-sn-line .sn-label { color: var(--primary) !important; font-weight: 700; }
 .prod-sn-line .sn-value { color: var(--muted); font-weight: 500; }
 
 .col-idx{text-align:center;color:var(--muted);width:48px;}
 .col-name{width:auto;}
-.col-qty,.col-rate,.col-amount{white-space:nowrap;}
+.col-qty,.col-rate,.col-amount{white-space:normal;word-break:break-word;overflow-wrap:break-word;}
 .col-actions{text-align:right;white-space:nowrap;width:86px;padding-left: 0;}
 .row-action-btn{background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;padding:6px 8px;border-radius:6px;}
 .row-action-btn:hover{background:var(--bg);color:var(--primary);}
@@ -325,8 +324,7 @@ img{max-width:100%;display:block;}
 .toast.toast--success{background:var(--success); color:#FFFFFF;}
 
 #pdfRenderWrap{position:fixed;top:0;left:-9999px;width:794px;overflow:hidden;z-index:-9999;}
-.pdf-wrapper-container{width:794px;margin:0;padding:0;background:#FFFFFF;}
-.invoice-render{width:794px;margin:0;padding:0;background:#FFFFFF;}
+.pdf-wrapper-container,.invoice-render{width:794px;margin:0;padding:0;background:#FFFFFF;}
 
 .pdf-loading-overlay{position:fixed;inset:0;background:rgba(245, 247, 249, 0.7);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:9999;display:flex;align-items:center;justify-content:center;}
 body.dark-theme .pdf-loading-overlay{background:rgba(10, 11, 12, 0.7);}
@@ -540,14 +538,14 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{color:#63B3ED;}
 .inv-table thead th.col-rate { width:115px; }
 .inv-table thead th.col-amt { width:125px; }
 
-.inv-table tbody td { padding:6px; border:none;border-top:1px solid #CBD5E1;border-right:1px solid #CBD5E1; vertical-align:middle; text-align:center; color:#000000; font-size:13.5px; word-break:break-word; white-space:normal; }
+.inv-table tbody td { padding:6px; border:none;border-top:1px solid #CBD5E1;border-right:1px solid #CBD5E1; vertical-align:middle; text-align:center; color:#000000; font-size:13.5px; word-break:break-word; overflow-wrap:break-word; white-space:normal; }
 .inv-table tbody td:nth-child(2) { text-align:left; }
 .inv-table tbody tr:nth-child(odd) td { background-color: #FFFFFF !important; }
 .inv-table tbody tr:nth-child(even) td { background-color: #F8FAFC !important; }
 
-.inv-table td.num { white-space:nowrap; font-weight:600; }
+.inv-table td.num { white-space:normal; word-break:break-word; overflow-wrap:break-word; font-weight:600; }
 .inv-table td.idx { font-weight:700; }
-.inv-table .prod-name { font-weight:700; color:#000000; font-size:14px; margin-bottom:4px; }
+.inv-table .prod-name { font-weight:700; color:#000000; font-size:14px; margin-bottom:4px; white-space:normal; word-break:break-word; overflow-wrap:break-word; }
 
 .inv-bottom-row { display:flex; justify-content:space-between; gap:30px; margin-top:12px; align-items:flex-start; width:100%; position:relative; z-index:5;}
 
@@ -556,10 +554,11 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{color:#63B3ED;}
 .inv-notes__text { font-size:13px; color:#000000; line-height:1.55; white-space:pre-line; }
 
 .inv-summary { width:370px; flex-shrink:0; border:1px solid #CBD5E1; border-radius:6px; overflow:hidden; background:#FFFFFF; }
-.inv-summary__row { display:flex; justify-content:space-between; font-size:13px; color:#000000; padding:10px 16px; border-bottom:1px solid #CBD5E1; font-weight:700; text-transform:uppercase;}
-.inv-summary__total { background:var(--primary); color:#FFFFFF; padding:12px 16px; display:flex; justify-content:space-between; align-items:center;}
+.inv-summary__row { display:flex; justify-content:space-between; gap:10px; font-size:13px; color:#000000; padding:10px 16px; border-bottom:1px solid #CBD5E1; font-weight:700; text-transform:uppercase;}
+.inv-summary__row span, .inv-summary__row b { word-break:break-word; overflow-wrap:break-word; }
+.inv-summary__total { background:var(--primary); color:#FFFFFF; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; gap:10px;}
 .inv-summary__total .label { font-size:16px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;}
-.inv-summary__total .value { font-size:24px; font-weight:600; }
+.inv-summary__total .value { font-size:24px; font-weight:600; word-break:break-word; overflow-wrap:break-word; text-align:right; }
 
 .inv-footer { margin-top:auto; width:100%; padding-top:20px; position:relative; z-index:5;}
 .inv-footer-details { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; }
@@ -1133,6 +1132,10 @@ let billsCache = [];
 let loadedBillForPrint = null; // when re-printing a saved bill
 
 const BILLS_PAGE_SIZE = 10;
+const A4_PAGE_HEIGHT_PX = 1123; // A4 height in px at 96dpi, used for PDF pagination
+const TOAST_DURATION_MS = 2400;
+const SEARCH_DEBOUNCE_MS = 350;
+const MAX_BILL_TOTAL = 9999999999.99; // matches bills.total numeric(12,2) in schema.sql
 let billsPage = 1;
 let billsTotalCount = 0;
 let billsSearchDebounceTimer = null;
@@ -1530,7 +1533,7 @@ function showToast(message, type){
   clearTimeout(el.toast._timer);
   el.toast._timer = setTimeout(() => {
     el.toast.classList.add('hide');
-  }, 2400);
+  }, TOAST_DURATION_MS);
 }
 
 function validateField(elInput, type = 'text') {
@@ -1840,14 +1843,8 @@ function resetInvoice(silent = false){
   syncCustomerFieldsFromState();
   el.customerName.classList.remove('input-error');
 
-  const prefNotes = localStorage.getItem('jas_pref_notes');
-  const prefWatermark = localStorage.getItem('jas_pref_watermark');
-
-  el.toggleNotesVisibility.checked = prefNotes !== 'false';
-  el.toggleWatermark.checked = prefWatermark !== 'false';
-
-  el.toggleNotesVisibility.dispatchEvent(new Event('change'));
-  el.toggleWatermark.dispatchEvent(new Event('change'));
+  restoreTogglePref(el.toggleNotesVisibility, 'jas_pref_notes');
+  restoreTogglePref(el.toggleWatermark, 'jas_pref_watermark');
 
   el.invoiceNotes.value = state.notes;
 
@@ -1978,7 +1975,7 @@ function renderInvoiceTemplate(targetContainerId = 'invoiceRoot'){
 
   const watermarkHtml = state.showWatermark ? `<img src="${c.assets.watermark}" class="inv-watermark" crossOrigin="anonymous" alt="Watermark Background">` : '';
 
-  const PAGE_HEIGHT = 1123;
+  const PAGE_HEIGHT = A4_PAGE_HEIGHT_PX;
   const PAGE_PAD_TOP = 40;
   const PAGE_PAD_BOTTOM = 30;
   const TABLE_MARGIN_TOP = 12;
@@ -2141,7 +2138,7 @@ function renderInvoiceTemplate(targetContainerId = 'invoiceRoot'){
 
 function fitInvoiceToSinglePage(){
   const pages = document.querySelectorAll('.invoice-page');
-  const PAGE_HEIGHT = 1123;
+  const PAGE_HEIGHT = A4_PAGE_HEIGHT_PX;
 
   pages.forEach(page => {
     page.classList.remove('compact', 'compact-2');
@@ -2330,24 +2327,41 @@ function closePdfActionModal(){
 async function handleSaveChoice(saveToDb){
   closeSaveChoiceModal();
   const overlay = document.getElementById('pdfLoadingOverlay');
+  let didSave = false;
 
   try {
     if (saveToDb) {
-      el.pdfLoadingText.textContent = 'Saving invoice…';
-      overlay.classList.remove('hide');
-      await saveBillToSupabase();
-      overlay.classList.add('hide');
+      const { grandTotal } = calculateTotals(state.products);
+      if (Math.abs(grandTotal) > MAX_BILL_TOTAL) {
+        showToast(`Total exceeds ${formatCurrency(MAX_BILL_TOTAL)} and can't be saved. Downloading without saving instead.`, 'error');
+      } else {
+        el.pdfLoadingText.textContent = 'Saving invoice…';
+        overlay.classList.remove('hide');
+        try {
+          await saveBillToSupabase();
+          didSave = true;
+        } catch (saveErr) {
+          if (saveErr && saveErr.code === '22003') {
+            console.warn('Bill total too large to save:', saveErr);
+            showToast('Total is too large to save. Downloading without saving instead.', 'error');
+          } else {
+            throw saveErr;
+          }
+        } finally {
+          overlay.classList.add('hide');
+        }
+      }
     }
 
     const result = await generatePdfBlob();
     _pendingPdfBlob = result.blob;
     _pendingPdfFilename = result.filename;
 
-    if (saveToDb) {
+    if (didSave) {
       resetInvoice(true);
     }
 
-    openPdfActionModal(saveToDb);
+    openPdfActionModal(didSave);
   } catch(err){
     overlay.classList.add('hide');
     console.error(err);
@@ -2499,8 +2513,7 @@ function renderBillsTable(){
 
   // Update sort indicators
   document.querySelectorAll('.bills-table thead th.sortable').forEach(th => {
-    const col = th.dataset.col === 'bill_date' ? 'bill_date' : th.dataset.col;
-    const isActive = billsSortCol === col || (col === 'bill_date' && billsSortCol === 'bill_date') || (col === 'invoice_no' && billsSortCol === 'invoice_no') || (col === 'customer_name' && billsSortCol === 'customer_name') || (col === 'total' && billsSortCol === 'total');
+    const isActive = billsSortCol === th.dataset.col;
     th.classList.toggle('sort-active', isActive);
     const arrow = th.querySelector('.sort-arrow');
     if (arrow) arrow.textContent = isActive ? (billsSortDir === 'asc' ? '↑' : '↓') : '↕';
@@ -2946,6 +2959,26 @@ function updateResetFilterBtn(){
   el.btnResetFilters.classList.toggle('hide', !hasFilter);
 }
 
+function restoreTogglePref(toggleEl, storageKey){
+  const stored = localStorage.getItem(storageKey);
+  if (stored !== null) toggleEl.checked = (stored === 'true');
+  toggleEl.dispatchEvent(new Event('change'));
+}
+
+function getDismissibleOverlays(){
+  return [
+    [el.productModalOverlay, closeProductModal],
+    [el.deleteModalOverlay, closeDeleteModal],
+    [el.previewModalOverlay, closePreviewModal],
+    [el.resetModalOverlay, closeResetModal],
+    [el.deleteBillModalOverlay, closeDeleteBillModal],
+    [el.logoutModalOverlay, closeLogoutConfirm],
+    [el.changePasswordModalOverlay, closeChangePasswordModal],
+    [el.saveChoiceModalOverlay, closeSaveChoiceModal],
+    [el.pdfActionModalOverlay, closePdfActionModal]
+  ];
+}
+
 function bindEvents(){
   el.authTabLogin.addEventListener('click', () => setAuthTab('login'));
   el.authTabRegister.addEventListener('click', () => setAuthTab('register'));
@@ -2958,7 +2991,6 @@ function bindEvents(){
   el.btnCloseChangePwModal.addEventListener('click', closeChangePasswordModal);
   el.btnCancelChangePw.addEventListener('click', closeChangePasswordModal);
   el.btnConfirmChangePw.addEventListener('click', handleChangePassword);
-  el.changePasswordModalOverlay.addEventListener('click', e => { if(e.target === el.changePasswordModalOverlay) closeChangePasswordModal(); });
   el.btnDrawerOpen.addEventListener('click', openDrawer);
   el.btnDrawerClose.addEventListener('click', closeDrawer);
   el.drawerBackdrop.addEventListener('click', closeDrawer);
@@ -3008,11 +3040,9 @@ function bindEvents(){
 
   el.btnDownload.addEventListener('click', openSaveChoiceModal);
   el.btnCloseSaveChoiceModal.addEventListener('click', closeSaveChoiceModal);
-  el.saveChoiceModalOverlay.addEventListener('click', e => { if(e.target === el.saveChoiceModalOverlay) closeSaveChoiceModal(); });
   el.btnSaveChoiceNo.addEventListener('click', () => handleSaveChoice(false));
   el.btnSaveChoiceYes.addEventListener('click', () => handleSaveChoice(true));
   el.btnClosePdfActionModal.addEventListener('click', closePdfActionModal);
-  el.pdfActionModalOverlay.addEventListener('click', e => { if(e.target === el.pdfActionModalOverlay) closePdfActionModal(); });
   el.btnPdfDownload.addEventListener('click', downloadPdfBlob);
   el.btnPdfShare.addEventListener('click', sharePdfBlob);
   el.btnDownloadFromPreview.addEventListener('click', handlePreviewDownload);
@@ -3031,7 +3061,7 @@ function bindEvents(){
   el.billSearchInput.addEventListener('input', () => {
     el.btnClearSearch.classList.toggle('hide', !el.billSearchInput.value);
     clearTimeout(billsSearchDebounceTimer);
-    billsSearchDebounceTimer = setTimeout(() => loadBills(true), 350);
+    billsSearchDebounceTimer = setTimeout(() => loadBills(true), SEARCH_DEBOUNCE_MS);
   });
   el.btnClearSearch.addEventListener('click', () => {
     el.billSearchInput.value = '';
@@ -3071,12 +3101,11 @@ function bindEvents(){
     const th = e.target.closest('th.sortable');
     if (!th) return;
     const col = th.dataset.col;
-    const dbCol = col === 'bill_date' ? 'bill_date' : col;
-    if (billsSortCol === dbCol) {
+    if (billsSortCol === col) {
       billsSortDir = billsSortDir === 'asc' ? 'desc' : 'asc';
     } else {
-      billsSortCol = dbCol;
-      billsSortDir = dbCol === 'total' ? 'desc' : 'asc';
+      billsSortCol = col;
+      billsSortDir = col === 'total' ? 'desc' : 'asc';
     }
     loadBills(true);
   });
@@ -3107,7 +3136,6 @@ function bindEvents(){
   el.btnCloseLogoutModal.addEventListener('click', closeLogoutConfirm);
   el.btnCancelLogout.addEventListener('click', closeLogoutConfirm);
   el.btnConfirmLogout.addEventListener('click', () => { closeLogoutConfirm(); handleLogout(); });
-  el.logoutModalOverlay.addEventListener('click', e => { if(e.target === el.logoutModalOverlay) closeLogoutConfirm(); });
 
   document.addEventListener('click', e => {
     if (!e.target.closest('.user-actions-menu-wrap')) closeAllActionMenus();
@@ -3134,11 +3162,9 @@ function bindEvents(){
     btn.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
   });
 
-  el.productModalOverlay.addEventListener('click', e => { if(e.target === el.productModalOverlay) closeProductModal(); });
-  el.deleteModalOverlay.addEventListener('click', e => { if(e.target === el.deleteModalOverlay) closeDeleteModal(); });
-  el.previewModalOverlay.addEventListener('click', e => { if(e.target === el.previewModalOverlay) closePreviewModal(); });
-  el.resetModalOverlay.addEventListener('click', e => { if(e.target === el.resetModalOverlay) closeResetModal(); });
-  el.deleteBillModalOverlay.addEventListener('click', e => { if(e.target === el.deleteBillModalOverlay) closeDeleteBillModal(); });
+  getDismissibleOverlays().forEach(([overlay, close]) => {
+    overlay.addEventListener('click', e => { if(e.target === overlay) close(); });
+  });
 
   window.addEventListener('resize', () => { if(!el.previewModalOverlay.classList.contains('hide')) handlePreviewLayoutScaling(); });
 
@@ -3148,15 +3174,9 @@ function bindEvents(){
 
   document.addEventListener('keydown', e => {
     if(e.key === 'Escape'){
-      if(!el.productModalOverlay.classList.contains('hide')) closeProductModal();
-      if(!el.deleteModalOverlay.classList.contains('hide')) closeDeleteModal();
-      if(!el.previewModalOverlay.classList.contains('hide')) closePreviewModal();
-      if(!el.resetModalOverlay.classList.contains('hide')) closeResetModal();
-      if(!el.deleteBillModalOverlay.classList.contains('hide')) closeDeleteBillModal();
-      if(!el.logoutModalOverlay.classList.contains('hide')) closeLogoutConfirm();
-      if(!el.changePasswordModalOverlay.classList.contains('hide')) closeChangePasswordModal();
-      if(!el.saveChoiceModalOverlay.classList.contains('hide')) closeSaveChoiceModal();
-      if(!el.pdfActionModalOverlay.classList.contains('hide')) closePdfActionModal();
+      getDismissibleOverlays().forEach(([overlay, close]) => {
+        if(!overlay.classList.contains('hide')) close();
+      });
       closeUserDropdown();
       closeDrawer();
       closeAllActionMenus();
@@ -3209,15 +3229,7 @@ function bindEvents(){
 
 async function init(){
   cacheElements();
-  hideOverlay(el.productModalOverlay);
-  hideOverlay(el.deleteModalOverlay);
-  hideOverlay(el.previewModalOverlay);
-  hideOverlay(el.resetModalOverlay);
-  hideOverlay(el.deleteBillModalOverlay);
-  hideOverlay(el.logoutModalOverlay);
-  hideOverlay(el.changePasswordModalOverlay);
-  hideOverlay(el.saveChoiceModalOverlay);
-  hideOverlay(el.pdfActionModalOverlay);
+  getDismissibleOverlays().forEach(([overlay]) => hideOverlay(overlay));
 
   const savedTheme = localStorage.getItem('jas_theme');
   if (savedTheme === 'dark') {
@@ -3228,14 +3240,8 @@ async function init(){
   bindEvents();
   initSupabase();
 
-  const prefNotes = localStorage.getItem('jas_pref_notes');
-  if(prefNotes !== null) el.toggleNotesVisibility.checked = (prefNotes === 'true');
-
-  const prefWatermark = localStorage.getItem('jas_pref_watermark');
-  if(prefWatermark !== null) el.toggleWatermark.checked = (prefWatermark === 'true');
-
-  el.toggleNotesVisibility.dispatchEvent(new Event('change'));
-  el.toggleWatermark.dispatchEvent(new Event('change'));
+  restoreTogglePref(el.toggleNotesVisibility, 'jas_pref_notes');
+  restoreTogglePref(el.toggleWatermark, 'jas_pref_watermark');
 
   if (!supabaseClient) {
     showScreen('auth');
