@@ -439,6 +439,8 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{color:#63B3ED;}
 .actions-popup{position:absolute;right:0;top:calc(100% + 6px);background:var(--white);border:1.5px solid var(--line);border-radius:var(--radius-sm);box-shadow:var(--shadow-md);z-index:200;min-width:170px;overflow:hidden;animation:fadeIn .12s ease;}
 .actions-popup__item{display:flex;align-items:center;gap:10px;padding:10px 14px;font-size:13px;font-weight:600;color:var(--text);cursor:pointer;border:none;background:none;width:100%;text-align:left;transition:background .12s ease;}
 .actions-popup__item:hover{background:var(--bg);}
+.actions-popup__item.success{color:var(--success);}
+.actions-popup__item.success:hover{background:rgba(31,146,84,.08);}
 .actions-popup__item.danger{color:var(--danger);}
 .actions-popup__item.danger:hover{background:rgba(214,69,69,.08);}
 .actions-popup__sep{height:1px;background:var(--line);margin:4px 0;}
@@ -2807,13 +2809,17 @@ function handleAllUsersClick(e){
 
   const newRole = userRole === 'admin' ? 'employee' : 'admin';
   const statusItems = userStatus === 'approved'
-    ? `<button class="actions-popup__item" data-menu="status" data-id="${userId}" data-val="rejected">
+    ? `<button class="actions-popup__item danger" data-menu="status" data-id="${userId}" data-val="rejected">
          <i class="fa-solid fa-user-xmark"></i> Revoke Access
        </button>`
-    : `<button class="actions-popup__item" data-menu="status" data-id="${userId}" data-val="approved">
+    : userStatus === 'rejected'
+    ? `<button class="actions-popup__item success" data-menu="status" data-id="${userId}" data-val="approved">
+         <i class="fa-solid fa-user-check"></i> Approve
+       </button>`
+    : `<button class="actions-popup__item success" data-menu="status" data-id="${userId}" data-val="approved">
          <i class="fa-solid fa-user-check"></i> Approve
        </button>
-       <button class="actions-popup__item" data-menu="status" data-id="${userId}" data-val="rejected">
+       <button class="actions-popup__item danger" data-menu="status" data-id="${userId}" data-val="rejected">
          <i class="fa-solid fa-user-xmark"></i> Reject
        </button>`;
 
