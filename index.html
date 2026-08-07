@@ -259,10 +259,11 @@ img{max-width:100%;display:block;}
 .empty-state p{margin:0 0 4px;font-weight:600;color:var(--text);}
 .empty-state span{font-size:12.5px;}
 .product-table-wrap,.bills-table-wrap{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;border-radius:var(--radius-sm);border:1px solid var(--line);}
-.product-table,.bills-table{width:100%;min-width:620px;border-collapse:collapse;font-size:13.5px;table-layout:fixed;}
+.product-table{width:100%;min-width:620px;border-collapse:collapse;font-size:13.5px;table-layout:auto;}
+.bills-table{width:100%;min-width:620px;border-collapse:collapse;font-size:13.5px;table-layout:auto;}
 .product-table thead th,.bills-table thead th{background:#EEF4FC;color:var(--primary);text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap; transition: background 0.3s ease;}
-.product-table tbody td,.bills-table tbody td{padding:12px;border-top:1px solid var(--line);vertical-align:top;word-break:break-word;white-space:normal;}
-.product-table .prod-name{font-weight:600;color:var(--text);white-space:normal;}
+.product-table tbody td,.bills-table tbody td{padding:12px;border-top:1px solid var(--line);vertical-align:top;word-break:break-word;white-space:normal;min-width:0;overflow:hidden;}
+.product-table .prod-name{font-weight:600;color:var(--text);white-space:normal;overflow:hidden;text-overflow:ellipsis;display:block;}
 
 .product-table .prod-meta,
 .inv-table .prod-meta { margin-top: 4px; line-height: 1.45; }
@@ -271,9 +272,10 @@ img{max-width:100%;display:block;}
 .prod-sn-line .sn-label { color: var(--primary) !important; font-weight: 700; }
 .prod-sn-line .sn-value { color: var(--muted); font-weight: 500; }
 
+.col-idx{text-align:center;color:var(--muted);width:48px;}
+.col-name{width:auto;}
 .col-qty,.col-rate,.col-amount{white-space:nowrap;}
-.col-idx{text-align:center;color:var(--muted);}
-.col-actions{text-align:right;white-space:nowrap;}
+.col-actions{text-align:right;white-space:nowrap;width:86px;padding-left: 0;}
 .row-action-btn{background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;padding:6px 8px;border-radius:6px;}
 .row-action-btn:hover{background:var(--bg);color:var(--primary);}
 .row-action-btn.delete:hover{color:var(--danger);}
