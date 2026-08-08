@@ -417,26 +417,27 @@ body.dark-theme .date-dropdown{background:var(--surface);border-color:var(--line
 .date-picker__input .date-picker__text.placeholder{color:var(--muted);font-weight:400;}
 body.dark-theme .date-picker__input{background:var(--surface);}
 
+.date-picker__overlay{position:fixed;inset:0;background:rgba(15,23,42,.75);display:flex;align-items:center;justify-content:center;padding:20px 16px;z-index:200;animation:fadeIn .15s ease;}
 .date-picker__panel{
-  position:fixed;z-index:80;background:var(--white);
-  border:1.5px solid var(--line);border-radius:var(--radius-sm);box-shadow:var(--shadow-md);
-  padding:8px;width:204px;max-width:78vw;animation:fadeIn .12s ease;
+  position:relative;background:var(--white);
+  border:1.5px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-md);
+  padding:14px;width:300px;max-width:100%;max-height:88vh;overflow-y:auto;animation:modalPop .18s ease;
 }
 body.dark-theme .date-picker__panel{background:var(--surface);border-color:var(--line);}
-.date-picker__header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid var(--line);}
-.date-picker__nav{background:none;border:none;color:var(--muted);width:24px;height:24px;border-radius:7px;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;}
+.date-picker__header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--line);}
+.date-picker__nav{background:none;border:none;color:var(--muted);width:28px;height:28px;border-radius:8px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;}
 .date-picker__nav:hover{background:rgba(1,37,135,.10);color:var(--primary);}
 body.dark-theme .date-picker__nav:hover{background:rgba(1,37,135,.28);}
-.date-picker__title{font-size:12px;font-weight:700;color:var(--text);background:none;border:none;font-family:var(--font);cursor:pointer;padding:3px 8px;border-radius:7px;}
+.date-picker__title{font-size:16px;font-weight:700;color:var(--text);background:none;border:none;font-family:var(--font);cursor:pointer;padding:4px 10px;border-radius:8px;}
 .date-picker__title:hover{background:rgba(1,37,135,.10);color:var(--primary);}
 body.dark-theme .date-picker__title:hover{background:rgba(1,37,135,.28);}
 .date-picker__title--static{cursor:default;}
 .date-picker__title--static:hover{background:none;color:var(--text);}
-.date-picker__weekdays{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:2px;}
-.date-picker__days{display:grid;grid-template-columns:repeat(7,1fr);gap:0;}
-.date-picker__months{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:2px 0;}
+.date-picker__weekdays{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:14px;font-weight:600;color:var(--muted);text-transform:uppercase;margin-bottom:4px;}
+.date-picker__days{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+.date-picker__months{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:2px 0;}
 .date-picker__month-btn{
-  border:none;background:none;padding:9px 4px;border-radius:7px;font-size:12px;font-weight:600;font-family:var(--font);
+  border:none;background:none;padding:12px 4px;border-radius:8px;font-size:13px;font-weight:600;font-family:var(--font);
   color:var(--text);cursor:pointer;
 }
 .date-picker__month-btn:hover{background:rgba(1,37,135,.10);color:var(--primary);}
@@ -444,7 +445,7 @@ body.dark-theme .date-picker__month-btn:hover{background:rgba(1,37,135,.28);}
 .date-picker__month-btn.today:not(.selected){color:var(--primary);font-weight:800;box-shadow:inset 0 0 0 1.5px var(--primary);}
 .date-picker__month-btn.selected{background:var(--primary);color:#FFFFFF;}
 .date-picker__day{
-  border:none;background:none;width:100%;aspect-ratio:1;border-radius:7px;font-size:12.5px;font-weight:500;font-family:var(--font);
+  border:none;background:none;width:100%;aspect-ratio:1;border-radius:8px;font-size:14px;font-family:var(--font);
   color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;
 }
 .date-picker__day:hover:not(:disabled){background:rgba(1,37,135,.10);color:var(--primary);}
@@ -454,8 +455,8 @@ body.dark-theme .date-picker__day:hover:not(:disabled){background:rgba(1,37,135,
 .date-picker__day.selected{background:var(--primary);color:#FFFFFF;}
 .date-picker__day.selected:hover{background:var(--primary);color:#FFFFFF;}
 .date-picker__day:disabled{cursor:not-allowed;}
-.date-picker__footer{display:flex;justify-content:center;align-items:center;gap:14px;margin-top:6px;padding-top:6px;border-top:1px solid var(--line);}
-.date-picker__today-btn,.date-picker__clear-btn{background:none;border:none;font-size:11.5px;font-weight:700;color:var(--primary);cursor:pointer;padding:3px 6px;border-radius:6px;}
+.date-picker__footer{display:flex;justify-content:center;align-items:center;gap:14px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);}
+.date-picker__today-btn,.date-picker__clear-btn{background:none;border:none;font-size:16px;font-weight:600;color:var(--primary);cursor:pointer;padding:4px 6px;border-radius:6px;}
 .date-picker__clear-btn{color:var(--muted);}
 .date-picker__today-btn:hover{background:rgba(1,37,135,.08);}
 body.dark-theme .date-picker__today-btn:hover{background:rgba(1,37,135,.2);}
@@ -1508,6 +1509,7 @@ function localDateToIso(d){
 
 function createDatePicker(hiddenInput, triggerBtn, textEl, options = {}){
   const { placeholder = 'Select date', allowClear = false } = options;
+  let overlay = null;
   let panel = null;
   let viewDate = new Date();
   let panelView = 'days'; // 'days' | 'months'
@@ -1526,21 +1528,13 @@ function createDatePicker(hiddenInput, triggerBtn, textEl, options = {}){
     if (fireEvent) hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
-  function onDocClick(e){
-    if (!panel) return;
-    const path = typeof e.composedPath === 'function' ? e.composedPath() : [e.target];
-    if (!path.includes(panel) && !path.includes(triggerBtn)) closePanel();
-  }
-
   function closePanel(){
-    if (!panel) return;
-    panel.remove();
+    if (!overlay) return;
+    overlay.remove();
+    overlay = null;
     panel = null;
     triggerBtn.classList.remove('open');
     triggerBtn.setAttribute('aria-expanded', 'false');
-    document.removeEventListener('click', onDocClick);
-    window.removeEventListener('scroll', positionPanel, true);
-    window.removeEventListener('resize', positionPanel);
     if (_openDatePickerClose === closePanel) _openDatePickerClose = null;
   }
 
@@ -1552,30 +1546,6 @@ function createDatePicker(hiddenInput, triggerBtn, textEl, options = {}){
   function renderPanel(){
     panel.innerHTML = panelView === 'months' ? buildMonthsView() : buildDaysView();
     bindPanelHandlers();
-    positionPanel();
-  }
-
-  function positionPanel(){
-    const margin = 8;
-    const rect = triggerBtn.getBoundingClientRect();
-    const panelW = panel.offsetWidth;
-    const panelH = panel.offsetHeight;
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-
-    let left = rect.left;
-    if (left + panelW > vw - margin) left = rect.right - panelW; // flip to align with right edge of field
-    if (left < margin) left = margin;
-    if (left + panelW > vw - margin) left = vw - margin - panelW; // clamp as a last resort
-
-    let top = rect.bottom + 6;
-    if (top + panelH > vh - margin) {
-      const above = rect.top - panelH - 6;
-      if (above >= margin) top = above; // flip above the field if there's no room below
-    }
-
-    panel.style.left = `${Math.round(left)}px`;
-    panel.style.top = `${Math.round(top)}px`;
   }
 
   function buildDaysView(){
@@ -1671,24 +1641,27 @@ function createDatePicker(hiddenInput, triggerBtn, textEl, options = {}){
   }
 
   function openPanel(){
-    if (panel) { closePanel(); return; }
+    if (overlay) { closePanel(); return; }
     if (_openDatePickerClose) _openDatePickerClose();
 
     const selectedIso = getSelectedIso();
     viewDate = selectedIso ? isoToLocalDate(selectedIso) : new Date();
     panelView = 'days';
 
+    overlay = document.createElement('div');
+    overlay.className = 'date-picker__overlay';
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) closePanel(); });
+
     panel = document.createElement('div');
     panel.className = 'date-picker__panel';
-    document.body.appendChild(panel);
+    overlay.appendChild(panel);
+    document.body.appendChild(overlay);
+
     triggerBtn.classList.add('open');
     triggerBtn.setAttribute('aria-expanded', 'true');
     renderPanel();
 
     _openDatePickerClose = closePanel;
-    setTimeout(() => document.addEventListener('click', onDocClick), 0);
-    window.addEventListener('scroll', positionPanel, true);
-    window.addEventListener('resize', positionPanel);
   }
 
   triggerBtn.addEventListener('click', (e) => { e.stopPropagation(); openPanel(); });
