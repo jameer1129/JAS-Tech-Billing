@@ -27,6 +27,8 @@ create table if not exists public.bills (
   customer_address  text default '',
   bill_date         date,
   notes             text default '',
+  include_notes     boolean not null default true,
+  show_watermark    boolean not null default true,
   total             numeric(12,2) not null default 0,
   created_by        uuid references public.profiles(id) on delete set null,
   created_by_name   text default '',
@@ -52,6 +54,79 @@ create index if not exists bill_items_bill_id_idx on public.bill_items(bill_id);
 create index if not exists bills_invoice_no_idx on public.bills(invoice_no);
 create index if not exists bills_customer_name_idx on public.bills(customer_name);
 create index if not exists bills_customer_phone_idx on public.bills(customer_phone);
+
+create or replace function public.create_bill(
+  invoice_no text,
+  customer_name text,
+  customer_phone text,
+  customer_address text,
+  bill_date date,
+  notes text,
+  include_notes boolean,
+  show_watermark boolean,
+  total numeric,
+  created_by uuid,
+  created_by_name text,
+  items jsonb
+)
+returns public.bills as $$
+declare
+  new_bill public.bills%rowtype;
+  item jsonb;
+begin
+  insert into public.bills(
+    invoice_no,
+    customer_name,
+    customer_phone,
+    customer_address,
+    bill_date,
+    notes,
+    include_notes,
+    show_watermark,
+    total,
+    created_by,
+    created_by_name
+  ) values (
+    invoice_no,
+    customer_name,
+    customer_phone,
+    customer_address,
+    bill_date,
+    notes,
+    include_notes,
+    show_watermark,
+    total,
+    created_by,
+    created_by_name
+  ) returning * into new_bill;
+
+  if items is not null then
+    for item in select * from jsonb_array_elements(items) loop
+      insert into public.bill_items(
+        bill_id,
+        item_name,
+        description,
+        serial,
+        qty,
+        price,
+        amount,
+        sort_order
+      ) values (
+        new_bill.id,
+        item->>'item_name',
+        coalesce(item->>'description', ''),
+        coalesce(item->>'serial', ''),
+        (item->>'qty')::numeric,
+        (item->>'price')::numeric,
+        ((item->>'qty')::numeric * (item->>'price')::numeric),
+        (item->>'sort_order')::int
+      );
+    end loop;
+  end if;
+
+  return new_bill;
+end;
+$$ language plpgsql security definer set search_path = public;
 
 -- Unique invoice numbers
 alter table public.bills drop constraint if exists bills_invoice_no_unique;

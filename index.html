@@ -17,7 +17,6 @@
 <style>
 :root{
   --primary:#012587;
-  --primary-dark:#0E358B;
   --bg:#F8F9FC;
   --surface:#FFFFFF;
   --text:#212121;
@@ -212,7 +211,6 @@ img{max-width:100%;display:block;}
 .btn:active{transform:scale(.97);}
 .btn:disabled{opacity:.6;cursor:not-allowed;}
 .btn--primary{background:var(--primary);color:#FFFFFF;box-shadow:0 3px 10px rgba(21,101,192,.28);}
-.btn--primary:hover{background:var(--primary-dark);}
 .btn--outline{background:var(--white);color:var(--primary);border:1.5px solid var(--primary);}
 .btn--outline:hover{background:#EEF4FC;}
 .btn--ghost{background:transparent;color:var(--muted);border:1.5px solid var(--line);}
@@ -247,7 +245,7 @@ img{max-width:100%;display:block;}
 .summary-row{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13.5px;color:var(--muted);}
 .summary-row b{color:var(--text);font-weight:700;word-break:break-word;overflow-wrap:break-word;text-align:right;}
 .summary-total{
-  background:linear-gradient(135deg,var(--primary) 0%,var(--primary-dark) 100%);
+  background:var(--primary);
   border-radius:var(--radius-sm);padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:10px;
   color:#FFFFFF;margin-top:4px;
 }
@@ -959,6 +957,10 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{color:#63B3ED;}
       <h2 class="card__heading"><i class="fa-solid fa-users"></i> All Users</h2>
       <div id="allUsersLoading" class="spinner-inline"></div>
       <div id="allUsersList"></div>
+      <div class="bills-pagination hide" id="allUsersPagination">
+        <div class="bills-pagination__info" id="allUsersPaginationInfo"></div>
+        <div class="bills-pagination__controls" id="allUsersPaginationControls"></div>
+      </div>
     </section>
   </main>
 
@@ -1202,6 +1204,7 @@ let billsCache = [];
 let loadedBillForPrint = null; // when re-printing a saved bill
 
 const BILLS_PAGE_SIZE = 10;
+const USERS_PAGE_SIZE = 10;
 const A4_PAGE_HEIGHT_PX = 1123; // A4 height in px at 96dpi, used for PDF pagination
 const TOAST_DURATION_MS = 2400;
 const SEARCH_DEBOUNCE_MS = 350;
@@ -1209,6 +1212,8 @@ const MAX_BILL_TOTAL = 9999999999.99; // matches bills.total numeric(12,2) in sc
 let _openDatePickerClose = null;
 let billsPage = 1;
 let billsTotalCount = 0;
+let usersPage = 1;
+let usersTotalCount = 0;
 let billsSearchDebounceTimer = null;
 let billsSortCol = 'created_at';
 let billsSortDir = 'desc';
@@ -1378,6 +1383,9 @@ function cacheElements(){
   el.pendingUsersList = document.getElementById('pendingUsersList');
   el.allUsersLoading = document.getElementById('allUsersLoading');
   el.allUsersList = document.getElementById('allUsersList');
+  el.allUsersPagination = document.getElementById('allUsersPagination');
+  el.allUsersPaginationInfo = document.getElementById('allUsersPaginationInfo');
+  el.allUsersPaginationControls = document.getElementById('allUsersPaginationControls');
 }
 
 async function loadConfig(){
@@ -1431,7 +1439,6 @@ function applyConfig(){
   const darkTheme = CONFIG.theme.dark || {};
 
   root.setProperty('--primary', lightTheme.primary || '#012587');
-  root.setProperty('--primary-dark', lightTheme.primary || '#012587');
   root.setProperty('--bg', lightTheme.background || '#F8F9FC');
   root.setProperty('--surface', lightTheme.surface || '#FFFFFF');
   root.setProperty('--text', lightTheme.text || '#212121');
@@ -1684,14 +1691,29 @@ function initInvoiceMeta(){
   state.dateStr = `${dd}-${mm}-${yyyy}`;
 }
 
-function calculateTotals(products){
-  let totalQty = 0, grandTotal = 0;
-  for(const p of products){
+function roundMoney(value) {
+  return Math.round((Number(value) + Number.EPSILON) * 100) / 100;
+}
+
+function calculateTotals(products) {
+  let totalQty = 0;
+  let grandTotal = 0;
+
+  for (const p of products) {
     const qty = Number(p.qty) || 0;
+    const rate = Number(p.rate) || 0;
+
+    const amount = roundMoney(qty * rate);
+
     totalQty += qty;
-    grandTotal += qty * p.rate;
+    grandTotal += amount;
   }
-  return { totalItems: products.length, totalQty, grandTotal };
+
+  return {
+    totalItems: products.length,
+    totalQty,
+    grandTotal: roundMoney(grandTotal)
+  };
 }
 
 function formatCurrency(amount, includeSymbol = true){
@@ -1729,7 +1751,7 @@ function buildInvRowHtml(p, idx){
       <td><div class="prod-name">${escapeHtml(p.name)}</div>${metaHtml}</td>
       <td class="num" style="text-align: center; font-weight: 500;">${p.qty}</td>
       <td class="num">${formatCurrency(p.rate, false)}</td>
-      <td class="num">${formatCurrency(p.qty * p.rate, false)}</td>
+      <td class="num">${formatCurrency(roundMoney(p.qty * p.rate), false)}</td>
     </tr>`;
 }
 
@@ -2466,40 +2488,30 @@ async function saveBillToSupabase(){
     customer_address: state.customer.address || '',
     bill_date: displayDateToISO(state.dateStr),
     notes: state.notes || '',
+    include_notes: state.includeNotesOnPdf,
+    show_watermark: state.showWatermark,
     total: grandTotal,
     created_by: currentProfile.id,
-    created_by_name: currentProfile.name || currentProfile.email
+    created_by_name: currentProfile.name || currentProfile.email,
+    items: state.products.map((p, idx) => ({
+      item_name: p.name,
+      description: p.description || '',
+      serial: p.serial || '',
+      qty: p.qty,
+      price: p.rate,
+      sort_order: idx
+    }))
   };
 
-  const { data: bill, error: billErr } = await supabaseClient
-    .from('bills')
-    .insert(billRow)
-    .select()
-    .single();
-
+  const { data: bill, error: billErr } = await supabaseClient.rpc('create_bill', billRow);
   if (billErr) throw billErr;
-
-  const itemRows = state.products.map((p, idx) => ({
-    bill_id: bill.id,
-    item_name: p.name,
-    description: p.description || '',
-    serial: p.serial || '',
-    qty: p.qty,
-    price: p.rate,
-    amount: p.qty * p.rate,
-    sort_order: idx
-  }));
-
-  if (itemRows.length) {
-    const { error: itemsErr } = await supabaseClient.from('bill_items').insert(itemRows);
-    if (itemsErr) throw itemsErr;
-  }
 
   return bill;
 }
 
 let _pendingPdfBlob = null;
 let _pendingPdfFilename = '';
+let _pdfActionDidSave = false;
 
 async function generatePdfBlob(){
   const root = document.getElementById('invoiceRoot');
@@ -2578,8 +2590,11 @@ function openPdfActionModal(saved){
 }
 function closePdfActionModal(){
   hideOverlay(el.pdfActionModalOverlay);
+  const wasSaved = _pdfActionDidSave;
   _pendingPdfBlob = null;
   _pendingPdfFilename = '';
+  _pdfActionDidSave = false;
+  if (wasSaved) resetInvoice(true);
 }
 
 async function handleSaveChoice(saveToDb){
@@ -2614,10 +2629,7 @@ async function handleSaveChoice(saveToDb){
     const result = await generatePdfBlob();
     _pendingPdfBlob = result.blob;
     _pendingPdfFilename = result.filename;
-
-    if (didSave) {
-      resetInvoice(true);
-    }
+    _pdfActionDidSave = didSave;
 
     openPdfActionModal(didSave);
   } catch(err){
@@ -2636,8 +2648,9 @@ function downloadPdfBlob(){
   document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
   showToast('Invoice downloaded', 'success');
+  const wasSaved = _pdfActionDidSave;
   closePdfActionModal();
-  resetInvoice(true);
+  if (!wasSaved) resetInvoice(true);
 }
 
 async function sharePdfBlob(){
@@ -2646,29 +2659,11 @@ async function sharePdfBlob(){
   try {
     const file = new File([_pendingPdfBlob], _pendingPdfFilename, { type: 'application/pdf' });
     await navigator.share({ files: [file], title: _pendingPdfFilename });
+    const wasSaved = _pdfActionDidSave;
     closePdfActionModal();
-    resetInvoice(true);
+    if (!wasSaved) resetInvoice(true);
   } catch(err){
     if (err.name !== 'AbortError') showToast('Could not share. Try downloading instead.', 'error');
-  }
-}
-
-async function downloadInvoice(skipSave){
-  // Legacy path used by reprint — generates and directly downloads
-  if(!state.products.length){ showToast('Add at least one product before downloading.', 'error'); return; }
-  if(!el.previewModalOverlay.classList.contains('hide')) closePreviewModal();
-  try {
-    const result = await generatePdfBlob();
-    const url = URL.createObjectURL(result.blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = result.filename;
-    document.body.appendChild(a); a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-    showToast('Invoice downloaded', 'success');
-  } catch(err){
-    console.error(err);
-    showToast('Could not generate PDF. Please try again.', 'error');
   }
 }
 
@@ -2694,7 +2689,7 @@ async function loadBills(resetToFirstPage){
 
   let query = supabaseClient
     .from('bills')
-    .select('id,invoice_no,customer_name,customer_phone,customer_address,bill_date,notes,total,created_by,created_by_name,created_at', { count: 'exact' });
+    .select('id,invoice_no,customer_name,customer_phone,customer_address,bill_date,notes,include_notes,show_watermark,total,created_by,created_by_name,created_at', { count: 'exact' });
 
   if (rawQuery) {
     const term = sanitizeSearchTerm(rawQuery);
@@ -2705,7 +2700,7 @@ async function loadBills(resetToFirstPage){
 
   // Date range filter
   const today = new Date();
-  const toISO = d => d.toISOString().slice(0,10);
+  const toISO = localDateToIso;
   if (billsDateRange === 'today') {
     query = query.eq('bill_date', toISO(today));
   } else if (billsDateRange === 'yesterday') {
@@ -2794,22 +2789,6 @@ function renderBillsTable(){
   `).join('');
 }
 
-function buildPageList(current, total){
-  const pages = [];
-  if (total <= 7) {
-    for (let i = 1; i <= total; i++) pages.push(i);
-    return pages;
-  }
-  pages.push(1);
-  if (current > 4) pages.push('...');
-  const start = Math.max(2, current - 1);
-  const end = Math.min(total - 1, current + 1);
-  for (let i = start; i <= end; i++) pages.push(i);
-  if (current < total - 3) pages.push('...');
-  pages.push(total);
-  return pages;
-}
-
 function renderBillsPagination(){
   if (billsTotalCount === 0) {
     el.billsPagination.classList.add('hide');
@@ -2869,7 +2848,8 @@ async function reprintBill(billId){
   state.invoiceNumber = bill.invoice_no;
   state.dateStr = bill.bill_date ? formatDateForDisplay(bill.bill_date) : '';
   state.notes = bill.notes || '';
-  state.includeNotesOnPdf = !!bill.notes;
+  state.includeNotesOnPdf = bill.include_notes ?? !!bill.notes;
+  state.showWatermark = bill.show_watermark ?? true;
   state.products = (items || []).map((it, idx) => ({
     id: idx + 1,
     name: it.item_name,
@@ -2960,14 +2940,19 @@ async function loadPendingUsers(){
   `).join('');
 }
 
-async function loadAllUsers(){
+async function loadAllUsers(resetToFirstPage = false){
+  if (resetToFirstPage) usersPage = 1;
   el.allUsersLoading.classList.remove('hide');
   el.allUsersList.innerHTML = '';
 
-  const { data, error } = await supabaseClient
+  const from = (usersPage - 1) * USERS_PAGE_SIZE;
+  const to = from + USERS_PAGE_SIZE - 1;
+
+  const { data, error, count } = await supabaseClient
     .from('profiles')
-    .select('id,name,email,role,status,created_at')
-    .order('created_at', { ascending: false });
+    .select('id,name,email,role,status,created_at', { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .range(from, to);
 
   el.allUsersLoading.classList.add('hide');
 
@@ -2977,7 +2962,29 @@ async function loadAllUsers(){
     return;
   }
 
-  el.allUsersList.innerHTML = data.map(u => {
+  if ((!data || data.length === 0) && usersPage > 1) {
+    usersPage -= 1;
+    return loadAllUsers();
+  }
+
+  usersTotalCount = count || 0;
+  renderAllUsers(data || []);
+  renderAllUsersPagination();
+}
+
+function renderAllUsers(users){
+  if (!users.length) {
+    el.allUsersList.innerHTML = `
+      <div class="empty-state">
+        <i class="fa-regular fa-circle-check"></i>
+        <p>No users found.</p>
+        <span>Try adjusting your filters or return later.</span>
+      </div>
+    `;
+    return;
+  }
+
+  el.allUsersList.innerHTML = users.map(u => {
     const isSelf = u.id === currentProfile.id;
     return `
     <div class="user-row" data-id="${u.id}">
@@ -2997,6 +3004,40 @@ async function loadAllUsers(){
     </div>
   `;
   }).join('');
+}
+
+function renderAllUsersPagination(){
+  if (usersTotalCount === 0) {
+    el.allUsersPagination.classList.add('hide');
+    return;
+  }
+
+  const totalPages = Math.max(1, Math.ceil(usersTotalCount / USERS_PAGE_SIZE));
+  el.allUsersPagination.classList.remove('hide');
+
+  const from = (usersPage - 1) * USERS_PAGE_SIZE + 1;
+  const to = Math.min(usersPage * USERS_PAGE_SIZE, usersTotalCount);
+  el.allUsersPaginationInfo.textContent = `Showing ${from}-${to} of ${usersTotalCount}`;
+
+  el.allUsersPaginationControls.innerHTML = `
+    <div style="display:flex;gap:12px;align-items:center;">
+      <button class="page-btn page-nav" data-page="prev" ${usersPage === 1 ? 'disabled' : ''} aria-label="Previous page"><i class="fa-solid fa-chevron-left"></i>&nbsp;Previous</button>
+      <button class="page-btn page-nav" data-page="next" ${usersPage === totalPages ? 'disabled' : ''} aria-label="Next page">Next&nbsp;<i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+  `;
+}
+
+function handleAllUsersPaginationClick(e){
+  const btn = e.target.closest('button[data-page]');
+  if (!btn || btn.disabled) return;
+
+  const totalPages = Math.max(1, Math.ceil(usersTotalCount / USERS_PAGE_SIZE));
+  const val = btn.dataset.page;
+  if (val === 'prev') usersPage = Math.max(1, usersPage - 1);
+  else if (val === 'next') usersPage = Math.min(totalPages, usersPage + 1);
+  else usersPage = Number(val);
+
+  loadAllUsers();
 }
 
 async function setUserStatus(userId, status){
@@ -3393,6 +3434,7 @@ function bindEvents(){
 
   el.pendingUsersList.addEventListener('click', handlePendingUsersClick);
   el.allUsersList.addEventListener('click', handleAllUsersClick);
+  el.allUsersPaginationControls.addEventListener('click', handleAllUsersPaginationClick);
 
   el.btnCloseLogoutModal.addEventListener('click', closeLogoutConfirm);
   el.btnCancelLogout.addEventListener('click', closeLogoutConfirm);
