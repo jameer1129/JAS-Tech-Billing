@@ -258,7 +258,7 @@ img{max-width:100%;display:block;}
 .empty-state span{font-size:12.5px;}
 .product-table-wrap,.bills-table-wrap{overflow-x:auto;overflow-y:visible;-webkit-overflow-scrolling:touch;border-radius:var(--radius-sm);border:1px solid var(--line);}
 .product-table,.bills-table{width:100%;min-width:620px;border-collapse:collapse;font-size:13.5px;table-layout:auto;}
-.product-table thead th,.bills-table thead th{background:#EEF4FC;color:var(--primary);text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap; transition: background 0.3s ease;}
+.product-table thead th,.bills-table thead th{background:#EEF4FC;color:var(--primary);text-align:left;padding:10px 12px;font-size:12px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap; transition: background 0.3s ease;}
 .product-table tbody td{padding:12px;border-top:1px solid var(--line);vertical-align:top;word-break:break-word;white-space:normal;min-width:0;overflow:hidden;}
 .bills-table tbody td{padding:12px;border-top:1px solid var(--line);vertical-align:top;word-break:break-word;white-space:normal;min-width:0;overflow:visible;}
 .product-table .prod-name{font-weight:600;color:var(--text);white-space:normal;word-break:break-word;overflow-wrap:break-word;display:block;}
@@ -473,20 +473,9 @@ body.dark-theme .date-picker__today-btn:hover{background:rgba(1,37,135,.2);}
 .bills-table thead th.sortable{cursor:pointer;user-select:none;}
 .bills-table thead th.sortable:hover{background:#D8E6F8;}
 body.dark-theme .bills-table thead th.sortable:hover{background:#1e2a3a;}
-.sort-arrow{
-  display:inline-flex;
-  width:14px;
-  margin-left:5px;
-  font-size:11px;
-  justify-content:center;
-}
-.bills-table thead th.sort-active .sort-arrow{
-  opacity:1;
-  color:var(--primary);
-}
-body.dark-theme .bills-table thead th.sort-active .sort-arrow{
-  color:#63B3ED;
-}
+.sort-arrow{display:inline-flex;width:14px;margin-left:5px;font-size:12px;justify-content:center;}
+.bills-table thead th.sort-active .sort-arrow{opacity:1;color:var(--primary);}
+body.dark-theme .bills-table thead th.sort-active .sort-arrow{color:#63B3ED;}
 .bills-table tbody tr:hover td{background:var(--bg);}
 
 .bills-pagination{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line);}
