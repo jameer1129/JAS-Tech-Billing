@@ -254,13 +254,12 @@ img{max-width:100%;display:block;}
 .empty-state i{font-size:28px;color:var(--line);margin-bottom:10px;display:block;}
 .empty-state p{margin:0 0 4px;font-weight:600;color:var(--text);}
 .empty-state span{font-size:12.5px;}
-.product-table-wrap,.bills-table-wrap{overflow-x:auto;overflow-y:visible;-webkit-overflow-scrolling:touch;border-radius:var(--radius-sm);border:1px solid var(--line);}
+.product-table-wrap,.bills-table-wrap{width:100%;overflow-x:auto;overflow-y:visible;-webkit-overflow-scrolling:touch;border-radius:var(--radius-sm);border:1px solid var(--line);}
 .product-table,.bills-table{width:100%;border-collapse:collapse;font-size:13.5px;table-layout:auto;}
-.product-table thead th,.bills-table thead th{background:#EEF4FC;color:var(--primary);text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap; transition: background 0.3s ease; min-width:0;overflow:hidden;}
-.product-table tbody td{padding:12px;border-top:1px solid var(--line);vertical-align:top;word-break:break-word;white-space:normal;min-width:0;overflow:hidden;}
-.bills-table tbody td{padding:12px;border-top:1px solid var(--line);vertical-align:top;word-break:break-word;white-space:normal;min-width:0;overflow:visible;}
-.product-table .prod-name{font-weight:600;color:var(--text);white-space:normal;word-break:break-word;overflow-wrap:break-word;display:block;}
-
+.product-table thead th,.bills-table thead th{background:#EEF4FC;color:var(--primary);text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;transition:background .3s ease;}
+.product-table tbody td,.bills-table tbody td{padding:12px;border-top:1px solid var(--line);vertical-align:top;white-space:normal;overflow-wrap:break-word;}
+.product-table .prod-name{font-weight:600;color:var(--text);white-space:normal;overflow-wrap:break-word;display:block;}
+.product-table tbody td:nth-child(1),.product-table tbody td:nth-child(3),.product-table tbody td:nth-child(4),.product-table tbody td:nth-child(5){white-space:nowrap;}
 .product-table .prod-meta,
 .inv-table .prod-meta { margin-top: 4px; line-height: 1.45; }
 .prod-desc-line { color: var(--muted); font-size: 12px; margin-top: 2px; white-space:normal; word-break:break-word; overflow-wrap:break-word; }
