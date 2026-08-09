@@ -513,7 +513,9 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{
 .user-actions-menu-wrap{position:relative;}
 .kebab-btn{background:none;border:1.5px solid var(--line);color:var(--muted);width:32px;height:32px;border-radius:var(--radius-sm);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:background .15s ease,color .15s ease;}
 .kebab-btn:hover{background:var(--bg);color:var(--primary);border-color:var(--primary);}
-.actions-popup{position:fixed;background:var(--white);border:1.5px solid var(--line);border-radius:var(--radius-sm);box-shadow:var(--shadow-md);z-index:9999;min-width:220px;overflow:hidden;animation:fadeIn .12s ease;}
+.actions-popup{background:var(--white);border:1.5px solid var(--line);border-radius:var(--radius-sm);box-shadow:var(--shadow-md);z-index:9999;min-width:220px;overflow:hidden;animation:fadeIn .12s ease;}
+.actions-popup-adminmenu{position:absolute;right:0;top:calc(100% + 6px);z-index:200;min-width:170px;}
+.actions-popup-previousmenu{position:fixed;z-index:9999;}
 .actions-popup__item{display:flex;align-items:center;gap:10px;padding:12px 16px;font-size:14px;font-weight:600;color:var(--text);cursor:pointer;border:none;background:none;width:100%;text-align:left;transition:background .12s ease;}
 .actions-popup__item:hover{background:var(--bg);}
 .actions-popup__item.success{color:var(--success);}
@@ -2956,10 +2958,8 @@ function toggleBillsMoreMenu(btn, invoiceNo){
 
   const rect = btn.getBoundingClientRect();
   const popup = document.createElement('div');
-  popup.className = 'actions-popup';
+  popup.className = 'actions-popup actions-popup-previousmenu';
   popup.dataset.invoice = invoiceNo;
-  popup.style.position = 'fixed';
-  popup.style.visibility = 'hidden';
   popup.innerHTML = `
     <button class="actions-popup__item" data-menu="bill-details" data-invoice="${escapeHtml(invoiceNo)}">
       <i class="fa-solid fa-info-circle"></i> Bill Details
@@ -3317,7 +3317,6 @@ function handleAllUsersClick(e){
   const userId = kebab.dataset.id;
   const userRole = kebab.dataset.role;
   const userStatus = kebab.dataset.status;
-  const userName = kebab.dataset.name;
 
   const newRole = userRole === 'admin' ? 'employee' : 'admin';
   const statusItems = userStatus === 'approved'
@@ -3336,7 +3335,7 @@ function handleAllUsersClick(e){
        </button>`;
 
   const popup = document.createElement('div');
-  popup.className = 'actions-popup';
+  popup.className = 'actions-popup actions-popup-adminmenu';
   popup.innerHTML = `
     <button class="actions-popup__item" data-menu="role" data-id="${userId}" data-val="${newRole}">
       <i class="fa-solid fa-user-gear"></i> Make ${newRole === 'admin' ? 'Admin' : 'Employee'}
