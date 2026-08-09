@@ -463,9 +463,20 @@ body.dark-theme .date-picker__today-btn:hover{background:rgba(1,37,135,.2);}
 .bills-table thead th.sortable{cursor:pointer;user-select:none;}
 .bills-table thead th.sortable:hover{background:#D8E6F8;}
 body.dark-theme .bills-table thead th.sortable:hover{background:#1e2a3a;}
-.sort-arrow{display:inline-flex;align-items:center;justify-content:center;margin-left:6px;opacity:.5;font-size:12px;font-weight:700;line-height:1;letter-spacing:-.04em;}
-.bills-table thead th.sort-active .sort-arrow{opacity:1;color:var(--primary);}
-body.dark-theme .bills-table thead th.sort-active .sort-arrow{color:#63B3ED;}
+.sort-arrow{
+  display:inline-flex;
+  width:14px;
+  margin-left:5px;
+  font-size:11px;
+  justify-content:center;
+}
+.bills-table thead th.sort-active .sort-arrow{
+  opacity:1;
+  color:var(--primary);
+}
+body.dark-theme .bills-table thead th.sort-active .sort-arrow{
+  color:#63B3ED;
+}
 .bills-table tbody tr:hover td{background:var(--bg);}
 
 .bills-pagination{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line);}
@@ -921,10 +932,10 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{color:#63B3ED;}
         <table class="bills-table" id="billsTable">
           <thead>
             <tr>
-              <th class="sortable" data-col="invoice_no">Invoice <span class="sort-arrow">▲▼</span></th>
-              <th class="sortable" data-col="customer_name">Customer <span class="sort-arrow">▲▼</span></th>
-              <th class="sortable" data-col="bill_date">Date <span class="sort-arrow">▲▼</span></th>
-              <th class="sortable" data-col="total">Total <span class="sort-arrow">▲▼</span></th>
+              <th class="sortable" data-col="invoice_no">Invoice <span class="sort-arrow"></span></th>
+              <th class="sortable" data-col="customer_name">Customer <span class="sort-arrow"></span></th>
+              <th class="sortable" data-col="bill_date">Date <span class="sort-arrow"></span></th>
+              <th class="sortable" data-col="total">Total <span class="sort-arrow"></span></th>
               <th class="col-actions"></th>
             </tr>
           </thead>
@@ -2779,7 +2790,7 @@ function renderBillsTable(){
     const isActive = billsSortCol === th.dataset.col;
     th.classList.toggle('sort-active', isActive);
     const arrow = th.querySelector('.sort-arrow');
-    if (arrow) arrow.textContent = isActive ? (billsSortDir === 'asc' ? '↑' : '↓') : '↕';
+    if (arrow) arrow.textContent = isActive ? (billsSortDir === 'asc' ? '▲' : '▼') : '↕';
   });
 
   el.billsTableBody.innerHTML = billsCache.map(b => `
@@ -3264,8 +3275,18 @@ function applyTheme(isDark){
 }
 
 function updateResetFilterBtn(){
-  const hasFilter = billsDateRange !== 'any' || el.billSearchInput.value.trim() !== '';
-  el.btnResetFilters.classList.toggle('hide', !hasFilter);
+  const hasFilter =
+    billsDateRange !== 'any' ||
+    el.billSearchInput.value.trim() !== '';
+
+  const hasSort =
+    billsSortCol !== 'created_at' ||
+    billsSortDir !== 'desc';
+
+  el.btnResetFilters.classList.toggle(
+    'hide',
+    !(hasFilter || hasSort)
+  );
 }
 
 function restoreTogglePref(toggleEl, storageKey){
@@ -3417,6 +3438,7 @@ function bindEvents(){
       billsSortCol = col;
       billsSortDir = col === 'total' ? 'desc' : 'asc';
     }
+    updateResetFilterBtn();
     loadBills(true);
   });
 
