@@ -274,7 +274,7 @@ img{max-width:100%;display:block;}
 .col-name{width:auto;}
 .col-qty,.col-rate,.col-amount{white-space:normal;word-break:break-word;overflow-wrap:break-word;}
 .col-actions{text-align:right;white-space:nowrap;width:86px;padding-left: 0;}
-.row-action-btn{background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;padding:6px 8px;border-radius:6px;}
+.row-action-btn{background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;padding:0px 12px;border-radius:6px;}
 .row-action-btn:hover{background:var(--bg);color:var(--primary);}
 .row-action-btn.delete:hover{color:var(--danger);}
 
@@ -511,7 +511,7 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{
 
 /* ---------- Actions kebab menu ---------- */
 .user-actions-menu-wrap{position:relative;}
-.kebab-btn{background:none;border:1.5px solid var(--line);color:var(--muted);font-weight:600;width:28px;height:28px;border-radius:var(--radius-sm);cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;transition:background .15s ease,color .15s ease;}
+.kebab-btn{background:none;border:1.5px solid var(--line);color:var(--muted);width:28px;height:28px;border-radius:var(--radius-sm);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:background .15s ease,color .15s ease;}
 .kebab-btn:hover{background:var(--bg);color:var(--primary);border-color:var(--primary);}
 .actions-popup{background:var(--white);border:1.5px solid var(--line);border-radius:var(--radius-sm);box-shadow:var(--shadow-md);z-index:9999;min-width:220px;overflow:hidden;animation:fadeIn .12s ease;}
 .actions-popup-adminmenu{position:absolute;right:0;top:calc(100% + 6px);z-index:200;min-width:170px;}
@@ -2830,7 +2830,7 @@ function renderBillsTable(){
     const isActive = billsSortCol === th.dataset.col;
     th.classList.toggle('sort-active', isActive);
     const arrow = th.querySelector('.sort-arrow');
-    if (arrow) arrow.textContent = isActive ? (billsSortDir === 'asc' ? '▲' : '▼') : '';
+    if (arrow) arrow.textContent = isActive ? (billsSortDir === 'asc' ? '▲' : '▼') : '↕';
   });
 
   el.billsTableBody.innerHTML = billsCache.map(b => `
@@ -2844,7 +2844,7 @@ function renderBillsTable(){
       <td>${formatCurrency(b.total)}</td>
       <td class="col-actions" style="display:flex;justify-content:flex-end;gap:8px;">
         <button class="row-action-btn" data-action="reprint" data-invoice="${escapeHtml(b.invoice_no)}" aria-label="Print again"><i class="fa-solid fa-print"></i></button>
-        ${isAdmin ? `<div class="user-actions-menu-wrap"><button class="row-action-btn kebab-btn" data-action="more" data-invoice="${escapeHtml(b.invoice_no)}" aria-label="More actions">⋮</button></div>` : ''}
+        ${isAdmin ? `<div class="user-actions-menu-wrap"><button class="row-action-btn kebab-btn" data-action="more" data-invoice="${escapeHtml(b.invoice_no)}" aria-label="More actions"><i class="fa-solid fa-ellipsis-vertical"></i></button></div>` : ''}
       </td>
     </tr>
   `).join('');
@@ -3137,7 +3137,7 @@ function renderAllUsers(users){
         <span class="badge badge--${u.status}">${u.status}</span>
         ${!isSelf ? `
           <div class="user-actions-menu-wrap">
-            <button class="kebab-btn" data-id="${u.id}" data-role="${u.role}" data-status="${u.status}" data-name="${escapeHtml(u.name || u.email)}" aria-label="User actions">⋮</button>
+            <button class="kebab-btn" data-id="${u.id}" data-role="${u.role}" data-status="${u.status}" data-name="${escapeHtml(u.name || u.email)}" aria-label="User actions"><i class="fa-solid fa-ellipsis-vertical"></i></button>
           </div>
         ` : ''}
       </div>
