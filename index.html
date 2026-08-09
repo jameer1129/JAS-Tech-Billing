@@ -789,8 +789,7 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{color:#63B3ED;}
 
     <section class="card">
       <h2 class="card__heading"><i class="fa-regular fa-file-lines"></i> Invoice</h2>
-      <div class="field-group field-group--pair">
-        <div class="field"><label for="invoiceNumber">Invoice No.</label><input type="text" id="invoiceNumber" autocomplete="off" maxlength="10"></div>
+      <div class="field-group">
         <div class="field">
           <label for="invoiceDate">Date</label>
           <div class="date-picker" id="invoiceDatePicker">
@@ -1275,7 +1274,6 @@ function cacheElements(){
   el.customerName = document.getElementById('customerName');
   el.customerAddress = document.getElementById('customerAddress');
   el.customerMobile = document.getElementById('customerMobile');
-  el.invoiceNumber = document.getElementById('invoiceNumber');
   el.invoiceDate = document.getElementById('invoiceDate');
   el.invoiceDateInput = document.getElementById('invoiceDateInput');
   el.invoiceDateText = document.getElementById('invoiceDateText');
@@ -1467,7 +1465,7 @@ function applyConfig(){
 
 function pad(n){ return n.toString().padStart(2,'0'); }
 
-function generateInvoiceNumber(date){
+function generateTemporaryInvoiceReference(date = new Date()){
   const format = CONFIG.invoice.numberFormat || 'DDMMHHmmss';
   return format
     .replace('DD', pad(date.getDate()))
@@ -1679,8 +1677,7 @@ function createDatePicker(hiddenInput, triggerBtn, textEl, options = {}){
 
 function initInvoiceMeta(){
   const now = new Date();
-  state.invoiceNumber = generateInvoiceNumber(now);
-  el.invoiceNumber.value = state.invoiceNumber;
+  state.invoiceNumber = '';
 
   const yyyy = now.getFullYear();
   const mm = pad(now.getMonth() + 1);
@@ -2197,7 +2194,7 @@ function renderInvoiceTemplate(targetContainerId = 'invoiceRoot'){
           <span class="inv-header__ribbon-stripe"></span>
         </div>
         <div class="inv-header__meta">
-          <div class="row"><span class="k">Invoice No.</span><span class="sep">:</span><span class="v">${escapeHtml(state.invoiceNumber)}</span></div>
+          <div class="row"><span class="k">Invoice No.</span><span class="sep">:</span><span class="v">${escapeHtml(state.invoiceNumber || 'AUTO')}</span></div>
           <div class="row"><span class="k">Date</span><span class="sep">:</span><span class="v">${escapeHtml(state.dateStr)}</span></div>
         </div>
       </div>
@@ -2370,7 +2367,7 @@ function renderInvoiceTemplate(targetContainerId = 'invoiceRoot'){
                <span class="inv-header__ribbon-stripe"></span>
                <span class="inv-header__ribbon-stripe"></span>
             </div>
-            No. ${escapeHtml(state.invoiceNumber)}
+            No. ${escapeHtml(state.invoiceNumber || 'AUTO')}
           </div>
       </div>
     `;
@@ -2482,7 +2479,6 @@ async function saveBillToSupabase(){
   const { totalItems, totalQty, grandTotal } = calculateTotals(state.products);
 
   const billRow = {
-    invoice_no: state.invoiceNumber,
     customer_name: state.customer.name || '',
     customer_phone: state.customer.mobile || '',
     customer_address: state.customer.address || '',
@@ -2490,8 +2486,6 @@ async function saveBillToSupabase(){
     notes: state.notes || '',
     include_notes: state.includeNotesOnPdf,
     show_watermark: state.showWatermark,
-    total: grandTotal,
-    created_by: currentProfile.id,
     created_by_name: currentProfile.name || currentProfile.email,
     items: state.products.map((p, idx) => ({
       item_name: p.name,
@@ -2499,7 +2493,6 @@ async function saveBillToSupabase(){
       serial: p.serial || '',
       qty: p.qty,
       price: p.rate,
-      sort_order: idx
     }))
   };
 
@@ -2611,12 +2604,17 @@ async function handleSaveChoice(saveToDb){
         el.pdfLoadingText.textContent = 'Saving invoice…';
         overlay.classList.remove('hide');
         try {
-          await saveBillToSupabase();
+          const bill = await saveBillToSupabase();
+          state.invoiceNumber = bill.invoice_no;
           didSave = true;
         } catch (saveErr) {
           if (saveErr && saveErr.code === '22003') {
             console.warn('Bill total too large to save:', saveErr);
             showToast('Total is too large to save. Downloading without saving instead.', 'error');
+            saveToDb = false;
+          } else if (saveErr && saveErr.message && saveErr.message.includes('Daily invoice limit reached')) {
+            showToast('Daily invoice limit reached. No more official invoices can be created today.', 'error');
+            throw saveErr;
           } else {
             throw saveErr;
           }
@@ -2624,6 +2622,10 @@ async function handleSaveChoice(saveToDb){
           overlay.classList.add('hide');
         }
       }
+    }
+
+    if (!saveToDb && loadedBillForPrint === null && !state.invoiceNumber) {
+      state.invoiceNumber = generateTemporaryInvoiceReference();
     }
 
     const result = await generatePdfBlob();
@@ -2635,7 +2637,15 @@ async function handleSaveChoice(saveToDb){
   } catch(err){
     overlay.classList.add('hide');
     console.error(err);
-    showToast('Could not generate PDF. Please try again.', 'error');
+    if (didSave) {
+      showToast('The invoice was saved successfully, but PDF generation failed.', 'error');
+    } else if (err && err.message && err.message.includes('Daily invoice limit reached')) {
+      showToast('Daily invoice limit reached. No more official invoices can be created today.', 'error');
+    } else if (saveToDb) {
+      showToast('Could not save invoice. Please try again.', 'error');
+    } else {
+      showToast('Could not generate PDF. Please try again.', 'error');
+    }
   }
 }
 
@@ -2689,7 +2699,7 @@ async function loadBills(resetToFirstPage){
 
   let query = supabaseClient
     .from('bills')
-    .select('id,invoice_no,customer_name,customer_phone,customer_address,bill_date,notes,include_notes,show_watermark,total,created_by,created_by_name,created_at', { count: 'exact' });
+    .select('invoice_no,customer_name,customer_phone,customer_address,bill_date,notes,include_notes,show_watermark,total,created_by,created_by_name,created_at', { count: 'exact' });
 
   if (rawQuery) {
     const term = sanitizeSearchTerm(rawQuery);
@@ -2773,17 +2783,17 @@ function renderBillsTable(){
   });
 
   el.billsTableBody.innerHTML = billsCache.map(b => `
-    <tr data-id="${b.id}">
+    <tr data-invoice="${escapeHtml(b.invoice_no)}">
       <td><b style="color:var(--primary);">${escapeHtml(b.invoice_no)}</b></td>
       <td>
-        <div class="truncate" style="font-weight:600;color:var(--text);" title="${escapeHtml(b.customer_name)}">${escapeHtml(truncateText(b.customer_name, 40))}</div>
+        <div class="truncate" style="font-weight:600;color:var(--text);" title="${escapeHtml(b.customer_name || '')}">${escapeHtml(truncateText(b.customer_name || '', 40))}</div>
         ${b.customer_phone ? `<div style="color:var(--muted);font-size:12px;margin-top:2px;"><i class="fa-solid fa-phone" style="font-size:10px;margin-right:3px;"></i>${escapeHtml(b.customer_phone)}</div>` : ''}
       </td>
       <td>${b.bill_date ? escapeHtml(formatDateForDisplay(b.bill_date)) : ''}</td>
       <td>${formatCurrency(b.total)}</td>
       <td class="col-actions">
-        <button class="row-action-btn" data-action="reprint" data-id="${b.id}" aria-label="Print again"><i class="fa-solid fa-print"></i></button>
-        ${isAdmin ? `<button class="row-action-btn delete" data-action="deletebill" data-id="${b.id}" aria-label="Delete bill"><i class="fa-solid fa-trash"></i></button>` : ''}
+        <button class="row-action-btn" data-action="reprint" data-invoice="${escapeHtml(b.invoice_no)}" aria-label="Print again"><i class="fa-solid fa-print"></i></button>
+        ${isAdmin ? `<button class="row-action-btn delete" data-action="deletebill" data-invoice="${escapeHtml(b.invoice_no)}" aria-label="Delete bill"><i class="fa-solid fa-trash"></i></button>` : ''}
       </td>
     </tr>
   `).join('');
@@ -2822,15 +2832,14 @@ function handleBillsPaginationClick(e){
   loadBills();
 }
 
-async function reprintBill(billId){
-  const bill = billsCache.find(b => b.id === billId);
+async function reprintBill(invoiceNo){
+  const bill = billsCache.find(b => b.invoice_no === invoiceNo);
   if (!bill) return;
 
   const { data: items, error } = await supabaseClient
     .from('bill_items')
-    .select('item_name,description,serial,qty,price,amount,sort_order')
-    .eq('bill_id', billId)
-    .order('sort_order', { ascending: true });
+    .select('item_name,description,serial,qty,price,amount')
+    .eq('invoice_no', invoiceNo);
 
   if (error) {
     console.error(error);
@@ -2859,15 +2868,15 @@ async function reprintBill(billId){
     rate: it.price
   }));
   state.nextId = state.products.length + 1;
-  loadedBillForPrint = billId;
+  loadedBillForPrint = invoiceNo; 
 
   openPreviewModal();
 }
 
-function requestDeleteBill(billId){
-  const bill = billsCache.find(b => b.id === billId);
+function requestDeleteBill(invoiceNo){
+  const bill = billsCache.find(b => b.invoice_no === invoiceNo);
   if (!bill) return;
-  pendingDeleteBillId = billId;
+  pendingDeleteBillId = invoiceNo;
   el.deleteBillTargetName.textContent = bill.invoice_no;
   showOverlay(el.deleteBillModalOverlay);
 }
@@ -2879,7 +2888,7 @@ function closeDeleteBillModal(){
 
 async function deleteBill(){
   if (pendingDeleteBillId === null) return;
-  const { error } = await supabaseClient.from('bills').delete().eq('id', pendingDeleteBillId);
+  const { error } = await supabaseClient.from('bills').delete().eq('invoice_no', pendingDeleteBillId);
   closeDeleteBillModal();
   if (error) {
     console.error(error);
@@ -2893,9 +2902,10 @@ async function deleteBill(){
 function handleBillsTableClick(e){
   const btn = e.target.closest('button[data-action]');
   if (!btn) return;
-  const id = Number(btn.dataset.id);
-  if (btn.dataset.action === 'reprint') reprintBill(id);
-  else if (btn.dataset.action === 'deletebill') requestDeleteBill(id);
+  const invoiceNo = btn.dataset.invoice;
+  if (!invoiceNo) return;
+  if (btn.dataset.action === 'reprint') reprintBill(invoiceNo);
+  else if (btn.dataset.action === 'deletebill') requestDeleteBill(invoiceNo);
 }
 
 /* ===================================================================
@@ -3306,7 +3316,6 @@ function bindEvents(){
   el.customerAddress.addEventListener('input', (e) => { state.customer.address = e.target.value.trim(); });
   el.customerMobile.addEventListener('input', (e) => { state.customer.mobile = e.target.value.trim(); });
 
-  el.invoiceNumber.addEventListener('input', (e) => { state.invoiceNumber = e.target.value.trim(); });
   invoiceDatePicker = createDatePicker(el.invoiceDate, el.invoiceDateInput, el.invoiceDateText, { placeholder: 'Select date' });
   el.invoiceDate.addEventListener('change', (e) => { state.dateStr = formatDateForDisplay(e.target.value); });
   el.invoiceDate.addEventListener('input', (e) => { state.dateStr = formatDateForDisplay(e.target.value); });
