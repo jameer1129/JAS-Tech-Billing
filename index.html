@@ -2844,7 +2844,7 @@ function renderBillsTable(){
       <td>${formatCurrency(b.total)}</td>
       <td class="col-actions" style="display:flex;justify-content:flex-end;gap:8px;">
         <button class="row-action-btn" data-action="reprint" data-invoice="${escapeHtml(b.invoice_no)}" aria-label="Print again"><i class="fa-solid fa-print"></i></button>
-        ${isAdmin ? `<div class="user-actions-menu-wrap"><button class="row-action-btn kebab-btn" data-action="more" data-invoice="${escapeHtml(b.invoice_no)}" aria-label="More actions"><i class="fa-solid fa-ellipsis-vertical"></i></button></div>` : ''}
+        ${isAdmin ? `<div class="user-actions-menu-wrap"><button class="kebab-btn" data-action="more" data-invoice="${escapeHtml(b.invoice_no)}" aria-label="More actions"><i class="fa-solid fa-ellipsis-vertical"></i></button></div>` : ''}
       </td>
     </tr>
   `).join('');
