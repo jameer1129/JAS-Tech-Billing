@@ -511,7 +511,7 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{
 
 /* ---------- Actions kebab menu ---------- */
 .user-actions-menu-wrap{position:relative;}
-.kebab-btn{background:none;border:1.5px solid var(--line);color:var(--muted);width:32px;height:32px;border-radius:var(--radius-sm);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:background .15s ease,color .15s ease;}
+.kebab-btn{background:none;border:1.5px solid var(--line);color:var(--muted);width:28px;height:28px;border-radius:var(--radius-sm);cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;transition:background .15s ease,color .15s ease;}
 .kebab-btn:hover{background:var(--bg);color:var(--primary);border-color:var(--primary);}
 .actions-popup{background:var(--white);border:1.5px solid var(--line);border-radius:var(--radius-sm);box-shadow:var(--shadow-md);z-index:9999;min-width:220px;overflow:hidden;animation:fadeIn .12s ease;}
 .actions-popup-adminmenu{position:absolute;right:0;top:calc(100% + 6px);z-index:200;min-width:170px;}
@@ -2844,7 +2844,7 @@ function renderBillsTable(){
       <td>${formatCurrency(b.total)}</td>
       <td class="col-actions" style="display:flex;justify-content:flex-end;gap:8px;">
         <button class="row-action-btn" data-action="reprint" data-invoice="${escapeHtml(b.invoice_no)}" aria-label="Print again"><i class="fa-solid fa-print"></i></button>
-        ${isAdmin ? `<div class="user-actions-menu-wrap" style="position:relative;display:inline-flex;"><button class="row-action-btn kebab-btn" data-action="more" data-invoice="${escapeHtml(b.invoice_no)}" aria-label="More actions"><i class="fa-solid fa-ellipsis-vertical"></i></button></div>` : ''}
+        ${isAdmin ? `<div class="user-actions-menu-wrap"><button class="row-action-btn kebab-btn" data-action="more" data-invoice="${escapeHtml(b.invoice_no)}" aria-label="More actions">⋮</button></div>` : ''}
       </td>
     </tr>
   `).join('');
