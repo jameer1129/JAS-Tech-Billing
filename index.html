@@ -58,8 +58,7 @@ body.dark-theme .bills-search-input-wrap input { background: var(--surface); col
 body.dark-theme .product-table thead th,
 body.dark-theme .bills-table thead th { background: #1A202C; color: #63B3ED; }
 body.dark-theme .btn--outline:hover,
-body.dark-theme .btn--ghost:hover,
-body.dark-theme .row-action-btn:hover { background: #1A202C; }
+body.dark-theme .btn--ghost:hover { background: #1A202C; }
 body.dark-theme .modal__header { border-bottom: 1px solid var(--line); }
 
 body.dark-theme .empty-state p { color: var(--text); }
@@ -271,25 +270,13 @@ img{max-width:100%;display:block;}
 
 .col-idx{text-align:center;color:var(--muted);}
 .col-name{width:auto;}
-.col-actions{text-align:right;padding-left: 0;}
-/* Qualified with the table + tbody/td types so these win over the base
-   ".product-table tbody td { white-space:normal }" rule above.
-   No width value is set on these columns on purpose. The table itself is
-   width:100% so it always fills the card, but since idx/actions are
-   nowrap (their min and max content width are equal), the browser's table
-   auto-layout algorithm gives them zero extra space and hands 100% of any
-   leftover width to columns that can actually flex — Product/Customer,
-   and (only when their content is unusually long) Qty/Rate/Amount, which
-   are intentionally NOT forced to nowrap: normal values stay on one line
-   on their own since the column is no longer artificially squeezed, but
-   an extreme value wraps across lines instead of forcing the whole table
-   to overflow sideways. */
+.col-actions{text-align:right;width:1px;}
 .product-table tbody td.col-idx,
 .product-table tbody td.col-actions,
 .bills-table tbody td.col-actions{white-space:nowrap;}
 .bills-table tbody td:not(.col-actions):not(:nth-child(2)){white-space:nowrap;}
 .row-action-btn{background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;padding:0px 12px;border-radius:6px;display:inline-block;vertical-align:middle;}
-.row-action-btn:hover{background:var(--bg);color:var(--primary);}
+.row-action-btn:hover{color:var(--primary);}
 .row-action-btn.delete:hover{color:var(--danger);}
 
 .app-footer{text-align:center;font-size:11px;color:var(--muted);padding:16px 4px;}
@@ -2858,7 +2845,7 @@ function renderBillsTable(){
       <td>${formatCurrency(b.total)}</td>
       <td class="col-actions">
         <button class="row-action-btn" data-action="reprint" data-invoice="${escapeHtml(b.invoice_no)}" aria-label="Print again"><i class="fa-solid fa-print"></i></button>
-        ${isAdmin ? `<div class="user-actions-menu-wrap"><button class="row-action-btn kebab-btn" data-action="more" data-invoice="${escapeHtml(b.invoice_no)}" aria-label="More actions"><i class="fa-solid fa-ellipsis-vertical"></i></button></div>` : ''}
+        ${isAdmin ? `<div class="user-actions-menu-wrap"><button class="kebab-btn" data-action="more" data-invoice="${escapeHtml(b.invoice_no)}" aria-label="More actions"><i class="fa-solid fa-ellipsis-vertical"></i></button></div>` : ''}
       </td>
     </tr>
   `).join('');
