@@ -256,10 +256,11 @@ img{max-width:100%;display:block;}
 .empty-state i{font-size:28px;color:var(--line);margin-bottom:10px;display:block;}
 .empty-state p{margin:0 0 4px;font-weight:600;color:var(--text);}
 .empty-state span{font-size:12.5px;}
-.product-table-wrap,.bills-table-wrap{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;border-radius:var(--radius-sm);border:1px solid var(--line);}
+.product-table-wrap,.bills-table-wrap{overflow-x:auto;overflow-y:visible;-webkit-overflow-scrolling:touch;border-radius:var(--radius-sm);border:1px solid var(--line);}
 .product-table,.bills-table{width:100%;min-width:620px;border-collapse:collapse;font-size:13.5px;table-layout:auto;}
 .product-table thead th,.bills-table thead th{background:#EEF4FC;color:var(--primary);text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap; transition: background 0.3s ease;}
-.product-table tbody td,.bills-table tbody td{padding:12px;border-top:1px solid var(--line);vertical-align:top;word-break:break-word;white-space:normal;min-width:0;overflow:hidden;}
+.product-table tbody td{padding:12px;border-top:1px solid var(--line);vertical-align:top;word-break:break-word;white-space:normal;min-width:0;overflow:hidden;}
+.bills-table tbody td{padding:12px;border-top:1px solid var(--line);vertical-align:top;word-break:break-word;white-space:normal;min-width:0;overflow:visible;}
 .product-table .prod-name{font-weight:600;color:var(--text);white-space:normal;word-break:break-word;overflow-wrap:break-word;display:block;}
 
 .product-table .prod-meta,
@@ -289,6 +290,15 @@ img{max-width:100%;display:block;}
 .modal__body{padding:12px 20px;display:flex;flex-direction:column;gap:14px;}
 .modal__footer{display:flex;gap:10px;padding:8px 20px 20px;}
 .modal__footer .btn{flex:1;}
+
+.bd-list{display:flex;flex-direction:column;gap:10px;}
+.bd-row{display:flex;flex-direction:column;padding:10px 0;border-top:1px solid var(--line);}
+.bd-row:first-child{border-top:none;}
+.bd-row__header{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px;font-weight:700;}
+.bd-row__icon{width:20px;height:20px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px;}
+.bd-row__label{margin:0;}
+.bd-row__value{margin-top:6px;font-size:14px;color:var(--text);word-break:break-word;}
+.bd-row__value--mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size:13px;}
 
 .modal--confirm{z-index:110 !important;}
 .modal--confirm .modal{max-width:380px;}
@@ -503,8 +513,8 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{
 .user-actions-menu-wrap{position:relative;}
 .kebab-btn{background:none;border:1.5px solid var(--line);color:var(--muted);width:32px;height:32px;border-radius:var(--radius-sm);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:background .15s ease,color .15s ease;}
 .kebab-btn:hover{background:var(--bg);color:var(--primary);border-color:var(--primary);}
-.actions-popup{position:absolute;right:0;top:calc(100% + 6px);background:var(--white);border:1.5px solid var(--line);border-radius:var(--radius-sm);box-shadow:var(--shadow-md);z-index:200;min-width:170px;overflow:hidden;animation:fadeIn .12s ease;}
-.actions-popup__item{display:flex;align-items:center;gap:10px;padding:10px 14px;font-size:13px;font-weight:600;color:var(--text);cursor:pointer;border:none;background:none;width:100%;text-align:left;transition:background .12s ease;}
+.actions-popup{position:fixed;background:var(--white);border:1.5px solid var(--line);border-radius:var(--radius-sm);box-shadow:var(--shadow-md);z-index:9999;min-width:220px;overflow:hidden;animation:fadeIn .12s ease;}
+.actions-popup__item{display:flex;align-items:center;gap:10px;padding:12px 16px;font-size:14px;font-weight:600;color:var(--text);cursor:pointer;border:none;background:none;width:100%;text-align:left;transition:background .12s ease;}
 .actions-popup__item:hover{background:var(--bg);}
 .actions-popup__item.success{color:var(--success);}
 .actions-popup__item.success:hover{background:rgba(31,146,84,.08);}
@@ -1039,6 +1049,19 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{
   </div>
 </div>
 
+<div class="modal-overlay hide" id="billDetailsModalOverlay">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal__header">
+      <h3>Bill Details</h3>
+      <button class="modal__close" id="btnCloseBillDetailsModal" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal__body" id="billDetailsBody"></div>
+    <div class="modal__footer">
+      <button class="btn btn--primary btn--full" id="btnCloseBillDetailsModalFooter">Close</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay modal--preview hide" id="previewModalOverlay">
   <div class="modal">
     <div class="modal__header">
@@ -1293,6 +1316,10 @@ function cacheElements(){
   el.productTableWrap = document.getElementById('productTableWrap');
   el.productTableBody = document.getElementById('productTableBody');
   el.invoiceNotes = document.getElementById('invoiceNotes');
+  el.billDetailsModalOverlay = document.getElementById('billDetailsModalOverlay');
+  el.btnCloseBillDetailsModal = document.getElementById('btnCloseBillDetailsModal');
+  el.btnCloseBillDetailsModalFooter = document.getElementById('btnCloseBillDetailsModalFooter');
+  el.billDetailsBody = document.getElementById('billDetailsBody');
   el.toggleNotesVisibility = document.getElementById('toggleNotesVisibility');
   el.toggleWatermark = document.getElementById('toggleWatermark');
   el.totalItems = document.getElementById('totalItems');
@@ -1495,6 +1522,17 @@ function formatDateForDisplay(val) {
     return `${parts[2]}-${parts[1]}-${parts[0]}`;
   }
   return val;
+}
+
+function formatDateTime(isoStr) {
+  if (!isoStr) return '—';
+  const d = new Date(isoStr);
+  if (Number.isNaN(d.getTime())) return '—';
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  let hours = d.getHours();
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12 || 12;
+  return `${pad(d.getDate())} ${months[d.getMonth()]} ${d.getFullYear()} • ${pad(hours)}:${pad(d.getMinutes())} ${ampm}`;
 }
 
 function displayDateToISO(val) {
@@ -2790,7 +2828,7 @@ function renderBillsTable(){
     const isActive = billsSortCol === th.dataset.col;
     th.classList.toggle('sort-active', isActive);
     const arrow = th.querySelector('.sort-arrow');
-    if (arrow) arrow.textContent = isActive ? (billsSortDir === 'asc' ? '▲' : '▼') : '↕';
+    if (arrow) arrow.textContent = isActive ? (billsSortDir === 'asc' ? '▲' : '▼') : '';
   });
 
   el.billsTableBody.innerHTML = billsCache.map(b => `
@@ -2802,9 +2840,9 @@ function renderBillsTable(){
       </td>
       <td>${b.bill_date ? escapeHtml(formatDateForDisplay(b.bill_date)) : ''}</td>
       <td>${formatCurrency(b.total)}</td>
-      <td class="col-actions">
+      <td class="col-actions" style="display:flex;justify-content:flex-end;gap:8px;">
         <button class="row-action-btn" data-action="reprint" data-invoice="${escapeHtml(b.invoice_no)}" aria-label="Print again"><i class="fa-solid fa-print"></i></button>
-        ${isAdmin ? `<button class="row-action-btn delete" data-action="deletebill" data-invoice="${escapeHtml(b.invoice_no)}" aria-label="Delete bill"><i class="fa-solid fa-trash"></i></button>` : ''}
+        ${isAdmin ? `<div class="user-actions-menu-wrap" style="position:relative;display:inline-flex;"><button class="row-action-btn kebab-btn" data-action="more" data-invoice="${escapeHtml(b.invoice_no)}" aria-label="More actions"><i class="fa-solid fa-ellipsis-vertical"></i></button></div>` : ''}
       </td>
     </tr>
   `).join('');
@@ -2910,13 +2948,94 @@ async function deleteBill(){
   loadBills();
 }
 
+function toggleBillsMoreMenu(btn, invoiceNo){
+  const existing = document.querySelector('.actions-popup');
+  const sameMenu = existing && existing.dataset.invoice === invoiceNo;
+  closeAllActionMenus();
+  if (sameMenu) return;
+
+  const rect = btn.getBoundingClientRect();
+  const popup = document.createElement('div');
+  popup.className = 'actions-popup';
+  popup.dataset.invoice = invoiceNo;
+  popup.style.position = 'fixed';
+  popup.style.visibility = 'hidden';
+  popup.innerHTML = `
+    <button class="actions-popup__item" data-menu="bill-details" data-invoice="${escapeHtml(invoiceNo)}">
+      <i class="fa-solid fa-info-circle"></i> Bill Details
+    </button>
+    <div class="actions-popup__sep"></div>
+    <button class="actions-popup__item danger" data-menu="bill-delete" data-invoice="${escapeHtml(invoiceNo)}">
+      <i class="fa-solid fa-trash"></i> Delete Bill
+    </button>
+  `;
+  document.body.appendChild(popup);
+
+  const popupRect = popup.getBoundingClientRect();
+  let top = rect.bottom + 6;
+  if (top + popupRect.height > window.innerHeight - 8) {
+    top = Math.max(8, rect.top - popupRect.height - 6);
+  }
+  let left = rect.right - popupRect.width;
+  left = Math.min(Math.max(8, left), window.innerWidth - popupRect.width - 8);
+
+  popup.style.top = `${top}px`;
+  popup.style.left = `${left}px`;
+  popup.style.visibility = 'visible';
+}
+
+function openBillDetailsModal(bill){
+  el.billDetailsBody.innerHTML = `
+    <div class="bd-list">
+      <div class="bd-row">
+        <div class="bd-row__header">
+          <i class="bd-row__icon fa-solid fa-file-invoice"></i>
+          <span class="bd-row__label">Invoice</span>
+        </div>
+        <div class="bd-row__value">${escapeHtml(bill.invoice_no)}</div>
+      </div>
+      <div class="bd-row">
+        <div class="bd-row__header">
+          <i class="bd-row__icon fa-solid fa-user-pen"></i>
+          <span class="bd-row__label">Created By</span>
+        </div>
+        <div class="bd-row__value">${escapeHtml(bill.created_by_name || '—')}</div>
+      </div>
+      <div class="bd-row">
+        <div class="bd-row__header">
+          <i class="bd-row__icon fa-solid fa-fingerprint"></i>
+          <span class="bd-row__label">User ID</span>
+        </div>
+        <div class="bd-row__value bd-row__value--mono">${escapeHtml(bill.created_by || '—')}</div>
+      </div>
+      <div class="bd-row">
+        <div class="bd-row__header">
+          <i class="bd-row__icon fa-regular fa-clock"></i>
+          <span class="bd-row__label">Created At</span>
+        </div>
+        <div class="bd-row__value">${escapeHtml(formatDateTime(bill.created_at))}</div>
+      </div>
+    </div>
+  `;
+  showOverlay(el.billDetailsModalOverlay);
+}
+
+function closeBillDetailsModal(){
+  hideOverlay(el.billDetailsModalOverlay);
+}
+
 function handleBillsTableClick(e){
   const btn = e.target.closest('button[data-action]');
   if (!btn) return;
   const invoiceNo = btn.dataset.invoice;
   if (!invoiceNo) return;
-  if (btn.dataset.action === 'reprint') reprintBill(invoiceNo);
-  else if (btn.dataset.action === 'deletebill') requestDeleteBill(invoiceNo);
+  if (btn.dataset.action === 'reprint') {
+    reprintBill(invoiceNo);
+  } else if (btn.dataset.action === 'more') {
+    toggleBillsMoreMenu(btn, invoiceNo);
+  } else if (btn.dataset.action === 'deletebill') {
+    requestDeleteBill(invoiceNo);
+  }
 }
 
 /* ===================================================================
@@ -3302,6 +3421,7 @@ function getDismissibleOverlays(){
     [el.previewModalOverlay, closePreviewModal],
     [el.resetModalOverlay, closeResetModal],
     [el.deleteBillModalOverlay, closeDeleteBillModal],
+    [el.billDetailsModalOverlay, closeBillDetailsModal],
     [el.logoutModalOverlay, closeLogoutConfirm],
     [el.changePasswordModalOverlay, closeChangePasswordModal],
     [el.saveChoiceModalOverlay, closeSaveChoiceModal],
@@ -3462,6 +3582,8 @@ function bindEvents(){
   el.btnCloseDeleteBillModal.addEventListener('click', closeDeleteBillModal);
   el.btnCancelDeleteBill.addEventListener('click', closeDeleteBillModal);
   el.btnConfirmDeleteBill.addEventListener('click', deleteBill);
+  el.btnCloseBillDetailsModal.addEventListener('click', closeBillDetailsModal);
+  el.btnCloseBillDetailsModalFooter.addEventListener('click', closeBillDetailsModal);
 
   el.pendingUsersList.addEventListener('click', handlePendingUsersClick);
   el.allUsersList.addEventListener('click', handleAllUsersClick);
@@ -3473,6 +3595,18 @@ function bindEvents(){
 
   document.addEventListener('click', e => {
     if (!e.target.closest('.user-actions-menu-wrap')) closeAllActionMenus();
+    const item = e.target.closest('[data-menu]');
+    if (!item) return;
+    if (item.dataset.menu.startsWith('bill-')) {
+      const invoiceNo = item.dataset.invoice;
+      closeAllActionMenus();
+      if (item.dataset.menu === 'bill-details') {
+        const bill = billsCache.find(b => b.invoice_no === invoiceNo);
+        if (bill) openBillDetailsModal(bill);
+      } else if (item.dataset.menu === 'bill-delete') {
+        requestDeleteBill(invoiceNo);
+      }
+    }
   });
 
   el.btnThemeToggle.addEventListener('click', () => {
