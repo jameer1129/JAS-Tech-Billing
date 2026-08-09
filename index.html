@@ -256,7 +256,7 @@ img{max-width:100%;display:block;}
 .empty-state span{font-size:12.5px;}
 .product-table-wrap,.bills-table-wrap{overflow-x:auto;overflow-y:visible;-webkit-overflow-scrolling:touch;border-radius:var(--radius-sm);border:1px solid var(--line);}
 .product-table,.bills-table{width:100%;border-collapse:collapse;font-size:13.5px;table-layout:auto;}
-.product-table thead th,.bills-table thead th{background:#EEF4FC;color:var(--primary);text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap; transition: background 0.3s ease;}
+.product-table thead th,.bills-table thead th{background:#EEF4FC;color:var(--primary);text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap; transition: background 0.3s ease; min-width:0;overflow:hidden;}
 .product-table tbody td{padding:12px;border-top:1px solid var(--line);vertical-align:top;word-break:break-word;white-space:normal;min-width:0;overflow:hidden;}
 .bills-table tbody td{padding:12px;border-top:1px solid var(--line);vertical-align:top;word-break:break-word;white-space:normal;min-width:0;overflow:visible;}
 .product-table .prod-name{font-weight:600;color:var(--text);white-space:normal;word-break:break-word;overflow-wrap:break-word;display:block;}
@@ -2937,30 +2937,48 @@ async function reprintBill(invoiceNo){
   openPreviewModal();
 }
 
+function setDeleteBillButtonState(isDeleting){
+  if (!el.btnConfirmDeleteBill) return;
+  el.btnConfirmDeleteBill.disabled = isDeleting;
+  el.btnConfirmDeleteBill.textContent = isDeleting ? 'Deleting...' : 'Delete';
+  el.btnConfirmDeleteBill.setAttribute('aria-busy', isDeleting ? 'true' : 'false');
+
+  [el.btnCancelDeleteBill, el.btnCloseDeleteBillModal].forEach((btn) => {
+    if (btn) btn.disabled = isDeleting;
+  });
+}
+
 function requestDeleteBill(invoiceNo){
   const bill = billsCache.find(b => b.invoice_no === invoiceNo);
   if (!bill) return;
   pendingDeleteBillId = invoiceNo;
   el.deleteBillTargetName.textContent = bill.invoice_no;
+  setDeleteBillButtonState(false);
   showOverlay(el.deleteBillModalOverlay);
 }
 
 function closeDeleteBillModal(){
   hideOverlay(el.deleteBillModalOverlay);
   pendingDeleteBillId = null;
+  setDeleteBillButtonState(false);
 }
 
 async function deleteBill(){
   if (pendingDeleteBillId === null) return;
-  const { error } = await supabaseClient.from('bills').delete().eq('invoice_no', pendingDeleteBillId);
-  closeDeleteBillModal();
-  if (error) {
-    console.error(error);
-    showToast('Could not delete bill.', 'error');
-    return;
+  setDeleteBillButtonState(true);
+
+  try {
+    const { error } = await supabaseClient.from('bills').delete().eq('invoice_no', pendingDeleteBillId);
+    if (error) {
+      console.error(error);
+      showToast('Could not delete bill.', 'error');
+      return;
+    }
+    showToast('Bill deleted', 'success');
+    loadBills();
+  } finally {
+    closeDeleteBillModal();
   }
-  showToast('Bill deleted', 'success');
-  loadBills();
 }
 
 function toggleBillsMoreMenu(btn, invoiceNo){
