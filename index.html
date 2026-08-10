@@ -161,7 +161,8 @@ img{max-width:100%;display:block;}
 .card__heading-row{display:flex;align-items:center;justify-content:space-between;gap:8px;}
 .card__heading-row .card__heading{margin-bottom:0;}
 
-.toggle-container {display: flex;align-items: center;gap: 6px;font-size: 12.5px;color: var(--muted);user-select: none;font-weight: 600;}
+.toggle-container {display: flex;align-items: center;gap: 6px;font-size: 12.5px;color: var(--muted);user-select: none;font-weight: 600; cursor: pointer;}
+.toggle-container :hover { color: var(--primary); }
 .toggle-container input { cursor: pointer; width: 15px; height: 15px; accent-color: var(--primary); margin: 0; }
 .field-group{display:flex;flex-direction:column;gap:12px;}
 .field-group--pair{flex-direction:row;}
@@ -850,19 +851,19 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{
 
     <section class="card">
       <h2 class="card__heading"><i class="fa-solid fa-gear"></i> Make Options</h2>
-      <div style="display:flex; flex-direction:column; gap:12px;">
-        <div class="toggle-container" id="watermarkToggleWrap">
-          <input type="checkbox" id="toggleWatermark" checked> Show Watermark
-        </div>
-        <div class="toggle-container" id="qrToggleWrap">
-          <input type="checkbox" id="toggleQrVisibility" checked> Show QR Code
-        </div>
-        <div class="toggle-container" id="signatureToggleWrap">
-          <input type="checkbox" id="toggleSignatureVisibility" checked> Show Signature
-        </div>
-        <div class="toggle-container" id="notesToggleWrap">
-          <input type="checkbox" id="toggleNotesVisibility" checked> Show Notes
-        </div>
+      <div style="display:flex; flex-direction:column; gap:12px; width:150px; padding:0 12px">
+        <label class="toggle-container" id="watermarkToggleWrap">
+          <input type="checkbox" id="toggleWatermark" checked> <span style=":hover{color:var(--primary);}">Show Watermark</span>
+        </label>
+        <label class="toggle-container" id="qrToggleWrap">
+          <input type="checkbox" id="toggleQrVisibility" checked> <span style=":hover{color:var(--primary);}">Show QR Code</span>
+        </label>
+        <label class="toggle-container" id="signatureToggleWrap">
+          <input type="checkbox" id="toggleSignatureVisibility" checked> <span style=":hover{color:var(--primary);}">Show Signature</span>
+        </label>
+        <label class="toggle-container" id="notesToggleWrap">
+          <input type="checkbox" id="toggleNotesVisibility" checked> <span style=":hover{color:var(--primary);}">Show Notes</span>
+        </label>
       </div>
     </section>
 
