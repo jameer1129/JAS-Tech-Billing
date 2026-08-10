@@ -270,7 +270,7 @@ img{max-width:100%;display:block;}
 
 .app-footer{text-align:center;font-size:11px;color:var(--muted);padding:16px 4px;}
 
-.modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.75);display:flex;align-items:center;justify-content:center;padding:20px 16px;z-index:100;animation:fadeIn .15s ease;}
+.modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.52);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px 16px;z-index:100;animation:fadeIn .15s ease;}
 @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
 .modal{background:var(--white);width:100%;max-width:480px;border-radius:var(--radius);max-height:90vh;overflow-y:auto;animation:modalPop .18s ease; transition: background 0.3s ease;}
 @keyframes modalPop{from{transform:scale(.96);opacity:0;}to{transform:scale(1);opacity:1;}}
