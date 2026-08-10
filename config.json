@@ -32,7 +32,7 @@
     "mainLogo": "assets/logo/logo.png",
     "watermark": "assets/logo/main-logo.png",
     "signature": "assets/signature/signature.png",
-    "whatsappQr": "assets/icons/whatsapp-qr.jpeg"
+    "scannerQr": "assets/icons/whatsapp-qr.jpeg"
   },
 
   "supabase": {
@@ -61,8 +61,8 @@
     "authLine": "Authorized Signature"
   },
 
-  "whatsapp": {
-    "caption": "Scan to Connect"
+  "scanner": {
+    "scannerCaption": "Scan to Connect"
   },
 
   "services": [

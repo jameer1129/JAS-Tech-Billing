@@ -119,9 +119,13 @@ create table if not exists public.bills (
 
   notes text default '',
 
-  include_notes boolean not null default true,
+  include_notes boolean not null default false,
 
-  show_watermark boolean not null default true,
+  show_watermark boolean not null default false,
+
+  show_qr boolean not null default false,
+
+  show_signature boolean not null default false,
 
   total numeric(12,2) not null default 0
     check (total >= 0),
@@ -561,6 +565,10 @@ create or replace function public.create_bill(
 
   show_watermark boolean,
 
+  show_qr boolean,
+
+  show_signature boolean,
+
   created_by_name text,
 
   items jsonb
@@ -940,6 +948,10 @@ begin
 
     show_watermark,
 
+    show_qr,
+
+    show_signature,
+
     total,
 
     created_by,
@@ -981,6 +993,16 @@ begin
 
     coalesce(
       show_watermark,
+      true
+    ),
+
+    coalesce(
+      show_qr,
+      true
+    ),
+
+    coalesce(
+      show_signature,
       true
     ),
 
