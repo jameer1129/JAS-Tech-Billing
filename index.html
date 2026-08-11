@@ -2043,7 +2043,14 @@ async function handleRegister(){
   hideAuthMsg();
   const { data, error } = await supabaseClient.auth.signUp({
     email, password,
-    options: { data: { name } }
+    options: {
+      data: { name },
+      // Explicit redirect (not relying on the Supabase dashboard's default
+      // Site URL) so the confirmation link lands back at wherever this app
+      // is actually hosted, e.g. a GitHub Pages project site
+      // (https://user.github.io/repo-name/) rather than the domain root.
+      emailRedirectTo: window.location.origin + window.location.pathname
+    }
   });
   el.btnRegister.disabled = false;
 
@@ -2069,7 +2076,12 @@ async function handleForgotPassword(){
   hideAuthMsg();
   
   const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.origin + '/?mode=update-password'
+    // Resolve against the full current URL (not just window.location.origin)
+    // so this works correctly when the app is hosted in a subpath, e.g. a
+    // GitHub Pages project site (https://user.github.io/repo-name/) —
+    // origin alone would drop the "/repo-name/" part and send the reset
+    // link to the domain root, which 404s.
+    redirectTo: new URL('?mode=update-password', window.location.href).href
   });
   el.btnSendReset.disabled = false;
 
