@@ -499,7 +499,7 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{
 .user-row__actions{display:flex;gap:8px;align-items:center;flex-shrink:0;}
 
 .spinner-inline{width:22px;height:22px;border:3px solid var(--line);border-top-color:var(--primary);border-radius:50%;animation:pdfSpin .8s linear infinite;margin:20px auto;}
-
+@keyframes pdfSpin{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}
 /* ---------- Actions kebab menu ---------- */
 .user-actions-menu-wrap{position:relative;display:inline-block;vertical-align:middle;}
 .kebab-btn{background:none;border:1.5px solid var(--line);color:var(--muted);width:28px;height:28px;border-radius:var(--radius-sm);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:background .15s ease,color .15s ease;}
