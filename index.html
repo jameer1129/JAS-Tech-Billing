@@ -3759,10 +3759,6 @@ function bindEvents(){
           el.customerAddress.focus();
         }
       }
-      // Address is a multi-line textarea, so Enter is left to its default
-      // behavior (insert a line break) rather than jumping to the next
-      // field — a custom Shift+Enter override would only work with a
-      // physical keyboard and wouldn't be usable on mobile.
       else if(active.id === 'customerMobile') {
         e.preventDefault();
         el.btnAddProduct.click();

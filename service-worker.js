@@ -1,114 +1,130 @@
 /* =========================================================
-   JAS TECH BILLING — service-worker.js
-   Online First + Image Cache
-   ========================================================= */
+JAS TECH BILLING — service-worker.js
+Online First + Image Cache
+========================================================= */
 
-const CACHE_NAME = "jas-tech-assets-v2.0.1";
+const CACHE_NAME = "jas-tech-assets-v2.0.2";
 
-// Only static assets
 const STATIC_ASSETS = [
-  "./assets/logo/logo.png",
-  "./assets/logo/main-logo.png",
-  "./assets/logo/horizontal-logo.png",
-  "./assets/signature/signature.png",
-  "./assets/icons/app-icon.png",
-  "./assets/icons/whatsapp-qr.jpeg"
+    "./assets/logo/logo.png",
+    "./assets/logo/main-logo.png",
+    "./assets/logo/horizontal-logo.png",
+    "./assets/signature/signature.png",
+    "./assets/icons/app-icon.png",
+    "./assets/icons/whatsapp-qr.jpeg"
 ];
 
-// Install
 self.addEventListener("install", event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(STATIC_ASSETS))
-  );
+    event.waitUntil(
+        caches.open(CACHE_NAME)
+            .then(cache => cache.addAll(STATIC_ASSETS))
+            .catch(error => {
+                console.warn("Service worker asset cache failed:", error);
+            })
+    );
 
-  self.skipWaiting();
+    self.skipWaiting();
 });
 
-// Activate
 self.addEventListener("activate", event => {
-  event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(
-        keys
-          .filter(key => key !== CACHE_NAME)
-          .map(key => caches.delete(key))
-      )
-    )
-  );
+    event.waitUntil(
+        caches.keys().then(keys =>
+            Promise.all(
+                keys
+                    .filter(key => key !== CACHE_NAME)
+                    .map(key => caches.delete(key))
+            )
+        )
+    );
 
-  self.clients.claim();
+    self.clients.claim();
 });
 
-// Fetch
 self.addEventListener("fetch", event => {
+    if (event.request.method !== "GET") return;
 
-  if (event.request.method !== "GET") return;
+    const url = new URL(event.request.url);
 
-  const url = new URL(event.request.url);
+    // Never intercept Supabase requests
+    if (
+        url.hostname === "supabase.co" ||
+        url.hostname.endsWith(".supabase.co")
+    ) {
+        return;
+    }
 
-  // Never cache HTML
-  if (
-      event.request.mode === "navigate" ||
-      url.pathname.endsWith(".html")
-  ) {
+    // Never cache HTML
+    if (
+        event.request.mode === "navigate" ||
+        url.pathname.endsWith(".html")
+    ) {
+        event.respondWith(
+            fetch(event.request)
+        );
+        return;
+    }
 
-      event.respondWith(fetch(event.request));
-      return;
-  }
+    // Never cache config
+    if (url.pathname.endsWith("config.json")) {
+        event.respondWith(
+            fetch(event.request)
+        );
+        return;
+    }
 
-  // Never cache config
-  if (url.pathname.endsWith("config.json")) {
+    // Never cache JavaScript
+    if (url.pathname.endsWith(".js")) {
+        event.respondWith(
+            fetch(event.request)
+        );
+        return;
+    }
 
-      event.respondWith(fetch(event.request));
-      return;
-  }
+    // Never cache CSS
+    if (url.pathname.endsWith(".css")) {
+        event.respondWith(
+            fetch(event.request)
+        );
+        return;
+    }
 
-  // Never cache JS
-  if (url.pathname.endsWith(".js")) {
+    // Cache images
+    if (
+        event.request.destination === "image" ||
+        /\.(png|jpg|jpeg|gif|svg|webp|ico)$/i.test(url.pathname)
+    ) {
+        event.respondWith(
+            caches.match(event.request).then(cached => {
 
-      event.respondWith(fetch(event.request));
-      return;
-  }
+                const network = fetch(event.request)
+                    .then(response => {
 
-  // Never cache CSS
-  if (url.pathname.endsWith(".css")) {
+                        if (response.ok) {
+                            const copy = response.clone();
 
-      event.respondWith(fetch(event.request));
-      return;
-  }
+                            caches.open(CACHE_NAME)
+                                .then(cache => cache.put(event.request, copy))
+                                .catch(error => {
+                                    console.warn(
+                                        "Image cache update failed:",
+                                        error
+                                    );
+                                });
+                        }
 
-  // Cache images only
-  if (
-      event.request.destination === "image" ||
-      /\.(png|jpg|jpeg|gif|svg|webp|ico)$/i.test(url.pathname)
-  ) {
+                        return response;
+                    })
+                    .catch(() => cached);
 
-      event.respondWith(
+                return cached || network;
+            })
+        );
 
-          caches.match(event.request).then(cached => {
+        return;
+    }
 
-              const network = fetch(event.request)
-                  .then(response => {
-
-                      if (response.ok) {
-                          const copy = response.clone();
-
-                          caches.open(CACHE_NAME)
-                              .then(cache => cache.put(event.request, copy));
-                      }
-
-                      return response;
-                  })
-                  .catch(() => cached);
-
-              return cached || network;
-          })
-
-      );
-
-      return;
-  }
-
-  // Everything else: always network
-  event.respondWith(fetch(event.request));
+    // Everything else: network only
+    event.respondWith(
+        fetch(event.request)
+    );
 });
