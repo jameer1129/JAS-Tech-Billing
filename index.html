@@ -3490,6 +3490,24 @@ function getDismissibleOverlays(){
   ];
 }
 
+function formatTitleCaseValue(value) {
+  if (value == null) return '';
+
+  return String(value)
+    .replace(/\s+/g, ' ')
+    .replace(/^\s+|\s+$/g, '')
+    .replace(/\b\w/g, char => char.toUpperCase());
+}
+
+function applyTitleCaseToField(inputEl) {
+  if (!inputEl) return '';
+  const formattedValue = formatTitleCaseValue(inputEl.value);
+  if (inputEl.value !== formattedValue) {
+    inputEl.value = formattedValue;
+  }
+  return formattedValue;
+}
+
 function bindEvents(){
   el.authTabLogin.addEventListener('click', () => setAuthTab('login'));
   el.authTabRegister.addEventListener('click', () => setAuthTab('register'));
@@ -3514,8 +3532,21 @@ function bindEvents(){
     tab.addEventListener('click', () => switchView(tab.dataset.view));
   });
 
-  el.customerName.addEventListener('input', (e) => { state.customer.name = e.target.value.trim(); });
-  el.customerAddress.addEventListener('input', (e) => { state.customer.address = e.target.value.trim(); });
+  ['customerName', 'customerAddress', 'prodName', 'prodDesc', 'prodSerial'].forEach((fieldId) => {
+    const field = document.getElementById(fieldId);
+    if (!field) return;
+
+    field.addEventListener('blur', (e) => {
+      const formattedValue = applyTitleCaseToField(e.target);
+
+      if (fieldId === 'customerName') {
+        state.customer.name = formattedValue;
+      } else if (fieldId === 'customerAddress') {
+        state.customer.address = formattedValue;
+      }
+    });
+  });
+
   el.customerMobile.addEventListener('input', (e) => {
     const digitsOnly = e.target.value.replace(/\D/g, '');
     if (digitsOnly !== e.target.value) e.target.value = digitsOnly;
