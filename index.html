@@ -212,6 +212,9 @@ img{max-width:100%;display:block;}
 
 .btn--sm{padding:6px 10px;font-size:11.5px;}
 
+.auth-link{color: var(--muted);font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;transition:text-decoration 0.2s ease;}
+.auth-link:hover{text-decoration:underline;color: var(--primary);}
+
 .action-bar-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -715,6 +718,14 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{
       <button class="btn btn--primary btn--full" id="btnLogin">
         <i class="fa-solid fa-right-to-bracket"></i> Login
       </button>
+      <div style="text-align:center;margin-top:10px;display:flex;flex-direction:column;gap:8px;">
+        <a href="#" onclick="setAuthTab('forgot'); return false;" class="auth-link">
+          <i class="fa-solid fa-key"></i> Forgot Password?
+        </a>
+        <a href="#" onclick="setAuthTab('register'); return false;" class="auth-link">
+          <i class="fa-solid fa-user-plus"></i> Don't have an account?
+        </a>
+      </div>
     </div>
 
     <!-- Register form -->
@@ -736,6 +747,70 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{
       </div>
       <button class="btn btn--primary btn--full" id="btnRegister">
         <i class="fa-solid fa-user-plus"></i> Create Account
+      </button>
+      <div style="text-align:center;margin-top:10px;display:flex;flex-direction:column;gap:8px;">
+        <a href="#" onclick="setAuthTab('login'); return false;" class="auth-link">
+          <i class="fa-solid fa-arrow-left"></i> Back to Login
+        </a>
+      </div>
+    </div>
+
+    <!-- Forgot Password form -->
+    <div class="auth-form hide" id="forgotPasswordForm">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:8px;text-align:center;line-height:1.5;">Enter your email address and we'll send you a link to reset your password.</p>
+      <div class="field">
+        <label for="forgotEmail">Email</label>
+        <input type="email" id="forgotEmail" autocomplete="username" maxlength="100">
+      </div>
+      <button class="btn btn--primary btn--full" id="btnSendReset">
+        <i class="fa-solid fa-paper-plane"></i> Send Reset Link
+      </button>
+      <div style="text-align:center;margin-top:10px;display:flex;flex-direction:column;gap:8px;">
+        <a href="#" onclick="setAuthTab('register'); return false;" class="auth-link">
+          <i class="fa-solid fa-user-plus"></i> Don't have an account?
+        </a>
+        <a href="#" onclick="setAuthTab('login'); return false;" class="auth-link">
+          <i class="fa-solid fa-arrow-left"></i> Back to Login
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= RESET PASSWORD SCREEN ================= -->
+<div class="auth-shell hide" id="resetPasswordScreen">
+  <button class="auth-theme-toggle" id="btnResetThemeToggle" aria-label="Toggle Theme">
+    <i class="fa-solid fa-moon"></i>
+  </button>
+  <div class="auth-card">
+    <div class="auth-logo">
+      <img src="assets/logo/logo.png" alt="Logo">
+      <h1 id="resetPasswordCompanyName"></h1>
+      <span>Set a new password</span>
+    </div>
+
+    <div class="auth-msg" id="resetPwMsg"></div>
+
+    <div class="auth-form" id="resetPasswordForm">
+      <div class="field field--password">
+        <label for="resetNewPassword">New Password</label>
+        <input type="password" id="resetNewPassword" autocomplete="new-password" placeholder="At least 8 characters" maxlength="64">
+        <button type="button" class="pw-toggle-btn" data-target="resetNewPassword" aria-label="Show password">
+          <i class="fa-regular fa-eye"></i>
+        </button>
+      </div>
+      <div class="field field--password">
+        <label for="resetConfirmPassword">Confirm Password</label>
+        <input type="password" id="resetConfirmPassword" autocomplete="new-password" maxlength="64">
+        <button type="button" class="pw-toggle-btn" data-target="resetConfirmPassword" aria-label="Show password">
+          <i class="fa-regular fa-eye"></i>
+        </button>
+      </div>
+      <button class="btn btn--primary btn--full" id="btnUpdateResetPassword">
+        <i class="fa-solid fa-check"></i> Update Password
+      </button>
+      <button type="button" class="btn btn--ghost btn--full" id="btnCancelReset" style="margin-top:8px;">
+        <i class="fa-solid fa-times"></i> Cancel
       </button>
     </div>
   </div>
@@ -1090,7 +1165,7 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{
       <p>This clears the customer details, all products, and notes, and starts a fresh invoice number.<br>This can't be undone.</p>
     </div>
     <div class="modal__footer">
-      <button class="btn btn--ghost" id="btnCancelReset">Cancel</button>
+      <button class="btn btn--ghost" id="btnCancelResetInvoice">Cancel</button>
       <button class="btn btn--danger" id="btnConfirmReset">Reset</button>
     </div>
   </div>
@@ -1175,7 +1250,7 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{
       </div>
       <div class="field field--password">
         <label for="changePwNew">New Password</label>
-        <input type="password" id="changePwNew" autocomplete="new-password" placeholder="At least 6 characters" maxlength="64">
+        <input type="password" id="changePwNew" autocomplete="new-password" placeholder="At least 8 characters" maxlength="64">
         <button type="button" class="pw-toggle-btn" data-target="changePwNew" aria-label="Show password"><i class="fa-regular fa-eye"></i></button>
       </div>
       <div class="field field--password">
@@ -1281,6 +1356,7 @@ function cacheElements(){
   el.authMsg = document.getElementById('authMsg');
   el.loginForm = document.getElementById('loginForm');
   el.registerForm = document.getElementById('registerForm');
+  el.forgotPasswordForm = document.getElementById('forgotPasswordForm');
   el.loginEmail = document.getElementById('loginEmail');
   el.loginPassword = document.getElementById('loginPassword');
   el.btnLogin = document.getElementById('btnLogin');
@@ -1288,6 +1364,8 @@ function cacheElements(){
   el.regEmail = document.getElementById('regEmail');
   el.regPassword = document.getElementById('regPassword');
   el.btnRegister = document.getElementById('btnRegister');
+  el.forgotEmail = document.getElementById('forgotEmail');
+  el.btnSendReset = document.getElementById('btnSendReset');
   el.btnAuthThemeToggle = document.getElementById('btnAuthThemeToggle');
 
   el.pendingScreen = document.getElementById('pendingScreen');
@@ -1296,6 +1374,15 @@ function cacheElements(){
   el.pendingTitle = document.getElementById('pendingTitle');
   el.pendingText = document.getElementById('pendingText');
   el.btnPendingLogout = document.getElementById('btnPendingLogout');
+
+  el.resetPasswordScreen = document.getElementById('resetPasswordScreen');
+  el.resetPasswordCompanyName = document.getElementById('resetPasswordCompanyName');
+  el.resetPwMsg = document.getElementById('resetPwMsg');
+  el.resetNewPassword = document.getElementById('resetNewPassword');
+  el.resetConfirmPassword = document.getElementById('resetConfirmPassword');
+  el.btnUpdateResetPassword = document.getElementById('btnUpdateResetPassword');
+  el.btnCancelReset = document.getElementById('btnCancelReset');
+  el.btnResetThemeToggle = document.getElementById('btnResetThemeToggle');
 
   el.appScreen = document.getElementById('appScreen');
   el.appBarLogo = document.getElementById('appBarLogo');
@@ -1361,7 +1448,7 @@ function cacheElements(){
   el.btnResetPage = document.getElementById('btnResetPage');
   el.resetModalOverlay = document.getElementById('resetModalOverlay');
   el.btnCloseResetModal = document.getElementById('btnCloseResetModal');
-  el.btnCancelReset = document.getElementById('btnCancelReset');
+  el.btnCancelResetInvoice = document.getElementById('btnCancelResetInvoice');
   el.btnConfirmReset = document.getElementById('btnConfirmReset');
   el.previewModalOverlay = document.getElementById('previewModalOverlay');
   el.previewModalBody = document.getElementById('previewModalBody');
@@ -1463,6 +1550,7 @@ function applyConfig(){
   el.appBarLogo.src = CONFIG.assets.mainLogo || '';
   el.appBarCompanyName.textContent = (CONFIG.company.name + ' Billing').toUpperCase();
   el.authCompanyName.textContent = (CONFIG.company.name + ' Billing').toUpperCase();
+  el.resetPasswordCompanyName.textContent = (CONFIG.company.name + ' Billing').toUpperCase();
   document.title = CONFIG.company.name + ' Billing';
 
   if(CONFIG.invoice.defaultNotes) el.invoiceNotes.value = CONFIG.invoice.defaultNotes;
@@ -1864,16 +1952,37 @@ function syncCustomerFieldsFromState() {
    AUTH
    =================================================================== */
 
-function initSupabase(){
+const PASSWORD_RECOVERY_KEY = 'jas_password_recovery_pending';
+
+// The recovery flag lives in sessionStorage (not localStorage) on purpose:
+// sessionStorage is wiped automatically by the browser when the tab is
+// closed, so an abandoned password-reset naturally logs itself out instead
+// of surviving indefinitely like a normal "stay signed in" login does.
+function setPasswordRecoveryPending() {
+  sessionStorage.setItem(PASSWORD_RECOVERY_KEY, '1');
+}
+
+function clearPasswordRecoveryPending() {
+  sessionStorage.removeItem(PASSWORD_RECOVERY_KEY);
+}
+
+// NOTE: the "is this a recovery page load" decision is made once, inline,
+// at the top of init() — it needs to be computed there so the exact same
+// value can be reused both for choosing the Supabase client's storage and
+// for gating the auth-state-change listener (see init()).
+
+function initSupabase(recoveryContext){
   if (!CONFIG.supabase || !CONFIG.supabase.url || !CONFIG.supabase.anonKey) {
     console.error('Supabase config missing in config.json');
     showToast('Supabase is not configured. Check config.json', 'error');
     return;
   }
+  const authStorage = recoveryContext ? window.sessionStorage : window.localStorage;
   supabaseClient = window.supabase.createClient(CONFIG.supabase.url, CONFIG.supabase.anonKey, {
-    auth: { persistSession: true, autoRefreshToken: true, storageKey: 'jas_auth' }
+    auth: { persistSession: true, autoRefreshToken: true, storageKey: 'jas_auth', storage: authStorage }
   });
 }
+
 
 function setAuthTab(tab){
   currentAuthTab = tab;
@@ -1881,6 +1990,10 @@ function setAuthTab(tab){
   el.authTabRegister.classList.toggle('active', tab === 'register');
   el.loginForm.classList.toggle('hide', tab !== 'login');
   el.registerForm.classList.toggle('hide', tab !== 'register');
+  el.forgotPasswordForm.classList.toggle('hide', tab !== 'forgot');
+  if (tab === 'forgot') {
+    el.forgotEmail.value = '';
+  }
   hideAuthMsg();
 }
 
@@ -1895,6 +2008,7 @@ function hideAuthMsg(){
 function showScreen(name){
   hideOverlay(el.bootLoader) ; el.bootLoader.classList.add('hide');
   el.authScreen.classList.toggle('hide', name !== 'auth');
+  el.resetPasswordScreen.classList.toggle('hide', name !== 'reset-password');
   el.pendingScreen.classList.toggle('hide', name !== 'pending');
   el.appScreen.classList.toggle('hide', name !== 'app');
 }
@@ -1923,7 +2037,7 @@ async function handleRegister(){
   const password = el.regPassword.value;
 
   if (!name || !email || !password) { showAuthMsg('Fill in all fields.'); return; }
-  if (password.length < 6) { showAuthMsg('Password must be at least 6 characters.'); return; }
+  if (password.length < 8) { showAuthMsg('Password must be at least 8 characters.'); return; }
 
   el.btnRegister.disabled = true;
   hideAuthMsg();
@@ -1945,6 +2059,86 @@ async function handleRegister(){
     setAuthTab('login');
     showAuthMsg('Account created. Please check your email to confirm, then log in.', 'info');
   }
+}
+
+async function handleForgotPassword(){
+  const email = el.forgotEmail.value.trim();
+  if (!email) { showAuthMsg('Enter your email address.'); return; }
+
+  el.btnSendReset.disabled = true;
+  hideAuthMsg();
+  
+  const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + '/?mode=update-password'
+  });
+  el.btnSendReset.disabled = false;
+
+  if (error) {
+    showAuthMsg(error.message || 'Failed to send reset email. Please try again.');
+    return;
+  }
+
+  el.forgotEmail.value = '';
+  showAuthMsg('Check your email for a password reset link.', 'info');
+  setTimeout(() => { setAuthTab('login'); }, 2500);
+}
+
+async function handleResetPassword(){
+  const newPw = el.resetNewPassword.value;
+  const confirmPw = el.resetConfirmPassword.value;
+
+  if (!newPw || !confirmPw) {
+    el.resetPwMsg.textContent = 'Enter both passwords.';
+    el.resetPwMsg.className = 'auth-msg show';
+    return;
+  }
+
+  if (newPw.length < 8) {
+    el.resetPwMsg.textContent = 'Password must be at least 8 characters.';
+    el.resetPwMsg.className = 'auth-msg show';
+    return;
+  }
+
+  if (newPw !== confirmPw) {
+    el.resetPwMsg.textContent = 'Passwords do not match.';
+    el.resetPwMsg.className = 'auth-msg show';
+    return;
+  }
+
+  el.btnUpdateResetPassword.disabled = true;
+  el.resetPwMsg.className = 'auth-msg';
+
+  const { error } = await supabaseClient.auth.updateUser({ password: newPw });
+  el.btnUpdateResetPassword.disabled = false;
+
+  if (error) {
+    el.resetPwMsg.textContent = error.message || 'Failed to update password. Please try again.';
+    el.resetPwMsg.className = 'auth-msg show';
+    return;
+  }
+
+  el.resetNewPassword.value = '';
+  el.resetConfirmPassword.value = '';
+
+  clearPasswordRecoveryPending();
+
+  el.resetPwMsg.textContent =
+    'Password updated successfully! Redirecting to login...';
+
+  el.resetPwMsg.className = 'auth-msg show info';
+
+  setTimeout(async () => {
+    await supabaseClient.auth.signOut();
+
+    // Reload for real (not just an in-app screen switch): this page load's
+    // Supabase client was deliberately created with sessionStorage because
+    // the URL said ?mode=update-password. If we just swapped screens, any
+    // normal login typed into this same tab afterwards would also end up
+    // in sessionStorage instead of persisting like a regular login should.
+    // A real reload drops the URL param and reinitializes the client with
+    // localStorage, so normal login behaves normally again.
+    window.location.href = window.location.origin + window.location.pathname;
+  }, 1500);
 }
 
 async function handleLogout(){
@@ -3244,8 +3438,8 @@ async function handleChangePassword(){
     el.changePwMsg.textContent = 'Enter your current password.';
     el.changePwMsg.className = 'auth-msg show'; return;
   }
-  if (newPw.length < 6) {
-    el.changePwMsg.textContent = 'New password must be at least 6 characters.';
+  if (newPw.length < 8) {
+    el.changePwMsg.textContent = 'New password must be at least 8 characters.';
     el.changePwMsg.className = 'auth-msg show'; return;
   }
   if (newPw !== confirmPw) {
@@ -3513,6 +3707,21 @@ function bindEvents(){
   el.authTabRegister.addEventListener('click', () => setAuthTab('register'));
   el.btnLogin.addEventListener('click', handleLogin);
   el.btnRegister.addEventListener('click', handleRegister);
+  el.btnSendReset.addEventListener('click', handleForgotPassword);
+  el.btnUpdateResetPassword.addEventListener('click', handleResetPassword);
+  el.btnCancelReset.addEventListener('click', async () => {
+    // Cancelling must actually end the live recovery session — otherwise
+    // a valid, auto-refreshing access token is left sitting around
+    // indefinitely (a real risk on shared/public computers).
+    clearPasswordRecoveryPending();
+    try { await supabaseClient.auth.signOut(); } catch (err) { console.error(err); }
+
+    // Real reload, not just a screen switch: this tab's Supabase client
+    // was created with sessionStorage because the URL said
+    // ?mode=update-password. Reloading drops that param so a subsequent
+    // normal login in this same tab correctly persists via localStorage.
+    window.location.href = window.location.origin + window.location.pathname;
+  });
   el.btnPendingLogout.addEventListener('click', openLogoutConfirm);
   el.appBarUser.addEventListener('click', (e) => { e.stopPropagation(); toggleUserDropdown(); });
   document.addEventListener('click', e => { if (!e.target.closest('#userMenuWrap')) closeUserDropdown(); });
@@ -3629,7 +3838,7 @@ function bindEvents(){
 
   el.btnResetPage.addEventListener('click', openResetModal);
   el.btnCloseResetModal.addEventListener('click', closeResetModal);
-  el.btnCancelReset.addEventListener('click', closeResetModal);
+  el.btnCancelResetInvoice.addEventListener('click', closeResetModal);
   el.btnConfirmReset.addEventListener('click', resetInvoice);
 
   el.billSearchInput.addEventListener('input', () => {
@@ -3743,6 +3952,12 @@ function bindEvents(){
     });
   }
 
+  if (el.btnResetThemeToggle) {
+    el.btnResetThemeToggle.addEventListener('click', () => {
+      applyTheme(!document.body.classList.contains('dark-theme'));
+    });
+  }
+
   document.addEventListener('click', e => {
     const btn = e.target.closest('.pw-toggle-btn');
     if (!btn) return;
@@ -3827,7 +4042,27 @@ async function init(){
 
   await loadConfig();
   bindEvents();
-  initSupabase();
+
+  // If there's already a valid saved login (normal auth persists to
+  // localStorage; recovery only ever uses sessionStorage), skip the
+  // password-recovery flow entirely — even if this page load came from a
+  // reset-password link — and let the existing session log the user
+  // straight into the app instead of the forgot/reset screen.
+  const hasLocalAuthToken = !!window.localStorage.getItem('jas_auth');
+
+  // Decide ONCE, from the URL present at page load, whether this load is a
+  // password-recovery attempt. This is the source of truth for routing —
+  // NOT which event name Supabase happens to fire. Depending on the auth
+  // flow Supabase uses for the link, it can fire a generic SIGNED_IN event
+  // instead of PASSWORD_RECOVERY while still establishing a recovery
+  // session; if we only trusted the event name, that session would slip
+  // through to afterAuthResolved() and land straight on the dashboard.
+  const recoveryContext =
+    !hasLocalAuthToken &&
+    (new URLSearchParams(window.location.search).get('mode') === 'update-password' ||
+      !!sessionStorage.getItem(PASSWORD_RECOVERY_KEY));
+
+  initSupabase(recoveryContext);
 
   syncDisplayToggleState();
 
@@ -3836,24 +4071,64 @@ async function init(){
     return;
   }
 
+  // Surface an expired/already-used reset link (Supabase returns this as an
+  // error in the URL hash instead of ever exchanging a token/session).
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const linkError = hashParams.get('error_description') || hashParams.get('error');
+  if (linkError) {
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+
+  // Register the auth-state listener BEFORE getSession(), so that if this
+  // page load is a genuine password-recovery link, the session-establishing
+  // event (fired while Supabase exchanges the token) is never missed.
+  let recoveryHandledThisLoad = false;
+
+  supabaseClient.auth.onAuthStateChange((event, session) => {
+    // Password recovery must NEVER be treated as a normal login.
+    if (recoveryContext && session) {
+      recoveryHandledThisLoad = true;
+      setPasswordRecoveryPending();
+
+      currentSession = session;
+
+      el.resetPasswordCompanyName.textContent =
+        (CONFIG.company.name + ' Billing').toUpperCase();
+
+      showScreen('reset-password');
+      return;
+    }
+
+    if (event === 'SIGNED_OUT') {
+      currentSession = null;
+      currentProfile = null;
+      showScreen('auth');
+      return;
+    }
+
+    if (event === 'SIGNED_IN' && session) {
+      currentSession = session;
+      afterAuthResolved().catch(console.error);
+    }
+  });
+
   const { data: { session } } = await supabaseClient.auth.getSession();
+
+  if (recoveryHandledThisLoad) return;
+
+  if (linkError && !hasLocalAuthToken) {
+    showScreen('auth');
+    setAuthTab('forgot');
+    showAuthMsg('Your reset link is invalid or has expired. Please request a new one.');
+    return;
+  }
+
   if (session) {
     currentSession = session;
     await afterAuthResolved();
   } else {
     showScreen('auth');
   }
-
-  supabaseClient.auth.onAuthStateChange((event, session) => {
-    if (event === 'SIGNED_OUT') {
-      currentSession = null;
-      currentProfile = null;
-      showScreen('auth');
-    } else if (event === 'SIGNED_IN' && session) {
-      currentSession = session;
-      afterAuthResolved().catch(console.error);
-    }
-  });
 
   document.addEventListener('visibilitychange', async () => {
     if (!document.hidden && supabaseClient && !currentSession) {
