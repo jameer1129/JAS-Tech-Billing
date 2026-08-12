@@ -1274,7 +1274,8 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{
     </div>
     <div class="modal__body">
       <div class="confirm-icon" style="background:#EEF4FC;color:var(--primary);"><i class="fa-solid fa-right-from-bracket"></i></div>
-      <p>Are you sure you want to log out?</p>
+      <p id="logoutModalMessage">Are you sure you want to log out?</p>
+      <p id="logoutModalEmail" style="display:none;margin:10px 0 0;font-weight:700;word-break:break-word;"></p>
     </div>
     <div class="modal__footer">
       <button class="btn btn--ghost" id="btnCancelLogout">Cancel</button>
@@ -1484,6 +1485,8 @@ function cacheElements(){
   el.btnCloseLogoutModal = document.getElementById('btnCloseLogoutModal');
   el.btnCancelLogout = document.getElementById('btnCancelLogout');
   el.btnConfirmLogout = document.getElementById('btnConfirmLogout');
+  el.logoutModalMessage = document.getElementById('logoutModalMessage');
+  el.logoutModalEmail = document.getElementById('logoutModalEmail');
 
   el.appBarUser = document.getElementById('appBarUser');
   el.userMenuWrap = document.getElementById('userMenuWrap');
@@ -1970,16 +1973,27 @@ function clearPasswordRecoveryPending() {
 // value can be reused both for choosing the Supabase client's storage and
 // for gating the auth-state-change listener (see init()).
 
-function initSupabase(recoveryContext){
+function createSupabaseClient(authStorage){
   if (!CONFIG.supabase || !CONFIG.supabase.url || !CONFIG.supabase.anonKey) {
     console.error('Supabase config missing in config.json');
     showToast('Supabase is not configured. Check config.json', 'error');
-    return;
+    return null;
   }
-  const authStorage = recoveryContext ? window.sessionStorage : window.localStorage;
-  supabaseClient = window.supabase.createClient(CONFIG.supabase.url, CONFIG.supabase.anonKey, {
-    auth: { persistSession: true, autoRefreshToken: true, storageKey: 'jas_auth', storage: authStorage }
+
+  return window.supabase.createClient(CONFIG.supabase.url, CONFIG.supabase.anonKey, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      storageKey: 'jas_auth',
+      storage: authStorage
+    }
   });
+}
+
+function initSupabase(recoveryContext){
+  supabaseClient = createSupabaseClient(
+    recoveryContext ? window.sessionStorage : window.localStorage
+  );
 }
 
 
@@ -3529,11 +3543,64 @@ async function handleChangePassword(){
   showToast('Password updated successfully', 'success');
 }
 
+let pendingRecoveryConflict = null;
+
 function openLogoutConfirm(){
+  const email = currentSession?.user?.email || currentProfile?.email || '';
+  el.logoutModalMessage.textContent = 'Are you sure you want to log out?';
+  el.logoutModalEmail.textContent = email;
+  el.logoutModalEmail.style.display = email ? 'block' : 'none';
+  el.btnConfirmLogout.innerHTML = 'Log Out';
   showOverlay(el.logoutModalOverlay);
 }
+
+function openRecoveryConflictConfirm(conflict){
+  pendingRecoveryConflict = conflict;
+  const email = conflict?.localSession?.user?.email || 'this account';
+  el.logoutModalMessage.textContent = 'An account is already logged in on this device. Log out this account to continue with the password reset?';
+  el.logoutModalEmail.textContent = email;
+  el.logoutModalEmail.style.display = 'block';
+  el.btnConfirmLogout.innerHTML = 'Log Out & Reset';
+  showOverlay(el.logoutModalOverlay);
+}
+
 function closeLogoutConfirm(){
   hideOverlay(el.logoutModalOverlay);
+}
+
+async function cancelRecoveryConflict(){
+  const conflict = pendingRecoveryConflict;
+  pendingRecoveryConflict = null;
+  closeLogoutConfirm();
+  if (!conflict) return;
+
+  // Cancel means: keep the currently logged-in account and abandon the
+  // password-reset attempt. Remove only the temporary recovery session.
+  try { await conflict.recoveryClient.auth.signOut(); } catch (err) { console.error(err); }
+  clearPasswordRecoveryPending();
+  supabaseClient = conflict.localClient;
+  currentSession = conflict.localSession;
+  await afterAuthResolved();
+}
+
+async function confirmRecoveryConflictLogout(){
+  const conflict = pendingRecoveryConflict;
+  pendingRecoveryConflict = null;
+  closeLogoutConfirm();
+  if (!conflict) {
+    await handleLogout();
+    return;
+  }
+
+  // Log out the existing account, then continue using the temporary
+  // recovery client so the reset link remains attached to the target account.
+  try { await conflict.localClient.auth.signOut(); } catch (err) { console.error(err); }
+  setPasswordRecoveryPending();
+  supabaseClient = conflict.recoveryClient;
+  currentSession = conflict.resetSession;
+  el.resetPasswordCompanyName.textContent =
+    (CONFIG.company.name + ' Billing').toUpperCase();
+  showScreen('reset-password');
 }
 
 function handleAllUsersClick(e){
@@ -3978,9 +4045,28 @@ function bindEvents(){
   el.allUsersList.addEventListener('click', handleAllUsersClick);
   el.allUsersPaginationControls.addEventListener('click', handleAllUsersPaginationClick);
 
-  el.btnCloseLogoutModal.addEventListener('click', closeLogoutConfirm);
-  el.btnCancelLogout.addEventListener('click', closeLogoutConfirm);
-  el.btnConfirmLogout.addEventListener('click', () => { closeLogoutConfirm(); handleLogout(); });
+  el.btnCloseLogoutModal.addEventListener('click', () => {
+    if (pendingRecoveryConflict) {
+      cancelRecoveryConflict();
+      return;
+    }
+    closeLogoutConfirm();
+  });
+  el.btnCancelLogout.addEventListener('click', () => {
+    if (pendingRecoveryConflict) {
+      cancelRecoveryConflict();
+      return;
+    }
+    closeLogoutConfirm();
+  });
+  el.btnConfirmLogout.addEventListener('click', () => {
+    if (pendingRecoveryConflict) {
+      confirmRecoveryConflictLogout();
+      return;
+    }
+    closeLogoutConfirm();
+    handleLogout();
+  });
 
   document.addEventListener('click', e => {
     if (!e.target.closest('.user-actions-menu-wrap')) closeAllActionMenus();
@@ -4099,62 +4185,118 @@ async function init(){
   await loadConfig();
   bindEvents();
 
-  // If there's already a valid saved login (normal auth persists to
-  // localStorage; recovery only ever uses sessionStorage), skip the
-  // password-recovery flow entirely — even if this page load came from a
-  // reset-password link — and let the existing session log the user
-  // straight into the app instead of the forgot/reset screen.
-  const hasLocalAuthToken = !!window.localStorage.getItem('jas_auth');
-
-  // Decide ONCE, from the URL present at page load, whether this load is a
-  // password-recovery attempt. This is the source of truth for routing —
-  // NOT which event name Supabase happens to fire. Depending on the auth
-  // flow Supabase uses for the link, it can fire a generic SIGNED_IN event
-  // instead of PASSWORD_RECOVERY while still establishing a recovery
-  // session; if we only trusted the event name, that session would slip
-  // through to afterAuthResolved() and land straight on the dashboard.
-  const recoveryContext =
-    !hasLocalAuthToken &&
-    (new URLSearchParams(window.location.search).get('mode') === 'update-password' ||
-      !!sessionStorage.getItem(PASSWORD_RECOVERY_KEY));
-
-  initSupabase(recoveryContext);
+  const urlParams = new URLSearchParams(window.location.search);
+  const isPasswordResetLink = urlParams.get('mode') === 'update-password';
+  const hasPendingRecovery = !!sessionStorage.getItem(PASSWORD_RECOVERY_KEY);
+  const recoveryContext = isPasswordResetLink || hasPendingRecovery;
 
   syncDisplayToggleState();
+
+  if (!CONFIG.supabase || !CONFIG.supabase.url || !CONFIG.supabase.anonKey) {
+    showScreen('auth');
+    return;
+  }
+
+  // A reset link must be evaluated against the account that is already
+  // logged in on this device. Merely checking whether jas_auth exists is
+  // not enough because the reset link may belong to a different user.
+  //
+  // Recovery session  -> sessionStorage
+  // Normal session    -> localStorage
+  // These are deliberately kept separate so one cannot overwrite the other.
+  let localClient = null;
+
+  if (recoveryContext) {
+    localClient = createSupabaseClient(window.localStorage);
+    supabaseClient = createSupabaseClient(window.sessionStorage);
+
+    if (!supabaseClient || !localClient) {
+      showScreen('auth');
+      return;
+    }
+
+    const { data: { session: localSession } = {} } =
+      await localClient.auth.getSession();
+
+    // Register the recovery listener before getSession() so the reset-link
+    // session is captured even when Supabase establishes it asynchronously.
+    let recoverySessionFromEvent = null;
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+      if (session) recoverySessionFromEvent = session;
+    });
+
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const linkError = hashParams.get('error_description') || hashParams.get('error');
+    if (linkError) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    const { data: { session: recoverySession } = {} } =
+      await supabaseClient.auth.getSession();
+
+    const resetSession = recoverySession || recoverySessionFromEvent;
+
+    if (resetSession) {
+      const localUserId = localSession?.user?.id || null;
+      const resetUserId = resetSession.user?.id || null;
+
+      if (localUserId && resetUserId && localUserId === resetUserId) {
+        // Same account is already logged in. The reset link is unnecessary,
+        // so discard only the temporary recovery session and keep the normal
+        // localStorage login untouched.
+        try { await supabaseClient.auth.signOut(); } catch (err) { console.error(err); }
+
+        supabaseClient = localClient;
+        currentSession = localSession;
+        clearPasswordRecoveryPending();
+        await afterAuthResolved();
+        return;
+      }
+
+      if (localSession) {
+        // A different account is already logged in. Do NOT log it out silently.
+        // Ask first. Cancel keeps the existing account; Log Out & Reset
+        // explicitly signs it out and then opens the reset screen.
+        openRecoveryConflictConfirm({
+          localClient,
+          localSession,
+          recoveryClient: supabaseClient,
+          resetSession
+        });
+        return;
+      }
+
+      // No existing account: this is a genuine password recovery flow.
+      setPasswordRecoveryPending();
+      currentSession = resetSession;
+      el.resetPasswordCompanyName.textContent =
+        (CONFIG.company.name + ' Billing').toUpperCase();
+      showScreen('reset-password');
+      return;
+    }
+
+    // No recovery session could be established. Do not fall back to the old
+    // local account on a reset-link load. The reset link is invalid/expired.
+    clearPasswordRecoveryPending();
+    showScreen('auth');
+    setAuthTab('forgot');
+    showAuthMsg(
+      linkError || 'Your reset link is invalid or has expired. Please request a new one.'
+    );
+    return;
+  }
+
+  // Normal application load: use the persistent localStorage session.
+  initSupabase(false);
 
   if (!supabaseClient) {
     showScreen('auth');
     return;
   }
 
-  // Surface an expired/already-used reset link (Supabase returns this as an
-  // error in the URL hash instead of ever exchanging a token/session).
-  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-  const linkError = hashParams.get('error_description') || hashParams.get('error');
-  if (linkError) {
-    window.history.replaceState({}, document.title, window.location.pathname);
-  }
-
-  // Register the auth-state listener BEFORE getSession(), so that if this
-  // page load is a genuine password-recovery link, the session-establishing
-  // event (fired while Supabase exchanges the token) is never missed.
-  let recoveryHandledThisLoad = false;
+  let normalAuthResolved = false;
 
   supabaseClient.auth.onAuthStateChange((event, session) => {
-    // Password recovery must NEVER be treated as a normal login.
-    if (recoveryContext && session) {
-      recoveryHandledThisLoad = true;
-      setPasswordRecoveryPending();
-
-      currentSession = session;
-
-      el.resetPasswordCompanyName.textContent =
-        (CONFIG.company.name + ' Billing').toUpperCase();
-
-      showScreen('reset-password');
-      return;
-    }
-
     if (event === 'SIGNED_OUT') {
       currentSession = null;
       currentProfile = null;
@@ -4164,23 +4306,18 @@ async function init(){
 
     if (event === 'SIGNED_IN' && session) {
       currentSession = session;
-      afterAuthResolved().catch(console.error);
+      if (!normalAuthResolved) {
+        normalAuthResolved = true;
+        afterAuthResolved().catch(console.error);
+      }
     }
   });
 
-  const { data: { session } } = await supabaseClient.auth.getSession();
-
-  if (recoveryHandledThisLoad) return;
-
-  if (linkError && !hasLocalAuthToken) {
-    showScreen('auth');
-    setAuthTab('forgot');
-    showAuthMsg('Your reset link is invalid or has expired. Please request a new one.');
-    return;
-  }
+  const { data: { session } = {} } = await supabaseClient.auth.getSession();
 
   if (session) {
     currentSession = session;
+    normalAuthResolved = true;
     await afterAuthResolved();
   } else {
     showScreen('auth');
@@ -4189,7 +4326,8 @@ async function init(){
   document.addEventListener('visibilitychange', async () => {
     if (!document.hidden && supabaseClient && !currentSession) {
       try {
-        const { data: { session: visibleSession } } = await supabaseClient.auth.getSession();
+        const { data: { session: visibleSession } = {} } =
+          await supabaseClient.auth.getSession();
         if (visibleSession) {
           currentSession = visibleSession;
           await afterAuthResolved();
