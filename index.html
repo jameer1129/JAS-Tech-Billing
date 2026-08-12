@@ -581,6 +581,7 @@ body.dark-theme .boot-loader__label{color:var(--F3F4F6, #F3F4F6);}
   font-size: 16px;
   letter-spacing: 1px;
   line-height: 1.2;
+  margin:0 8px;
 }
 .inv-header__ribbon-text { display: inline-block; transform: skewX(25deg); }
 .inv-header__ribbon-stripe { position: absolute; top: 0; bottom: 0; right: 15px; width: 2.5px; background: #ffffff; }
@@ -1269,6 +1270,23 @@ body.dark-theme .boot-loader__label{color:var(--F3F4F6, #F3F4F6);}
   </div>
 </div>
 
+<!-- Restore Bill Modal -->
+<div class="modal-overlay modal--confirm hide" id="restoreBillModalOverlay">
+  <div class="modal">
+    <div class="modal__header">
+      <h3>Restore Previous Invoice?</h3>
+    </div>
+    <div class="modal__body">
+      <div class="confirm-icon" style="background:#EEF4FC;color:var(--primary);"><i class="fa-solid fa-rotate-right"></i></div>
+      <p>We found a previous invoice that you were working on. Would you like to restore it or start fresh?</p>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--ghost" id="btnRestoreBillReset"><i class="fa-solid fa-rotate-left"></i> Start Fresh</button>
+      <button class="btn btn--primary" id="btnRestoreBillRestore"><i class="fa-solid fa-rotate-right"></i> Restore</button>
+    </div>
+  </div>
+</div>
+
 <!-- Save Choice Modal -->
 <div class="modal-overlay modal--confirm hide" id="saveChoiceModalOverlay">
   <div class="modal">
@@ -1410,7 +1428,9 @@ let currentSession = null;
 let currentProfile = null;   // { id, name, email, role, status }
 let currentAuthTab = 'login';
 let billsCache = [];
-let loadedBillForPrint = null; // when re-printing a saved bill
+let loadedBillForPrint = null;
+let isPreviousBillMode = false; // when re-printing a saved bill
+let draftBillSnapshot = null; // backup of the in-progress New Bill draft while previewing a previous bill
 
 const BILLS_PAGE_SIZE = 10;
 const USERS_PAGE_SIZE = 10;
@@ -1572,6 +1592,9 @@ function cacheElements(){
   el.btnCloseResetModal = document.getElementById('btnCloseResetModal');
   el.btnCancelResetInvoice = document.getElementById('btnCancelResetInvoice');
   el.btnConfirmReset = document.getElementById('btnConfirmReset');
+  el.restoreBillModalOverlay = document.getElementById('restoreBillModalOverlay');
+  el.btnRestoreBillRestore = document.getElementById('btnRestoreBillRestore');
+  el.btnRestoreBillReset = document.getElementById('btnRestoreBillReset');
   el.previewModalOverlay = document.getElementById('previewModalOverlay');
   el.previewModalBody = document.getElementById('previewModalBody');
   el.btnClosePreviewModal = document.getElementById('btnClosePreviewModal');
@@ -1640,6 +1663,43 @@ function cacheElements(){
   el.allUsersPagination = document.getElementById('allUsersPagination');
   el.allUsersPaginationInfo = document.getElementById('allUsersPaginationInfo');
   el.allUsersPaginationControls = document.getElementById('allUsersPaginationControls');
+}
+
+function setupAutoSaveListeners(){
+  // Save bill state before page unload
+  window.addEventListener('beforeunload', (e) => {
+    if (currentSession && (state.products.length > 0 || state.customer.name)) {
+      saveBillStateToLocalStorage();
+    }
+  });
+
+  // Also save when tab loses focus
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && currentSession) {
+      if (state.products.length > 0 || state.customer.name) {
+        saveBillStateToLocalStorage();
+      }
+    }
+  });
+
+  // Save when customer fields change
+  document.addEventListener('change', (e) => {
+    if (e.target && (
+      e.target.id === 'customerName' || 
+      e.target.id === 'customerAddress' || 
+      e.target.id === 'customerMobile' ||
+      e.target.id === 'invoiceDate' ||
+      e.target.id === 'invoiceNotes' ||
+      e.target.id === 'toggleWatermark' ||
+      e.target.id === 'toggleQrVisibility' ||
+      e.target.id === 'toggleSignatureVisibility' ||
+      e.target.id === 'toggleNotesVisibility'
+    )) {
+      if (currentSession) {
+        saveBillStateToLocalStorage();
+      }
+    }
+  });
 }
 
 async function loadConfig(){
@@ -2860,12 +2920,24 @@ async function handleResetPassword(){
 }
 
 async function handleLogout(){
-  await supabaseClient.auth.signOut();
-  currentSession = null;
-  currentProfile = null;
-  el.loginEmail.value = ''; el.loginPassword.value = '';
-  setAuthTab('login');
-  showScreen('auth');
+  showActionLoader('Logging Out');
+
+  try {
+    await supabaseClient.auth.signOut();
+    currentSession = null;
+    currentProfile = null;
+    clearSavedBillState();
+    loadedBillForPrint = null;
+    isPreviousBillMode = false;
+    el.loginEmail.value = '';
+    el.loginPassword.value = '';
+    setAuthTab('login');
+    showScreen('auth');
+  } catch (error) {
+    console.error(error);
+    hideActionLoader();
+    showToast('Could not log out. Please try again.', 'error');
+  }
 }
 
 async function fetchOwnProfile(){
@@ -2921,9 +2993,13 @@ function enterApp(){
   const savedView = localStorage.getItem('jas_last_view');
   const initialView = savedView || 'newBill';
   switchView(initialView);
-  initInvoiceMeta();
-  renderProducts();
-  updateSummary();
+  
+  // Always initialize the form, then restore if needed
+  if (initialView === 'newBill') {
+    initInvoiceMeta();
+    renderProducts();
+    updateSummary();
+  }
 }
 
 function switchView(view){
@@ -2940,8 +3016,21 @@ function switchView(view){
   el.viewPreviousBills.classList.toggle('hide', view !== 'previousBills');
   el.viewAdmin.classList.toggle('hide', view !== 'admin');
 
-  if (view === 'newBill' && loadedBillForPrint !== null) {
-    resetInvoice(true);
+  let restoredDraft = false;
+  if (view === 'newBill' && (loadedBillForPrint !== null || isPreviousBillMode)) {
+    // A previous bill was loaded only for viewing/printing. It must NEVER
+    // become the new bill or be offered by the autosave restore flow.
+    // Whatever the user was actually working on before opening the preview
+    // is brought back instead of being wiped.
+    isPreviousBillMode = false;
+    loadedBillForPrint = null;
+    restoredDraft = restoreDraftAfterPreviousBill();
+  }
+
+  // Check for restore every time switching to newBill tab, but never after
+  // viewing a previous bill (and never if we just restored the draft above).
+  if (view === 'newBill' && !isPreviousBillMode && !restoredDraft) {
+    setTimeout(() => checkAndPromptForRestore(), 50);
   }
 
   if (view === 'previousBills') loadBills();
@@ -3037,15 +3126,136 @@ function deleteProduct(){
   closeDeleteModal();
 }
 
+/* ===================================================================
+   BILL AUTO-SAVE AND RESTORE FUNCTIONS
+   =================================================================== */
+
+const BILL_SAVE_KEY = 'jas_autosave_bill';
+
+function saveBillStateToLocalStorage(){
+  if (!currentSession || isPreviousBillMode || loadedBillForPrint !== null) return; // Never autosave a previous bill being viewed/printed
+  
+  const billData = {
+    customer: state.customer,
+    invoiceNumber: state.invoiceNumber,
+    dateStr: state.dateStr,
+    invoiceDateValue: el.invoiceDate.value, // Save the actual date input value
+    notes: state.notes,
+    products: state.products,
+    showWatermark: state.showWatermark,
+    showQr: state.showQr,
+    showSignature: state.showSignature,
+    includeNotesOnPdf: state.includeNotesOnPdf,
+    timestamp: Date.now()
+  };
+  
+  try {
+    localStorage.setItem(BILL_SAVE_KEY, JSON.stringify(billData));
+  } catch (e) {
+    console.error('Failed to save bill state:', e);
+  }
+}
+
+function getSavedBillState(){
+  try {
+    const saved = localStorage.getItem(BILL_SAVE_KEY);
+    return saved ? JSON.parse(saved) : null;
+  } catch (e) {
+    console.error('Failed to get saved bill state:', e);
+    return null;
+  }
+}
+
+function clearSavedBillState(){
+  try {
+    localStorage.removeItem(BILL_SAVE_KEY);
+  } catch (e) {
+    console.error('Failed to clear saved bill state:', e);
+  }
+}
+
+function restoreBillStateFromLocalStorage(){
+  const saved = getSavedBillState();
+  if (!saved) return false;
+  
+  state.customer = saved.customer || { name: '', address: '', mobile: '' };
+  state.invoiceNumber = saved.invoiceNumber || '';
+  state.dateStr = saved.dateStr || '';
+  state.notes = saved.notes || '';
+  state.products = saved.products || [];
+  state.showWatermark = saved.showWatermark !== false;
+  state.showQr = saved.showQr !== false;
+  state.showSignature = saved.showSignature !== false;
+  state.includeNotesOnPdf = saved.includeNotesOnPdf !== false;
+  
+  // Recalculate nextId based on existing products
+  if (state.products.length > 0) {
+    state.nextId = Math.max(...state.products.map(p => p.id || 0)) + 1;
+  } else {
+    state.nextId = 1;
+  }
+  
+  // Sync UI with restored state
+  syncCustomerFieldsFromState();
+  syncDisplayToggleState();
+  el.invoiceNotes.value = state.notes || '';
+  
+  // Restore the invoice date
+  if (saved.invoiceDateValue) {
+    el.invoiceDate.value = saved.invoiceDateValue;
+    if (invoiceDatePicker) {
+      invoiceDatePicker.updateText();
+    }
+  }
+  
+  renderProducts();
+  updateSummary();
+  
+  return true;
+}
+
+function openRestoreBillModal(){
+  showOverlay(el.restoreBillModalOverlay);
+}
+
+function closeRestoreBillModal(){
+  hideOverlay(el.restoreBillModalOverlay);
+}
+
+function checkAndPromptForRestore(){
+  // Previous bills are view/print-only. Never restore their data into New Bill.
+  if (isPreviousBillMode || loadedBillForPrint !== null) return;
+  
+  const saved = getSavedBillState();
+  if (saved) {
+    openRestoreBillModal();
+  }
+}
+
 function openResetModal(){
   showOverlay(el.resetModalOverlay);
 }
 
 function closeResetModal(){
   hideOverlay(el.resetModalOverlay);
+
+  // A previous bill is only a temporary preview. Never allow that preview
+  // to remain underneath/reappear after the reset dialog is closed.
+  if (loadedBillForPrint !== null) {
+    hideOverlay(el.previewModalOverlay);
+    const scaleContainer = document.getElementById('previewScaleContainer');
+    if (scaleContainer) scaleContainer.innerHTML = '';
+    loadedBillForPrint = null;
+  }
 }
 
 function resetInvoice(silent = false){
+  // Reset must also terminate any previous-bill preview state first.
+  hideOverlay(el.previewModalOverlay);
+  const scaleContainer = document.getElementById('previewScaleContainer');
+  if (scaleContainer) scaleContainer.innerHTML = '';
+  loadedBillForPrint = null;
+
   state.customer = { name: '', address: '', mobile: '' };
   state.products = [];
   state.nextId = 1;
@@ -3403,9 +3613,62 @@ function openPreviewModal(){
 }
 
 function closePreviewModal(){
+  const wasPreviousBill = loadedBillForPrint !== null || isPreviousBillMode;
+
   hideOverlay(el.previewModalOverlay);
   const scaleContainer = document.getElementById('previewScaleContainer');
   if(scaleContainer) scaleContainer.innerHTML = '';
+
+  // Previous bills are strictly read-only preview/print data.
+  // Closing the preview must immediately return the New Bill form to whatever
+  // draft the user was actually working on (or a clean state if there wasn't one).
+  if (wasPreviousBill) {
+    isPreviousBillMode = false;
+    restoreDraftAfterPreviousBill();
+  }
+}
+
+function restoreDraftAfterPreviousBill(){
+  // Undo the temporary in-memory overwrite that happens while previewing a
+  // previous bill, bringing back the New Bill draft the user was working on.
+  hideOverlay(el.previewModalOverlay);
+  const scaleContainer = document.getElementById('previewScaleContainer');
+  if (scaleContainer) scaleContainer.innerHTML = '';
+  loadedBillForPrint = null;
+
+  if (!draftBillSnapshot) {
+    // Nothing was in progress before the preview - just clear to a fresh invoice.
+    clearSavedBillState();
+    resetInvoice(true);
+    return false;
+  }
+
+  state.customer = draftBillSnapshot.customer;
+  state.invoiceNumber = draftBillSnapshot.invoiceNumber;
+  state.dateStr = draftBillSnapshot.dateStr;
+  state.notes = draftBillSnapshot.notes;
+  state.products = draftBillSnapshot.products;
+  state.nextId = draftBillSnapshot.nextId;
+  state.showWatermark = draftBillSnapshot.showWatermark;
+  state.showQr = draftBillSnapshot.showQr;
+  state.showSignature = draftBillSnapshot.showSignature;
+  state.includeNotesOnPdf = draftBillSnapshot.includeNotesOnPdf;
+
+  syncCustomerFieldsFromState();
+  el.customerName.classList.remove('input-error');
+  syncDisplayToggleState();
+  el.invoiceNotes.value = state.notes || '';
+
+  if (draftBillSnapshot.invoiceDateValue) {
+    el.invoiceDate.value = draftBillSnapshot.invoiceDateValue;
+    if (invoiceDatePicker) invoiceDatePicker.updateText();
+  }
+
+  renderProducts();
+  updateSummary();
+
+  draftBillSnapshot = null;
+  return true;
 }
 
 /* ===================================================================
@@ -3787,43 +4050,70 @@ async function reprintBill(invoiceNo){
   const bill = billsCache.find(b => b.invoice_no === invoiceNo);
   if (!bill) return;
 
-  const { data: items, error } = await supabaseClient
-    .from('bill_items')
-    .select('item_name,description,serial,qty,price,amount')
-    .eq('invoice_no', invoiceNo);
-
-  if (error) {
-    console.error(error);
-    showToast('Could not load invoice items.', 'error');
-    return;
+  // This is a read-only previous bill operation. Back up whatever the user was
+  // actually working on in New Bill before we overwrite `state` with the
+  // previous bill's data, so it can be restored afterwards instead of lost.
+  if (!isPreviousBillMode && loadedBillForPrint === null) {
+    draftBillSnapshot = {
+      customer: JSON.parse(JSON.stringify(state.customer)),
+      invoiceNumber: state.invoiceNumber,
+      dateStr: state.dateStr,
+      notes: state.notes,
+      products: JSON.parse(JSON.stringify(state.products)),
+      nextId: state.nextId,
+      showWatermark: state.showWatermark,
+      showQr: state.showQr,
+      showSignature: state.showSignature,
+      includeNotesOnPdf: state.includeNotesOnPdf,
+      invoiceDateValue: el.invoiceDate.value
+    };
   }
+  isPreviousBillMode = true;
 
-  // Load into state, then reuse the existing render + download pipeline (skip re-saving)
-  state.customer = {
-    name: bill.customer_name || '',
-    address: bill.customer_address || '',
-    mobile: bill.customer_phone || ''
-  };
-  syncCustomerFieldsFromState();
-  state.invoiceNumber = bill.invoice_no;
-  state.dateStr = bill.bill_date ? formatDateForDisplay(bill.bill_date) : '';
-  state.notes = bill.notes || '';
-  state.includeNotesOnPdf = bill.include_notes ?? !!bill.notes;
-  state.showWatermark = bill.show_watermark ?? true;
-  state.showQr = bill.show_qr ?? true;
-  state.showSignature = bill.show_signature ?? true;
-  state.products = (items || []).map((it, idx) => ({
-    id: idx + 1,
-    name: it.item_name,
-    description: it.description || '',
-    serial: it.serial || '',
-    qty: it.qty,
-    rate: it.price
-  }));
-  state.nextId = state.products.length + 1;
-  loadedBillForPrint = invoiceNo; 
+  // Prevent duplicate requests and show the same clean full-screen loader used
+  // during app startup while the invoice items are fetched.
+  showActionLoader('Loading Bill');
 
-  openPreviewModal();
+  try {
+    const { data: items, error } = await supabaseClient
+      .from('bill_items')
+      .select('item_name,description,serial,qty,price,amount')
+      .eq('invoice_no', invoiceNo);
+
+    if (error) throw error;
+
+    // Load into state, then reuse the existing render + download pipeline (skip re-saving)
+    state.customer = {
+      name: bill.customer_name || '',
+      address: bill.customer_address || '',
+      mobile: bill.customer_phone || ''
+    };
+    syncCustomerFieldsFromState();
+    state.invoiceNumber = bill.invoice_no;
+    state.dateStr = bill.bill_date ? formatDateForDisplay(bill.bill_date) : '';
+    state.notes = bill.notes || '';
+    state.includeNotesOnPdf = bill.include_notes ?? !!bill.notes;
+    state.showWatermark = bill.show_watermark ?? true;
+    state.showQr = bill.show_qr ?? true;
+    state.showSignature = bill.show_signature ?? true;
+    state.products = (items || []).map((it, idx) => ({
+      id: idx + 1,
+      name: it.item_name,
+      description: it.description || '',
+      serial: it.serial || '',
+      qty: it.qty,
+      rate: it.price
+    }));
+    state.nextId = state.products.length + 1;
+    loadedBillForPrint = invoiceNo;
+
+    hideActionLoader();
+    openPreviewModal();
+  } catch (error) {
+    console.error(error);
+    hideActionLoader();
+    showToast('Could not load invoice items.', 'error');
+  }
 }
 
 function setDeleteBillButtonState(isDeleting){
@@ -4655,6 +4945,22 @@ function bindEvents(){
   el.btnCancelResetInvoice.addEventListener('click', closeResetModal);
   el.btnConfirmReset.addEventListener('click', resetInvoice);
 
+  // Restore Bill Modal Listeners
+  el.btnRestoreBillReset.addEventListener('click', () => {
+    clearSavedBillState();
+    closeRestoreBillModal();
+    resetInvoice(true);
+    showToast('Invoice reset', 'success');
+  });
+  el.btnRestoreBillRestore.addEventListener('click', () => {
+    const restored = restoreBillStateFromLocalStorage();
+    if (restored) {
+      clearSavedBillState();
+      closeRestoreBillModal();
+      showToast('Invoice restored', 'success');
+    }
+  });
+
   el.billSearchInput.addEventListener('input', () => {
     el.btnClearSearch.classList.toggle('hide', !el.billSearchInput.value);
     clearTimeout(billsSearchDebounceTimer);
@@ -4866,6 +5172,7 @@ function bindEvents(){
 
 async function init(){
   cacheElements();
+  setupAutoSaveListeners();
   getDismissibleOverlays().forEach(([overlay]) => hideOverlay(overlay));
 
   const savedTheme = localStorage.getItem('jas_theme');
