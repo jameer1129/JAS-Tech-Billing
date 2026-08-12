@@ -868,7 +868,7 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{
         </div>
         <div class="field">
           <label for="customerAddress">Address <span class="optional">(Optional)</span></label>
-          <textarea id="customerAddress" autocomplete="off" maxlength="100" rows="2"></textarea>
+          <textarea id="customerAddress" autocomplete="off" maxlength="150" rows="2"></textarea>
         </div>
         <div class="field">
           <label for="customerMobile">Mobile Number <span class="optional">(Optional)</span></label>
@@ -945,7 +945,7 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{
     <section class="card" id="notesCardWrap">
       <h2 class="card__heading"><i class="fa-solid fa-clipboard-list"></i> Notes</h2>
       <div class="field">
-        <textarea id="invoiceNotes" maxlength="250" placeholder="Enter optional notes to show on the invoice..."></textarea>
+        <textarea id="invoiceNotes" maxlength="500" placeholder="Enter optional notes to show on the invoice..."></textarea>
       </div>
     </section>
 
@@ -1075,11 +1075,11 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{
     </div>
     <div class="modal__body">
       <div class="field"><label for="prodName">Product Name <span class="required">*</span></label>
-        <input type="text" id="prodName" autocomplete="off" maxlength="50"></div>
+        <input type="text" id="prodName" autocomplete="off" maxlength="100"></div>
       <div class="field"><label for="prodDesc">Description <span class="optional">(Optional)</span></label>
-        <input type="text" id="prodDesc" autocomplete="off" maxlength="50"></div>
+        <input type="text" id="prodDesc" autocomplete="off" maxlength="150"></div>
       <div class="field"><label for="prodSerial">Serial Number <span class="optional">(Optional)</span></label>
-        <input type="text" id="prodSerial" autocomplete="off" maxlength="40"></div>
+        <input type="text" id="prodSerial" autocomplete="off" maxlength="50"></div>
       <div class="field-group field-group--pair">
         <div class="field"><label for="prodQty">Qty <span class="required">*</span></label><input type="number" id="prodQty" min="1" max="99999999" step="1" value="1" inputmode="numeric"></div>
         <div class="field"><label for="prodRate">Rate (₹) <span class="required">*</span></label><input type="number" id="prodRate" min="0" step="0.01" inputmode="decimal"></div>
