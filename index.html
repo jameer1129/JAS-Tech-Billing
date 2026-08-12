@@ -1682,18 +1682,16 @@ function setupAutoSaveListeners(){
     }
   });
 
-  // Save when customer fields change
+  // Save when customer fields / date / notes change.
+  // (Watermark/QR/Signature/Notes-visibility toggles already persist themselves
+  // via jas_pref_* keys, so they're intentionally skipped here to avoid double-saving.)
   document.addEventListener('change', (e) => {
     if (e.target && (
       e.target.id === 'customerName' || 
       e.target.id === 'customerAddress' || 
       e.target.id === 'customerMobile' ||
       e.target.id === 'invoiceDate' ||
-      e.target.id === 'invoiceNotes' ||
-      e.target.id === 'toggleWatermark' ||
-      e.target.id === 'toggleQrVisibility' ||
-      e.target.id === 'toggleSignatureVisibility' ||
-      e.target.id === 'toggleNotesVisibility'
+      e.target.id === 'invoiceNotes'
     )) {
       if (currentSession) {
         saveBillStateToLocalStorage();
@@ -3142,10 +3140,9 @@ function saveBillStateToLocalStorage(){
     invoiceDateValue: el.invoiceDate.value, // Save the actual date input value
     notes: state.notes,
     products: state.products,
-    showWatermark: state.showWatermark,
-    showQr: state.showQr,
-    showSignature: state.showSignature,
-    includeNotesOnPdf: state.includeNotesOnPdf,
+    // showWatermark/showQr/showSignature/includeNotesOnPdf are intentionally
+    // NOT stored here — they already persist via jas_pref_* keys, so storing
+    // them again in the bill snapshot would just duplicate that data.
     timestamp: Date.now()
   };
   
@@ -3183,10 +3180,8 @@ function restoreBillStateFromLocalStorage(){
   state.dateStr = saved.dateStr || '';
   state.notes = saved.notes || '';
   state.products = saved.products || [];
-  state.showWatermark = saved.showWatermark !== false;
-  state.showQr = saved.showQr !== false;
-  state.showSignature = saved.showSignature !== false;
-  state.includeNotesOnPdf = saved.includeNotesOnPdf !== false;
+  // Watermark/QR/Signature/Notes toggle state comes from jas_pref_* via
+  // syncDisplayToggleState() — not restored from the bill snapshot.
   
   // Recalculate nextId based on existing products
   if (state.products.length > 0) {
