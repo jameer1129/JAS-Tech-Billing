@@ -178,10 +178,7 @@ img{max-width:100%;display:block;}
 .field textarea{resize:vertical;min-height:64px;line-height:1.5;}
 .field input:focus,.field textarea:focus,.field select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(21,101,192,.14);}
 
-.field input.input-error, .field textarea.input-error {
-  border-color: var(--danger);
-  box-shadow: 0 0 0 3px rgba(214, 69, 69, 0.14);
-}
+.field input.input-error, .field textarea.input-error {border-color: var(--danger);box-shadow: 0 0 0 3px rgba(214, 69, 69, 0.14);}
 .field-error{font-size:12px;color:var(--danger);margin-top:6px;display:none;}
 .field-error.show{display:block;}
 
@@ -361,9 +358,22 @@ body.dark-theme .pdf-loading-overlay p{color:#F3F4F6;}
 .auth-msg.show{display:block;}
 .auth-msg.info{color:var(--success);background:rgba(31,146,84,.12);border-color:rgba(31,146,84,.2);}
 
+/* ---------- Email verification / OTP ---------- */
+.verify-email-text{margin:0 0 8px;text-align:center;color:var(--muted);font-size:13px;line-height:1.55;}
+.verify-email-address{display:block;margin:0 0 4px;text-align:center;color:var(--text);font-size:13.5px;font-weight:700;word-break:break-word;}
+.verify-otp-input{width:100%;padding:13px 8px;border:1.5px solid var(--line);border-radius:var(--radius-sm);font-size:24px;font-weight:700;letter-spacing:5px;text-align:center;color:var(--text);background:var(--white);outline:none;transition:border-color .15s ease,box-shadow .15s ease,background .3s ease;}
+.verify-otp-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(1,37,135,.14);}
+.verify-otp-input::placeholder{letter-spacing:5px;color:var(--muted);opacity:.55;}
+.verify-timer{display:flex;flex-direction:column;align-items:center;gap:4px;margin-top:2px;font-size:12px;color:var(--muted);line-height:1.4;}
+.verify-timer strong{color:var(--primary);font-weight:700;}
+.verify-timer.expired strong{color:var(--danger);}
+.verify-resend{margin-top:2px;}
+.verify-resend[disabled]{opacity:.55;cursor:not-allowed;}
+.verify-back{margin-top:0;}
+
 .pending-shell{flex:1;display:flex;align-items:center;justify-content:center;padding:24px 16px;text-align:center;position:relative;}
 .pending-card{max-width:400px;background:var(--white);border-radius:var(--radius);padding:34px 26px;box-shadow:var(--shadow-md);border:1px solid var(--line);}
-.pending-card i{font-size:38px;color:var(--warning);margin-bottom:14px;display:block;}
+.pending-card i{font-size:28px;color:var(--warning);display:block;}
 .pending-card h2{margin:0 0 8px;font-size:17px;color:var(--text);}
 .pending-card p{margin:0 0 20px;color:var(--muted);font-size:13.5px;line-height:1.55;}
 .pending-card.rejected i{color:var(--danger);}
@@ -519,12 +529,19 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{
 .actions-popup__sep{height:1px;background:var(--line);margin:4px 0;}
 
 /* Full-screen boot loader shown before auth state is known */
-.boot-loader{position:fixed;inset:0;z-index:9998;display:flex;align-items:center;justify-content:center;}
+.boot-loader{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
+  background:rgba(245,247,249,0.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+}
 .boot-loader__card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:var(--white);border-radius:var(--radius-sm);padding:24px 28px;}
 .boot-loader__bar-track{width:160px;height:4px;background:var(--line);border-radius:4px;overflow:hidden;}
 .boot-loader__bar-fill{height:100%;width:45%;background:#625aff;border-radius:4px;animation:barSlide 1.1s ease-in-out infinite;}
 @keyframes barSlide{0%{transform:translateX(-100%);}50%{transform:translateX(80%);}100%{transform:translateX(260%);}}
 .boot-loader__label{font-size:13px;font-weight:600;color:var(--text);}
+
+/* Dark-theme overrides to match the PDF loader */
+body.dark-theme .boot-loader{background:rgba(10,11,12,0.7);}
+body.dark-theme .boot-loader__card{background:var(--surface);}
+body.dark-theme .boot-loader__label{color:var(--F3F4F6, #F3F4F6);}
 
 /* PDF Generation specific styles */
 .invoice-page{
@@ -772,6 +789,88 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{
           <i class="fa-solid fa-arrow-left"></i> Back to Login
         </a>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= EMAIL VERIFICATION SCREEN ================= -->
+<div class="auth-shell hide" id="emailVerificationScreen">
+  <button class="auth-theme-toggle" id="btnVerifyThemeToggle" aria-label="Toggle Theme">
+    <i class="fa-solid fa-moon"></i>
+  </button>
+  <div class="auth-card">
+    <div class="auth-logo">
+      <img src="assets/logo/logo.png" alt="Logo">
+      <h1 id="verifyCompanyName"></h1>
+      <span>Verify your email address</span>
+    </div>
+
+    <div class="auth-msg" id="verifyMsg"></div>
+
+    <div class="auth-form" id="emailVerificationForm">
+      <div>
+        <p class="verify-email-text">We sent an 8-digit verification code to</p>
+        <span class="verify-email-address" id="verifyEmailAddress"></span>
+      </div>
+
+      <div class="field">
+        <label for="verifyOtp">Verification Code</label>
+        <input
+          type="text"
+          id="verifyOtp"
+          class="verify-otp-input"
+          inputmode="numeric"
+          autocomplete="one-time-code"
+          pattern="[0-9]*"
+          maxlength="8"
+          placeholder="••••••••"
+          aria-label="8-digit verification code"
+        >
+      </div>
+
+      <div class="verify-timer" id="verifyTimerWrap">
+        <span>Code expires in <strong id="verifyExpiryTimer">60:00</strong></span>
+        <span id="verifyResendTimerText">You can request a new code in <strong id="verifyResendTimer">00:60</strong></span>
+      </div>
+
+      <button class="btn btn--primary btn--full" id="btnVerifyEmail">
+        <i class="fa-solid fa-shield-halved"></i> Verify Email
+      </button>
+
+      <button type="button" class="btn btn--outline btn--full verify-resend" id="btnResendVerification" disabled>
+        <i class="fa-solid fa-rotate"></i> Resend Code
+      </button>
+
+      <button type="button" class="btn btn--ghost btn--full verify-back" id="btnBackFromVerification">
+        <i class="fa-solid fa-arrow-left"></i> Back to Register
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= OTP SEND CONFIRMATION ================= -->
+<div class="modal-overlay modal--confirm hide" id="otpSendConfirmOverlay">
+  <div class="modal">
+    <div class="modal__header">
+      <h3 id="otpConfirmTitle">Send Verification Code?</h3>
+      <button class="modal__close" id="btnCloseOtpSendConfirm" aria-label="Close">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <div class="modal__body">
+      <div class="confirm-icon" style="background:#EEF4FC;color:var(--primary);">
+        <i class="fa-solid fa-envelope"></i>
+      </div>
+      <p id="otpConfirmMessage">
+        We will send an 8-digit verification code to your email address.
+      </p>
+      <p id="otpConfirmEmail" class="confirm-target" style="word-break:break-word;"></p>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--ghost" id="btnCancelOtpSendConfirm">Cancel</button>
+      <button class="btn btn--primary" id="btnConfirmOtpSend">
+        <i class="fa-solid fa-paper-plane"></i> Send Code
+      </button>
     </div>
   </div>
 </div>
@@ -1275,7 +1374,7 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{
     <div class="modal__body">
       <div class="confirm-icon" style="background:#EEF4FC;color:var(--primary);"><i class="fa-solid fa-right-from-bracket"></i></div>
       <p id="logoutModalMessage">Are you sure you want to log out?</p>
-      <p id="logoutModalEmail" style="display:none;margin:10px 0 0;font-weight:700;word-break:break-word;"></p>
+      <p id="logoutModalEmail" style="display:none;margin-bottom:8px;font-weight:700;word-break:break-word;"></p>
     </div>
     <div class="modal__footer">
       <button class="btn btn--ghost" id="btnCancelLogout">Cancel</button>
@@ -1368,6 +1467,28 @@ function cacheElements(){
   el.forgotEmail = document.getElementById('forgotEmail');
   el.btnSendReset = document.getElementById('btnSendReset');
   el.btnAuthThemeToggle = document.getElementById('btnAuthThemeToggle');
+
+  el.emailVerificationScreen = document.getElementById('emailVerificationScreen');
+  el.verifyCompanyName = document.getElementById('verifyCompanyName');
+  el.verifyMsg = document.getElementById('verifyMsg');
+  el.verifyEmailAddress = document.getElementById('verifyEmailAddress');
+  el.verifyOtp = document.getElementById('verifyOtp');
+  el.verifyExpiryTimer = document.getElementById('verifyExpiryTimer');
+  el.verifyResendTimerText = document.getElementById('verifyResendTimerText');
+  el.verifyResendTimer = document.getElementById('verifyResendTimer');
+  el.verifyTimerWrap = document.getElementById('verifyTimerWrap');
+  el.btnVerifyEmail = document.getElementById('btnVerifyEmail');
+  el.btnResendVerification = document.getElementById('btnResendVerification');
+  el.btnBackFromVerification = document.getElementById('btnBackFromVerification');
+  el.btnVerifyThemeToggle = document.getElementById('btnVerifyThemeToggle');
+
+  el.otpSendConfirmOverlay = document.getElementById('otpSendConfirmOverlay');
+  el.otpConfirmTitle = document.getElementById('otpConfirmTitle');
+  el.otpConfirmMessage = document.getElementById('otpConfirmMessage');
+  el.otpConfirmEmail = document.getElementById('otpConfirmEmail');
+  el.btnCloseOtpSendConfirm = document.getElementById('btnCloseOtpSendConfirm');
+  el.btnCancelOtpSendConfirm = document.getElementById('btnCancelOtpSendConfirm');
+  el.btnConfirmOtpSend = document.getElementById('btnConfirmOtpSend');
 
   el.pendingScreen = document.getElementById('pendingScreen');
   el.pendingCard = document.getElementById('pendingCard');
@@ -2033,59 +2154,329 @@ function hideAuthMsg(){
 }
 
 function showScreen(name){
-  hideOverlay(el.bootLoader) ; el.bootLoader.classList.add('hide');
+  hideOverlay(el.bootLoader); el.bootLoader.classList.add('hide');
   el.authScreen.classList.toggle('hide', name !== 'auth');
+  el.emailVerificationScreen.classList.toggle('hide', name !== 'verify-email');
   el.resetPasswordScreen.classList.toggle('hide', name !== 'reset-password');
   el.pendingScreen.classList.toggle('hide', name !== 'pending');
   el.appScreen.classList.toggle('hide', name !== 'app');
 }
 
-async function handleLogin(){
-  const email = el.loginEmail.value.trim();
-  const password = el.loginPassword.value;
-  if (!email || !password) { showAuthMsg('Enter email and password.'); return; }
-  if (password.length < 8) { showAuthMsg('Password must be at least 8 characters.'); return; }
-  el.btnLogin.disabled = true;
-  hideAuthMsg();
-  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-  el.btnLogin.disabled = false;
+function showActionLoader(message = 'Please wait...'){
+  el.bootLoader.querySelector('.boot-loader__label').textContent = message;
+  el.bootLoader.classList.remove('hide');
+}
 
-  if (error) {
-    showAuthMsg(error.message || 'Login failed. Check your credentials.');
+function hideActionLoader(){
+  el.bootLoader.classList.add('hide');
+  el.bootLoader.querySelector('.boot-loader__label').textContent = 'Loading Data';
+}
+
+const SIGNUP_OTP_RESEND_COOLDOWN_SECONDS = 60;
+const SIGNUP_OTP_EXPIRY_SECONDS = 3600;
+const PENDING_SIGNUP_KEY = 'jas_pending_signup_email';
+const SIGNUP_OTP_SENT_AT_KEY = 'jas_signup_otp_sent_at';
+let signupVerificationTimer = null;
+let pendingSignupEmail = '';
+
+function formatCountdown(totalSeconds){
+  const seconds = Math.max(0, Math.floor(totalSeconds));
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+}
+
+function savePendingSignup(email, sentAt = Date.now()){
+  pendingSignupEmail = email;
+  sessionStorage.setItem(PENDING_SIGNUP_KEY, email);
+  sessionStorage.setItem(SIGNUP_OTP_SENT_AT_KEY, String(sentAt));
+}
+
+function clearPendingSignup(){
+  pendingSignupEmail = '';
+  sessionStorage.removeItem(PENDING_SIGNUP_KEY);
+  sessionStorage.removeItem(SIGNUP_OTP_SENT_AT_KEY);
+  if (signupVerificationTimer) {
+    clearInterval(signupVerificationTimer);
+    signupVerificationTimer = null;
+  }
+}
+
+function getPendingSignup(){
+  return {
+    email: sessionStorage.getItem(PENDING_SIGNUP_KEY) || '',
+    sentAt: Number(sessionStorage.getItem(SIGNUP_OTP_SENT_AT_KEY) || 0)
+  };
+}
+
+function getSignupCooldownRemaining(sentAt){
+  if (!sentAt) return 0;
+  return Math.max(0, SIGNUP_OTP_RESEND_COOLDOWN_SECONDS - Math.floor((Date.now() - sentAt) / 1000));
+}
+
+function getSignupExpiryRemaining(sentAt){
+  if (!sentAt) return 0;
+  return Math.max(0, SIGNUP_OTP_EXPIRY_SECONDS - Math.floor((Date.now() - sentAt) / 1000));
+}
+
+function showVerificationMsg(message, kind){
+  el.verifyMsg.textContent = message;
+  el.verifyMsg.className = 'auth-msg show' + (kind === 'info' ? ' info' : '');
+}
+
+function hideVerificationMsg(){
+  el.verifyMsg.className = 'auth-msg';
+}
+
+function updateVerificationTimers(){
+  const { sentAt } = getPendingSignup();
+  const cooldown = getSignupCooldownRemaining(sentAt);
+  const expiry = getSignupExpiryRemaining(sentAt);
+
+  el.verifyExpiryTimer.textContent = formatCountdown(expiry);
+  el.verifyTimerWrap.classList.toggle('expired', expiry <= 0);
+
+  if (expiry <= 0) {
+    el.verifyExpiryTimer.textContent = 'Expired';
+  }
+
+  el.btnResendVerification.disabled = cooldown > 0;
+  if (cooldown > 0) {
+    el.verifyResendTimerText.classList.remove('hide');
+    el.verifyResendTimer.textContent = formatCountdown(cooldown);
+  } else {
+    el.verifyResendTimerText.classList.add('hide');
+  }
+}
+
+function startVerificationTimers(){
+  if (signupVerificationTimer) clearInterval(signupVerificationTimer);
+  updateVerificationTimers();
+  signupVerificationTimer = setInterval(updateVerificationTimers, 1000);
+}
+
+function showEmailVerification(email, message = 'Enter the code from your email to verify your account.'){ 
+  pendingSignupEmail = email;
+  el.verifyCompanyName.textContent = (CONFIG.company.name + ' Billing').toUpperCase();
+  el.verifyEmailAddress.textContent = email;
+  el.verifyOtp.value = '';
+  hideVerificationMsg();
+  showScreen('verify-email');
+  startVerificationTimers();
+  if (message) showVerificationMsg(message, 'info');
+  setTimeout(() => el.verifyOtp.focus(), 80);
+}
+
+function isEmailNotConfirmedError(error){
+  const text = `${error?.message || ''} ${error?.code || ''}`.toLowerCase();
+  return text.includes('email not confirmed') || text.includes('email_not_confirmed');
+}
+
+async function resendSignupOtp(email, options = {}){
+  const normalizedEmail = email.trim().toLowerCase();
+  const existing = getPendingSignup();
+  const sameEmail = existing.email.trim().toLowerCase() === normalizedEmail;
+  const cooldown = sameEmail ? getSignupCooldownRemaining(existing.sentAt) : 0;
+
+  if (cooldown > 0 && !options.ignoreCooldown) {
+    return { error: new Error(`Please wait ${cooldown} seconds before requesting another code.`), cooldown };
+  }
+
+  const { error } = await supabaseClient.auth.resend({
+    type: 'signup',
+    email: normalizedEmail,
+    options: {
+      emailRedirectTo: window.location.origin + window.location.pathname
+    }
+  });
+
+  if (error) return { error, cooldown: 0 };
+
+  const sentAt = Date.now();
+  savePendingSignup(normalizedEmail, sentAt);
+  return { error: null, cooldown: SIGNUP_OTP_RESEND_COOLDOWN_SECONDS };
+}
+
+async function handleLogin(){
+  const email = el.loginEmail.value.trim().toLowerCase();
+  const password = el.loginPassword.value;
+
+  if (!email || !password) {
+    showAuthMsg('Enter email and password.');
     return;
   }
-  currentSession = data.session;
-  await afterAuthResolved();
+
+  if (password.length < 8) {
+    showAuthMsg('Password must be at least 8 characters.');
+    return;
+  }
+
+  el.btnLogin.disabled = true;
+  hideAuthMsg();
+  showActionLoader('Signing in...');
+
+  try {
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (error) {
+      hideActionLoader();
+
+      if (isEmailNotConfirmedError(error)) {
+        const sendOtp = await askToSendOtp(email, {
+          title: 'Email Not Verified',
+          message: 'Your email address is not verified. Would you like us to send a new 8-digit verification code?'
+        });
+
+        if (!sendOtp) {
+          showAuthMsg('Please verify your email before logging in.', 'info');
+          return;
+        }
+
+        showActionLoader('Sending verification code...');
+
+        const resend = await resendSignupOtp(email);
+
+        if (!resend.error) {
+          showEmailVerification(
+            email,
+            'Your email is not verified. We sent a new verification code.'
+          );
+          return;
+        }
+
+        const pending = getPendingSignup();
+        const sameEmail = pending.email.trim().toLowerCase() === email;
+        const remaining = sameEmail
+          ? getSignupCooldownRemaining(pending.sentAt)
+          : 0;
+
+        if (remaining > 0) {
+          showEmailVerification(
+            email,
+            `A verification code was recently sent. You can request another in ${remaining} seconds.`
+          );
+          return;
+        }
+
+        showAuthMsg(
+          resend.error.message ||
+          'Could not send a verification code. Please try again.'
+        );
+        return;
+      }
+
+      showAuthMsg(error.message || 'Login failed. Check your credentials.');
+      return;
+    }
+
+    currentSession = data.session;
+    clearPendingSignup();
+
+    showActionLoader('Loading your account...');
+    await afterAuthResolved();
+  } finally {
+    hideActionLoader();
+    el.btnLogin.disabled = false;
+  }
 }
+
 async function emailExists(email) {
   try {
     const res = await fetch(
       `${CONFIG.supabase.url}/functions/v1/check-email-exists`,
       {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ email })
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase() })
       }
     );
 
     if (!res.ok) {
-      console.error("Email check failed:", res.status);
-      return false; // fail open
+      console.error('Email check failed:', res.status);
+      return { ok: false, exists: false, confirmed: false };
     }
 
     const data = await res.json();
-    return !!data.exists;
+
+    if (typeof data.exists !== 'boolean') {
+      console.error('Email check returned an invalid response.');
+      return { ok: false, exists: false, confirmed: false };
+    }
+
+    if (data.exists) {
+      const confirmed =
+        typeof data.email_confirmed === 'boolean'
+          ? data.email_confirmed
+          : typeof data.confirmed === 'boolean'
+            ? data.confirmed
+            : typeof data.emailConfirmed === 'boolean'
+              ? data.emailConfirmed
+              : null;
+
+      if (confirmed === null) {
+        console.error('Email check did not return email confirmation status.');
+        return { ok: false, exists: true, confirmed: false };
+      }
+
+      return { ok: true, exists: true, confirmed };
+    }
+
+    return {
+      ok: true,
+      exists: false,
+      confirmed: false
+    };
   } catch (err) {
-    console.error("Email existence check failed:", err);
-    return false; // fail open
+    console.error('Email existence check failed:', err);
+    return { ok: false, exists: false, confirmed: false };
   }
+}
+
+function askToSendOtp(email, options = {}) {
+  return new Promise(resolve => {
+    const {
+      title = 'Send Verification Code?',
+      message = 'We will send an 8-digit verification code to this email address.'
+    } = options;
+
+    el.otpConfirmTitle.textContent = title;
+    el.otpConfirmMessage.textContent = message;
+    el.otpConfirmEmail.textContent = email;
+
+    let settled = false;
+
+    const finish = (confirmed) => {
+      if (settled) return;
+      settled = true;
+      el.otpSendConfirmOverlay.classList.add('hide');
+      cleanup();
+      resolve(confirmed);
+    };
+
+    const onConfirm = () => finish(true);
+    const onCancel = () => finish(false);
+    const onClose = () => finish(false);
+
+    function cleanup() {
+      el.btnConfirmOtpSend.removeEventListener('click', onConfirm);
+      el.btnCancelOtpSendConfirm.removeEventListener('click', onCancel);
+      el.btnCloseOtpSendConfirm.removeEventListener('click', onClose);
+    }
+
+    el.btnConfirmOtpSend.addEventListener('click', onConfirm);
+    el.btnCancelOtpSendConfirm.addEventListener('click', onCancel);
+    el.btnCloseOtpSendConfirm.addEventListener('click', onClose);
+
+    el.otpSendConfirmOverlay.classList.remove('hide');
+  });
 }
 
 async function handleRegister() {
   const name = el.regName.value.trim();
-  const email = el.regEmail.value.trim();
+  const email = el.regEmail.value.trim().toLowerCase();
   const password = el.regPassword.value;
 
   if (!name || !email || !password) {
@@ -2101,46 +2492,288 @@ async function handleRegister() {
   el.btnRegister.disabled = true;
   hideAuthMsg();
 
-  // Check whether the email already exists
-  const exists = await emailExists(email);
+  // Check the account BEFORE asking to send anything.
+  showActionLoader('Checking email...');
 
-  if (exists) {
+  let emailCheck;
+  try {
+    emailCheck = await emailExists(email);
+  } catch (err) {
+    console.error(err);
+    emailCheck = { ok: false, exists: false, confirmed: false };
+  }
+
+  hideActionLoader();
+
+  if (!emailCheck.ok) {
     el.btnRegister.disabled = false;
-    showAuthMsg('That email is already registered. Please log in.');
+    showAuthMsg('We could not safely verify this email right now. Please try again.');
     return;
   }
 
-  const { data, error } = await supabaseClient.auth.signUp({
-    email,
-    password,
-    options: {
-      data: { name },
-      emailRedirectTo:
-        window.location.origin + window.location.pathname
+  if (emailCheck.exists) {
+    el.btnRegister.disabled = false;
+
+    // A verified account must never be routed to the registration OTP screen.
+    if (emailCheck.confirmed) {
+      setAuthTab('login');
+      el.loginEmail.value = email;
+      showAuthMsg('An account with this email is already verified. Please log in or use Forgot Password.');
+      return;
     }
+    // Existing but unverified account: OTP recovery is allowed.
+    const sendOtp = await askToSendOtp(email, {
+      title: 'Account Already Exists',
+      message: 'This email is registered but not verified. Would you like us to send a new 8-digit verification code?'
+    });
+
+    if (!sendOtp) {
+      showAuthMsg('No verification email was sent.', 'info');
+      return;
+    }
+
+    showActionLoader('Sending verification code...');
+
+    try {
+      const resend = await resendSignupOtp(email);
+
+      if (!resend.error) {
+        showEmailVerification(
+          email,
+          'This account is not verified. We sent a new 8-digit verification code.'
+        );
+        return;
+      }
+
+      const pending = getPendingSignup();
+      const sameEmail = pending.email.trim().toLowerCase() === email;
+      const remaining = sameEmail
+        ? getSignupCooldownRemaining(pending.sentAt)
+        : 0;
+
+      if (remaining > 0) {
+        showEmailVerification(
+          email,
+          `A verification code was recently sent. You can request another in ${remaining} seconds.`
+        );
+        return;
+      }
+
+      showAuthMsg(
+        resend.error.message ||
+        'Could not send a verification code. Please try again.'
+      );
+    } finally {
+      hideActionLoader();
+    }
+
+    return;
+  }
+
+  // New account: ask before signUp(), because signUp() can send the email.
+  const sendOtp = await askToSendOtp(email, {
+    title: 'Send Verification Code?',
+    message: 'We will send an 8-digit verification code to this email address.'
   });
 
-  el.btnRegister.disabled = false;
-
-  if (error) {
-    showAuthMsg(error.message || 'Registration failed.');
+  if (!sendOtp) {
+    el.btnRegister.disabled = false;
+    showAuthMsg('Registration cancelled. No verification email was sent.', 'info');
     return;
   }
 
-  if (data?.session) {
-    currentSession = data.session;
-    await afterAuthResolved();
+  showActionLoader('Creating your account...');
+
+  try {
+    const { data, error } = await supabaseClient.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { name },
+        emailRedirectTo: window.location.origin + window.location.pathname
+      }
+    });
+
+    if (error) {
+      const text = `${error.message || ''} ${error.code || ''}`.toLowerCase();
+
+      if (
+        text.includes('already registered') ||
+        text.includes('user already registered')
+      ) {
+        setAuthTab('login');
+        el.loginEmail.value = email;
+        showAuthMsg('That email is already registered. Please log in or use Forgot Password.');
+        return;
+      }
+
+      showAuthMsg(error.message || 'Registration failed.');
+      return;
+    }
+
+    if (data?.session) {
+      currentSession = data.session;
+      clearPendingSignup();
+      await afterAuthResolved();
+      return;
+    }
+
+    // Only temporary email/timer state is stored, never the password.
+    savePendingSignup(email, Date.now());
+    showEmailVerification(
+      email,
+      'Account created. Enter the 8-digit verification code sent to your email.'
+    );
+  } finally {
+    hideActionLoader();
+    el.btnRegister.disabled = false;
+  }
+}
+
+async function handleVerifyEmail(){
+  const email = pendingSignupEmail || getPendingSignup().email;
+  const token = el.verifyOtp.value.replace(/\D/g, '').slice(0, 8);
+
+  if (!email) {
+    showVerificationMsg(
+      'Your verification session is missing. Please register again or log in.'
+    );
     return;
   }
 
-  setAuthTab('login');
-  showAuthMsg(
-    'Account created. Please check your email to confirm, then log in.',
-    'info'
-  );
+  if (!/^\d{8}$/.test(token)) {
+    showVerificationMsg('Enter the 8-digit verification code.');
+    el.verifyOtp.focus();
+    return;
+  }
+
+  const { sentAt } = getPendingSignup();
+
+  if (sentAt && getSignupExpiryRemaining(sentAt) <= 0) {
+    showVerificationMsg(
+      'This verification code has expired. Please request a new code.'
+    );
+    updateVerificationTimers();
+    return;
+  }
+
+  el.btnVerifyEmail.disabled = true;
+  el.verifyOtp.disabled = true;
+  hideVerificationMsg();
+  showActionLoader('Verifying your email...');
+
+  try {
+    const { data, error } = await supabaseClient.auth.verifyOtp({
+      email,
+      token,
+      type: 'email'
+    });
+
+    if (error) {
+      const text = `${error.message || ''} ${error.code || ''}`.toLowerCase();
+
+      if (text.includes('expired') || text.includes('invalid')) {
+        showVerificationMsg(
+          'That code is invalid or expired. Request a new code and try again.'
+        );
+      } else {
+        showVerificationMsg(
+          error.message || 'Verification failed. Please try again.'
+        );
+      }
+      return;
+    }
+
+    currentSession = data?.session || null;
+    clearPendingSignup();
+    el.verifyOtp.value = '';
+
+    if (currentSession) {
+      showVerificationMsg(
+        'Email verified successfully. Loading your account...',
+        'info'
+      );
+      await afterAuthResolved();
+    } else {
+      showScreen('auth');
+      setAuthTab('login');
+      el.loginEmail.value = email;
+      showAuthMsg('Email verified successfully. Please log in.', 'info');
+    }
+  } finally {
+    hideActionLoader();
+    el.btnVerifyEmail.disabled = false;
+    el.verifyOtp.disabled = false;
+  }
+}
+
+async function handleResendVerification(){
+  const pending = getPendingSignup();
+  const email = pendingSignupEmail || pending.email;
+
+  if (!email) {
+    showVerificationMsg('Your verification session is missing. Please register again or log in.');
+    return;
+  }
+
+  const remaining = getSignupCooldownRemaining(pending.sentAt);
+  if (remaining > 0) {
+    updateVerificationTimers();
+    showVerificationMsg(`Please wait ${remaining} seconds before requesting another code.`);
+    return;
+  }
+
+  const sendOtp = await askToSendOtp(email, {
+    title: 'Resend Verification Code?',
+    message: 'We will send a new 8-digit verification code to this email address.'
+  });
+
+  if (!sendOtp) {
+    showVerificationMsg('No new verification email was sent.', 'info');
+    return;
+  }
+
+  el.btnResendVerification.disabled = true;
+  hideVerificationMsg();
+  showActionLoader('Sending verification code...');
+
+  try {
+    const resend = await resendSignupOtp(email);
+
+    if (resend.error) {
+      el.btnResendVerification.disabled = false;
+      showVerificationMsg(resend.error.message || 'Could not resend the verification code.');
+      updateVerificationTimers();
+      return;
+    }
+
+    el.verifyOtp.value = '';
+    showVerificationMsg(
+      'A new 8-digit verification code has been sent. The previous code is no longer needed.',
+      'info'
+    );
+    startVerificationTimers();
+    setTimeout(() => el.verifyOtp.focus(), 80);
+  } finally {
+    hideActionLoader();
+  }
+}
+
+function handleBackFromVerification(){
+  const pending = getPendingSignup();
+  const email = pendingSignupEmail || pending.email;
+
+  // Cancel only temporary OTP state. Never delete the Supabase Auth account.
+  clearPendingSignup();
+  el.verifyOtp.value = '';
+  showScreen('auth');
+  setAuthTab('register');
+  if (email) el.regEmail.value = email;
+  showAuthMsg('Verification cancelled. No OTP state was kept in this tab.', 'info');
 }
 
 async function handleForgotPassword(){
+
   const email = el.forgotEmail.value.trim();
   if (!email) { showAuthMsg('Enter your email address.'); return; }
 
@@ -2155,6 +2788,7 @@ async function handleForgotPassword(){
     // link to the domain root, which 404s.
     redirectTo: new URL('?mode=update-password', window.location.href).href
   });
+  hideActionLoader();
   el.btnSendReset.disabled = false;
 
   if (error) {
@@ -3861,8 +4495,23 @@ function bindEvents(){
   el.authTabRegister.addEventListener('click', () => setAuthTab('register'));
   el.btnLogin.addEventListener('click', handleLogin);
   el.btnRegister.addEventListener('click', handleRegister);
+  el.btnVerifyEmail.addEventListener('click', handleVerifyEmail);
+  el.btnResendVerification.addEventListener('click', handleResendVerification);
+  el.btnBackFromVerification.addEventListener('click', handleBackFromVerification);
+  el.verifyOtp.addEventListener('input', () => {
+    el.verifyOtp.value = el.verifyOtp.value.replace(/\D/g, '').slice(0, 8);
+    if (el.verifyOtp.value.length === 8) handleVerifyEmail();
+  });
+  el.verifyOtp.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') handleVerifyEmail();
+  });
+  el.btnVerifyThemeToggle.addEventListener('click', () => {
+    applyTheme(!document.body.classList.contains('dark-theme'));
+  });
   el.btnSendReset.addEventListener('click', handleForgotPassword);
   el.btnUpdateResetPassword.addEventListener('click', handleResetPassword);
+  el.resetNewPassword.addEventListener('keydown', (event) => { if (event.key === 'Enter') handleResetPassword(); });
+  el.resetConfirmPassword.addEventListener('keydown', (event) => { if (event.key === 'Enter') handleResetPassword(); });
   el.btnCancelReset.addEventListener('click', async () => {
     // Cancelling must actually end the live recovery session — otherwise
     // a valid, auto-refreshing access token is left sitting around
@@ -3878,6 +4527,17 @@ function bindEvents(){
   });
   el.btnPendingLogout.addEventListener('click', openLogoutConfirm);
   el.appBarUser.addEventListener('click', (e) => { e.stopPropagation(); toggleUserDropdown(); });
+
+  // Allow Enter key to submit the change-password modal
+  if (el.changePwCurrent) {
+    el.changePwCurrent.addEventListener('keydown', (event) => { if (event.key === 'Enter') handleChangePassword(); });
+  }
+  if (el.changePwNew) {
+    el.changePwNew.addEventListener('keydown', (event) => { if (event.key === 'Enter') handleChangePassword(); });
+  }
+  if (el.changePwConfirm) {
+    el.changePwConfirm.addEventListener('keydown', (event) => { if (event.key === 'Enter') handleChangePassword(); });
+  }
   document.addEventListener('click', e => { if (!e.target.closest('#userMenuWrap')) closeUserDropdown(); });
   el.drawerChangePw.addEventListener('click', () => { closeDrawer(); openChangePasswordModal(); });
   el.btnCloseChangePwModal.addEventListener('click', closeChangePasswordModal);
@@ -4216,6 +4876,8 @@ async function init(){
   await loadConfig();
   bindEvents();
 
+  pendingSignupEmail = getPendingSignup().email;
+
   const urlParams = new URLSearchParams(window.location.search);
   const isPasswordResetLink = urlParams.get('mode') === 'update-password';
   const hasPendingRecovery = !!sessionStorage.getItem(PASSWORD_RECOVERY_KEY);
@@ -4356,10 +5018,25 @@ async function init(){
 
   if (session) {
     currentSession = session;
+    clearPendingSignup();
     normalAuthResolved = true;
     await afterAuthResolved();
   } else {
-    showScreen('auth');
+    const pending = getPendingSignup();
+    if (pending.email) {
+      // Keep an abandoned/unverified registration recoverable after a page
+      // refresh or browser restart. The timer is rebuilt from the original
+      // sentAt value, so expiry and resend cooldown do not reset.
+      pendingSignupEmail = pending.email;
+      showEmailVerification(
+        pending.email,
+        getSignupExpiryRemaining(pending.sentAt) > 0
+          ? 'Enter the 8-digit verification code sent to your email.'
+          : 'Your previous verification code has expired. Request a new code to continue.'
+      );
+    } else {
+      showScreen('auth');
+    }
   }
 
   document.addEventListener('visibilitychange', async () => {
