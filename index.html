@@ -1321,8 +1321,8 @@ body.dark-theme .boot-loader__label{color:var(--F3F4F6, #F3F4F6);}
     <button class="drawer__close" id="btnDrawerClose" aria-label="Close menu"><i class="fa-solid fa-xmark"></i></button>
   </div>
   <div class="drawer__body">
-    <button class="drawer__item theme-toggle" id="drawerThemeToggle">
-      <i class="fa-solid fa-moon" id="drawerThemeIcon"></i> <span id="drawerThemeLabel">Dark Mode</span>
+    <button class="drawer__item theme-toggle">
+      <i class="fa-solid fa-moon"></i> <span id="drawerThemeLabel">Dark Mode</span>
     </button>
     <button class="drawer__item" id="drawerChangePw">
       <i class="fa-solid fa-key"></i> Change Password
@@ -1621,8 +1621,6 @@ function cacheElements(){
   el.btnDrawerClose = document.getElementById('btnDrawerClose');
   el.drawerUserName = document.getElementById('drawerUserName');
   el.drawerUserRole = document.getElementById('drawerUserRole');
-  el.drawerThemeToggle = document.getElementById('drawerThemeToggle');
-  el.drawerThemeIcon = document.getElementById('drawerThemeIcon');
   el.drawerThemeLabel = document.getElementById('drawerThemeLabel');
   el.drawerLogout = document.getElementById('drawerLogout');
   el.drawerChangePw = document.getElementById('drawerChangePw');
@@ -4579,7 +4577,6 @@ function handleTableClick(e){
 function openDrawer(){
   el.drawerUserName.textContent = currentProfile ? (currentProfile.name || currentProfile.email) : '';
   el.drawerUserRole.textContent = currentProfile ? currentProfile.role : '';
-  syncDrawerTheme();
   el.appDrawer.classList.add('open');
   el.drawerBackdrop.classList.add('open');
 }
@@ -4587,22 +4584,20 @@ function closeDrawer(){
   el.appDrawer.classList.remove('open');
   el.drawerBackdrop.classList.remove('open');
 }
-function syncDrawerTheme(){
-  const isDark = document.body.classList.contains('dark-theme');
-  el.drawerThemeIcon.className = isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
-  el.drawerThemeLabel.textContent = isDark ? 'Light Mode' : 'Dark Mode';
-}
 
 function applyTheme(isDark){
   document.body.classList.toggle('dark-theme', isDark);
-  const iconHtml = isDark ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
-  document.querySelectorAll('.theme-toggle').forEach(btn => {
-    btn.innerHTML = iconHtml;
+
+  document.querySelectorAll('.theme-toggle i').forEach(icon => {
+    icon.className = isDark
+      ? 'fa-solid fa-sun'
+      : 'fa-solid fa-moon';
   });
-  syncDrawerTheme();
+
+  el.drawerThemeLabel.textContent = isDark ? 'Light Mode' : 'Dark Mode';
+
   localStorage.setItem('jas_theme', isDark ? 'dark' : 'light');
 }
-
 function updateResetFilterBtn(){
   const hasFilter =
     billsDateRange !== 'any' ||
