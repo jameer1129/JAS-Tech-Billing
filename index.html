@@ -2958,8 +2958,15 @@ async function handleLogout(){
   showActionLoader('Logging Out');
 
   try {
-    await supabaseClient.auth.signOut();
+    // Capture the current account's id BEFORE calling signOut(). signOut()
+    // fires the SIGNED_OUT onAuthStateChange listener (which sets
+    // currentSession = null) as part of its own execution, so reading
+    // currentSession?.user?.id *after* the await here can already be null.
+    // That would make clearSavedBillState() fall back to the bare,
+    // unscoped BILL_SAVE_KEY instead of this account's real
+    // BILL_SAVE_KEY_<id> key, leaving the actual autosave never cleared.
     const loggedOutUserId = currentSession?.user?.id;
+    await supabaseClient.auth.signOut();
     currentSession = null;
     currentProfile = null;
     clearSavedBillState(loggedOutUserId);
