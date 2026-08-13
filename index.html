@@ -365,8 +365,8 @@ body.dark-theme .pdf-loading-overlay p{color:#F3F4F6;}
 
 .pending-shell{flex:1;display:flex;align-items:center;justify-content:center;padding:24px 16px;text-align:center;position:relative;}
 .pending-card{max-width:400px;background:var(--white);border-radius:var(--radius);padding:34px 26px;box-shadow:var(--shadow-md);border:1px solid var(--line);}
-.pending-card i{font-size:28px;color:var(--warning);display:block;}
-.pending-card h2{margin:0 0 8px;font-size:17px;color:var(--text);}
+.pending-card i{font-size:50px;color:var(--warning);display:block;}
+.pending-card h2{font-size:17px;color:var(--text);}
 .pending-card p{margin:0 0 20px;color:var(--muted);font-size:13.5px;line-height:1.55;}
 .pending-card.rejected i{color:var(--danger);}
 
@@ -905,7 +905,7 @@ body.dark-theme .boot-loader__label{color:var(--F3F4F6, #F3F4F6);}
     <i class="fa-regular fa-clock" id="pendingIcon"></i>
     <h2 id="pendingTitle">Waiting for approval</h2>
     <p id="pendingText">Your account has been created. An admin needs to approve it before you can log in and start billing.</p>
-    <button class="btn btn--ghost" id="btnPendingLogout"><i class="fa-solid fa-right-from-bracket"></i> Log out</button>
+    <button class="btn btn--ghost" id="btnPendingLogout"><i class="fa-solid fa-right-from-bracket" style="font-size:20px;"></i> Log out</button>
   </div>
 </div>
 
@@ -1432,6 +1432,11 @@ let billsSortCol = 'created_at';
 let billsSortDir = 'desc';
 let billsDateRange = 'any';
 let billsCustomDate = '';
+// Incremented on every loadBills() call. Lets an in-flight request detect
+// that a newer request has since been started (via search/filter/sort/
+// pagination) and discard its own now-stale results instead of overwriting
+// the newer ones if it happens to resolve later.
+let billsRequestSeq = 0;
 let invoiceDatePicker = null;
 let billDateFilterPicker = null;
 
@@ -1962,6 +1967,36 @@ function initInvoiceMeta(){
   el.invoiceDate.value = `${yyyy}-${mm}-${dd}`;
   if (invoiceDatePicker) invoiceDatePicker.updateText();
   state.dateStr = `${dd}-${mm}-${yyyy}`;
+}
+
+// Strict check for the exact "YYYY-MM-DD" shape a native <input type="date">
+// requires. Assigning anything else to el.invoiceDate.value fails *silently*
+// (the browser just blanks the field to ''), which is what produces the
+// "Select date" placeholder after a restore if the saved string is malformed
+// or stale. Always validate before assigning a restored value.
+function isValidIsoDateStr(iso){
+  if (typeof iso !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return false;
+  const [y, m, d] = iso.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  return dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d;
+}
+
+// Applies a restored date value to the New Bill date field, guaranteeing the
+// field (and state.dateStr) end up valid either way. If the saved value is
+// missing or malformed, falls back to today instead of leaving/creating a
+// blank "Select date" field.
+function applyRestoredInvoiceDate(candidateIso){
+  if (isValidIsoDateStr(candidateIso)) {
+    el.invoiceDate.value = candidateIso;
+  } else {
+    const now = new Date();
+    el.invoiceDate.value = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  }
+  if (invoiceDatePicker) invoiceDatePicker.updateText();
+  // Keep the display string (used in the PDF/preview "Date" row) in sync
+  // with whatever ended up in the input, rather than trusting a separately
+  // saved dateStr that could be stale/empty/out of sync.
+  state.dateStr = formatDateForDisplay(el.invoiceDate.value);
 }
 
 function roundMoney(value) {
@@ -2889,9 +2924,10 @@ async function handleLogout(){
 
   try {
     await supabaseClient.auth.signOut();
+    const loggedOutUserId = currentSession?.user?.id;
     currentSession = null;
     currentProfile = null;
-    clearSavedBillState();
+    clearSavedBillState(loggedOutUserId);
     loadedBillForPrint = null;
     isPreviousBillMode = false;
     el.loginEmail.value = '';
@@ -2981,6 +3017,17 @@ function switchView(view){
   el.viewPreviousBills.classList.toggle('hide', view !== 'previousBills');
   el.viewAdmin.classList.toggle('hide', view !== 'admin');
 
+  // enterApp() only calls initInvoiceMeta() when the *saved last view* is
+  // 'newBill'. If the app instead booted into Previous Bills (or Admin) as
+  // the remembered last view, the date input is never initialized, and it
+  // stays at its native empty default the first time the user switches to
+  // New Bill — showing the "Select date" placeholder despite there being no
+  // bad restore data at all. Only init when empty, so an existing draft's
+  // date is never overwritten.
+  if (view === 'newBill' && !el.invoiceDate.value) {
+    initInvoiceMeta();
+  }
+
   let restoredDraft = false;
   if (view === 'newBill' && (loadedBillForPrint !== null || isPreviousBillMode)) {
     // A previous bill was loaded only for viewing/printing. It must NEVER
@@ -3060,6 +3107,7 @@ function saveProduct(){
     updateSummary();
   });
   closeProductModal();
+  if (currentSession) saveBillStateToLocalStorage();
 }
 
 function editProduct(id){
@@ -3089,6 +3137,7 @@ function deleteProduct(){
   updateSummary();
   showToast('Product removed');
   closeDeleteModal();
+  if (currentSession) saveBillStateToLocalStorage();
 }
 
 /* ===================================================================
@@ -3096,6 +3145,15 @@ function deleteProduct(){
    =================================================================== */
 
 const BILL_SAVE_KEY = 'jas_autosave_bill';
+
+// The autosave must never be shared across accounts on the same browser —
+// suffix the storage key with the account's user id so Account A's draft
+// can't ever surface for Account B, regardless of whether every logout path
+// remembers to clear it. Falls back to the bare key only if no id is known
+// (shouldn't normally happen, since callers require a session).
+function billSaveKeyFor(userId){
+  return userId ? `${BILL_SAVE_KEY}_${userId}` : BILL_SAVE_KEY;
+}
 
 function saveBillStateToLocalStorage(){
   if (!currentSession || isPreviousBillMode || loadedBillForPrint !== null) return; // Never autosave a previous bill being viewed/printed
@@ -3114,15 +3172,16 @@ function saveBillStateToLocalStorage(){
   };
   
   try {
-    localStorage.setItem(BILL_SAVE_KEY, JSON.stringify(billData));
+    localStorage.setItem(billSaveKeyFor(currentSession.user?.id), JSON.stringify(billData));
   } catch (e) {
     console.error('Failed to save bill state:', e);
   }
 }
 
 function getSavedBillState(){
+  if (!currentSession) return null;
   try {
-    const saved = localStorage.getItem(BILL_SAVE_KEY);
+    const saved = localStorage.getItem(billSaveKeyFor(currentSession.user?.id));
     return saved ? JSON.parse(saved) : null;
   } catch (e) {
     console.error('Failed to get saved bill state:', e);
@@ -3130,9 +3189,14 @@ function getSavedBillState(){
   }
 }
 
-function clearSavedBillState(){
+// userId is optional and only needed when clearing a session that is NOT
+// (or no longer) `currentSession` — e.g. logging out an account before
+// switching currentSession to a different one. Defaults to currentSession's
+// user id, matching all the normal "clear my own draft" call sites.
+function clearSavedBillState(userId){
+  const targetId = userId !== undefined ? userId : currentSession?.user?.id;
   try {
-    localStorage.removeItem(BILL_SAVE_KEY);
+    localStorage.removeItem(billSaveKeyFor(targetId));
   } catch (e) {
     console.error('Failed to clear saved bill state:', e);
   }
@@ -3144,7 +3208,6 @@ function restoreBillStateFromLocalStorage(){
   
   state.customer = saved.customer || { name: '', address: '', mobile: '' };
   state.invoiceNumber = saved.invoiceNumber || '';
-  state.dateStr = saved.dateStr || '';
   state.notes = saved.notes || '';
   state.products = saved.products || [];
   // Watermark/QR/Signature/Notes toggle state comes from jas_pref_* via
@@ -3161,15 +3224,12 @@ function restoreBillStateFromLocalStorage(){
   syncCustomerFieldsFromState();
   syncDisplayToggleState();
   el.invoiceNotes.value = state.notes || '';
-  
-  // Restore the invoice date
-  if (saved.invoiceDateValue) {
-    el.invoiceDate.value = saved.invoiceDateValue;
-    if (invoiceDatePicker) {
-      invoiceDatePicker.updateText();
-    }
-  }
-  
+
+  // Restore the invoice date, guaranteed valid (falls back to today if the
+  // saved value is missing or malformed, instead of leaving/blanking the
+  // native date input to "Select date").
+  applyRestoredInvoiceDate(saved.invoiceDateValue);
+
   renderProducts();
   updateSummary();
   
@@ -3222,7 +3282,6 @@ function resetInvoice(silent = false){
   state.products = [];
   state.nextId = 1;
   state.notes = CONFIG.invoice.defaultNotes || '';
-  loadedBillForPrint = null;
 
   syncCustomerFieldsFromState();
   el.customerName.classList.remove('input-error');
@@ -3236,6 +3295,11 @@ function resetInvoice(silent = false){
   renderProducts();
   updateSummary();
   closeResetModal();
+  // Every call to resetInvoice() represents a deliberate "start fresh"
+  // moment (explicit reset, nothing-to-restore fallback, or post-download/
+  // post-save cleanup) — the stale autosave must go with it, or the restore
+  // prompt will keep re-offering a bill the user already finished with.
+  clearSavedBillState();
   if (!silent) showToast('Invoice reset', 'success');
 }
 
@@ -3607,7 +3671,6 @@ function restoreDraftAfterPreviousBill(){
 
   state.customer = draftBillSnapshot.customer;
   state.invoiceNumber = draftBillSnapshot.invoiceNumber;
-  state.dateStr = draftBillSnapshot.dateStr;
   state.notes = draftBillSnapshot.notes;
   state.products = draftBillSnapshot.products;
   state.nextId = draftBillSnapshot.nextId;
@@ -3621,10 +3684,7 @@ function restoreDraftAfterPreviousBill(){
   syncDisplayToggleState();
   el.invoiceNotes.value = state.notes || '';
 
-  if (draftBillSnapshot.invoiceDateValue) {
-    el.invoiceDate.value = draftBillSnapshot.invoiceDateValue;
-    if (invoiceDatePicker) invoiceDatePicker.updateText();
-  }
+  applyRestoredInvoiceDate(draftBillSnapshot.invoiceDateValue);
 
   renderProducts();
   updateSummary();
@@ -3669,6 +3729,11 @@ async function saveBillToSupabase(){
 let _pendingPdfBlob = null;
 let _pendingPdfFilename = '';
 let _pdfActionDidSave = false;
+// True while the pending PDF is for a read-only previous bill (loaded via
+// reprintBill/handlePreviewDownload) rather than the user's own New Bill
+// draft. Downloading/sharing a previous bill must never reset or save over
+// the user's actual in-progress draft — it must be restored instead.
+let _pdfForPreviousBill = false;
 
 async function generatePdfBlob(){
   const root = document.getElementById('invoiceRoot');
@@ -3728,7 +3793,17 @@ function closeSaveChoiceModal(){
 async function handlePreviewDownload(){
   if (loadedBillForPrint !== null) {
     if(!state.products.length){ showToast('Add at least one product before downloading.', 'error'); return; }
-    if(!el.previewModalOverlay.classList.contains('hide')) closePreviewModal();
+
+    // Hide the preview visually, but do NOT restore the New Bill draft yet.
+    // generatePdfBlob() reads directly from `state`, which right now holds
+    // the previous bill's data — restoring the draft first (as
+    // closePreviewModal() would) swaps `state` out from under the PDF
+    // generator and produces a PDF of the wrong invoice.
+    hideOverlay(el.previewModalOverlay);
+    const scaleContainer = document.getElementById('previewScaleContainer');
+    if (scaleContainer) scaleContainer.innerHTML = '';
+
+    _pdfForPreviousBill = true;
     await handleSaveChoice(false);
     return;
   }
@@ -3748,10 +3823,22 @@ function openPdfActionModal(saved){
 function closePdfActionModal(){
   hideOverlay(el.pdfActionModalOverlay);
   const wasSaved = _pdfActionDidSave;
+  const wasPreviousBill = _pdfForPreviousBill;
   _pendingPdfBlob = null;
   _pendingPdfFilename = '';
   _pdfActionDidSave = false;
-  if (wasSaved) resetInvoice(true);
+  _pdfForPreviousBill = false;
+
+  if (wasPreviousBill) {
+    // Previous bills are read-only: never reset the form here (that would
+    // wipe the user's real draft). Restore whatever New Bill draft the user
+    // was actually working on before they opened this previous bill.
+    isPreviousBillMode = false;
+    loadedBillForPrint = null;
+    restoreDraftAfterPreviousBill();
+  } else if (wasSaved) {
+    resetInvoice(true);
+  }
 }
 
 async function handleSaveChoice(saveToDb){
@@ -3823,8 +3910,11 @@ function downloadPdfBlob(){
   setTimeout(() => URL.revokeObjectURL(url), 1000);
   showToast('Invoice downloaded', 'success');
   const wasSaved = _pdfActionDidSave;
+  const wasPreviousBill = _pdfForPreviousBill;
   closePdfActionModal();
-  if (!wasSaved) resetInvoice(true);
+  // closePdfActionModal() already restores the draft for a previous bill —
+  // resetting here too would wipe that just-restored draft.
+  if (!wasSaved && !wasPreviousBill) resetInvoice(true);
 }
 
 async function sharePdfBlob(){
@@ -3834,8 +3924,11 @@ async function sharePdfBlob(){
     const file = new File([_pendingPdfBlob], _pendingPdfFilename, { type: 'application/pdf' });
     await navigator.share({ files: [file], title: _pendingPdfFilename });
     const wasSaved = _pdfActionDidSave;
+    const wasPreviousBill = _pdfForPreviousBill;
     closePdfActionModal();
-    if (!wasSaved) resetInvoice(true);
+    // closePdfActionModal() already restores the draft for a previous bill —
+    // resetting here too would wipe that just-restored draft.
+    if (!wasSaved && !wasPreviousBill) resetInvoice(true);
   } catch(err){
     if (err.name !== 'AbortError') showToast('Could not share. Try downloading instead.', 'error');
   }
@@ -3853,6 +3946,8 @@ function sanitizeSearchTerm(term){
  */
 async function loadBills(resetToFirstPage){
   if (resetToFirstPage) billsPage = 1;
+
+  const requestId = ++billsRequestSeq;
 
   el.billsLoading.classList.remove('hide');
   el.billsEmptyState.classList.add('hide');
@@ -3903,6 +3998,11 @@ async function loadBills(resetToFirstPage){
   query = query.range(from, to);
 
   const { data, error, count } = await query;
+
+  // A newer loadBills() call was started while this one was in flight
+  // (e.g. the user kept typing/changing filters) — its response is stale,
+  // so drop it rather than let it overwrite more recent results.
+  if (requestId !== billsRequestSeq) return;
 
   el.billsLoading.classList.add('hide');
 
@@ -4075,6 +4175,12 @@ async function reprintBill(invoiceNo){
     console.error(error);
     hideActionLoader();
     showToast('Could not load invoice items.', 'error');
+    // `state` was never overwritten (the failure happened before that point),
+    // so there's nothing to restore — just drop the mode flag and the
+    // now-unneeded snapshot so autosave and future previous-bill opens work
+    // normally again instead of thinking a preview is still in progress.
+    isPreviousBillMode = false;
+    draftBillSnapshot = null;
   }
 }
 
@@ -4504,6 +4610,14 @@ async function confirmRecoveryConflictLogout(){
   // Log out the existing account, then continue using the temporary
   // recovery client so the reset link remains attached to the target account.
   try { await conflict.localClient.auth.signOut(); } catch (err) { console.error(err); }
+  // This is a real sign-out of the local account (same as handleLogout()),
+  // just via a different path. Its autosaved draft must not survive into
+  // whatever account ends up using this browser/device next. currentSession
+  // is NOT yet the local account at this point in the boot flow, so the
+  // account being logged out must be targeted explicitly.
+  clearSavedBillState(conflict.localSession?.user?.id);
+  loadedBillForPrint = null;
+  isPreviousBillMode = false;
   setPasswordRecoveryPending();
   supabaseClient = conflict.recoveryClient;
   currentSession = conflict.resetSession;
@@ -4711,6 +4825,7 @@ function getDismissibleOverlays(){
     [el.changePasswordModalOverlay, closeChangePasswordModal],
     [el.saveChoiceModalOverlay, closeSaveChoiceModal],
     [el.pdfActionModalOverlay, closePdfActionModal],
+    [el.restoreBillModalOverlay, closeRestoreBillModal],
     [el.otpSendConfirmOverlay, () => el.btnCloseOtpSendConfirm.click()]
   ];
 }
@@ -4943,6 +5058,17 @@ function bindEvents(){
   billDateFilterPicker = createDatePicker(el.billDateFilter, el.billDateFilterInput, el.billDateFilterText, { placeholder: 'Select date', allowClear: true });
   el.billDateFilter.addEventListener('change', () => {
     billsCustomDate = el.billDateFilter.value;
+    if (!billsCustomDate && billsDateRange === 'custom') {
+      // The custom date was cleared via the picker's Clear button. Without
+      // this, the label would keep showing "Custom Date" while the query
+      // applies no date restriction at all — revert to "Any Date" so the
+      // label matches what's actually being queried.
+      billsDateRange = 'any';
+      el.dateFilterLabel.textContent = 'Any Date';
+      el.btnDateFilter.classList.remove('active');
+      el.dateCustomWrap.classList.remove('show');
+      document.querySelectorAll('.date-dropdown__item').forEach(i => i.classList.toggle('active', i.dataset.range === 'any'));
+    }
     updateResetFilterBtn();
     loadBills(true);
   });
