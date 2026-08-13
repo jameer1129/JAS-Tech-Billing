@@ -18,11 +18,10 @@
       "border": "#E5E7EB"
     },
     "dark": {
-      "primary": "#012587",
-      "background": "#050505",
+      "background": "#0F0F0F",
       "surface": "#000000",
       "text": "#F3F4F6",
-      "border": "#2D3748"
+      "border": "#252B34"
     },
     "radius": "12px"
   },
