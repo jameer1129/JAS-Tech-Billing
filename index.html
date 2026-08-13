@@ -708,10 +708,10 @@ body.dark-theme .boot-loader__label{color:#F3F4F6;}
           <i class="fa-regular fa-eye"></i>
         </button>
       </div>
-      <button class="btn btn--primary btn--full" id="btnLogin">
+      <button class="btn btn--primary btn--full" id="btnLogin" style="margin-top:10px;">
         <i class="fa-solid fa-right-to-bracket"></i> Login
       </button>
-      <div style="text-align:center;margin-top:10px;display:flex;flex-direction:column;gap:12px;">
+      <div style="text-align:center;margin-top:10px;display:flex;flex-direction:column;gap:18px;">
         <a href="#" onclick="setAuthTab('forgot'); return false;" class="auth-link">
           <i class="fa-solid fa-key"></i> Forgot Password?
         </a>
@@ -745,7 +745,7 @@ body.dark-theme .boot-loader__label{color:#F3F4F6;}
           <i class="fa-regular fa-eye"></i>
         </button>
       </div>
-      <button class="btn btn--primary btn--full" id="btnRegister">
+      <button class="btn btn--primary btn--full" id="btnRegister" style="margin-top:10px;">
         <i class="fa-solid fa-user-plus"></i> Create Account
       </button>
       <div style="text-align:center;margin-top:10px;display:flex;flex-direction:column;gap:8px;">
@@ -765,7 +765,7 @@ body.dark-theme .boot-loader__label{color:#F3F4F6;}
       <button class="btn btn--primary btn--full" id="btnSendReset">
         <i class="fa-solid fa-paper-plane"></i> Send Reset Link
       </button>
-      <div style="text-align:center;margin-top:10px;display:flex;flex-direction:column;gap:8px;">
+      <div style="text-align:center;margin-top:10px;display:flex;flex-direction:column;gap:18px;">
         <a href="#" onclick="setAuthTab('register'); return false;" class="auth-link">
           <i class="fa-solid fa-user-plus"></i> Don't have an account?
         </a>
@@ -1692,6 +1692,13 @@ function setupAutoSaveListeners(){
       if (state.products.length > 0 || state.customer.name) {
         saveBillStateToLocalStorage();
       }
+    }
+  });
+
+  // pagehide is more reliable than beforeunload for mobile/PWA app closing.
+  window.addEventListener('pagehide', () => {
+    if (currentSession && (state.products.length > 0 || state.customer.name)) {
+      saveBillStateToLocalStorage();
     }
   });
 
@@ -3322,14 +3329,73 @@ function dismissRestoreBillModalAsStartFresh(){
   showToast('Invoice reset', 'success');
 }
 
+function normalizeBillForComparison(bill) {
+  if (!bill) {
+    return {
+      customer: { name: '', address: '', mobile: '' },
+      invoiceNumber: '',
+      dateStr: '',
+      invoiceDateValue: '',
+      notes: '',
+      products: []
+    };
+  }
+
+  return {
+    customer: {
+      name: String(bill.customer?.name || '').trim(),
+      address: String(bill.customer?.address || '').trim(),
+      mobile: String(bill.customer?.mobile || '').trim()
+    },
+    invoiceNumber: String(bill.invoiceNumber || ''),
+    dateStr: String(bill.dateStr || ''),
+    invoiceDateValue: String(bill.invoiceDateValue || ''),
+    notes: String(bill.notes || ''),
+    products: Array.isArray(bill.products)
+      ? bill.products.map(p => ({
+          id: p.id,
+          name: String(p.name || ''),
+          description: String(p.description || ''),
+          serial: String(p.serial || ''),
+          qty: Number(p.qty) || 0,
+          rate: Number(p.rate) || 0
+        }))
+      : []
+  };
+}
+
+function billStatesAreEqual(current, saved) {
+  return JSON.stringify(normalizeBillForComparison(current)) ===
+         JSON.stringify(normalizeBillForComparison(saved));
+}
+
+function getCurrentBillStateForComparison() {
+  return {
+    customer: state.customer,
+    invoiceNumber: state.invoiceNumber,
+    dateStr: state.dateStr,
+    invoiceDateValue: el.invoiceDate.value,
+    notes: state.notes,
+    products: state.products
+  };
+}
+
 function checkAndPromptForRestore(){
   // Previous bills are view/print-only. Never restore their data into New Bill.
   if (isPreviousBillMode || loadedBillForPrint !== null) return;
-  
+
   const saved = getSavedBillState();
-  if (saved) {
-    openRestoreBillModal();
+  if (!saved) return;
+
+  // If New Bill already contains exactly the same data as the autosaved
+  // draft, there is nothing to restore and no prompt should appear.
+  const current = getCurrentBillStateForComparison();
+
+  if (billStatesAreEqual(current, saved)) {
+    return;
   }
+
+  openRestoreBillModal();
 }
 
 function openResetModal(){
@@ -5024,6 +5090,19 @@ function bindEvents(){
     const field = document.getElementById(fieldId);
     if (!field) return;
 
+    field.addEventListener('input', (e) => {
+      if (fieldId === 'customerName') {
+        state.customer.name = e.target.value;
+      } else if (fieldId === 'customerAddress') {
+        state.customer.address = e.target.value;
+      }
+
+      // Save the latest draft immediately while the user is editing.
+      if ((fieldId === 'customerName' || fieldId === 'customerAddress') && currentSession) {
+        saveBillStateToLocalStorage();
+      }
+    });
+
     field.addEventListener('blur', (e) => {
       const formattedValue = applyTitleCaseToField(e.target);
 
@@ -5032,6 +5111,10 @@ function bindEvents(){
       } else if (fieldId === 'customerAddress') {
         state.customer.address = formattedValue;
       }
+
+      if ((fieldId === 'customerName' || fieldId === 'customerAddress') && currentSession) {
+        saveBillStateToLocalStorage();
+      }
     });
   });
 
@@ -5039,14 +5122,25 @@ function bindEvents(){
     const digitsOnly = e.target.value.replace(/\D/g, '');
     if (digitsOnly !== e.target.value) e.target.value = digitsOnly;
     state.customer.mobile = digitsOnly.trim();
+
+    if (currentSession) {
+      saveBillStateToLocalStorage();
+    }
   });
 
   invoiceDatePicker = createDatePicker(el.invoiceDate, el.invoiceDateInput, el.invoiceDateText, { placeholder: 'Select date' });
-  el.invoiceDate.addEventListener('change', (e) => { state.dateStr = formatDateForDisplay(e.target.value); });
-  el.invoiceDate.addEventListener('input', (e) => { state.dateStr = formatDateForDisplay(e.target.value); });
+  el.invoiceDate.addEventListener('change', (e) => {
+    state.dateStr = formatDateForDisplay(e.target.value);
+    if (currentSession) saveBillStateToLocalStorage();
+  });
+  el.invoiceDate.addEventListener('input', (e) => {
+    state.dateStr = formatDateForDisplay(e.target.value);
+    if (currentSession) saveBillStateToLocalStorage();
+  });
 
   el.invoiceNotes.addEventListener('input', (e) => {
     state.notes = e.target.value;
+    if (currentSession) saveBillStateToLocalStorage();
   });
 
   el.toggleNotesVisibility.addEventListener('change', (e) => {
@@ -5130,7 +5224,10 @@ function bindEvents(){
   el.btnRestoreBillRestore.addEventListener('click', () => {
     const restored = restoreBillStateFromLocalStorage();
     if (restored) {
-      clearSavedBillState();
+      // Keep the restored draft as the active autosave.
+      // It must remain available if the app is closed/reloaded before
+      // another edit happens.
+      saveBillStateToLocalStorage();
       closeRestoreBillModal();
       showToast('Invoice restored', 'success');
     }
