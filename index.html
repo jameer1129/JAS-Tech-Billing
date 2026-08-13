@@ -136,7 +136,7 @@ img{max-width:100%;display:block;}
 .drawer__item.danger:hover{background:rgba(214,69,69,.07);}
 
 @media(max-width:640px){
-  .user-menu-wrap,.app-bar #btnThemeToggle,.app-bar #btnLogout{display:none;}
+  .user-menu-wrap,.app-bar .theme-toggle,.app-bar #btnLogout{display:none;}
   .app-bar__hamburger{display:flex;}
   body.dark-theme .drawer{background:var(--surface);}
 }
@@ -356,9 +356,6 @@ body.dark-theme .pdf-loading-overlay p{color:#F3F4F6;}
 /* ---------- Email verification / OTP ---------- */
 .verify-email-text{margin:0 0 8px;text-align:center;color:var(--muted);font-size:13px;line-height:1.55;}
 .verify-email-address{display:block;margin:0 0 4px;text-align:center;color:var(--text);font-size:13.5px;font-weight:700;word-break:break-word;}
-.verify-otp-input{width:100%;padding:13px 8px;border:1.5px solid var(--line);border-radius:var(--radius-sm);font-size:24px;font-weight:700;letter-spacing:5px;text-align:center;color:var(--text);background:var(--white);outline:none;transition:border-color .15s ease,box-shadow .15s ease,background .3s ease;}
-.verify-otp-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(1,37,135,.14);}
-.verify-otp-input::placeholder{letter-spacing:5px;color:var(--muted);opacity:.55;}
 .verify-timer{display:flex;flex-direction:column;align-items:center;gap:4px;margin-top:2px;font-size:12px;color:var(--muted);line-height:1.4;}
 .verify-timer strong{color:var(--primary);font-weight:700;}
 .verify-timer.expired strong{color:var(--danger);}
@@ -681,7 +678,7 @@ body.dark-theme .boot-loader__label{color:var(--F3F4F6, #F3F4F6);}
 
 <!-- ================= AUTH SCREEN ================= -->
 <div class="auth-shell hide" id="authScreen">
-  <button class="auth-theme-toggle" id="btnAuthThemeToggle" aria-label="Toggle Theme">
+  <button class="auth-theme-toggle theme-toggle" aria-label="Toggle Theme">
     <i class="fa-solid fa-moon"></i>
   </button>
   <div class="auth-card">
@@ -714,7 +711,7 @@ body.dark-theme .boot-loader__label{color:var(--F3F4F6, #F3F4F6);}
       <button class="btn btn--primary btn--full" id="btnLogin">
         <i class="fa-solid fa-right-to-bracket"></i> Login
       </button>
-      <div style="text-align:center;margin-top:10px;display:flex;flex-direction:column;gap:8px;">
+      <div style="text-align:center;margin-top:10px;display:flex;flex-direction:column;gap:12px;">
         <a href="#" onclick="setAuthTab('forgot'); return false;" class="auth-link">
           <i class="fa-solid fa-key"></i> Forgot Password?
         </a>
@@ -782,7 +779,7 @@ body.dark-theme .boot-loader__label{color:var(--F3F4F6, #F3F4F6);}
 
 <!-- ================= EMAIL VERIFICATION SCREEN ================= -->
 <div class="auth-shell hide" id="emailVerificationScreen">
-  <button class="auth-theme-toggle" id="btnVerifyThemeToggle" aria-label="Toggle Theme">
+  <button class="auth-theme-toggle theme-toggle" aria-label="Toggle Theme">
     <i class="fa-solid fa-moon"></i>
   </button>
   <div class="auth-card">
@@ -812,6 +809,7 @@ body.dark-theme .boot-loader__label{color:var(--F3F4F6, #F3F4F6);}
           maxlength="8"
           placeholder="••••••••"
           aria-label="8-digit verification code"
+          style="font-size:20px;letter-spacing:5px;text-align:center;"
         >
       </div>
 
@@ -826,10 +824,11 @@ body.dark-theme .boot-loader__label{color:var(--F3F4F6, #F3F4F6);}
       <button type="button" class="btn btn--outline btn--full verify-resend" id="btnResendVerification" disabled>
         <i class="fa-solid fa-rotate"></i> Resend Code
       </button>
-
-      <button type="button" class="btn btn--ghost btn--full verify-back" id="btnBackFromVerification">
-        <i class="fa-solid fa-arrow-left"></i> Back to Login
-      </button>
+      <div style="margin-top:12px;display:flex;justify-content:center;">
+        <a class="auth-link" id="btnBackFromVerification">
+          <i class="fa-solid fa-arrow-left"></i> Back to Login
+        </a>
+      </div>
     </div>
   </div>
 </div>
@@ -863,7 +862,7 @@ body.dark-theme .boot-loader__label{color:var(--F3F4F6, #F3F4F6);}
 
 <!-- ================= RESET PASSWORD SCREEN ================= -->
 <div class="auth-shell hide" id="resetPasswordScreen">
-  <button class="auth-theme-toggle" id="btnResetThemeToggle" aria-label="Toggle Theme">
+  <button class="auth-theme-toggle theme-toggle" aria-label="Toggle Theme">
     <i class="fa-solid fa-moon"></i>
   </button>
   <div class="auth-card">
@@ -926,7 +925,7 @@ body.dark-theme .boot-loader__label{color:var(--F3F4F6, #F3F4F6);}
           <i class="fa-regular fa-circle-user"></i> <b id="appBarUserName"></b> <i class="fa-solid fa-chevron-down caret"></i>
         </button>
       </div>
-      <button class="app-bar__icon-btn" id="btnThemeToggle" aria-label="Toggle Theme">
+      <button class="app-bar__icon-btn theme-toggle" aria-label="Toggle Theme">
         <i class="fa-solid fa-moon"></i>
       </button>
       <button class="app-bar__icon-btn app-bar__hamburger" id="btnDrawerOpen" aria-label="Open menu">
@@ -1322,7 +1321,7 @@ body.dark-theme .boot-loader__label{color:var(--F3F4F6, #F3F4F6);}
     <button class="drawer__close" id="btnDrawerClose" aria-label="Close menu"><i class="fa-solid fa-xmark"></i></button>
   </div>
   <div class="drawer__body">
-    <button class="drawer__item" id="drawerThemeToggle">
+    <button class="drawer__item theme-toggle" id="drawerThemeToggle">
       <i class="fa-solid fa-moon" id="drawerThemeIcon"></i> <span id="drawerThemeLabel">Dark Mode</span>
     </button>
     <button class="drawer__item" id="drawerChangePw">
@@ -1472,7 +1471,6 @@ function cacheElements(){
   el.btnRegister = document.getElementById('btnRegister');
   el.forgotEmail = document.getElementById('forgotEmail');
   el.btnSendReset = document.getElementById('btnSendReset');
-  el.btnAuthThemeToggle = document.getElementById('btnAuthThemeToggle');
 
   el.emailVerificationScreen = document.getElementById('emailVerificationScreen');
   el.verifyCompanyName = document.getElementById('verifyCompanyName');
@@ -1485,7 +1483,6 @@ function cacheElements(){
   el.btnVerifyEmail = document.getElementById('btnVerifyEmail');
   el.btnResendVerification = document.getElementById('btnResendVerification');
   el.btnBackFromVerification = document.getElementById('btnBackFromVerification');
-  el.btnVerifyThemeToggle = document.getElementById('btnVerifyThemeToggle');
 
   el.otpSendConfirmOverlay = document.getElementById('otpSendConfirmOverlay');
   el.otpConfirmTitle = document.getElementById('otpConfirmTitle');
@@ -1509,13 +1506,11 @@ function cacheElements(){
   el.resetConfirmPassword = document.getElementById('resetConfirmPassword');
   el.btnUpdateResetPassword = document.getElementById('btnUpdateResetPassword');
   el.btnCancelReset = document.getElementById('btnCancelReset');
-  el.btnResetThemeToggle = document.getElementById('btnResetThemeToggle');
 
   el.appScreen = document.getElementById('appScreen');
   el.appBarLogo = document.getElementById('appBarLogo');
   el.appBarCompanyName = document.getElementById('appBarCompanyName');
   el.appBarUserName = document.getElementById('appBarUserName');
-  el.btnThemeToggle = document.getElementById('btnThemeToggle');
   el.btnLogout = document.getElementById('btnLogout');
   el.navAdminTab = document.getElementById('navAdminTab');
 
@@ -2193,7 +2188,10 @@ function passwordsMatch(a, b){
 // `confirmPw` is optional — pass it whenever there's a "confirm password" field to check.
 function validateNewPassword(pw, confirmPw, label = 'Password'){
   if (!isValidPassword(pw)) return `${label} must be at least ${MIN_PASSWORD_LENGTH} characters.`;
-  if (confirmPw !== undefined && !passwordsMatch(pw, confirmPw)) return 'Passwords do not match.';
+  if (confirmPw !== undefined) {
+    if (!isValidPassword(confirmPw)) return `Confirm ${label.toLowerCase()} must be at least ${MIN_PASSWORD_LENGTH} characters.`;
+    if (!passwordsMatch(pw, confirmPw)) return 'Passwords do not match.';
+  }
   return null;
 }
 
@@ -2585,7 +2583,7 @@ async function handleRegister() {
   const pwErr = validateNewPassword(password, confirmPassword);
   if (pwErr) {
     showAuthMsg(pwErr);
-    if (pwErr === 'Passwords do not match.') el.regConfirmPassword.focus();
+    if (pwErr === 'Passwords do not match.' || pwErr.startsWith('Confirm ')) el.regConfirmPassword.focus();
     return;
   }
 
@@ -4598,8 +4596,9 @@ function syncDrawerTheme(){
 function applyTheme(isDark){
   document.body.classList.toggle('dark-theme', isDark);
   const iconHtml = isDark ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
-  if (el.btnThemeToggle) el.btnThemeToggle.innerHTML = iconHtml;
-  if (el.btnAuthThemeToggle) el.btnAuthThemeToggle.innerHTML = iconHtml;
+  document.querySelectorAll('.theme-toggle').forEach(btn => {
+    btn.innerHTML = iconHtml;
+  });
   syncDrawerTheme();
   localStorage.setItem('jas_theme', isDark ? 'dark' : 'light');
 }
@@ -4754,9 +4753,6 @@ function bindEvents(){
   el.verifyOtp.addEventListener('keydown', (event) => {
     if (event.key === 'Enter') handleVerifyEmail();
   });
-  el.btnVerifyThemeToggle.addEventListener('click', () => {
-    applyTheme(!document.body.classList.contains('dark-theme'));
-  });
   el.btnSendReset.addEventListener('click', handleForgotPassword);
   el.btnUpdateResetPassword.addEventListener('click', handleResetPassword);
   el.resetNewPassword.addEventListener('keydown', (event) => { if (event.key === 'Enter') handleResetPassword(); });
@@ -4795,9 +4791,6 @@ function bindEvents(){
   el.btnDrawerOpen.addEventListener('click', openDrawer);
   el.btnDrawerClose.addEventListener('click', closeDrawer);
   el.drawerBackdrop.addEventListener('click', closeDrawer);
-  el.drawerThemeToggle.addEventListener('click', () => {
-    applyTheme(!document.body.classList.contains('dark-theme'));
-  });
   el.drawerLogout.addEventListener('click', () => { closeDrawer(); openLogoutConfirm(); });
 
   document.querySelectorAll('.nav-tab').forEach(tab => {
@@ -5040,21 +5033,11 @@ function bindEvents(){
     }
   });
 
-  el.btnThemeToggle.addEventListener('click', () => {
+  document.addEventListener('click', e => {
+    const themeToggle = e.target.closest('.theme-toggle');
+    if (!themeToggle) return;
     applyTheme(!document.body.classList.contains('dark-theme'));
   });
-
-  if (el.btnAuthThemeToggle) {
-    el.btnAuthThemeToggle.addEventListener('click', () => {
-      applyTheme(!document.body.classList.contains('dark-theme'));
-    });
-  }
-
-  if (el.btnResetThemeToggle) {
-    el.btnResetThemeToggle.addEventListener('click', () => {
-      applyTheme(!document.body.classList.contains('dark-theme'));
-    });
-  }
 
   document.addEventListener('click', e => {
     const btn = e.target.closest('.pw-toggle-btn');
