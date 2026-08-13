@@ -2958,26 +2958,32 @@ async function handleLogout(){
   showActionLoader('Logging Out');
 
   try {
+    // Reset the current invoice first
+    resetInvoice(true);
+
+    // Capture current account before signOut
+    const loggedOutUserId = currentSession?.user?.id;
+
     await supabaseClient.auth.signOut();
+
+    // Clear all local data
+    localStorage.clear();
+    sessionStorage.clear();
+
+    // Clear runtime state
     currentSession = null;
     currentProfile = null;
-    // Wipe all local storage on logout rather than targeting a single
-    // per-account key, so the next account to log into this browser never
-    // sees a leftover draft, preference, or any other stale local data --
-    // regardless of user-id lookups or auth-event ordering.
-    // Note: this also clears jas_theme (dark/light mode), so the app
-    // returns to its default theme on next login.
-    try {
-      localStorage.clear();
-    } catch (e) {
-      console.error('Failed to clear local storage on logout:', e);
-    }
     loadedBillForPrint = null;
     isPreviousBillMode = false;
+    draftBillSnapshot = null;
+
+    // Clear login fields
     el.loginEmail.value = '';
     el.loginPassword.value = '';
+
     setAuthTab('login');
     showScreen('auth');
+
   } catch (error) {
     console.error(error);
     hideActionLoader();
