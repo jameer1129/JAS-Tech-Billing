@@ -3294,6 +3294,19 @@ function closeRestoreBillModal(){
   hideOverlay(el.restoreBillModalOverlay);
 }
 
+// Tapping outside the modal (or pressing Escape) without explicitly picking
+// Restore or Start Fresh is treated as Start Fresh, not as "do nothing" --
+// otherwise the stale autosave survives an accidental dismiss and the same
+// prompt keeps reappearing every time New Bill is opened. This must stay
+// separate from closeRestoreBillModal() itself: the Restore/Start Fresh
+// button handlers already call closeRestoreBillModal() as their own final
+// step, and must not have this reset logic re-triggered on top of that.
+function dismissRestoreBillModalAsStartFresh(){
+  closeRestoreBillModal();
+  resetInvoice(true); // also clears the saved autosave internally
+  showToast('Invoice reset', 'success');
+}
+
 function checkAndPromptForRestore(){
   // Previous bills are view/print-only. Never restore their data into New Bill.
   if (isPreviousBillMode || loadedBillForPrint !== null) return;
@@ -4910,7 +4923,7 @@ function getDismissibleOverlays(){
     [el.changePasswordModalOverlay, closeChangePasswordModal],
     [el.saveChoiceModalOverlay, closeSaveChoiceModal],
     [el.pdfActionModalOverlay, closePdfActionModal],
-    [el.restoreBillModalOverlay, closeRestoreBillModal],
+    [el.restoreBillModalOverlay, dismissRestoreBillModalAsStartFresh],
     [el.otpSendConfirmOverlay, () => el.btnCloseOtpSendConfirm.click()]
   ];
 }
