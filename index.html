@@ -136,7 +136,7 @@ img{max-width:100%;display:block;}
 .drawer__item.danger:hover{background:rgba(214,69,69,.07);}
 
 @media(max-width:640px){
-  .user-menu-wrap,.app-bar .theme-toggle,.app-bar #btnLogout{display:none;}
+  .user-menu-wrap,.app-bar .theme-toggle{display:none;}
   .app-bar__hamburger{display:flex;}
   body.dark-theme .drawer{background:var(--surface);}
 }
@@ -519,7 +519,7 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{
 /* Dark-theme overrides to match the PDF loader */
 body.dark-theme .boot-loader{background:rgba(10,11,12,0.7);}
 body.dark-theme .boot-loader__card{background:var(--surface);}
-body.dark-theme .boot-loader__label{color:var(--F3F4F6, #F3F4F6);}
+body.dark-theme .boot-loader__label{color:#F3F4F6;}
 
 /* PDF Generation specific styles */
 .invoice-page{
@@ -1402,6 +1402,29 @@ body.dark-theme .boot-loader__label{color:var(--F3F4F6, #F3F4F6);}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script>
+// Used only if config.json fails to load/parse, so applyConfig() has a safe
+// shape to read instead of crashing on CONFIG being null. Leaving
+// supabase.url/anonKey empty is intentional: the existing check in init()
+// (`if (!CONFIG.supabase.url || !CONFIG.supabase.anonKey)`) already routes
+// that case to the auth screen instead of crashing.
+const DEFAULT_CONFIG = {
+  company: { name: 'JAS Tech' },
+  theme: {
+    radius: '12px',
+    light: { primary: '#012587', background: '#F8F9FC', surface: '#FFFFFF', text: '#212121', border: '#E5E7EB' },
+    dark:  { primary: '#012587', background: '#000000', surface: '#111111', text: '#F3F4F6', border: '#2D3748' }
+  },
+  assets: { mainLogo: '' },
+  invoice: {
+    defaultNotes: '',
+    filePrefix: 'Invoice-',
+    numberFormat: 'DDMMHHmmss',
+    currencySymbol: '₹'
+  },
+  footer: { appVersion: 'v1.0' },
+  supabase: { url: '', anonKey: '' }
+};
+
 let CONFIG = null;
 let editingProductId = null;
 let pendingDeleteId = null;
@@ -1437,6 +1460,9 @@ let billsCustomDate = '';
 // pagination) and discard its own now-stale results instead of overwriting
 // the newer ones if it happens to resolve later.
 let billsRequestSeq = 0;
+// Same stale-response guard as billsRequestSeq, for the two admin lists.
+let pendingUsersRequestSeq = 0;
+let allUsersRequestSeq = 0;
 let invoiceDatePicker = null;
 let billDateFilterPicker = null;
 
@@ -1516,7 +1542,6 @@ function cacheElements(){
   el.appBarLogo = document.getElementById('appBarLogo');
   el.appBarCompanyName = document.getElementById('appBarCompanyName');
   el.appBarUserName = document.getElementById('appBarUserName');
-  el.btnLogout = document.getElementById('btnLogout');
   el.navAdminTab = document.getElementById('navAdminTab');
 
   el.viewNewBill = document.getElementById('viewNewBill');
@@ -1695,6 +1720,7 @@ async function loadConfig(){
     CONFIG = await response.json();
   } catch (error) {
     console.warn("Falling back to default config.", error);
+    CONFIG = DEFAULT_CONFIG;
   }
   applyConfig();
 }
@@ -2710,7 +2736,14 @@ async function handleRegister() {
   });
 }
 
+let verificationInProgress = false;
+
 async function handleVerifyEmail(){
+  // Guards against a double submit when the auto-submit-on-8-digits
+  // 'input' handler and the 'keydown' Enter handler both fire for the
+  // same code (e.g. typing the 8th digit and pressing Enter together).
+  if (verificationInProgress) return;
+
   const email = pendingSignupEmail || getPendingSignup().email;
   const token = el.verifyOtp.value.replace(/\D/g, '').slice(0, 8);
 
@@ -2737,6 +2770,7 @@ async function handleVerifyEmail(){
     return;
   }
 
+  verificationInProgress = true;
   el.btnVerifyEmail.disabled = true;
   el.verifyOtp.disabled = true;
   hideVerificationMsg();
@@ -2781,6 +2815,7 @@ async function handleVerifyEmail(){
       showAuthMsg('Email verified successfully. Please log in.', 'info');
     }
   } finally {
+    verificationInProgress = false;
     hideActionLoader();
     el.btnVerifyEmail.disabled = false;
     el.verifyOtp.disabled = false;
@@ -2986,12 +3021,17 @@ async function afterAuthResolved(){
 }
 
 function enterApp(){
+  // Re-sync now that currentSession is known, so the account-scoped
+  // jas_pref_* keys (see prefKeyFor) are read instead of whatever the
+  // pre-login boot-time sync picked up before any account was known.
+  syncDisplayToggleState();
+
   const fullName = currentProfile.name || currentProfile.email || '';
   el.appBarUserName.textContent = truncateText(fullName, 20);
   el.appBarUserName.setAttribute('title', fullName);
   el.navAdminTab.classList.toggle('hide', currentProfile.role !== 'admin');
   showScreen('app');
-  const savedView = localStorage.getItem('jas_last_view');
+  const savedView = localStorage.getItem(prefKeyFor('jas_last_view'));
   const initialView = savedView || 'newBill';
   switchView(initialView);
   
@@ -3010,7 +3050,7 @@ function switchView(view){
     view = 'newBill';
   }
 
-  localStorage.setItem('jas_last_view', view);
+  localStorage.setItem(prefKeyFor('jas_last_view'), view);
 
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.view === view));
   el.viewNewBill.classList.toggle('hide', view !== 'newBill');
@@ -3185,6 +3225,10 @@ function getSavedBillState(){
     return saved ? JSON.parse(saved) : null;
   } catch (e) {
     console.error('Failed to get saved bill state:', e);
+    // The entry is corrupted and will never parse successfully — remove it
+    // now rather than leaving a permanently-broken key sitting in
+    // localStorage that every future restore check would just fail on again.
+    clearSavedBillState();
     return null;
   }
 }
@@ -3206,10 +3250,16 @@ function restoreBillStateFromLocalStorage(){
   const saved = getSavedBillState();
   if (!saved) return false;
   
-  state.customer = saved.customer || { name: '', address: '', mobile: '' };
+  state.customer = (saved.customer && typeof saved.customer === 'object' && !Array.isArray(saved.customer))
+    ? saved.customer
+    : { name: '', address: '', mobile: '' };
   state.invoiceNumber = saved.invoiceNumber || '';
   state.notes = saved.notes || '';
-  state.products = saved.products || [];
+  // Autosave is trusted JSON we wrote ourselves, but validate the shape
+  // anyway: a valid-JSON-but-wrong-shape value here (e.g. products stored
+  // as an object instead of an array) would otherwise pass `|| []`
+  // unchanged and later crash calculateTotals()'s `for...of` loop.
+  state.products = Array.isArray(saved.products) ? saved.products : [];
   // Watermark/QR/Signature/Notes toggle state comes from jas_pref_* via
   // syncDisplayToggleState() — not restored from the bill snapshot.
   
@@ -4167,6 +4217,23 @@ async function reprintBill(invoiceNo){
       rate: it.price
     }));
     state.nextId = state.products.length + 1;
+
+    // Defensive: a normal save always requires a customer name and at least
+    // one product, so this shouldn't happen for bills created through the
+    // app — but if an old/edited-elsewhere row somehow has neither,
+    // openPreviewModal() below would just silently refuse to open (it
+    // validates both), leaving the app thinking a previous-bill preview is
+    // in progress with nothing actually shown. Bail out cleanly instead:
+    // `state` was already overwritten above, so restore the user's real
+    // draft rather than leaving it lost or the flags stuck.
+    if (!state.customer.name.trim() || !state.products.length) {
+      hideActionLoader();
+      showToast('This invoice has incomplete data and cannot be previewed.', 'error');
+      isPreviousBillMode = false;
+      restoreDraftAfterPreviousBill();
+      return;
+    }
+
     loadedBillForPrint = invoiceNo;
 
     hideActionLoader();
@@ -4321,6 +4388,8 @@ function handleBillsTableClick(e){
    =================================================================== */
 
 async function loadPendingUsers(){
+  const requestId = ++pendingUsersRequestSeq;
+
   el.pendingUsersLoading.classList.remove('hide');
   el.pendingUsersEmpty.classList.add('hide');
   el.pendingUsersList.innerHTML = '';
@@ -4330,6 +4399,8 @@ async function loadPendingUsers(){
     .select('id,name,email,role,status,created_at')
     .eq('status', 'pending')
     .order('created_at', { ascending: true });
+
+  if (requestId !== pendingUsersRequestSeq) return;
 
   el.pendingUsersLoading.classList.add('hide');
 
@@ -4360,6 +4431,8 @@ async function loadPendingUsers(){
 
 async function loadAllUsers(resetToFirstPage = false){
   if (resetToFirstPage) usersPage = 1;
+  const requestId = ++allUsersRequestSeq;
+
   el.allUsersLoading.classList.remove('hide');
   el.allUsersList.innerHTML = '';
 
@@ -4371,6 +4444,8 @@ async function loadAllUsers(resetToFirstPage = false){
     .select('id,name,email,role,status,created_at', { count: 'exact' })
     .order('created_at', { ascending: false })
     .range(from, to);
+
+  if (requestId !== allUsersRequestSeq) return;
 
   el.allUsersLoading.classList.add('hide');
 
@@ -4742,6 +4817,16 @@ function updateNotesInputState(){
   el.invoiceNotes.style.cursor = canEdit ? 'text' : 'not-allowed';
 }
 
+// Mirrors billSaveKeyFor: without this, display preferences (watermark/QR/
+// signature/notes toggles) would be shared by every account that logs into
+// this browser, so Account B would inherit whatever Account A last set.
+// Falls back to the bare key when no session is known yet (e.g. the very
+// first syncDisplayToggleState() call during boot, before login).
+function prefKeyFor(baseKey){
+  const userId = currentSession?.user?.id;
+  return userId ? `${baseKey}_${userId}` : baseKey;
+}
+
 function syncDisplayToggleState(){
   if (!el.toggleNotesVisibility || !el.toggleWatermark || !el.invoiceNotes) return;
 
@@ -4750,10 +4835,10 @@ function syncDisplayToggleState(){
   const qrEnabledByConfig = CONFIG?.display?.showQr !== false;
   const signatureEnabledByConfig = CONFIG?.display?.showSignature !== false;
 
-  const storedNotes = localStorage.getItem('jas_pref_notes');
-  const storedWatermark = localStorage.getItem('jas_pref_watermark');
-  const storedQr = localStorage.getItem('jas_pref_qr');
-  const storedSignature = localStorage.getItem('jas_pref_signature');
+  const storedNotes = localStorage.getItem(prefKeyFor('jas_pref_notes'));
+  const storedWatermark = localStorage.getItem(prefKeyFor('jas_pref_watermark'));
+  const storedQr = localStorage.getItem(prefKeyFor('jas_pref_qr'));
+  const storedSignature = localStorage.getItem(prefKeyFor('jas_pref_signature'));
 
   const notesChecked = notesEnabledByConfig ? (storedNotes === null ? true : storedNotes === 'true') : false;
   const watermarkChecked = watermarkEnabledByConfig ? (storedWatermark === null ? true : storedWatermark === 'true') : false;
@@ -4786,16 +4871,16 @@ function syncDisplayToggleState(){
   state.showSignature = signatureChecked && signatureEnabledByConfig;
 
   if (!notesEnabledByConfig) {
-    localStorage.setItem('jas_pref_notes', 'false');
+    localStorage.setItem(prefKeyFor('jas_pref_notes'), 'false');
   }
   if (!watermarkEnabledByConfig) {
-    localStorage.setItem('jas_pref_watermark', 'false');
+    localStorage.setItem(prefKeyFor('jas_pref_watermark'), 'false');
   }
   if (!qrEnabledByConfig) {
-    localStorage.setItem('jas_pref_qr', 'false');
+    localStorage.setItem(prefKeyFor('jas_pref_qr'), 'false');
   }
   if (!signatureEnabledByConfig) {
-    localStorage.setItem('jas_pref_signature', 'false');
+    localStorage.setItem(prefKeyFor('jas_pref_signature'), 'false');
   }
 
   const toggleWraps = {
@@ -4942,7 +5027,7 @@ function bindEvents(){
       return;
     }
     state.includeNotesOnPdf = e.target.checked;
-    localStorage.setItem('jas_pref_notes', e.target.checked);
+    localStorage.setItem(prefKeyFor('jas_pref_notes'), e.target.checked);
     updateNotesInputState();
   });
 
@@ -4952,7 +5037,7 @@ function bindEvents(){
       return;
     }
     state.showWatermark = e.target.checked;
-    localStorage.setItem('jas_pref_watermark', e.target.checked);
+    localStorage.setItem(prefKeyFor('jas_pref_watermark'), e.target.checked);
   });
 
   if (el.toggleQrVisibility) {
@@ -4962,7 +5047,7 @@ function bindEvents(){
         return;
       }
       state.showQr = e.target.checked;
-      localStorage.setItem('jas_pref_qr', e.target.checked);
+      localStorage.setItem(prefKeyFor('jas_pref_qr'), e.target.checked);
     });
   }
 
@@ -4973,7 +5058,7 @@ function bindEvents(){
         return;
       }
       state.showSignature = e.target.checked;
-      localStorage.setItem('jas_pref_signature', e.target.checked);
+      localStorage.setItem(prefKeyFor('jas_pref_signature'), e.target.checked);
     });
   }
 
