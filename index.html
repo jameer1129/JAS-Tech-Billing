@@ -2958,18 +2958,20 @@ async function handleLogout(){
   showActionLoader('Logging Out');
 
   try {
-    // Capture the current account's id BEFORE calling signOut(). signOut()
-    // fires the SIGNED_OUT onAuthStateChange listener (which sets
-    // currentSession = null) as part of its own execution, so reading
-    // currentSession?.user?.id *after* the await here can already be null.
-    // That would make clearSavedBillState() fall back to the bare,
-    // unscoped BILL_SAVE_KEY instead of this account's real
-    // BILL_SAVE_KEY_<id> key, leaving the actual autosave never cleared.
-    const loggedOutUserId = currentSession?.user?.id;
     await supabaseClient.auth.signOut();
     currentSession = null;
     currentProfile = null;
-    clearSavedBillState(loggedOutUserId);
+    // Wipe all local storage on logout rather than targeting a single
+    // per-account key, so the next account to log into this browser never
+    // sees a leftover draft, preference, or any other stale local data --
+    // regardless of user-id lookups or auth-event ordering.
+    // Note: this also clears jas_theme (dark/light mode), so the app
+    // returns to its default theme on next login.
+    try {
+      localStorage.clear();
+    } catch (e) {
+      console.error('Failed to clear local storage on logout:', e);
+    }
     loadedBillForPrint = null;
     isPreviousBillMode = false;
     el.loginEmail.value = '';
