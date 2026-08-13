@@ -1159,7 +1159,182 @@ on function public.create_bill(
 
 to authenticated;
 
+-- Run this once in the Supabase SQL editor (Dashboard → SQL Editor).
+-- Creates a fast, indexed email lookup that the edge function calls via RPC,
+-- instead of paginating through every user in auth.users.
 
+create or replace function public.check_email_exists(check_email text)
+returns table(email_exists boolean, confirmed boolean)
+language sql
+security definer
+set search_path = public
+as $$
+  select true, (email_confirmed_at is not null)
+  from auth.users
+  where lower(email) = lower(check_email)
+  limit 1;
+$$;
+
+-- Lock it down: only the edge function's service-role client may call this.
+-- Nobody else (anon, authenticated users, PostgREST clients) can invoke it.
+revoke all on function public.check_email_exists(text) from public;
+grant execute on function public.check_email_exists(text) to service_role;
+
+-- edge functon to check emai is exist or not
+
+-- import { createClient } from "npm:@supabase/supabase-js@2";
+
+-- const corsHeaders = {
+--   "Access-Control-Allow-Origin": "*",
+--   "Access-Control-Allow-Headers":
+--     "authorization, x-client-info, apikey, content-type",
+--   "Access-Control-Allow-Methods": "POST, OPTIONS",
+--   "Content-Type": "application/json",
+-- };
+
+-- const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+
+-- if (!SUPABASE_URL) {
+--   throw new Error("SUPABASE_URL is required");
+-- }
+
+-- const rawSecretKeys = Deno.env.get("SUPABASE_SECRET_KEYS");
+
+-- if (!rawSecretKeys) {
+--   throw new Error("SUPABASE_SECRET_KEYS is required");
+-- }
+
+-- const secretKeys = JSON.parse(rawSecretKeys);
+
+-- // "default" is the usual name for the default Secret API key.
+-- // Change "default" only if you created a differently named secret key.
+-- const ADMIN_KEY = secretKeys["default"];
+
+-- if (!ADMIN_KEY) {
+--   throw new Error("Default secret key is missing");
+-- }
+
+-- const supabaseAdmin = createClient(
+--   SUPABASE_URL,
+--   ADMIN_KEY,
+--   {
+--     auth: {
+--       autoRefreshToken: false,
+--       persistSession: false,
+--       detectSessionInUrl: false,
+--     },
+--   }
+-- );
+
+-- Deno.serve(async (req: Request) => {
+--   // CORS preflight
+--   if (req.method === "OPTIONS") {
+--     return new Response(null, {
+--       status: 204,
+--       headers: corsHeaders,
+--     });
+--   }
+
+--   // Only POST is allowed
+--   if (req.method !== "POST") {
+--     return new Response(
+--       JSON.stringify({
+--         error: "Method not allowed",
+--       }),
+--       {
+--         status: 405,
+--         headers: corsHeaders,
+--       }
+--     );
+--   }
+
+--   // Read JSON body
+--   let body;
+
+--   try {
+--     body = await req.json();
+--   } catch {
+--     return new Response(
+--       JSON.stringify({
+--         error: "Invalid JSON",
+--       }),
+--       {
+--         status: 400,
+--         headers: corsHeaders,
+--       }
+--     );
+--   }
+
+--   const email = String(body?.email || "")
+--     .trim()
+--     .toLowerCase();
+
+--   // Validate email
+--   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+--     return new Response(
+--       JSON.stringify({
+--         error: "Valid email is required",
+--       }),
+--       {
+--         status: 400,
+--         headers: corsHeaders,
+--       }
+--     );
+--   }
+
+--   try {
+--     // Single indexed lookup via RPC instead of paginating through every user
+--     // in auth.users — stays fast no matter how many users you have.
+--     // Requires the check_email_exists() function (see migration SQL).
+--     const { data, error } = await supabaseAdmin.rpc(
+--       "check_email_exists",
+--       { check_email: email }
+--     );
+
+--     if (error) {
+--       console.error("check_email_exists RPC error:", error);
+
+--       return new Response(
+--         JSON.stringify({
+--           error: "Could not check email",
+--         }),
+--         {
+--           status: 500,
+--           headers: corsHeaders,
+--         }
+--       );
+--     }
+
+--     const row = Array.isArray(data) ? data[0] : data;
+--     const exists = !!row;
+--     const emailConfirmed = exists ? Boolean(row.confirmed) : false;
+
+--     return new Response(
+--       JSON.stringify({
+--         exists,
+--         email_confirmed: emailConfirmed,
+--         confirmed: emailConfirmed,
+--       }),
+--       {
+--         status: 200,
+--         headers: corsHeaders,
+--       }
+--     );
+
+--   } catch (error) {
+--     console.error("check-email-exists error:", error);
+
+--     return new Response(
+--       JSON.stringify({
+--         error: "Could not check email",
+--       }),
+--       {
+--         status: 500,
+--         headers: corsHeaders,
+--       }
+--     );
+--   }
+-- });
 
 -- =========================================================
 -- 15. FIRST ADMIN SETUP

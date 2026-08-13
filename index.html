@@ -95,7 +95,7 @@ img{max-width:100%;display:block;}
   display:flex;align-items:center;justify-content:center;transition:background .15s ease,transform .08s ease;
 }
 .app-bar__icon-btn:hover{background:rgba(255,255,255,.24);}
-.app-bar__icon-btn:active{transform:scale(.92);}
+.app-bar__icon-btn:active,.auth-theme-toggle:active{transform:scale(.92);}
 /* ---------- User menu (desktop) ---------- */
 .user-menu-wrap{position:relative;}
 .app-bar__user{display:flex;align-items:center;gap:8px;font-size:12px;background:rgba(255,255,255,.14);padding:12px 12px;border-radius:20px;border:none;color:#fff;cursor:pointer;transition:background .15s ease;}
@@ -179,8 +179,6 @@ img{max-width:100%;display:block;}
 .field input:focus,.field textarea:focus,.field select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(21,101,192,.14);}
 
 .field input.input-error, .field textarea.input-error {border-color: var(--danger);box-shadow: 0 0 0 3px rgba(214, 69, 69, 0.14);}
-.field-error{font-size:12px;color:var(--danger);margin-top:6px;display:none;}
-.field-error.show{display:block;}
 
 .field--password{position:relative;}
 .field--password input{padding-right:42px;}
@@ -230,7 +228,7 @@ img{max-width:100%;display:block;}
   background: rgba(214, 69, 69, 0.1) !important;
 }
 
-.summary-grid{display:flex;flex-direction:column;gap:10px;}
+.summary-grid,.bd-list{display:flex;flex-direction:column;gap:10px;}
 .summary-row{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13.5px;color:var(--muted);}
 .summary-row b{color:var(--text);font-weight:700;word-break:break-word;overflow-wrap:break-word;text-align:right;}
 .summary-total{
@@ -282,9 +280,8 @@ img{max-width:100%;display:block;}
 .modal__footer{display:flex;gap:10px;padding:8px 20px 20px;}
 .modal__footer .btn{flex:1;}
 
-.bd-list{display:flex;flex-direction:column;gap:10px;}
 .bd-row{display:flex;flex-direction:column;padding:10px 0;border-top:1px solid var(--line);}
-.bd-row:first-child{border-top:none;}
+.bd-row:first-child,.user-row:first-child{border-top:none;}
 .bd-row__header{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px;font-weight:700;}
 .bd-row__icon{width:20px;height:20px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px;}
 .bd-row__label{margin:0;}
@@ -327,10 +324,9 @@ img{max-width:100%;display:block;}
 .pdf-loading-overlay{position:fixed;inset:0;background:rgba(245, 247, 249, 0.7);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:9999;display:flex;align-items:center;justify-content:center;}
 body.dark-theme .pdf-loading-overlay{background:rgba(10, 11, 12, 0.7);}
 .pdf-loading-overlay .bar-card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:#ffffff;border-radius:8px;padding:24px 28px;}
-body.dark-theme .pdf-loading-overlay .bar-card{background:var(--surface);}
 .pdf-loading-overlay .bar-track{width:160px;height:4px;background:#E4E8EE;border-radius:4px;overflow:hidden;}
 body.dark-theme .pdf-loading-overlay .bar-track{background:var(--line);}
-.pdf-loading-overlay .bar-fill{height:100%;width:45%;background:#625aff;border-radius:4px;animation:barSlide 1.1s ease-in-out infinite;}
+.pdf-loading-overlay .bar-fill,.boot-loader__bar-fill{height:100%;width:45%;background:#625aff;border-radius:4px;animation:barSlide 1.1s ease-in-out infinite;}
 .pdf-loading-overlay p{margin:0;font-size:13px;font-weight:600;color:#212121;}
 body.dark-theme .pdf-loading-overlay p{color:#F3F4F6;}
 
@@ -344,7 +340,6 @@ body.dark-theme .pdf-loading-overlay p{color:#F3F4F6;}
   box-shadow:var(--shadow-sm); transition:background .15s ease,color .15s ease,transform .08s ease;
 }
 .auth-theme-toggle:hover{color:var(--primary);}
-.auth-theme-toggle:active{transform:scale(.92);}
 .auth-card{width:100%;max-width:400px;background:var(--white);border-radius:var(--radius);padding:30px 26px;box-shadow:var(--shadow-md);border:1px solid var(--line);}
 .auth-logo{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:22px;}
 .auth-logo img{height:56px;width:56px;object-fit:contain;}
@@ -438,13 +433,8 @@ body.dark-theme .date-picker__input{background:var(--surface);}
 body.dark-theme .date-picker__panel{background:var(--surface);border-color:var(--line);}
 .date-picker__header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--line);}
 .date-picker__nav{background:none;border:none;color:var(--muted);width:28px;height:28px;border-radius:8px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;}
-.date-picker__nav:hover{background:rgba(1,37,135,.10);color:var(--primary);}
-body.dark-theme .date-picker__nav:hover{background:rgba(1,37,135,.28);}
 .date-picker__title{font-size:16px;font-weight:700;color:var(--text);background:none;border:none;font-family:var(--font);cursor:pointer;padding:4px 10px;border-radius:8px;}
-.date-picker__title:hover{background:rgba(1,37,135,.10);color:var(--primary);}
-body.dark-theme .date-picker__title:hover{background:rgba(1,37,135,.28);}
 .date-picker__title--static{cursor:default;}
-.date-picker__title--static:hover{background:none;color:var(--text);}
 .date-picker__weekdays{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:14px;font-weight:600;color:var(--muted);text-transform:uppercase;margin-bottom:4px;}
 .date-picker__days{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
 .date-picker__months{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:2px 0;}
@@ -452,20 +442,17 @@ body.dark-theme .date-picker__title:hover{background:rgba(1,37,135,.28);}
   border:none;background:none;padding:12px 4px;border-radius:8px;font-size:13px;font-weight:600;font-family:var(--font);
   color:var(--text);cursor:pointer;
 }
-.date-picker__month-btn:hover{background:rgba(1,37,135,.10);color:var(--primary);}
-body.dark-theme .date-picker__month-btn:hover{background:rgba(1,37,135,.28);}
-.date-picker__month-btn.today:not(.selected){color:var(--primary);font-weight:800;box-shadow:inset 0 0 0 1.5px var(--primary);}
-.date-picker__month-btn.selected{background:var(--primary);color:#FFFFFF;}
 .date-picker__day{
   border:none;background:none;width:100%;aspect-ratio:1;border-radius:8px;font-size:14px;font-family:var(--font);
   color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;
 }
-.date-picker__day:hover:not(:disabled){background:rgba(1,37,135,.10);color:var(--primary);}
-body.dark-theme .date-picker__day:hover:not(:disabled){background:rgba(1,37,135,.28);}
-.date-picker__day.outside{color:var(--muted);opacity:.4;}
-.date-picker__day.today:not(.selected){color:var(--primary);font-weight:800;box-shadow:inset 0 0 0 1.5px var(--primary);}
-.date-picker__day.selected{background:var(--primary);color:#FFFFFF;}
+.date-picker__nav:hover,.date-picker__title:hover,.date-picker__month-btn:hover,.date-picker__day:hover:not(:disabled){background:rgba(1,37,135,.10);color:var(--primary);}
+.date-picker__title--static:hover{background:none;color:var(--text);}
+body.dark-theme .date-picker__nav:hover,body.dark-theme .date-picker__title:hover,body.dark-theme .date-picker__month-btn:hover,body.dark-theme .date-picker__day:hover:not(:disabled){background:rgba(1,37,135,.28);}
+.date-picker__month-btn.today:not(.selected),.date-picker__day.today:not(.selected){color:var(--primary);font-weight:800;box-shadow:inset 0 0 0 1.5px var(--primary);}
+.date-picker__month-btn.selected,.date-picker__day.selected{background:var(--primary);color:#FFFFFF;}
 .date-picker__day.selected:hover{background:var(--primary);color:#FFFFFF;}
+.date-picker__day.outside{color:var(--muted);opacity:.4;}
 .date-picker__day:disabled{cursor:not-allowed;}
 .date-picker__footer{display:flex;justify-content:center;align-items:center;gap:14px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);}
 .date-picker__today-btn,.date-picker__clear-btn{background:none;border:none;font-size:16px;font-weight:600;color:var(--primary);cursor:pointer;padding:4px 6px;border-radius:6px;}
@@ -497,15 +484,10 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{
 .bills-pagination__info{font-size:12.5px;color:var(--muted);font-weight:600;}
 .bills-pagination__controls{display:flex;align-items:center;gap:4px;flex-wrap:wrap;}
 .page-btn{min-width:32px;height:32px;padding:0 8px;border:1.5px solid var(--line);background:var(--white);color:var(--text);border-radius:var(--radius-sm);font-size:12.5px;font-weight:600;cursor:pointer;transition:border-color .15s ease,color .15s ease,background .15s ease;display:flex;align-items:center;justify-content:center;}
-.page-btn:hover:not(:disabled):not(.active){border-color:var(--primary);color:var(--primary);}
-.page-btn.active{background:var(--primary);border-color:var(--primary);color:#FFFFFF;}
+.page-btn:hover:not(:disabled){border-color:var(--primary);color:var(--primary);}
 .page-btn:disabled{opacity:.4;cursor:not-allowed;}
 .page-btn.page-nav{color:var(--muted);}
-.page-ellipsis{padding:0 4px;color:var(--muted);font-size:12.5px;}
-.section-subhead{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:18px 0 10px;display:flex;align-items:center;gap:8px;}
-.section-subhead:first-child{margin-top:0;}
 .user-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid var(--line);gap:10px;flex-wrap:wrap;}
-.user-row:first-child{border-top:none;}
 .user-row__info{display:flex;flex-direction:column;gap:3px;min-width:0;}
 .user-row__info b{font-size:13.5px;color:var(--text);}
 .user-row__info span{font-size:12px;color:var(--muted);}
@@ -534,7 +516,6 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{
 }
 .boot-loader__card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:var(--white);border-radius:var(--radius-sm);padding:24px 28px;}
 .boot-loader__bar-track{width:160px;height:4px;background:var(--line);border-radius:4px;overflow:hidden;}
-.boot-loader__bar-fill{height:100%;width:45%;background:#625aff;border-radius:4px;animation:barSlide 1.1s ease-in-out infinite;}
 @keyframes barSlide{0%{transform:translateX(-100%);}50%{transform:translateX(80%);}100%{transform:translateX(260%);}}
 .boot-loader__label{font-size:13px;font-weight:600;color:var(--text);}
 
@@ -602,7 +583,6 @@ body.dark-theme .boot-loader__label{color:var(--F3F4F6, #F3F4F6);}
 .inv-customer__label { font-size:13px; font-weight:700; letter-spacing:0.8px; color:var(--primary); text-transform:uppercase; line-height:1; margin-bottom:2px;margin-top:12px;}
 .inv-customer__name { font-size:18px; font-weight:700; color:#000000; white-space:nowrap; }
 .truncate{max-width:260px;display:inline-block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle}
-.field .field-note{font-size:12px;color:var(--muted);margin-top:6px}
 .inv-customer__line { font-size:14px; color:#000000; font-weight:600; white-space:nowrap; }
 .inv-customer__address { font-size:14px; color:#000000; font-weight:600; white-space:pre-line; word-break:break-word; overflow-wrap:break-word; }
 
@@ -620,14 +600,13 @@ body.dark-theme .boot-loader__label{color:var(--F3F4F6, #F3F4F6);}
 .inv-table-wrap { width:100%; flex:1; display:flex; flex-direction:column; position:relative; z-index:5;}
 .inv-table { width:100%; border-collapse:separate;border-spacing: 0; margin-top:12px; font-size:13.5px; table-layout:fixed; border:1px solid #CBD5E1;border-radius: 8px;overflow: hidden; }
 .inv-table thead th { background:var(--primary) !important; color:#FFFFFF !important; padding:12px 14px; font-size:12px; text-transform:uppercase; font-weight:700; border:none; text-align:center;border-right:1px solid #FFFFFF;letter-spacing:0.8px;}
-.inv-table thead th:nth-child(2) { text-align:left; }
+.inv-table thead th:nth-child(2),.inv-table tbody td:nth-child(2) { text-align:left; }
 .inv-table thead th.idx { width:45px; }
 .inv-table thead th.col-qty { width:70px; }
 .inv-table thead th.col-rate { width:115px; }
 .inv-table thead th.col-amt { width:125px; }
 
 .inv-table tbody td { padding:6px; border:none;border-top:1px solid #CBD5E1;border-right:1px solid #CBD5E1; vertical-align:middle; text-align:center; color:#000000; font-size:13.5px; word-break:break-word; overflow-wrap:break-word; white-space:normal; }
-.inv-table tbody td:nth-child(2) { text-align:left; }
 .inv-table tbody tr:nth-child(odd) td { background-color: #FFFFFF !important; }
 .inv-table tbody tr:nth-child(even) td { background-color: #F8FAFC !important; }
 
@@ -757,8 +736,15 @@ body.dark-theme .boot-loader__label{color:var(--F3F4F6, #F3F4F6);}
       </div>
       <div class="field field--password">
         <label for="regPassword">Password</label>
-        <input type="password" id="regPassword" autocomplete="new-password" maxlength="64">
+        <input type="password" id="regPassword" autocomplete="new-password" placeholder="At least 8 characters" maxlength="64">
         <button type="button" class="pw-toggle-btn" data-target="regPassword" aria-label="Show password">
+          <i class="fa-regular fa-eye"></i>
+        </button>
+      </div>
+      <div class="field field--password">
+        <label for="regConfirmPassword">Confirm Password</label>
+        <input type="password" id="regConfirmPassword" autocomplete="new-password" maxlength="64">
+        <button type="button" class="pw-toggle-btn" data-target="regConfirmPassword" aria-label="Show password">
           <i class="fa-regular fa-eye"></i>
         </button>
       </div>
@@ -830,7 +816,6 @@ body.dark-theme .boot-loader__label{color:var(--F3F4F6, #F3F4F6);}
       </div>
 
       <div class="verify-timer" id="verifyTimerWrap">
-        <span>Code expires in <strong id="verifyExpiryTimer">60:00</strong></span>
         <span id="verifyResendTimerText">You can request a new code in <strong id="verifyResendTimer">00:60</strong></span>
       </div>
 
@@ -843,7 +828,7 @@ body.dark-theme .boot-loader__label{color:var(--F3F4F6, #F3F4F6);}
       </button>
 
       <button type="button" class="btn btn--ghost btn--full verify-back" id="btnBackFromVerification">
-        <i class="fa-solid fa-arrow-left"></i> Back to Register
+        <i class="fa-solid fa-arrow-left"></i> Back to Login
       </button>
     </div>
   </div>
@@ -1483,6 +1468,7 @@ function cacheElements(){
   el.regName = document.getElementById('regName');
   el.regEmail = document.getElementById('regEmail');
   el.regPassword = document.getElementById('regPassword');
+  el.regConfirmPassword = document.getElementById('regConfirmPassword');
   el.btnRegister = document.getElementById('btnRegister');
   el.forgotEmail = document.getElementById('forgotEmail');
   el.btnSendReset = document.getElementById('btnSendReset');
@@ -1493,7 +1479,6 @@ function cacheElements(){
   el.verifyMsg = document.getElementById('verifyMsg');
   el.verifyEmailAddress = document.getElementById('verifyEmailAddress');
   el.verifyOtp = document.getElementById('verifyOtp');
-  el.verifyExpiryTimer = document.getElementById('verifyExpiryTimer');
   el.verifyResendTimerText = document.getElementById('verifyResendTimerText');
   el.verifyResendTimer = document.getElementById('verifyResendTimer');
   el.verifyTimerWrap = document.getElementById('verifyTimerWrap');
@@ -1663,6 +1648,11 @@ function cacheElements(){
   el.allUsersPagination = document.getElementById('allUsersPagination');
   el.allUsersPaginationInfo = document.getElementById('allUsersPaginationInfo');
   el.allUsersPaginationControls = document.getElementById('allUsersPaginationControls');
+
+  msgBars.auth = createMsgBar(el.authMsg);
+  msgBars.verify = createMsgBar(el.verifyMsg);
+  msgBars.resetPw = createMsgBar(el.resetPwMsg);
+  msgBars.changePw = createMsgBar(el.changePwMsg);
 }
 
 function setupAutoSaveListeners(){
@@ -2189,6 +2179,59 @@ function initSupabase(recoveryContext){
 }
 
 
+/* ---------- Reusable auth helpers (shared by login/register/forgot/reset/change) ---------- */
+
+const MIN_PASSWORD_LENGTH = 8;
+
+function isValidPassword(pw){
+  return typeof pw === 'string' && pw.length >= MIN_PASSWORD_LENGTH;
+}
+function passwordsMatch(a, b){
+  return !!a && a === b;
+}
+// Returns a user-facing error string, or null if the password(s) are valid.
+// `confirmPw` is optional — pass it whenever there's a "confirm password" field to check.
+function validateNewPassword(pw, confirmPw, label = 'Password'){
+  if (!isValidPassword(pw)) return `${label} must be at least ${MIN_PASSWORD_LENGTH} characters.`;
+  if (confirmPw !== undefined && !passwordsMatch(pw, confirmPw)) return 'Passwords do not match.';
+  return null;
+}
+
+// One implementation for every inline "auth-msg" banner in the app
+// (login/register, verify-email, reset-password, change-password all use
+// the same show/hide behaviour on differently-scoped elements).
+function createMsgBar(msgEl){
+  return {
+    show(msg, kind){
+      msgEl.textContent = msg;
+      msgEl.className = 'auth-msg show' + (kind === 'info' ? ' info' : '');
+    },
+    hide(){
+      msgEl.className = 'auth-msg';
+    }
+  };
+}
+
+/**
+ * Runs `action` while disabling `button` and (optionally) showing the
+ * full-screen loader with `loaderMsg`. Always restores both afterwards,
+ * even if `action` throws. `onError`, if given, receives the caught error
+ * so the caller can surface a message; without it the error is only logged.
+ */
+async function withGuardedSubmit(button, loaderMsg, action, onError){
+  if (button) button.disabled = true;
+  if (loaderMsg) showActionLoader(loaderMsg);
+  try {
+    await action();
+  } catch (err) {
+    console.error(err);
+    if (onError) onError(err);
+  } finally {
+    if (loaderMsg) hideActionLoader();
+    if (button) button.disabled = false;
+  }
+}
+
 function setAuthTab(tab){
   currentAuthTab = tab;
   el.authTabLogin.classList.toggle('active', tab === 'login');
@@ -2203,13 +2246,9 @@ function setAuthTab(tab){
   hideAuthMsg();
 }
 
-function showAuthMsg(msg, kind){
-  el.authMsg.textContent = msg;
-  el.authMsg.className = 'auth-msg show' + (kind === 'info' ? ' info' : '');
-}
-function hideAuthMsg(){
-  el.authMsg.className = 'auth-msg';
-}
+const msgBars = {}; // populated in cacheElements() once the DOM elements exist: auth, verify, resetPw, changePw
+function showAuthMsg(msg, kind){ msgBars.auth.show(msg, kind); }
+function hideAuthMsg(){ msgBars.auth.hide(); }
 
 function showScreen(name){
   hideOverlay(el.bootLoader); el.bootLoader.classList.add('hide');
@@ -2277,27 +2316,15 @@ function getSignupExpiryRemaining(sentAt){
   return Math.max(0, SIGNUP_OTP_EXPIRY_SECONDS - Math.floor((Date.now() - sentAt) / 1000));
 }
 
-function showVerificationMsg(message, kind){
-  el.verifyMsg.textContent = message;
-  el.verifyMsg.className = 'auth-msg show' + (kind === 'info' ? ' info' : '');
-}
-
-function hideVerificationMsg(){
-  el.verifyMsg.className = 'auth-msg';
-}
+function showVerificationMsg(message, kind){ msgBars.verify.show(message, kind); }
+function hideVerificationMsg(){ msgBars.verify.hide(); }
 
 function updateVerificationTimers(){
   const { sentAt } = getPendingSignup();
   const cooldown = getSignupCooldownRemaining(sentAt);
-  const expiry = getSignupExpiryRemaining(sentAt);
 
-  el.verifyExpiryTimer.textContent = formatCountdown(expiry);
-  el.verifyTimerWrap.classList.toggle('expired', expiry <= 0);
-
-  if (expiry <= 0) {
-    el.verifyExpiryTimer.textContent = 'Expired';
-  }
-
+  // Expiry is still enforced silently in handleVerifyEmail() via
+  // getSignupExpiryRemaining() — we just no longer display the countdown.
   el.btnResendVerification.disabled = cooldown > 0;
   if (cooldown > 0) {
     el.verifyResendTimerText.classList.remove('hide');
@@ -2330,6 +2357,14 @@ function isEmailNotConfirmedError(error){
   return text.includes('email not confirmed') || text.includes('email_not_confirmed');
 }
 
+// Supabase deliberately returns this same generic error whether the email
+// doesn't exist at all or the password is simply wrong — it never reveals
+// which, to avoid leaking registered emails through the login form itself.
+function isInvalidCredentialsError(error){
+  const text = `${error?.message || ''} ${error?.code || ''}`.toLowerCase();
+  return text.includes('invalid login credentials') || text.includes('invalid_credentials');
+}
+
 async function resendSignupOtp(email, options = {}){
   const normalizedEmail = email.trim().toLowerCase();
   const existing = getPendingSignup();
@@ -2359,71 +2394,40 @@ async function handleLogin(){
   const email = el.loginEmail.value.trim().toLowerCase();
   const password = el.loginPassword.value;
 
-  if (!email || !password) {
-    showAuthMsg('Enter email and password.');
-    return;
-  }
+  if (!email || !password) return showAuthMsg('Enter email and password.');
+  if (!isValidPassword(password)) return showAuthMsg(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
 
-  if (password.length < 8) {
-    showAuthMsg('Password must be at least 8 characters.');
-    return;
-  }
-
-  el.btnLogin.disabled = true;
   hideAuthMsg();
-  showActionLoader('Signing in...');
 
-  try {
-    const { data, error } = await supabaseClient.auth.signInWithPassword({
-      email,
-      password
-    });
+  await withGuardedSubmit(el.btnLogin, 'Signing in...', async () => {
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
 
     if (error) {
-      hideActionLoader();
-
       if (isEmailNotConfirmedError(error)) {
-        const sendOtp = await askToSendOtp(email, {
-          title: 'Email Not Verified',
-          message: 'Your email address is not verified. Would you like us to send a new 8-digit verification code?'
+        await confirmAndSendSignupOtp(email, {
+          confirmTitle: 'Email Not Verified',
+          confirmMessage: 'Your email address is not verified. Would you like us to send a new 8-digit verification code?',
+          declineMsg: 'Please verify your email before logging in.',
+          successMsg: 'Your email is not verified. We sent a new verification code.'
         });
-
-        if (!sendOtp) {
-          showAuthMsg('Please verify your email before logging in.', 'info');
-          return;
-        }
-
-        showActionLoader('Sending verification code...');
-
-        const resend = await resendSignupOtp(email);
-
-        if (!resend.error) {
-          showEmailVerification(
-            email,
-            'Your email is not verified. We sent a new verification code.'
-          );
-          return;
-        }
-
-        const pending = getPendingSignup();
-        const sameEmail = pending.email.trim().toLowerCase() === email;
-        const remaining = sameEmail
-          ? getSignupCooldownRemaining(pending.sentAt)
-          : 0;
-
-        if (remaining > 0) {
-          showEmailVerification(
-            email,
-            `A verification code was recently sent. You can request another in ${remaining} seconds.`
-          );
-          return;
-        }
-
-        showAuthMsg(
-          resend.error.message ||
-          'Could not send a verification code. Please try again.'
-        );
         return;
+      }
+
+      if (isInvalidCredentialsError(error)) {
+        showActionLoader('Checking your account...');
+        const emailCheck = await emailExists(email);
+
+        if (emailCheck.ok && !emailCheck.exists) {
+          showAuthMsg('No account found with this email. Please register to continue.');
+          return;
+        }
+
+        if (emailCheck.ok && emailCheck.exists) {
+          showAuthMsg('Incorrect password. Please try again.');
+          return;
+        }
+        // Could not verify email existence (edge function unreachable, etc.)
+        // — fall through to Supabase's original generic message below.
       }
 
       showAuthMsg(error.message || 'Login failed. Check your credentials.');
@@ -2432,13 +2436,9 @@ async function handleLogin(){
 
     currentSession = data.session;
     clearPendingSignup();
-
     showActionLoader('Loading your account...');
     await afterAuthResolved();
-  } finally {
-    hideActionLoader();
-    el.btnLogin.disabled = false;
-  }
+  });
 }
 
 async function emailExists(email) {
@@ -2532,117 +2532,116 @@ function askToSendOtp(email, options = {}) {
   });
 }
 
+/**
+ * Confirms with the user (via the OTP modal) and, if accepted, sends a fresh
+ * signup OTP to `email` and routes to the verification screen. Shared by
+ * handleLogin (unverified account trying to sign in) and handleRegister
+ * (registering against an existing-but-unverified account) — both flows are
+ * otherwise identical aside from their modal copy and messages.
+ * Hides the full-screen loader before opening the modal (it would otherwise
+ * render on top of it) and always leaves the loader hidden when done.
+ */
+async function confirmAndSendSignupOtp(email, { confirmTitle, confirmMessage, declineMsg, successMsg }){
+  hideActionLoader();
+
+  const confirmed = await askToSendOtp(email, { title: confirmTitle, message: confirmMessage });
+  if (!confirmed) {
+    showAuthMsg(declineMsg, 'info');
+    return false;
+  }
+
+  showActionLoader('Sending verification code...');
+  try {
+    const resend = await resendSignupOtp(email);
+    if (!resend.error) {
+      showEmailVerification(email, successMsg);
+      return true;
+    }
+
+    const pending = getPendingSignup();
+    const sameEmail = pending.email.trim().toLowerCase() === email;
+    const remaining = sameEmail ? getSignupCooldownRemaining(pending.sentAt) : 0;
+
+    if (remaining > 0) {
+      showEmailVerification(email, `A verification code was recently sent. You can request another in ${remaining} seconds.`);
+      return true;
+    }
+
+    showAuthMsg(resend.error.message || 'Could not send a verification code. Please try again.');
+    return false;
+  } finally {
+    hideActionLoader();
+  }
+}
+
 async function handleRegister() {
   const name = el.regName.value.trim();
   const email = el.regEmail.value.trim().toLowerCase();
   const password = el.regPassword.value;
+  const confirmPassword = el.regConfirmPassword.value;
 
-  if (!name || !email || !password) {
-    showAuthMsg('Fill in all fields.');
+  if (!name || !email || !password || !confirmPassword) return showAuthMsg('Fill in all fields.');
+
+  const pwErr = validateNewPassword(password, confirmPassword);
+  if (pwErr) {
+    showAuthMsg(pwErr);
+    if (pwErr === 'Passwords do not match.') el.regConfirmPassword.focus();
     return;
   }
 
-  if (password.length < 8) {
-    showAuthMsg('Password must be at least 8 characters.');
-    return;
-  }
-
-  el.btnRegister.disabled = true;
   hideAuthMsg();
 
-  // Check the account BEFORE asking to send anything.
-  showActionLoader('Checking email...');
+  // Loader messages are managed manually inside (multiple stages: checking
+  // the email, sending an OTP, creating the account) — withGuardedSubmit
+  // just guarantees the button gets re-enabled however this flow ends.
+  await withGuardedSubmit(el.btnRegister, null, async () => {
+    // Check the account BEFORE asking to send anything.
+    showActionLoader('Checking email...');
+    let emailCheck;
+    try {
+      emailCheck = await emailExists(email);
+    } catch (err) {
+      console.error(err);
+      emailCheck = { ok: false, exists: false, confirmed: false };
+    }
+    hideActionLoader();
 
-  let emailCheck;
-  try {
-    emailCheck = await emailExists(email);
-  } catch (err) {
-    console.error(err);
-    emailCheck = { ok: false, exists: false, confirmed: false };
-  }
-
-  hideActionLoader();
-
-  if (!emailCheck.ok) {
-    el.btnRegister.disabled = false;
-    showAuthMsg('We could not safely verify this email right now. Please try again.');
-    return;
-  }
-
-  if (emailCheck.exists) {
-    el.btnRegister.disabled = false;
-
-    // A verified account must never be routed to the registration OTP screen.
-    if (emailCheck.confirmed) {
-      setAuthTab('login');
-      el.loginEmail.value = email;
-      showAuthMsg('An account with this email is already verified. Please log in or use Forgot Password.');
+    if (!emailCheck.ok) {
+      showAuthMsg('We could not safely verify this email right now. Please try again.');
       return;
     }
-    // Existing but unverified account: OTP recovery is allowed.
+
+    if (emailCheck.exists) {
+      // A verified account must never be routed to the registration OTP screen.
+      if (emailCheck.confirmed) {
+        setAuthTab('login');
+        el.loginEmail.value = email;
+        showAuthMsg('An account with this email is already verified. Please log in or use Forgot Password.');
+        return;
+      }
+      // Existing but unverified account: OTP recovery is allowed, via the
+      // same confirm-then-send flow used when logging into an unverified account.
+      await confirmAndSendSignupOtp(email, {
+        confirmTitle: 'Account Already Exists',
+        confirmMessage: 'This email is registered but not verified. Would you like us to send a new 8-digit verification code?',
+        declineMsg: 'No verification email was sent.',
+        successMsg: 'This account is not verified. We sent a new 8-digit verification code.'
+      });
+      return;
+    }
+
+    // New account: ask before signUp(), because signUp() can send the email.
     const sendOtp = await askToSendOtp(email, {
-      title: 'Account Already Exists',
-      message: 'This email is registered but not verified. Would you like us to send a new 8-digit verification code?'
+      title: 'Send Verification Code?',
+      message: 'We will send an 8-digit verification code to this email address.'
     });
 
     if (!sendOtp) {
-      showAuthMsg('No verification email was sent.', 'info');
+      showAuthMsg('Registration cancelled. No verification email was sent.', 'info');
       return;
     }
 
-    showActionLoader('Sending verification code...');
-
-    try {
-      const resend = await resendSignupOtp(email);
-
-      if (!resend.error) {
-        showEmailVerification(
-          email,
-          'This account is not verified. We sent a new 8-digit verification code.'
-        );
-        return;
-      }
-
-      const pending = getPendingSignup();
-      const sameEmail = pending.email.trim().toLowerCase() === email;
-      const remaining = sameEmail
-        ? getSignupCooldownRemaining(pending.sentAt)
-        : 0;
-
-      if (remaining > 0) {
-        showEmailVerification(
-          email,
-          `A verification code was recently sent. You can request another in ${remaining} seconds.`
-        );
-        return;
-      }
-
-      showAuthMsg(
-        resend.error.message ||
-        'Could not send a verification code. Please try again.'
-      );
-    } finally {
-      hideActionLoader();
-    }
-
-    return;
-  }
-
-  // New account: ask before signUp(), because signUp() can send the email.
-  const sendOtp = await askToSendOtp(email, {
-    title: 'Send Verification Code?',
-    message: 'We will send an 8-digit verification code to this email address.'
-  });
-
-  if (!sendOtp) {
-    el.btnRegister.disabled = false;
-    showAuthMsg('Registration cancelled. No verification email was sent.', 'info');
-    return;
-  }
-
-  showActionLoader('Creating your account...');
-
-  try {
+    showActionLoader('Creating your account...');
     const { data, error } = await supabaseClient.auth.signUp({
       email,
       password,
@@ -2654,17 +2653,12 @@ async function handleRegister() {
 
     if (error) {
       const text = `${error.message || ''} ${error.code || ''}`.toLowerCase();
-
-      if (
-        text.includes('already registered') ||
-        text.includes('user already registered')
-      ) {
+      if (text.includes('already registered') || text.includes('user already registered')) {
         setAuthTab('login');
         el.loginEmail.value = email;
         showAuthMsg('That email is already registered. Please log in or use Forgot Password.');
         return;
       }
-
       showAuthMsg(error.message || 'Registration failed.');
       return;
     }
@@ -2682,10 +2676,7 @@ async function handleRegister() {
       email,
       'Account created. Enter the 8-digit verification code sent to your email.'
     );
-  } finally {
-    hideActionLoader();
-    el.btnRegister.disabled = false;
-  }
+  });
 }
 
 async function handleVerifyEmail(){
@@ -2825,96 +2816,76 @@ function handleBackFromVerification(){
   clearPendingSignup();
   el.verifyOtp.value = '';
   showScreen('auth');
-  setAuthTab('register');
-  if (email) el.regEmail.value = email;
-  showAuthMsg('Verification cancelled. No OTP state was kept in this tab.', 'info');
+  setAuthTab('login');
+  if (email) el.loginEmail.value = email;
+  showAuthMsg('Verification cancelled. Your account is registered but not yet verified — log in anytime to get a new code.', 'info');
 }
 
 async function handleForgotPassword(){
+  const email = el.forgotEmail.value.trim().toLowerCase();
+  if (!email) return showAuthMsg('Enter your email address.');
 
-  const email = el.forgotEmail.value.trim();
-  if (!email) { showAuthMsg('Enter your email address.'); return; }
-
-  el.btnSendReset.disabled = true;
   hideAuthMsg();
-  
-  const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-    // Resolve against the full current URL (not just window.location.origin)
-    // so this works correctly when the app is hosted in a subpath, e.g. a
-    // GitHub Pages project site (https://user.github.io/repo-name/) —
-    // origin alone would drop the "/repo-name/" part and send the reset
-    // link to the domain root, which 404s.
-    redirectTo: new URL('?mode=update-password', window.location.href).href
-  });
-  hideActionLoader();
-  el.btnSendReset.disabled = false;
 
-  if (error) {
-    showAuthMsg(error.message || 'Failed to send reset email. Please try again.');
-    return;
-  }
+  await withGuardedSubmit(el.btnSendReset, 'Sending reset link...', async () => {
+    const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+      // Resolve against the full current URL (not just window.location.origin)
+      // so this works correctly when the app is hosted in a subpath, e.g. a
+      // GitHub Pages project site (https://user.github.io/repo-name/) —
+      // origin alone would drop the "/repo-name/" part and send the reset
+      // link to the domain root, which 404s.
+      redirectTo: new URL('?mode=update-password', window.location.href).href
+    });
 
-  el.forgotEmail.value = '';
-  showAuthMsg('Check your email for a password reset link.', 'info');
-  setTimeout(() => { setAuthTab('login'); }, 2500);
+    if (error) {
+      showAuthMsg(error.message || 'Failed to send reset email. Please try again.');
+      return;
+    }
+
+    el.forgotEmail.value = '';
+    showAuthMsg('Check your email for a password reset link.', 'info');
+    setTimeout(() => { setAuthTab('login'); }, 2500);
+  }, () => showAuthMsg('Failed to send reset email. Please try again.'));
 }
 
 async function handleResetPassword(){
   const newPw = el.resetNewPassword.value;
   const confirmPw = el.resetConfirmPassword.value;
 
-  if (!newPw || !confirmPw) {
-    el.resetPwMsg.textContent = 'Enter both passwords.';
-    el.resetPwMsg.className = 'auth-msg show';
-    return;
-  }
+  if (!newPw || !confirmPw) return msgBars.resetPw.show('Enter both passwords.');
 
-  if (newPw.length < 8) {
-    el.resetPwMsg.textContent = 'Password must be at least 8 characters.';
-    el.resetPwMsg.className = 'auth-msg show';
-    return;
-  }
+  const pwErr = validateNewPassword(newPw, confirmPw);
+  if (pwErr) return msgBars.resetPw.show(pwErr);
 
-  if (newPw !== confirmPw) {
-    el.resetPwMsg.textContent = 'Passwords do not match.';
-    el.resetPwMsg.className = 'auth-msg show';
-    return;
-  }
+  msgBars.resetPw.hide();
 
-  el.btnUpdateResetPassword.disabled = true;
-  el.resetPwMsg.className = 'auth-msg';
+  await withGuardedSubmit(el.btnUpdateResetPassword, null, async () => {
+    const { error } = await supabaseClient.auth.updateUser({ password: newPw });
 
-  const { error } = await supabaseClient.auth.updateUser({ password: newPw });
-  el.btnUpdateResetPassword.disabled = false;
+    if (error) {
+      msgBars.resetPw.show(error.message || 'Failed to update password. Please try again.');
+      return;
+    }
 
-  if (error) {
-    el.resetPwMsg.textContent = error.message || 'Failed to update password. Please try again.';
-    el.resetPwMsg.className = 'auth-msg show';
-    return;
-  }
+    el.resetNewPassword.value = '';
+    el.resetConfirmPassword.value = '';
 
-  el.resetNewPassword.value = '';
-  el.resetConfirmPassword.value = '';
+    clearPasswordRecoveryPending();
+    msgBars.resetPw.show('Password updated successfully! Redirecting to login...', 'info');
 
-  clearPasswordRecoveryPending();
+    setTimeout(async () => {
+      await supabaseClient.auth.signOut();
 
-  el.resetPwMsg.textContent =
-    'Password updated successfully! Redirecting to login...';
-
-  el.resetPwMsg.className = 'auth-msg show info';
-
-  setTimeout(async () => {
-    await supabaseClient.auth.signOut();
-
-    // Reload for real (not just an in-app screen switch): this page load's
-    // Supabase client was deliberately created with sessionStorage because
-    // the URL said ?mode=update-password. If we just swapped screens, any
-    // normal login typed into this same tab afterwards would also end up
-    // in sessionStorage instead of persisting like a regular login should.
-    // A real reload drops the URL param and reinitializes the client with
-    // localStorage, so normal login behaves normally again.
-    window.location.href = window.location.origin + window.location.pathname;
-  }, 1500);
+      // Reload for real (not just an in-app screen switch): this page load's
+      // Supabase client was deliberately created with sessionStorage because
+      // the URL said ?mode=update-password. If we just swapped screens, any
+      // normal login typed into this same tab afterwards would also end up
+      // in sessionStorage instead of persisting like a regular login should.
+      // A real reload drops the URL param and reinitializes the client with
+      // localStorage, so normal login behaves normally again.
+      window.location.href = window.location.origin + window.location.pathname;
+    }, 1500);
+  }, () => msgBars.resetPw.show('Failed to update password. Please try again.'));
 }
 
 async function handleLogout(){
@@ -4424,7 +4395,7 @@ function openChangePasswordModal(){
   el.changePwCurrent.value = '';
   el.changePwNew.value = '';
   el.changePwConfirm.value = '';
-  el.changePwMsg.className = 'auth-msg';
+  msgBars.changePw.hide();
   showOverlay(el.changePasswordModalOverlay);
   setTimeout(() => el.changePwCurrent.focus(), 50);
 }
@@ -4437,43 +4408,35 @@ async function handleChangePassword(){
   const newPw = el.changePwNew.value;
   const confirmPw = el.changePwConfirm.value;
 
-  if (!currentPw) {
-    el.changePwMsg.textContent = 'Enter your current password.';
-    el.changePwMsg.className = 'auth-msg show'; return;
-  }
-  if (newPw.length < 8) {
-    el.changePwMsg.textContent = 'New password must be at least 8 characters.';
-    el.changePwMsg.className = 'auth-msg show'; return;
-  }
-  if (newPw !== confirmPw) {
-    el.changePwMsg.textContent = 'Passwords do not match.';
-    el.changePwMsg.className = 'auth-msg show'; return;
-  }
+  if (!currentPw) return msgBars.changePw.show('Enter your current password.');
 
-  el.btnConfirmChangePw.disabled = true;
-  el.changePwMsg.className = 'auth-msg';
+  const pwErr = validateNewPassword(newPw, confirmPw, 'New password');
+  if (pwErr) return msgBars.changePw.show(pwErr);
 
-  // Verify current password by re-signing in
-  const { error: verifyErr } = await supabaseClient.auth.signInWithPassword({
-    email: currentProfile.email,
-    password: currentPw
-  });
+  msgBars.changePw.hide();
 
-  if (verifyErr) {
-    el.btnConfirmChangePw.disabled = false;
-    el.changePwMsg.textContent = 'Current password is incorrect.';
-    el.changePwMsg.className = 'auth-msg show'; return;
-  }
+  await withGuardedSubmit(el.btnConfirmChangePw, null, async () => {
+    // Verify current password by re-signing in
+    const { error: verifyErr } = await supabaseClient.auth.signInWithPassword({
+      email: currentProfile.email,
+      password: currentPw
+    });
 
-  const { error } = await supabaseClient.auth.updateUser({ password: newPw });
-  el.btnConfirmChangePw.disabled = false;
+    if (verifyErr) {
+      msgBars.changePw.show('Current password is incorrect.');
+      return;
+    }
 
-  if (error) {
-    el.changePwMsg.textContent = error.message || 'Could not update password.';
-    el.changePwMsg.className = 'auth-msg show'; return;
-  }
-  closeChangePasswordModal();
-  showToast('Password updated successfully', 'success');
+    const { error } = await supabaseClient.auth.updateUser({ password: newPw });
+
+    if (error) {
+      msgBars.changePw.show(error.message || 'Could not update password.');
+      return;
+    }
+
+    closeChangePasswordModal();
+    showToast('Password updated successfully', 'success');
+  }, () => msgBars.changePw.show('Could not update password. Please try again.'));
 }
 
 let pendingRecoveryConflict = null;
@@ -4753,7 +4716,8 @@ function getDismissibleOverlays(){
     [el.logoutModalOverlay, closeLogoutConfirm],
     [el.changePasswordModalOverlay, closeChangePasswordModal],
     [el.saveChoiceModalOverlay, closeSaveChoiceModal],
-    [el.pdfActionModalOverlay, closePdfActionModal]
+    [el.pdfActionModalOverlay, closePdfActionModal],
+    [el.otpSendConfirmOverlay, () => el.btnCloseOtpSendConfirm.click()]
   ];
 }
 
@@ -5132,7 +5096,8 @@ function bindEvents(){
       else if (active.id === 'loginPassword') { e.preventDefault(); handleLogin(); }
       else if (active.id === 'regName') { e.preventDefault(); el.regEmail.focus(); }
       else if (active.id === 'regEmail') { e.preventDefault(); el.regPassword.focus(); }
-      else if (active.id === 'regPassword') { e.preventDefault(); handleRegister(); }
+      else if (active.id === 'regPassword') { e.preventDefault(); el.regConfirmPassword.focus(); }
+      else if (active.id === 'regConfirmPassword') { e.preventDefault(); handleRegister(); }
       else if(active.id === 'customerName') {
         e.preventDefault();
         if (markError(active, validateField(active))) {
