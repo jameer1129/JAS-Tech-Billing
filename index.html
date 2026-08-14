@@ -34,9 +34,9 @@
 }
 
 body.dark-theme {
-  --bg: var(--dark-bg, #000000);
+  --bg: var(--dark-bg, #0F0F0F);
   --text: var(--dark-text, #F3F4F6);
-  --surface: var(--dark-surface, #111111);
+  --surface: var(--dark-surface, #000000);
   --white: var(--dark-surface, #111111);
   --line: var(--dark-line, #2D3748);
   --shadow-sm: var(--dark-shadow-sm, 0 1px 3px rgba(0,0,0,0.5));
@@ -508,18 +508,11 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{
 .actions-popup__sep{height:1px;background:var(--line);margin:4px 0;}
 
 /* Full-screen boot loader shown before auth state is known */
-.boot-loader{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
-  background:rgba(245,247,249,0.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
-}
-.boot-loader__card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:var(--white);border-radius:var(--radius-sm);padding:24px 28px;}
+.boot-loader{position:fixed;inset:0;background:rgba(15,23,42,.42);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:9998;display:flex;align-items:center;justify-content:center;}
+.boot-loader__card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:var(--surface);border-radius:var(--radius-sm);padding:24px 28px;}
 .boot-loader__bar-track{width:160px;height:4px;background:var(--line);border-radius:4px;overflow:hidden;}
 @keyframes barSlide{0%{transform:translateX(-100%);}50%{transform:translateX(80%);}100%{transform:translateX(260%);}}
 .boot-loader__label{font-size:13px;font-weight:600;color:var(--text);}
-
-/* Dark-theme overrides to match the PDF loader */
-body.dark-theme .boot-loader{background:rgba(10,11,12,0.7);}
-body.dark-theme .boot-loader__card{background:var(--surface);}
-body.dark-theme .boot-loader__label{color:#F3F4F6;}
 
 /* PDF Generation specific styles */
 .invoice-page{

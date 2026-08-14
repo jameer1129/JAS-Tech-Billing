@@ -14,14 +14,12 @@
       "primary": "#012587",
       "background": "#F8F9FC",
       "surface": "#FFFFFF",
-      "text": "#212121",
-      "border": "#E5E7EB"
+      "text": "#212121"
     },
     "dark": {
       "background": "#0F0F0F",
       "surface": "#000000",
-      "text": "#F3F4F6",
-      "border": "#252B34"
+      "text": "#F3F4F6"
     },
     "radius": "12px"
   },
