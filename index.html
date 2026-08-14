@@ -2893,7 +2893,34 @@ async function handleForgotPassword(){
 
   hideAuthMsg();
 
-  await withGuardedSubmit(el.btnSendReset, 'Sending reset link...', async () => {
+  await withGuardedSubmit(el.btnSendReset, null, async () => {
+    // Check whether the account actually exists before calling
+    // resetPasswordForEmail(). This prevents a new/unregistered email
+    // from reaching the success message below.
+    showActionLoader('Checking your account...');
+    let emailCheck;
+    try {
+      emailCheck = await emailExists(email);
+    } catch (err) {
+      console.error(err);
+      emailCheck = { ok: false, exists: false, confirmed: false };
+    }
+    hideActionLoader();
+
+    // Do not continue if the edge-function check could not be completed.
+    // We cannot safely decide whether the reset request should proceed.
+    if (!emailCheck.ok) {
+      showAuthMsg('We could not safely verify this email right now. Please try again.');
+      return;
+    }
+
+    // Account does not exist: stop here and do not call Supabase reset.
+    if (!emailCheck.exists) {
+      showAuthMsg('No account found with this email. Please register to continue.');
+      return;
+    }
+
+    showActionLoader('Sending reset link...');
     const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
       // Resolve against the full current URL (not just window.location.origin)
       // so this works correctly when the app is hosted in a subpath, e.g. a
@@ -2902,6 +2929,8 @@ async function handleForgotPassword(){
       // link to the domain root, which 404s.
       redirectTo: new URL('?mode=update-password', window.location.href).href
     });
+
+    hideActionLoader();
 
     if (error) {
       showAuthMsg(error.message || 'Failed to send reset email. Please try again.');
