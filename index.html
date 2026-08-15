@@ -43,25 +43,10 @@ body.dark-theme {
   --shadow-md: var(--dark-shadow-md, 0 10px 28px rgba(0,0,0,0.8));
 }
 
-body.dark-theme .card { background: var(--white); border-color: var(--line); }
-body.dark-theme .field input,
-body.dark-theme .field textarea {
-  background: var(--surface);
-  color: var(--text);
-  color-scheme: dark;
-}
-body.dark-theme .modal { background: var(--surface); border: 1px solid var(--line); }
-body.dark-theme .nav-tabs,
-body.dark-theme .auth-card { background: var(--white); }
-body.dark-theme .pdf-loading-overlay .bar-card { background: var(--surface); }
-body.dark-theme .bills-search-input-wrap input { background: var(--surface); color: var(--text); }
 body.dark-theme .product-table thead th,
 body.dark-theme .bills-table thead th { background: #1A202C; color: #63B3ED; }
 body.dark-theme .btn--outline:hover,
 body.dark-theme .btn--ghost:hover { background: #1A202C; }
-body.dark-theme .modal__header { border-bottom: 1px solid var(--line); }
-
-body.dark-theme .empty-state p { color: var(--text); }
 
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--font);-webkit-tap-highlight-color:transparent;overflow-x:hidden; transition: background 0.3s ease, color 0.3s ease;}
@@ -1364,7 +1349,7 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{color:#63B3ED;}
 // (`if (!CONFIG.supabase.url || !CONFIG.supabase.anonKey)`) already routes
 // that case to the auth screen instead of crashing.
 const DEFAULT_CONFIG = {
-  company: { name: 'JAS Tech' },
+  company: { name: 'XYZ Company' },
   theme: {
     radius: '12px',
     light: { primary: '#012587', background: '#F8F9FC', surface: '#FFFFFF', text: '#212121', border: '#E5E7EB' },
@@ -1374,7 +1359,7 @@ const DEFAULT_CONFIG = {
   invoice: {
     defaultNotes: '',
     filePrefix: 'Invoice-',
-    numberFormat: 'DDMMHHmmss',
+    numberFormat: 'MMDDHHmmss',
     currencySymbol: '₹'
   },
   footer: { appVersion: 'v1.0' },
@@ -1703,7 +1688,7 @@ function applyConfig(){
   root.setProperty('--dark-bg', darkTheme.background || '#000000');
   root.setProperty('--dark-text', darkTheme.text || '#F3F4F6');
   root.setProperty('--dark-surface', darkTheme.surface || '#111111');
-  root.setProperty('--dark-line', darkTheme.border || '#2D3748');
+  root.setProperty('--dark-line', darkTheme.border || '#2D3748cc');
   root.setProperty('--dark-primary', darkTheme.primary || lightTheme.primary || '#012587');
 
   el.appBarLogo.src = CONFIG.assets.mainLogo || '';
