@@ -2936,15 +2936,13 @@ async function handleLogout(){
     // Reset the current invoice first
     resetInvoice(true);
 
-    // Capture current account before signOut
-    const loggedOutUserId = currentSession?.user?.id;
-
+    const savedTheme = localStorage.getItem('jas_theme');
     await supabaseClient.auth.signOut();
 
     // Clear all local data
     localStorage.clear();
     sessionStorage.clear();
-
+    localStorage.setItem('jas_theme',savedTheme);
     // Clear runtime state
     currentSession = null;
     currentProfile = null;
