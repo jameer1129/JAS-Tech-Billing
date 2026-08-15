@@ -4,7 +4,7 @@
   "description": "Generate professional JAS Tech invoices in seconds with our easy-to-use billing app. Create, customize, and send invoices effortlessly.",
   "start_url": "./index.html",
   "scope": "./",
-  "display": "standalone",
+  "display": "fullscreen",
   "orientation": "portrait-primary",
   "theme_color": "#012587",
   "background_color": "#FFFFFF",
