@@ -692,7 +692,7 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{
     <div class="auth-form" id="loginForm">
       <div class="field">
         <label for="loginEmail">Email</label>
-        <input type="email" id="loginEmail" autocomplete="username" maxlength="100">
+        <input type="email" id="loginEmail" autocomplete="email" maxlength="100">
       </div>
       <div class="field field--password">
         <label for="loginPassword">Password</label>
@@ -722,7 +722,7 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{
       </div>
       <div class="field">
         <label for="regEmail">Email</label>
-        <input type="email" id="regEmail" autocomplete="username" maxlength="100">
+        <input type="email" id="regEmail" autocomplete="email" maxlength="100">
       </div>
       <div class="field field--password">
         <label for="regPassword">Password</label>
@@ -753,7 +753,7 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{
       <p style="font-size:13px;color:var(--muted);margin-bottom:8px;text-align:center;line-height:1.5;">Enter your email address and we'll send you a link to reset your password.</p>
       <div class="field">
         <label for="forgotEmail">Email</label>
-        <input type="email" id="forgotEmail" autocomplete="username" maxlength="100">
+        <input type="email" id="forgotEmail" autocomplete="email" maxlength="100">
       </div>
       <button class="btn btn--primary btn--full" id="btnSendReset" style="margin-top:10px;">
         <i class="fa-solid fa-paper-plane"></i> Send Reset Link
@@ -2671,8 +2671,6 @@ async function handleRegister() {
     if (emailCheck.exists) {
       // A verified account must never be routed to the registration OTP screen.
       if (emailCheck.confirmed) {
-        setAuthTab('login');
-        el.loginEmail.value = email;
         showAuthMsg('An account with this email is already verified. Please log in or use Forgot Password.');
         return;
       }
