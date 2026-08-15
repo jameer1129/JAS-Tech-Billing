@@ -38,7 +38,7 @@ body.dark-theme {
   --text: var(--dark-text, #F3F4F6);
   --surface: var(--dark-surface, #000000);
   --white: var(--dark-surface, #111111);
-  --line: var(--dark-line, #2D3748);
+  --line: var(--dark-line, #2D3748AA);
   --shadow-sm: var(--dark-shadow-sm, 0 1px 3px rgba(0,0,0,0.5));
   --shadow-md: var(--dark-shadow-md, 0 10px 28px rgba(0,0,0,0.8));
 }
@@ -1353,7 +1353,7 @@ const DEFAULT_CONFIG = {
   theme: {
     radius: '12px',
     light: { primary: '#012587', background: '#F8F9FC', surface: '#FFFFFF', text: '#212121', border: '#E5E7EB' },
-    dark:  { primary: '#012587', background: '#000000', surface: '#111111', text: '#F3F4F6', border: '#2D3748' }
+    dark:  { primary: '#012587', background: '#000000', surface: '#111111', text: '#F3F4F6', border: '#2D3748AA' }
   },
   assets: { mainLogo: '' },
   invoice: {
@@ -1688,7 +1688,7 @@ function applyConfig(){
   root.setProperty('--dark-bg', darkTheme.background || '#000000');
   root.setProperty('--dark-text', darkTheme.text || '#F3F4F6');
   root.setProperty('--dark-surface', darkTheme.surface || '#111111');
-  root.setProperty('--dark-line', darkTheme.border || '#2D3748cc');
+  root.setProperty('--dark-line', darkTheme.border || '#2D3748AA');
   root.setProperty('--dark-primary', darkTheme.primary || lightTheme.primary || '#012587');
 
   el.appBarLogo.src = CONFIG.assets.mainLogo || '';
