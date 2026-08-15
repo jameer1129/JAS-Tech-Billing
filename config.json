@@ -1,10 +1,7 @@
 {
   "company": {
     "name": "JAS Tech",
-    "addressLines": [
-      "Hafeezpet, Hyderabad",
-      "Telangana - 500049"
-    ],
+    "addressLines": ["Hafeezpet, Hyderabad", "Telangana - 500049"],
     "phone": "9700322231",
     "email": "jastechhyd@gmail.com"
   },
@@ -36,8 +33,8 @@
     "url": "https://tdytfzqtaxijlbmfnxee.supabase.co",
     "anonKey": "sb_publishable_n2QoEQ5WiIzdC2RTGZMmQA_yrpAvGvI"
   },
-  
-   "display": {
+
+  "display": {
     "showWatermark": true,
     "showQr": true,
     "showSignature": true,
@@ -45,7 +42,7 @@
     "showTotalItems": true,
     "showTotalQuantity": true
   },
-  
+
   "invoice": {
     "currencySymbol": "₹",
     "filePrefix": "JAS_Invoice_",
@@ -88,6 +85,6 @@
   "footer": {
     "thankYouMessage": "Thank you for choosing JAS Tech!",
     "copyrightLine": "© 2026 JAS Tech | Laptop Sales • Service • Accessories",
-    "appVersion": "v2.0.1"
+    "appVersion": "v2.0.3"
   }
 }

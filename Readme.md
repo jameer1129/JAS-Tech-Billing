@@ -5,12 +5,14 @@ JAS Tech Billing is an **online invoicing web app** built with plain HTML, CSS a
 ## Key Features
 
 **Authentication & Access Control**
+
 - Email/password sign-up and login via Supabase Auth
 - New accounts start as `pending` and must be approved by an admin before they can use the app
 - Two roles: `admin` and `employee`, with row-level security enforced in the database
 - Change password from within the app
 
 **Billing**
+
 - Customer details: name, address, mobile number
 - Auto-generated invoice number (configurable format) and date
 - Product line items: name, description, serial number, quantity, rate — with add/edit/delete
@@ -21,6 +23,7 @@ JAS Tech Billing is an **online invoicing web app** built with plain HTML, CSS a
 - Download or share the generated PDF directly
 
 **Previous Bills**
+
 - Save invoices to Supabase and browse them later
 - Search by invoice number, customer name, or phone
 - Filter by date range (today, yesterday, last 7 days, this month, last month, or a custom date)
@@ -28,11 +31,13 @@ JAS Tech Billing is an **online invoicing web app** built with plain HTML, CSS a
 - Reprint (regenerate PDF) or delete a saved bill
 
 **Admin Panel**
+
 - Approve or reject pending sign-ups
 - View all users, their role, and their approval status
 - Promote/demote roles and manage account status
 
 **Appearance & Config**
+
 - Light/dark theme toggle (persisted locally)
 - All company info, branding colors, logos, currency symbol, and footer text are driven by `config.json` — no code changes needed to rebrand
 - Responsive layout with a mobile drawer menu
