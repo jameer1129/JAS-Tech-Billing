@@ -329,7 +329,6 @@ body.dark-theme input[type="checkbox"]:checked{background:var(--primary);border-
 
 #previewScaleContainer { display: flex; flex-direction: column; gap: 24px;  transform-origin: top center; width: 794px;  }
 
-
 /* ---------- Toast ---------- */
 .toast-stack{
   position:fixed;
@@ -2094,7 +2093,9 @@ let draftBillSnapshot = null; // backup of the in-progress New Bill draft while 
 const BILLS_PAGE_SIZE = 10;
 const USERS_PAGE_SIZE = 10;
 const A4_PAGE_HEIGHT_PX = 1123; // A4 height in px at 96dpi, used for PDF pagination
-const TOAST_DURATION_MS = 2400;
+const TOAST_DURATION_MS = 2500;
+const AUTH_TOAST_DURATION_MS = 5000;
+const MAX_VISIBLE_TOASTS = 3;
 const SEARCH_DEBOUNCE_MS = 350;
 const MAX_BILL_TOTAL = 9999999999.99; // matches bills.total numeric(12,2) in schema.sql
 let _openDatePickerClose = null;
@@ -2809,8 +2810,16 @@ function hideOverlay(overlay){
 }
 
 const TOAST_ICONS = { success: 'fa-check', info: 'fa-info', error: 'fa-xmark' };
-function showToast(message, type){
+function showToast(message, type, duration = TOAST_DURATION_MS){
   const kind = (type === 'success' || type === 'error') ? type : 'info';
+
+  // Keep the toast stack compact: never show more than 3 at once.
+  while (el.toastStack.children.length >= MAX_VISIBLE_TOASTS) {
+    const oldest = el.toastStack.firstElementChild;
+    if (!oldest) break;
+    clearTimeout(oldest._timer);
+    oldest.remove();
+  }
 
   const card = document.createElement('div');
   card.className = `toast-card toast-card--${kind}`;
@@ -2829,7 +2838,7 @@ function showToast(message, type){
     card.addEventListener('animationend', () => card.remove(), { once: true });
   };
   card.querySelector('.toast-card__close').addEventListener('click', dismiss);
-  card._timer = setTimeout(dismiss, TOAST_DURATION_MS);
+  card._timer = setTimeout(dismiss, duration);
 
   el.toastStack.appendChild(card);
 }
@@ -2992,7 +3001,7 @@ async function handleGoogleLogin(){
 
 // Auth feedback uses the same dismissible toast cards as the rest of the app.
 // There are no inline form alerts, keeping every auth page at its intended height.
-function showAuthMsg(msg, kind = 'error'){ showToast(msg, kind); }
+function showAuthMsg(msg, kind = 'error'){ showToast(msg, kind, AUTH_TOAST_DURATION_MS); }
 function hideAuthMsg(){ /* Toasts are independently dismissible. */ }
 
 function showScreen(name){
@@ -6318,11 +6327,9 @@ async function init(){
     showScreen('auth');
     return;
   }
-
   // A reset link must be evaluated against the account that is already
   // logged in on this device. Merely checking whether jas_auth exists is
   // not enough because the reset link may belong to a different user.
-  //
   // Recovery session  -> sessionStorage
   // Normal session    -> localStorage
   // These are deliberately kept separate so one cannot overwrite the other.
