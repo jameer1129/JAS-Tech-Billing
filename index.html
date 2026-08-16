@@ -563,6 +563,35 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{color:#63B3ED;}
 .user-row__info span{font-size:12px;color:var(--muted);}
 .user-row__actions{display:flex;gap:8px;align-items:center;flex-shrink:0;}
 
+/* ---------- Admin dashboard ---------- */
+.admin-shell{gap:22px;padding-top:26px;}
+.admin-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;}
+.admin-stat{min-height:150px;padding:19px 18px 17px;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;}
+.admin-stat::after{content:'';position:absolute;right:-10px;bottom:-14px;width:62px;height:62px;border-radius:50%;background:currentColor;opacity:.06;}
+.admin-stat__icon{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;background:rgba(1,37,135,.1);color:var(--primary);}
+.admin-stat__value{margin:12px 0 0;font-size:30px;line-height:1;font-weight:750;color:var(--primary);}
+.admin-stat__label{margin:8px 0 0;font-size:13px;font-weight:600;color:var(--muted);}
+.admin-stat--approved{color:var(--success);}.admin-stat--approved .admin-stat__icon{color:var(--success);background:rgba(31,146,84,.12);}.admin-stat--approved .admin-stat__value{color:var(--success);}
+.admin-stat--pending{color:var(--warning);}.admin-stat--pending .admin-stat__icon{color:#E88900;background:rgba(232,137,0,.13);}.admin-stat--pending .admin-stat__value{color:#E88900;}
+.admin-stat--rejected{color:var(--danger);}.admin-stat--rejected .admin-stat__icon{color:var(--danger);background:rgba(214,69,69,.12);}.admin-stat--rejected .admin-stat__value{color:var(--danger);}
+.admin-panel{padding:0;overflow:hidden;}
+.admin-panel__header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:19px 20px 16px;}
+.admin-panel__header .card__heading{margin:0;}
+.admin-count{min-width:32px;height:32px;padding:0 10px;border-radius:10px;background:rgba(1,37,135,.1);color:var(--primary);font-size:14px;font-weight:750;display:flex;align-items:center;justify-content:center;}
+.admin-empty{padding:38px 16px 48px;}.admin-empty i{font-size:42px;width:96px;height:96px;margin:0 auto 16px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#F3F5F8;color:#94A3B8;}
+.admin-empty p{font-size:18px;}.admin-empty span{font-size:14px;}
+.admin-users-toolbar{display:flex;align-items:center;gap:10px;padding:0 20px 13px;}
+.admin-users-toolbar .bills-search-input-wrap{flex:1;}.admin-users-toolbar .bills-search-input-wrap input{padding-top:10px;padding-bottom:10px;}
+.admin-filter-btn{width:40px;height:40px;border:1.5px solid var(--line);border-radius:var(--radius-sm);background:var(--white);color:var(--muted);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;}
+.admin-filter-btn:hover{color:var(--primary);border-color:var(--primary);}
+.admin-user-list{padding:0 20px;}.admin-user-list .user-row{padding:18px 0;flex-wrap:nowrap;}
+.admin-user-list .user-row__info{padding-left:66px;position:relative;gap:5px;}
+.admin-user-list .user-row__info::before{content:attr(data-initials);position:absolute;left:0;top:50%;transform:translateY(-50%);width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#E6EEFF;color:#174DC2;font-size:19px;font-weight:750;}
+.admin-user-list .user-row__info b{font-size:15px;}.admin-user-list .user-row__info span{font-size:13px;}
+.admin-user-list .user-row__actions{align-self:center;}.admin-user-list .kebab-btn{width:38px;height:38px;font-size:17px;}
+.admin-panel .bills-pagination{margin:0;padding:14px 20px 20px;}
+@media(max-width:640px){.admin-shell{padding:18px 14px 0;gap:16px}.admin-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.admin-stat{min-height:135px;padding:15px}.admin-panel__header{padding:16px}.admin-users-toolbar{padding:0 16px 10px}.admin-user-list{padding:0 16px}.admin-user-list .user-row{align-items:flex-start}.admin-user-list .user-row__info{padding-left:54px}.admin-user-list .user-row__info::before{width:42px;height:42px;font-size:16px}.admin-user-list .user-row__actions{gap:4px}.admin-user-list .badge{display:none}.admin-panel .bills-pagination{padding-left:16px;padding-right:16px}.admin-empty{padding-top:28px;padding-bottom:36px}}
+
 .spinner-inline{width:22px;height:22px;border:3px solid var(--line);border-top-color:var(--primary);border-radius:50%;animation:pdfSpin .8s linear infinite;margin:20px auto;}
 @keyframes pdfSpin{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}
 /* ---------- Actions kebab menu ---------- */
@@ -1210,22 +1239,53 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{color:#63B3ED;}
   </main>
 
   <!-- ========== VIEW: ADMIN ========== -->
-  <main class="app-shell hide" id="viewAdmin">
-    <section class="card">
-      <h2 class="card__heading"><i class="fa-solid fa-user-clock"></i> Pending Approvals</h2>
+  <main class="app-shell admin-shell hide" id="viewAdmin">
+    <section class="admin-stats" aria-label="User account summary">
+      <article class="card admin-stat">
+        <div class="admin-stat__icon"><i class="fa-solid fa-users"></i></div>
+        <div><p class="admin-stat__value" id="adminTotalUsers">0</p><p class="admin-stat__label">Total Users</p></div>
+      </article>
+      <article class="card admin-stat admin-stat--approved">
+        <div class="admin-stat__icon"><i class="fa-solid fa-check"></i></div>
+        <div><p class="admin-stat__value" id="adminApprovedUsers">0</p><p class="admin-stat__label">Approved</p></div>
+      </article>
+      <article class="card admin-stat admin-stat--pending">
+        <div class="admin-stat__icon"><i class="fa-solid fa-clock"></i></div>
+        <div><p class="admin-stat__value" id="adminPendingUsers">0</p><p class="admin-stat__label">Pending</p></div>
+      </article>
+      <article class="card admin-stat admin-stat--rejected">
+        <div class="admin-stat__icon"><i class="fa-solid fa-xmark"></i></div>
+        <div><p class="admin-stat__value" id="adminRejectedUsers">0</p><p class="admin-stat__label">Rejected</p></div>
+      </article>
+    </section>
+
+    <section class="card admin-panel">
+      <div class="admin-panel__header">
+        <h2 class="card__heading"><i class="fa-solid fa-user-clock"></i> Pending Approvals</h2>
+        <span class="admin-count" id="adminPendingCount">0</span>
+      </div>
       <div id="pendingUsersLoading" class="spinner-inline"></div>
-      <div id="pendingUsersEmpty" class="empty-state hide">
-        <i class="fa-regular fa-circle-check"></i>
+      <div id="pendingUsersEmpty" class="empty-state admin-empty hide">
+        <i class="fa-regular fa-user-check"></i>
         <p>No pending requests.</p>
         <span>New sign-ups will appear here for approval.</span>
       </div>
-      <div id="pendingUsersList"></div>
+      <div id="pendingUsersList" class="admin-user-list"></div>
     </section>
 
-    <section class="card">
-      <h2 class="card__heading"><i class="fa-solid fa-users"></i> All Users</h2>
+    <section class="card admin-panel">
+      <div class="admin-panel__header">
+        <h2 class="card__heading"><i class="fa-solid fa-users"></i> All Users</h2>
+      </div>
+      <div class="admin-users-toolbar">
+        <div class="bills-search-input-wrap">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <input type="search" id="adminUserSearch" placeholder="Search users..." autocomplete="off" maxlength="80" aria-label="Search users">
+        </div>
+        <button class="admin-filter-btn" id="btnAdminUserFilter" type="button" aria-label="Show all users" title="Show all users"><i class="fa-solid fa-filter"></i></button>
+      </div>
       <div id="allUsersLoading" class="spinner-inline"></div>
-      <div id="allUsersList"></div>
+      <div id="allUsersList" class="admin-user-list"></div>
       <div class="bills-pagination hide" id="allUsersPagination">
         <div class="bills-pagination__info" id="allUsersPaginationInfo"></div>
         <div class="bills-pagination__controls" id="allUsersPaginationControls"></div>
@@ -1753,6 +1813,13 @@ function cacheElements(){
   el.pendingUsersLoading = document.getElementById('pendingUsersLoading');
   el.pendingUsersEmpty = document.getElementById('pendingUsersEmpty');
   el.pendingUsersList = document.getElementById('pendingUsersList');
+  el.adminTotalUsers = document.getElementById('adminTotalUsers');
+  el.adminApprovedUsers = document.getElementById('adminApprovedUsers');
+  el.adminPendingUsers = document.getElementById('adminPendingUsers');
+  el.adminRejectedUsers = document.getElementById('adminRejectedUsers');
+  el.adminPendingCount = document.getElementById('adminPendingCount');
+  el.adminUserSearch = document.getElementById('adminUserSearch');
+  el.btnAdminUserFilter = document.getElementById('btnAdminUserFilter');
   el.allUsersLoading = document.getElementById('allUsersLoading');
   el.allUsersList = document.getElementById('allUsersList');
   el.allUsersPagination = document.getElementById('allUsersPagination');
@@ -3267,7 +3334,7 @@ function switchView(view){
   }
 
   if (view === 'previousBills') loadBills();
-  if (view === 'admin' && currentProfile.role === 'admin') { loadPendingUsers(); loadAllUsers(); }
+  if (view === 'admin' && currentProfile.role === 'admin') { loadAdminStats(); loadPendingUsers(); loadAllUsers(); }
 }
 
 /* ===================================================================
@@ -4665,8 +4732,11 @@ async function loadPendingUsers(){
 
   if (!data.length) {
     el.pendingUsersEmpty.classList.remove('hide');
+    el.adminPendingCount.textContent = '0';
     return;
   }
+
+  el.adminPendingCount.textContent = String(data.length);
 
   el.pendingUsersList.innerHTML = data.map(u => `
     <div class="user-row" data-id="${u.id}">
@@ -4732,9 +4802,10 @@ function renderAllUsers(users){
 
   el.allUsersList.innerHTML = users.map(u => {
     const isSelf = u.id === currentProfile.id;
+    const initials = (u.name || u.email || '?').split(/\s+/).filter(Boolean).slice(0, 2).map(part => part.charAt(0)).join('').toUpperCase();
     return `
     <div class="user-row" data-id="${u.id}">
-      <div class="user-row__info">
+      <div class="user-row__info" data-initials="${escapeHtml(initials)}">
         <b>${escapeHtml(u.name || u.email)} ${isSelf ? '<span style="color:var(--muted);font-weight:500;">(you)</span>' : ''}</b>
         <span>${escapeHtml(u.email)}</span>
       </div>
@@ -4750,6 +4821,35 @@ function renderAllUsers(users){
     </div>
   `;
   }).join('');
+  filterAdminUsers();
+}
+
+function filterAdminUsers(){
+  if (!el.adminUserSearch || !el.allUsersList) return;
+  const term = el.adminUserSearch.value.trim().toLowerCase();
+  el.allUsersList.querySelectorAll('.user-row').forEach(row => {
+    row.classList.toggle('hide', Boolean(term) && !row.textContent.toLowerCase().includes(term));
+  });
+}
+
+async function loadAdminStats(){
+  const queries = [
+    supabaseClient.from('profiles').select('*', { count: 'exact', head: true }),
+    supabaseClient.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
+    supabaseClient.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+    supabaseClient.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'rejected')
+  ];
+  const results = await Promise.all(queries);
+  if (results.some(result => result.error)) {
+    console.error('Could not load admin account stats.', results.find(result => result.error)?.error);
+    return;
+  }
+  const [total, approved, pending, rejected] = results.map(result => result.count || 0);
+  el.adminTotalUsers.textContent = String(total);
+  el.adminApprovedUsers.textContent = String(approved);
+  el.adminPendingUsers.textContent = String(pending);
+  el.adminRejectedUsers.textContent = String(rejected);
+  el.adminPendingCount.textContent = String(pending);
 }
 
 function renderAllUsersPagination(){
@@ -4768,6 +4868,7 @@ async function setUserStatus(userId, status){
     return;
   }
   showToast(status === 'approved' ? 'User approved' : 'User rejected', 'success');
+  loadAdminStats();
   loadPendingUsers();
   loadAllUsers();
 }
@@ -5482,6 +5583,12 @@ function bindEvents(){
   el.pendingUsersList.addEventListener('click', handlePendingUsersClick);
   el.allUsersList.addEventListener('click', handleAllUsersClick);
   el.allUsersPaginationControls.addEventListener('click', handleAllUsersPaginationClick);
+  el.adminUserSearch.addEventListener('input', filterAdminUsers);
+  el.btnAdminUserFilter.addEventListener('click', () => {
+    el.adminUserSearch.value = '';
+    filterAdminUsers();
+    el.adminUserSearch.focus();
+  });
 
   el.btnCloseLogoutModal.addEventListener('click', () => {
     if (pendingRecoveryConflict) {
