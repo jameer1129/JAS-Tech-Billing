@@ -1232,7 +1232,7 @@ body.dark-theme .admin-user-list .user-row__info::before{background:rgba(91,156,
       <h2 class="card__heading"><i class="fa-regular fa-file-lines"></i> Invoice</h2>
       <div class="field-group">
         <div class="field">
-          <label for="invoiceDate">Date</label>
+          <label for="invoiceDate" class="hide">Date</label>
           <div class="date-picker" id="invoiceDatePicker">
             <button type="button" class="date-picker__input" id="invoiceDateInput" aria-haspopup="true" aria-expanded="false">
               <span class="date-picker__text" id="invoiceDateText"></span>
@@ -1455,15 +1455,27 @@ body.dark-theme .admin-user-list .user-row__info::before{background:rgba(91,156,
       <button class="modal__close" id="btnCloseModal" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div class="modal__body">
-      <div class="field"><label for="prodName">Product Name <span class="required">*</span></label>
-        <input type="text" id="prodName" autocomplete="off" maxlength="100"></div>
-      <div class="field"><label for="prodDesc">Description <span class="optional">(Optional)</span></label>
-        <input type="text" id="prodDesc" autocomplete="off" maxlength="150"></div>
-      <div class="field"><label for="prodSerial">Serial Number <span class="optional">(Optional)</span></label>
-        <input type="text" id="prodSerial" autocomplete="off" maxlength="50"></div>
+      <div class="field field--icon">
+        <i class="fa-solid fa-box" aria-hidden="true"></i>
+        <input type="text" id="prodName" autocomplete="off" placeholder="Product name *" aria-label="Product name" maxlength="100">
+      </div>
+      <div class="field field--icon">
+        <i class="fa-solid fa-align-left" aria-hidden="true"></i>
+        <input type="text" id="prodDesc" autocomplete="off" placeholder="Description (optional)" aria-label="Description" maxlength="150">
+      </div>
+      <div class="field field--icon">
+        <i class="fa-solid fa-barcode" aria-hidden="true"></i>
+        <input type="text" id="prodSerial" autocomplete="off" placeholder="Serial number (optional)" aria-label="Serial number" maxlength="50">
+      </div>
       <div class="field-group field-group--pair">
-        <div class="field"><label for="prodQty">Qty <span class="required">*</span></label><input type="number" id="prodQty" min="1" max="99999999" step="1" value="1" inputmode="numeric"></div>
-        <div class="field"><label for="prodRate">Rate (₹) <span class="required">*</span></label><input type="number" id="prodRate" min="0" step="0.01" inputmode="decimal"></div>
+        <div class="field field--icon">
+          <i class="fa-solid fa-hashtag" aria-hidden="true"></i>
+          <input type="number" id="prodQty" min="1" max="99999999" step="1" value="1" placeholder="Quantity *" aria-label="Quantity" inputmode="numeric">
+        </div>
+        <div class="field field--icon">
+          <i class="fa-solid fa-indian-rupee-sign" aria-hidden="true"></i>
+          <input type="number" id="prodRate" min="0" step="0.01" placeholder="Rate *" aria-label="Rate" inputmode="decimal">
+        </div>
       </div>
     </div>
     <div class="modal__footer">
