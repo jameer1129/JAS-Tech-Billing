@@ -354,7 +354,7 @@ body.dark-theme .confirm-icon--info{background:rgba(1,37,135,.4);color:var(--pri
   gap:12px;
   min-width:0;
   overflow:hidden;
-  padding:13px 14px;
+  padding:12px;
   border:1px solid #D9E4F5;
   border-radius:11px;
   background:#F8FBFF;
@@ -367,8 +367,8 @@ body.dark-theme .confirm-icon--info{background:rgba(1,37,135,.4);color:var(--pri
 }
 
 .toast-card__icon{
-  width:36px;
-  height:36px;
+  width:32px;
+  height:32px;
   flex:0 0 36px;
   border-radius:50%;
   display:flex;
@@ -501,21 +501,8 @@ body.dark-theme .toast-card--error{
     gap:10px;
   }
 
-  .toast-card{
-    padding:12px;
-    border-radius:11px;
-    gap:10px;
-  }
-
-  .toast-card__icon{
-    width:34px;
-    height:34px;
-    flex-basis:34px;
-    font-size:14px;
-  }
-
   .toast-card__msg{
-    font-size:13.5px;
+    font-size:13px;
   }
 }
 
@@ -2160,7 +2147,7 @@ const BILLS_PAGE_SIZE = 10;
 const USERS_PAGE_SIZE = 10;
 const A4_PAGE_HEIGHT_PX = 1123; // A4 height in px at 96dpi, used for PDF pagination
 const TOAST_DURATION_MS = 2500;
-const AUTH_TOAST_DURATION_MS = 5000;
+const AUTH_TOAST_DURATION_MS = 50000;
 const MAX_VISIBLE_TOASTS = 3;
 const SEARCH_DEBOUNCE_MS = 350;
 const MAX_BILL_TOTAL = 9999999999.99; // matches bills.total numeric(12,2) in schema.sql
@@ -3246,14 +3233,6 @@ async function handleLogin(){
   if (!email || !password) return showAuthMsg('Enter email and password.');
   if (!isValidPassword(password)) return showAuthMsg(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
 
-  try {
-    if (el.loginRememberMe && el.loginRememberMe.checked) {
-      localStorage.setItem(REMEMBERED_EMAIL_KEY, email);
-    } else {
-      localStorage.removeItem(REMEMBERED_EMAIL_KEY);
-    }
-  } catch (err) { /* localStorage unavailable — ignore */ }
-
   hideAuthMsg();
 
   await withGuardedSubmit(el.btnLogin, 'Signing in...', async () => {
@@ -3293,6 +3272,14 @@ async function handleLogin(){
 
     currentSession = data.session;
     clearPendingSignup();
+    try {
+      if (el.loginRememberMe && el.loginRememberMe.checked) {
+        localStorage.setItem(REMEMBERED_EMAIL_KEY, email);
+      } else {
+        localStorage.removeItem(REMEMBERED_EMAIL_KEY);
+      }
+    } catch (err) { /* localStorage unavailable — ignore */ }
+
     showActionLoader('Loading your account...');
     await afterAuthResolved();
   });
