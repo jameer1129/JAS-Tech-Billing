@@ -34,10 +34,11 @@
 }
 
 body.dark-theme {
-  --bg: var(--dark-bg, #0F0F0F);
+  --primary :var(--dark-primary, #1769FF);
+  --bg: var(--dark-bg, #000000);
   --text: var(--dark-text, #F3F4F6);
   --surface: var(--dark-surface, #000000);
-  --white: var(--dark-surface, #111111);
+  --white: var(--dark-surface, #000000);
   --line: var(--dark-line, #2D3748AA);
   --shadow-sm: var(--dark-shadow-sm, 0 1px 3px rgba(0,0,0,0.5));
   --shadow-md: var(--dark-shadow-md, 0 10px 28px rgba(0,0,0,0.8));
@@ -181,7 +182,7 @@ img{max-width:100%;display:block;}
 
 .btn--sm{padding:6px 10px;font-size:11.5px;}
 
-.auth-link{color: var(--muted);font-size:12px;font-weight:600;cursor:pointer;text-decoration:none;transition:text-decoration 0.2s ease;}
+.auth-link{color: var(--primary);font-size:12px;font-weight:600;cursor:pointer;text-decoration:none;transition:text-decoration 0.2s ease;}
 .auth-link:hover{text-decoration:underline;color: var(--primary);}
 
 .action-bar-grid {display: grid;grid-template-columns: 1fr 1fr;gap: 12px;margin-top: 8px;}
@@ -266,19 +267,83 @@ img{max-width:100%;display:block;}
 #previewScaleContainer { display: flex; flex-direction: column; gap: 24px;  transform-origin: top center; width: 794px;  }
 
 
-.toast{
-  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--white);
-  padding:12px 20px;border-radius:var(--radius-sm);font-size:13.5px;z-index:200;box-shadow:var(--shadow-md);
-  display:flex;align-items:center;gap:8px;
-  animation:toastIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+/* ---------- Toast (rich card) ---------- */
+.toast-stack{
+  position:fixed; top:16px; right:16px; z-index:400;
+  display:flex; flex-direction:column; gap:10px;
+  width:min(360px, calc(100vw - 32px));
+  pointer-events:none;
 }
+.toast-card{
+  pointer-events:auto;
+  display:flex; align-items:flex-start; gap:12px;
+  background:#EAF7EE; border:1.5px solid rgba(31,146,84,.35);
+  border-radius:var(--radius-sm); padding:12px 14px; box-shadow:var(--shadow-md);
+  animation:toastIn .28s cubic-bezier(.175,.885,.32,1.275) forwards;
+}
+.toast-card.toast-card--out{ animation:toastOut .2s ease forwards; }
+@keyframes toastIn{from{opacity:0;transform:translateY(-12px) scale(.97);} to{opacity:1;transform:translateY(0) scale(1);}}
+@keyframes toastOut{from{opacity:1;transform:translateY(0);} to{opacity:0;transform:translateY(-10px);}}
 
-@keyframes toastIn{from{opacity:0;transform:translate(-50%, 20px);} to{opacity:1;transform:translate(-50%, 0);}}
-.toast.toast--error{background:var(--danger); color:#FFFFFF;}
-.toast.toast--success{background:var(--success); color:#FFFFFF;}
+.toast-card__icon{
+  width:24px;height:24px;border-radius:50%;flex-shrink:0;margin-top:1px;
+  display:flex;align-items:center;justify-content:center;font-size:12px;color:#FFFFFF;
+}
+.toast-card__body{flex:1;min-width:0;}
+.toast-card__msg{font-size:13px;font-weight:600;line-height:1.4;word-break:break-word;}
+.toast-card__close{
+  background:transparent;border:none;color:var(--muted);cursor:pointer;flex-shrink:0;
+  width:22px;height:22px;display:flex;align-items:center;justify-content:center;
+  border-radius:6px;font-size:12px;transition:background .15s ease;
+}
+.toast-card__close:hover{background:rgba(0,0,0,.06);}
+
+.toast-card--success{background:#EAF7EE;border-color:rgba(31,146,84,.35);}
+.toast-card--success .toast-card__icon{background:var(--success);}
+.toast-card--success .toast-card__msg{color:var(--success);}
+
+.toast-card--info{background:#EAF1FC;border-color:rgba(21,101,192,.35);}
+.toast-card--info .toast-card__icon{background:#1565C0;}
+.toast-card--info .toast-card__msg{color:#1565C0;}
+
+.toast-card--error{background:#FCEBEC;border-color:rgba(214,69,69,.35);}
+.toast-card--error .toast-card__icon{background:var(--danger);}
+.toast-card--error .toast-card__msg{color:var(--danger);}
+
+body.dark-theme .toast-card--success{background:#0F2A1A;border-color:rgba(31,146,84,.4);}
+body.dark-theme .toast-card--info{background:#0E1F33;border-color:rgba(30,120,220,.4);}
+body.dark-theme .toast-card--error{background:#331313;border-color:rgba(214,69,69,.45);}
+body.dark-theme .toast-card--success .toast-card__msg{color:#55D98A;}
+body.dark-theme .toast-card--info .toast-card__msg{color:#71AEFF;}
+body.dark-theme .toast-card--error .toast-card__msg{color:#FF8B8B;}
+body.dark-theme .toast-card__close:hover{background:rgba(255,255,255,.08);}
+
+@media (max-width:480px){
+  .toast-stack{ top:16px; bottom:auto; right:16px; left:16px; width:auto; }
+}
 
 #pdfRenderWrap{position:fixed;top:0;left:-9999px;width:794px;overflow:hidden;z-index:-9999;}
 .pdf-wrapper-container,.invoice-render{width:794px;margin:0;padding:0;background:#FFFFFF;}
+
+/* ---------- Invoice / PDF: fixed brand palette, independent of app theme ----------
+   The invoice document has its own permanent identity (JAS Tech brand blue, black
+   text, white paper) — it must look identical whether the app is in light or dark
+   mode, both in the on-screen preview and in the downloaded PDF. Re-declaring the
+   CSS variables here overrides whatever body.dark-theme set higher up the cascade. */
+#pdfRenderWrap,
+.pdf-wrapper-container,
+.invoice-render,
+.modal--preview .modal__body,
+.invoice-page{
+  --primary:#012587;
+  --white:#FFFFFF;
+  --text:#212121;
+  --muted:#6B7280;
+  --line:#E5E7EB;
+  --success:#1F9254;
+  --danger:#D64545;
+  --bg:#F8F9FC;
+}
 
 .pdf-loading-overlay{position:fixed;inset:0;background:rgba(245, 247, 249, 0.7);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:9999;display:flex;align-items:center;justify-content:center;}
 body.dark-theme .pdf-loading-overlay{background:rgba(10, 11, 12, 0.7);}
@@ -290,7 +355,20 @@ body.dark-theme .pdf-loading-overlay .bar-track{background:var(--line);}
 body.dark-theme .pdf-loading-overlay p{color:#F3F4F6;}
 
 /* ---------- Auth screens ---------- */
-.auth-shell{flex:1;display:flex;align-items:center;justify-content:center;padding:24px 16px;position:relative;}
+.auth-shell{flex:1;display:flex;align-items:center;justify-content:center;padding:24px 16px;position:relative;min-height:100vh;}
+
+/* On phones the auth screen is a full-screen view, not a floating card —
+   edge to edge, no border/shadow/radius, content simply centered inside it. */
+@media (max-width:640px){
+  .auth-shell{padding:0;min-height:100dvh;}
+  .auth-card{
+    width:100%;max-width:100%;min-height:100%;
+    border-radius:0;box-shadow:none;border:none;
+    display:flex;flex-direction:column;justify-content:center;
+    padding:32px 22px 44px;
+  }
+  .auth-theme-toggle{top:16px;right:16px;}
+}
 .auth-theme-toggle{
   position:absolute; top:18px; right:18px;
   background:var(--white); border:1.5px solid var(--line); color:var(--muted);
@@ -299,18 +377,65 @@ body.dark-theme .pdf-loading-overlay p{color:#F3F4F6;}
   box-shadow:var(--shadow-sm); transition:background .15s ease,color .15s ease,transform .08s ease;
 }
 .auth-theme-toggle:hover{color:var(--primary);}
-.auth-card{width:100%;max-width:400px;background:var(--white);border-radius:var(--radius);padding:30px 26px;box-shadow:var(--shadow-md);border:1px solid var(--line);}
-.auth-logo{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:22px;}
-.auth-logo img{height:56px;width:56px;object-fit:contain;}
+.auth-card{height:100vh;width:100%;max-width:400px;background:var(--white);border-radius:var(--radius);padding:30px 26px;box-shadow:var(--shadow-md);border:1px solid var(--line);}
+.auth-logo{display:flex;flex-direction:column;align-items:center;gap:4px;margin-bottom:22px;}
+.auth-logo img{height:56px;width:56px;object-fit:contain;margin-bottom:6px;}
 .auth-logo h1{margin:0;font-size:16px;letter-spacing:2px;color:var(--primary);font-weight:700;}
 .auth-logo span{font-size:11.5px;color:var(--muted);}
-.auth-tabs{display:flex;background:var(--bg);border-radius:var(--radius-sm);padding:4px;margin-bottom:20px;}
-.auth-tab{flex:1;text-align:center;padding:9px;border:none;background:transparent;border-radius:6px;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;}
-.auth-tab.active{background:var(--primary);color:#FFFFFF;}
+/* Tab strip kept in the DOM for existing JS hooks but hidden — nav is link-based to match the approved design */
+.auth-tabs{display:none;}
 .auth-form{display:flex;flex-direction:column;gap:14px;}
-.auth-msg{font-size:12.5px;color:var(--danger);background:rgba(214,69,69,.08);border:1px solid rgba(214,69,69,.25);border-radius:var(--radius-sm);padding:9px 12px;display:none;margin-bottom: 10px;}
-.auth-msg.show{display:block;}
-.auth-msg.info{color:var(--success);background:rgba(31,146,84,.12);border-color:rgba(31,146,84,.2);}
+
+/* ---------- Auth card heading ("Welcome Back" / "Create Account" etc) ---------- */
+.auth-card-heading{text-align:center;margin-bottom:20px;}
+.auth-card-heading h2{margin:0 0 4px;font-size:19px;font-weight:700;color:var(--text);}
+.auth-card-heading p{margin:0;font-size:12.5px;color:var(--muted);line-height:1.5;}
+
+/* ---------- Icon-prefixed auth inputs ---------- */
+.auth-field{position:relative;}
+.auth-field__icon{
+  position:absolute;left:14px;top:50%;transform:translateY(-50%);
+  color:var(--muted);font-size:14px;pointer-events:none;
+}
+.auth-field input{
+  width:100%;padding:12px 14px 12px 40px;border-radius:10px;
+  border:1.5px solid var(--line);background:var(--bg);color:var(--text);
+  font-size:13.5px;outline:none;transition:border-color .15s ease,box-shadow .15s ease,background .15s ease;
+}
+.auth-field input::placeholder{color:var(--muted);}
+.auth-field input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(21,101,192,.14);background:var(--white);}
+.auth-field input.input-error{border-color:var(--danger);box-shadow:0 0 0 3px rgba(214,69,69,.14);}
+.auth-field.has-toggle input{padding-right:42px;}
+.auth-field .pw-toggle-btn{top:50%;transform:translateY(-50%);}
+
+/* ---------- Remember me / links row ---------- */
+.auth-row-between{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:-2px;}
+.auth-checkbox{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--muted);cursor:pointer;user-select:none;}
+.auth-checkbox input{width:15px;height:15px;accent-color:var(--primary);cursor:pointer;flex-shrink:0;}
+.auth-checkbox-line{display:flex;align-items:flex-start;gap:8px;font-size:12.5px;color:var(--muted);line-height:1.5;cursor:pointer;user-select:none;}
+.auth-checkbox-line input{width:15px;height:15px;accent-color:var(--primary);cursor:pointer;flex-shrink:0;margin-top:2px;}
+.auth-checkbox-line a{color:var(--primary);font-weight:600;text-decoration:none;}
+.auth-checkbox-line a:hover{text-decoration:underline;}
+
+/* ---------- Divider ("or") ---------- */
+.auth-divider{display:flex;align-items:center;gap:10px;margin:2px 0;color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--line);}
+
+/* ---------- Google button ---------- */
+.btn--google{background:var(--white);color:var(--text);border:1.5px solid var(--line);}
+.btn--google:hover{background:var(--bg);}
+.btn--google svg{width:18px;height:18px;flex-shrink:0;}
+
+/* ---------- Bottom link line ---------- */
+.auth-bottom-text{text-align:center;font-size:12.5px;color:var(--muted);margin-top:2px;}
+.auth-bottom-text .auth-link{color:var(--primary);font-weight:700;}
+
+/* ---------- Password requirement checklist ---------- */
+.pw-checklist{display:flex;flex-direction:column;gap:6px;padding:2px 2px 0;}
+.pw-checklist__item{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);transition:color .15s ease;}
+.pw-checklist__item i{font-size:13px;color:var(--line);transition:color .15s ease;}
+.pw-checklist__item.ok{color:var(--success);}
+.pw-checklist__item.ok i{color:var(--success);}
 
 /* ---------- Email verification / OTP ---------- */
 .verify-email-text{margin:0 0 8px;text-align:center;color:var(--muted);font-size:13px;line-height:1.55;}
@@ -626,94 +751,108 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{color:#63B3ED;}
     <div class="auth-logo">
       <img src="assets/logo/logo.png" alt="Logo">
       <h1 id="authCompanyName"></h1>
-      <span>Sign in to continue</span>
+      <span>Invoices in seconds</span>
     </div>
-
-    <div class="auth-tabs" id="authTabs">
-      <button class="auth-tab active" id="authTabLogin">Login</button>
-      <button class="auth-tab" id="authTabRegister">Register</button>
-    </div>
-
-    <div class="auth-msg" id="authMsg"></div>
 
     <!-- Login form -->
     <div class="auth-form" id="loginForm">
-      <div class="field">
-        <label for="loginEmail">Email</label>
-        <input type="email" id="loginEmail" autocomplete="email" maxlength="100">
+      <div class="auth-card-heading">
+        <h2>Welcome Back</h2>
+        <p>Login to your account</p>
       </div>
-      <div class="field field--password">
-        <label for="loginPassword">Password</label>
-        <input type="password" id="loginPassword" autocomplete="current-password" maxlength="64">
+      <div class="auth-field">
+        <i class="fa-regular fa-envelope auth-field__icon"></i>
+        <label for="loginEmail" class="hide">Email</label>
+        <input type="email" id="loginEmail" autocomplete="email" maxlength="100" placeholder="Email">
+      </div>
+      <div class="auth-field has-toggle">
+        <i class="fa-solid fa-lock auth-field__icon"></i>
+        <label for="loginPassword" class="hide">Password</label>
+        <input type="password" id="loginPassword" autocomplete="current-password" maxlength="64" placeholder="Password">
         <button type="button" class="pw-toggle-btn" data-target="loginPassword" aria-label="Show password">
           <i class="fa-regular fa-eye"></i>
         </button>
       </div>
-      <button class="btn btn--primary btn--full" id="btnLogin" style="margin-top:10px;">
+      <div class="auth-row-between">
+        <label class="auth-checkbox">
+          <input type="checkbox" id="loginRememberMe"> Remember me
+        </label>
+        <a href="#" onclick="setAuthTab('forgot'); return false;" class="auth-link">Forgot Password?</a>
+      </div>
+      <button class="btn btn--primary btn--full" id="btnLogin">
         <i class="fa-solid fa-right-to-bracket"></i> Login
       </button>
-      <div style="text-align:center;margin-top:10px;display:flex;flex-direction:column;gap:18px;">
-        <a href="#" onclick="setAuthTab('forgot'); return false;" class="auth-link">
-          <i class="fa-solid fa-key"></i> Forgot Password?
-        </a>
-        <a href="#" onclick="setAuthTab('register'); return false;" class="auth-link">
-          <i class="fa-solid fa-user-plus"></i> Don't have an account?
-        </a>
-      </div>
+      <div class="auth-divider">or</div>
+      <button type="button" class="btn btn--google btn--full" id="btnGoogleLogin">
+        <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.6 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 6.1 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.9 18.9 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 6.1 29.5 4 24 4c-7.7 0-14.3 4.4-17.7 10.7z"/><path fill="#4CAF50" d="M24 44c5.4 0 10.3-2.1 14-5.5l-6.5-5.5C29.4 34.7 26.8 35.6 24 35.6c-5.3 0-9.7-3.4-11.3-8.1l-6.6 5.1C9.6 39.5 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.2-4.3 5.6l6.5 5.5C40.9 36.5 44 30.9 44 24c0-1.3-.1-2.7-.4-3.5z"/></svg>
+        Login with Google
+      </button>
+      <p class="auth-bottom-text">Don't have an account?
+        <a href="#" onclick="setAuthTab('register'); return false;" class="auth-link">Register</a>
+      </p>
     </div>
 
     <!-- Register form -->
     <div class="auth-form hide" id="registerForm">
-      <div class="field">
-        <label for="regName">Full Name</label>
-        <input type="text" id="regName" autocomplete="name" maxlength="60">
+      <div class="auth-card-heading">
+        <h2>Create Account</h2>
+        <p>Register to get started</p>
       </div>
-      <div class="field">
-        <label for="regEmail">Email</label>
-        <input type="email" id="regEmail" autocomplete="email" maxlength="100">
+      <div class="auth-field">
+        <i class="fa-regular fa-user auth-field__icon"></i>
+        <label for="regName" class="hide">Full Name</label>
+        <input type="text" id="regName" autocomplete="name" maxlength="60" placeholder="Full Name">
       </div>
-      <div class="field field--password">
-        <label for="regPassword">Password</label>
-        <input type="password" id="regPassword" autocomplete="new-password" placeholder="At least 8 characters" maxlength="64">
+      <div class="auth-field">
+        <i class="fa-regular fa-envelope auth-field__icon"></i>
+        <label for="regEmail" class="hide">Email</label>
+        <input type="email" id="regEmail" autocomplete="email" maxlength="100" placeholder="Email">
+      </div>
+      <div class="auth-field has-toggle">
+        <i class="fa-solid fa-lock auth-field__icon"></i>
+        <label for="regPassword" class="hide">Password</label>
+        <input type="password" id="regPassword" autocomplete="new-password" placeholder="Password" maxlength="64">
         <button type="button" class="pw-toggle-btn" data-target="regPassword" aria-label="Show password">
           <i class="fa-regular fa-eye"></i>
         </button>
       </div>
-      <div class="field field--password">
-        <label for="regConfirmPassword">Confirm Password</label>
-        <input type="password" id="regConfirmPassword" autocomplete="new-password" maxlength="64">
+      <div class="auth-field has-toggle">
+        <i class="fa-solid fa-lock auth-field__icon"></i>
+        <label for="regConfirmPassword" class="hide">Confirm Password</label>
+        <input type="password" id="regConfirmPassword" autocomplete="new-password" maxlength="64" placeholder="Confirm Password">
         <button type="button" class="pw-toggle-btn" data-target="regConfirmPassword" aria-label="Show password">
           <i class="fa-regular fa-eye"></i>
         </button>
       </div>
-      <button class="btn btn--primary btn--full" id="btnRegister" style="margin-top:10px;">
-        <i class="fa-solid fa-user-plus"></i> Create Account
+      <label class="auth-checkbox-line">
+        <input type="checkbox" id="regAgreeTerms">
+        <span>I agree to the <a href="#" onclick="return false;">Terms &amp; Privacy Policy</a></span>
+      </label>
+      <button class="btn btn--primary btn--full" id="btnRegister">
+        <i class="fa-solid fa-user-plus"></i> Register
       </button>
-      <div style="text-align:center;margin-top:10px;display:flex;flex-direction:column;gap:8px;">
-        <a href="#" onclick="setAuthTab('login'); return false;" class="auth-link">
-          <i class="fa-solid fa-arrow-left"></i> Back to Login
-        </a>
-      </div>
+      <p class="auth-bottom-text">Already have an account?
+        <a href="#" onclick="setAuthTab('login'); return false;" class="auth-link">Login</a>
+      </p>
     </div>
 
     <!-- Forgot Password form -->
     <div class="auth-form hide" id="forgotPasswordForm">
-      <p style="font-size:13px;color:var(--muted);margin-bottom:8px;text-align:center;line-height:1.5;">Enter your email address and we'll send you a link to reset your password.</p>
-      <div class="field">
-        <label for="forgotEmail">Email</label>
-        <input type="email" id="forgotEmail" autocomplete="email" maxlength="100">
+      <div class="auth-card-heading">
+        <h2>Forgot Password</h2>
+        <p>Enter your email to receive reset link</p>
       </div>
-      <button class="btn btn--primary btn--full" id="btnSendReset" style="margin-top:10px;">
+      <div class="auth-field">
+        <i class="fa-regular fa-envelope auth-field__icon"></i>
+        <label for="forgotEmail" class="hide">Email</label>
+        <input type="email" id="forgotEmail" autocomplete="email" maxlength="100" placeholder="Email">
+      </div>
+      <button class="btn btn--primary btn--full" id="btnSendReset">
         <i class="fa-solid fa-paper-plane"></i> Send Reset Link
       </button>
-      <div style="text-align:center;margin-top:10px;display:flex;flex-direction:column;gap:18px;">
-        <a href="#" onclick="setAuthTab('register'); return false;" class="auth-link">
-          <i class="fa-solid fa-user-plus"></i> Don't have an account?
-        </a>
-        <a href="#" onclick="setAuthTab('login'); return false;" class="auth-link">
-          <i class="fa-solid fa-arrow-left"></i> Back to Login
-        </a>
-      </div>
+      <p class="auth-bottom-text">Remember your password?
+        <a href="#" onclick="setAuthTab('login'); return false;" class="auth-link">Login</a>
+      </p>
     </div>
   </div>
 </div>
@@ -729,8 +868,6 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{color:#63B3ED;}
       <h1 id="verifyCompanyName"></h1>
       <span>Verify your email address</span>
     </div>
-
-    <div class="auth-msg" id="verifyMsg"></div>
 
     <div class="auth-form" id="emailVerificationForm">
       <div>
@@ -810,32 +947,43 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{color:#63B3ED;}
     <div class="auth-logo">
       <img src="assets/logo/logo.png" alt="Logo">
       <h1 id="resetPasswordCompanyName"></h1>
-      <span>Set a new password</span>
+      <span>Invoices in seconds</span>
     </div>
 
-    <div class="auth-msg" id="resetPwMsg"></div>
+    <div class="auth-card-heading">
+      <h2>Reset Password</h2>
+      <p>Create new password</p>
+    </div>
 
     <div class="auth-form" id="resetPasswordForm">
-      <div class="field field--password">
-        <label for="resetNewPassword">New Password</label>
-        <input type="password" id="resetNewPassword" autocomplete="new-password" placeholder="At least 8 characters" maxlength="64">
+      <div class="auth-field has-toggle">
+        <i class="fa-solid fa-lock auth-field__icon"></i>
+        <label for="resetNewPassword" class="hide">New Password</label>
+        <input type="password" id="resetNewPassword" autocomplete="new-password" placeholder="New Password" maxlength="64">
         <button type="button" class="pw-toggle-btn" data-target="resetNewPassword" aria-label="Show password">
           <i class="fa-regular fa-eye"></i>
         </button>
       </div>
-      <div class="field field--password">
-        <label for="resetConfirmPassword">Confirm Password</label>
-        <input type="password" id="resetConfirmPassword" autocomplete="new-password" maxlength="64">
+      <div class="auth-field has-toggle">
+        <i class="fa-solid fa-lock auth-field__icon"></i>
+        <label for="resetConfirmPassword" class="hide">Confirm Password</label>
+        <input type="password" id="resetConfirmPassword" autocomplete="new-password" maxlength="64" placeholder="Confirm Password">
         <button type="button" class="pw-toggle-btn" data-target="resetConfirmPassword" aria-label="Show password">
           <i class="fa-regular fa-eye"></i>
         </button>
       </div>
-      <button class="btn btn--primary btn--full" id="btnUpdateResetPassword" style="margin-top:10px;">
-        <i class="fa-solid fa-check"></i> Update Password
+      <div class="pw-checklist" id="resetPwChecklist">
+        <div class="pw-checklist__item" data-rule="len"><i class="fa-solid fa-circle-check"></i> At least 8 characters</div>
+        <div class="pw-checklist__item" data-rule="upper"><i class="fa-solid fa-circle-check"></i> One uppercase letter</div>
+        <div class="pw-checklist__item" data-rule="num"><i class="fa-solid fa-circle-check"></i> One number</div>
+        <div class="pw-checklist__item" data-rule="special"><i class="fa-solid fa-circle-check"></i> One special character</div>
+      </div>
+      <button class="btn btn--primary btn--full" id="btnUpdateResetPassword" style="margin-top:4px;">
+        Reset Password
       </button>
-      <button type="button" class="btn btn--ghost btn--full" id="btnCancelReset" style="margin-top:8px;">
-        <i class="fa-solid fa-times"></i> Cancel
-      </button>
+      <p class="auth-bottom-text">
+        <a href="#" class="auth-link" id="btnCancelReset">Back to Login</a>
+      </p>
     </div>
   </div>
 </div>
@@ -1283,7 +1431,6 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{color:#63B3ED;}
       <button class="modal__close" id="btnCloseChangePwModal" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div class="modal__body">
-      <div class="auth-msg" id="changePwMsg"></div>
       <div class="field field--password">
         <label for="changePwCurrent">Current Password</label>
         <input type="password" id="changePwCurrent" autocomplete="current-password" maxlength="64">
@@ -1326,7 +1473,7 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{color:#63B3ED;}
   </div>
 </div>
 
-<div class="toast hide" id="toast"></div>
+<div class="toast-stack" id="toastStack"></div>
 
 <div id="pdfRenderWrap">
   <div id="pdfWrapper" class="pdf-wrapper-container">
@@ -1426,15 +1573,16 @@ function cacheElements(){
   el.bootLoader = document.getElementById('bootLoader');
   el.authScreen = document.getElementById('authScreen');
   el.authCompanyName = document.getElementById('authCompanyName');
-  el.authTabs = document.getElementById('authTabs');
   el.authTabLogin = document.getElementById('authTabLogin');
   el.authTabRegister = document.getElementById('authTabRegister');
-  el.authMsg = document.getElementById('authMsg');
   el.loginForm = document.getElementById('loginForm');
   el.registerForm = document.getElementById('registerForm');
   el.forgotPasswordForm = document.getElementById('forgotPasswordForm');
   el.loginEmail = document.getElementById('loginEmail');
   el.loginPassword = document.getElementById('loginPassword');
+  el.loginRememberMe = document.getElementById('loginRememberMe');
+  el.btnGoogleLogin = document.getElementById('btnGoogleLogin');
+  el.regAgreeTerms = document.getElementById('regAgreeTerms');
   el.btnLogin = document.getElementById('btnLogin');
   el.regName = document.getElementById('regName');
   el.regEmail = document.getElementById('regEmail');
@@ -1446,7 +1594,6 @@ function cacheElements(){
 
   el.emailVerificationScreen = document.getElementById('emailVerificationScreen');
   el.verifyCompanyName = document.getElementById('verifyCompanyName');
-  el.verifyMsg = document.getElementById('verifyMsg');
   el.verifyEmailAddress = document.getElementById('verifyEmailAddress');
   el.verifyOtp = document.getElementById('verifyOtp');
   el.verifyResendTimerText = document.getElementById('verifyResendTimerText');
@@ -1473,9 +1620,9 @@ function cacheElements(){
 
   el.resetPasswordScreen = document.getElementById('resetPasswordScreen');
   el.resetPasswordCompanyName = document.getElementById('resetPasswordCompanyName');
-  el.resetPwMsg = document.getElementById('resetPwMsg');
   el.resetNewPassword = document.getElementById('resetNewPassword');
   el.resetConfirmPassword = document.getElementById('resetConfirmPassword');
+  el.resetPwChecklist = document.getElementById('resetPwChecklist');
   el.btnUpdateResetPassword = document.getElementById('btnUpdateResetPassword');
   el.btnCancelReset = document.getElementById('btnCancelReset');
 
@@ -1550,7 +1697,7 @@ function cacheElements(){
   el.previewModalBody = document.getElementById('previewModalBody');
   el.btnClosePreviewModal = document.getElementById('btnClosePreviewModal');
   el.btnDownloadFromPreview = document.getElementById('btnDownloadFromPreview');
-  el.toast = document.getElementById('toast');
+  el.toastStack = document.getElementById('toastStack');
   el.appFooterVersion = document.getElementById('appFooterVersion');
   el.pdfLoadingText = document.getElementById('pdfLoadingText');
 
@@ -1596,7 +1743,6 @@ function cacheElements(){
   el.drawerLogout = document.getElementById('drawerLogout');
   el.drawerChangePw = document.getElementById('drawerChangePw');
   el.changePasswordModalOverlay = document.getElementById('changePasswordModalOverlay');
-  el.changePwMsg = document.getElementById('changePwMsg');
   el.changePwCurrent = document.getElementById('changePwCurrent');
   el.changePwNew = document.getElementById('changePwNew');
   el.changePwConfirm = document.getElementById('changePwConfirm');
@@ -1613,10 +1759,6 @@ function cacheElements(){
   el.allUsersPaginationInfo = document.getElementById('allUsersPaginationInfo');
   el.allUsersPaginationControls = document.getElementById('allUsersPaginationControls');
 
-  msgBars.auth = createMsgBar(el.authMsg);
-  msgBars.verify = createMsgBar(el.verifyMsg);
-  msgBars.resetPw = createMsgBar(el.resetPwMsg);
-  msgBars.changePw = createMsgBar(el.changePwMsg);
 }
 
 function setupAutoSaveListeners(){
@@ -1687,9 +1829,9 @@ function applyConfig(){
   root.setProperty('--radius', CONFIG.theme.radius || '12px');
   root.setProperty('--dark-bg', darkTheme.background || '#000000');
   root.setProperty('--dark-text', darkTheme.text || '#F3F4F6');
-  root.setProperty('--dark-surface', darkTheme.surface || '#111111');
+  root.setProperty('--dark-surface', darkTheme.surface || '#000000');
   root.setProperty('--dark-line', darkTheme.border || '#2D3748AA');
-  root.setProperty('--dark-primary', darkTheme.primary || lightTheme.primary || '#012587');
+  root.setProperty('--dark-primary', darkTheme.primary || '#1769FF');
 
   el.appBarLogo.src = CONFIG.assets.mainLogo || '';
   el.appBarCompanyName.textContent = (CONFIG.company.name + ' Billing').toUpperCase();
@@ -2086,16 +2228,30 @@ function hideOverlay(overlay){
   overlay.classList.add('hide');
 }
 
+const TOAST_ICONS = { success: 'fa-check', info: 'fa-info', error: 'fa-xmark' };
 function showToast(message, type){
-  el.toast.textContent = message;
-  el.toast.className = 'toast';
-  if (type) el.toast.classList.add(`toast--${type}`);
-  el.toast.classList.remove('hide');
+  const kind = (type === 'success' || type === 'error') ? type : 'info';
 
-  clearTimeout(el.toast._timer);
-  el.toast._timer = setTimeout(() => {
-    el.toast.classList.add('hide');
-  }, TOAST_DURATION_MS);
+  const card = document.createElement('div');
+  card.className = `toast-card toast-card--${kind}`;
+  card.innerHTML = `
+    <div class="toast-card__icon"><i class="fa-solid ${TOAST_ICONS[kind]}"></i></div>
+    <div class="toast-card__body">
+      <div class="toast-card__msg"></div>
+    </div>
+    <button type="button" class="toast-card__close" aria-label="Dismiss"><i class="fa-solid fa-xmark"></i></button>
+  `;
+  card.querySelector('.toast-card__msg').textContent = message;
+
+  const dismiss = () => {
+    clearTimeout(card._timer);
+    card.classList.add('toast-card--out');
+    card.addEventListener('animationend', () => card.remove(), { once: true });
+  };
+  card.querySelector('.toast-card__close').addEventListener('click', dismiss);
+  card._timer = setTimeout(dismiss, TOAST_DURATION_MS);
+
+  el.toastStack.appendChild(card);
 }
 
 function validateField(elInput, type = 'text') {
@@ -2195,26 +2351,14 @@ function passwordsMatch(a, b){
 // `confirmPw` is optional — pass it whenever there's a "confirm password" field to check.
 function validateNewPassword(pw, confirmPw, label = 'Password'){
   if (!isValidPassword(pw)) return `${label} must be at least ${MIN_PASSWORD_LENGTH} characters.`;
+  if (!/[A-Z]/.test(pw)) return `${label} must include at least one uppercase letter.`;
+  if (!/[0-9]/.test(pw)) return `${label} must include at least one number.`;
+  if (!/[^A-Za-z0-9]/.test(pw)) return `${label} must include at least one special character.`;
   if (confirmPw !== undefined) {
     if (!isValidPassword(confirmPw)) return `Confirm ${label.toLowerCase()} must be at least ${MIN_PASSWORD_LENGTH} characters.`;
     if (!passwordsMatch(pw, confirmPw)) return 'Passwords do not match.';
   }
   return null;
-}
-
-// One implementation for every inline "auth-msg" banner in the app
-// (login/register, verify-email, reset-password, change-password all use
-// the same show/hide behaviour on differently-scoped elements).
-function createMsgBar(msgEl){
-  return {
-    show(msg, kind){
-      msgEl.textContent = msg;
-      msgEl.className = 'auth-msg show' + (kind === 'info' ? ' info' : '');
-    },
-    hide(){
-      msgEl.className = 'auth-msg';
-    }
-  };
 }
 
 /**
@@ -2239,21 +2383,51 @@ async function withGuardedSubmit(button, loaderMsg, action, onError){
 
 function setAuthTab(tab){
   currentAuthTab = tab;
-  el.authTabLogin.classList.toggle('active', tab === 'login');
-  el.authTabRegister.classList.toggle('active', tab === 'register');
+  // Tab buttons are not rendered in the current auth layout. Keep these
+  // optional so text links can still switch forms without throwing.
+  el.authTabLogin?.classList.toggle('active', tab === 'login');
+  el.authTabRegister?.classList.toggle('active', tab === 'register');
   el.loginForm.classList.toggle('hide', tab !== 'login');
   el.registerForm.classList.toggle('hide', tab !== 'register');
   el.forgotPasswordForm.classList.toggle('hide', tab !== 'forgot');
-  el.authTabs.classList.toggle('hide', tab === 'forgot');
   if (tab === 'forgot') {
     el.forgotEmail.value = '';
   }
   hideAuthMsg();
 }
 
-const msgBars = {}; // populated in cacheElements() once the DOM elements exist: auth, verify, resetPw, changePw
-function showAuthMsg(msg, kind){ msgBars.auth.show(msg, kind); }
-function hideAuthMsg(){ msgBars.auth.hide(); }
+function updateResetPasswordChecklist(){
+  if (!el.resetPwChecklist) return;
+  const pw = el.resetNewPassword.value;
+  const rules = {
+    len: pw.length >= 8,
+    upper: /[A-Z]/.test(pw),
+    num: /[0-9]/.test(pw),
+    special: /[^A-Za-z0-9]/.test(pw)
+  };
+  el.resetPwChecklist.querySelectorAll('[data-rule]').forEach((item) => {
+    item.classList.toggle('ok', !!rules[item.dataset.rule]);
+  });
+}
+
+async function handleGoogleLogin(){
+  hideAuthMsg();
+  try {
+    const { error } = await supabaseClient.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin + window.location.pathname }
+    });
+    if (error) showAuthMsg(error.message || 'Could not start Google sign-in.');
+  } catch (err) {
+    console.error(err);
+    showAuthMsg('Could not start Google sign-in. Please try again.');
+  }
+}
+
+// Auth feedback uses the same dismissible toast cards as the rest of the app.
+// There are no inline form alerts, keeping every auth page at its intended height.
+function showAuthMsg(msg, kind = 'error'){ showToast(msg, kind); }
+function hideAuthMsg(){ /* Toasts are independently dismissible. */ }
 
 function showScreen(name){
   hideOverlay(el.bootLoader); el.bootLoader.classList.add('hide');
@@ -2321,8 +2495,8 @@ function getSignupExpiryRemaining(sentAt){
   return Math.max(0, SIGNUP_OTP_EXPIRY_SECONDS - Math.floor((Date.now() - sentAt) / 1000));
 }
 
-function showVerificationMsg(message, kind){ msgBars.verify.show(message, kind); }
-function hideVerificationMsg(){ msgBars.verify.hide(); }
+function showVerificationMsg(message, kind = 'error'){ showToast(message, kind); }
+function hideVerificationMsg(){ /* Toasts are independently dismissible. */ }
 
 function updateVerificationTimers(){
   const { sentAt } = getPendingSignup();
@@ -2395,12 +2569,32 @@ async function resendSignupOtp(email, options = {}){
   return { error: null, cooldown: SIGNUP_OTP_RESEND_COOLDOWN_SECONDS };
 }
 
+const REMEMBERED_EMAIL_KEY = 'jasTechBilling.rememberedEmail';
+
+function prefillRememberedEmail(){
+  try {
+    const saved = localStorage.getItem(REMEMBERED_EMAIL_KEY);
+    if (saved && el.loginEmail) {
+      el.loginEmail.value = saved;
+      if (el.loginRememberMe) el.loginRememberMe.checked = true;
+    }
+  } catch (err) { /* localStorage unavailable — ignore */ }
+}
+
 async function handleLogin(){
   const email = el.loginEmail.value.trim().toLowerCase();
   const password = el.loginPassword.value;
 
   if (!email || !password) return showAuthMsg('Enter email and password.');
   if (!isValidPassword(password)) return showAuthMsg(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+
+  try {
+    if (el.loginRememberMe && el.loginRememberMe.checked) {
+      localStorage.setItem(REMEMBERED_EMAIL_KEY, email);
+    } else {
+      localStorage.removeItem(REMEMBERED_EMAIL_KEY);
+    }
+  } catch (err) { /* localStorage unavailable — ignore */ }
 
   hideAuthMsg();
 
@@ -2586,6 +2780,7 @@ async function handleRegister() {
   const confirmPassword = el.regConfirmPassword.value;
 
   if (!name || !email || !password || !confirmPassword) return showAuthMsg('Fill in all fields.');
+  if (el.regAgreeTerms && !el.regAgreeTerms.checked) return showAuthMsg('Please agree to the Terms & Privacy Policy.');
 
   const pwErr = validateNewPassword(password, confirmPassword);
   if (pwErr) {
@@ -2893,18 +3088,16 @@ async function handleResetPassword(){
   const newPw = el.resetNewPassword.value;
   const confirmPw = el.resetConfirmPassword.value;
 
-  if (!newPw || !confirmPw) return msgBars.resetPw.show('Enter both passwords.');
+  if (!newPw || !confirmPw) return showToast('Enter both passwords.', 'error');
 
   const pwErr = validateNewPassword(newPw, confirmPw);
-  if (pwErr) return msgBars.resetPw.show(pwErr);
-
-  msgBars.resetPw.hide();
+  if (pwErr) return showToast(pwErr, 'error');
 
   await withGuardedSubmit(el.btnUpdateResetPassword, null, async () => {
     const { error } = await supabaseClient.auth.updateUser({ password: newPw });
 
     if (error) {
-      msgBars.resetPw.show(error.message || 'Failed to update password. Please try again.');
+      showToast(error.message || 'Failed to update password. Please try again.', 'error');
       return;
     }
 
@@ -2912,7 +3105,7 @@ async function handleResetPassword(){
     el.resetConfirmPassword.value = '';
 
     clearPasswordRecoveryPending();
-    msgBars.resetPw.show('Password updated successfully! Redirecting to login...', 'info');
+    showToast('Password updated successfully! Redirecting to login...', 'success');
 
     setTimeout(async () => {
       await supabaseClient.auth.signOut();
@@ -2926,7 +3119,7 @@ async function handleResetPassword(){
       // localStorage, so normal login behaves normally again.
       window.location.href = window.location.origin + window.location.pathname;
     }, 1500);
-  }, () => msgBars.resetPw.show('Failed to update password. Please try again.'));
+  }, () => showToast('Failed to update password. Please try again.', 'error'));
 }
 
 async function handleLogout(){
@@ -4632,7 +4825,6 @@ function openChangePasswordModal(){
   el.changePwCurrent.value = '';
   el.changePwNew.value = '';
   el.changePwConfirm.value = '';
-  msgBars.changePw.hide();
   showOverlay(el.changePasswordModalOverlay);
   setTimeout(() => el.changePwCurrent.focus(), 50);
 }
@@ -4645,12 +4837,10 @@ async function handleChangePassword(){
   const newPw = el.changePwNew.value;
   const confirmPw = el.changePwConfirm.value;
 
-  if (!currentPw) return msgBars.changePw.show('Enter your current password.');
+  if (!currentPw) return showToast('Enter your current password.', 'error');
 
   const pwErr = validateNewPassword(newPw, confirmPw, 'New password');
-  if (pwErr) return msgBars.changePw.show(pwErr);
-
-  msgBars.changePw.hide();
+  if (pwErr) return showToast(pwErr, 'error');
 
   await withGuardedSubmit(el.btnConfirmChangePw, null, async () => {
     // Verify current password by re-signing in
@@ -4660,20 +4850,20 @@ async function handleChangePassword(){
     });
 
     if (verifyErr) {
-      msgBars.changePw.show('Current password is incorrect.');
+      showToast('Current password is incorrect.', 'error');
       return;
     }
 
     const { error } = await supabaseClient.auth.updateUser({ password: newPw });
 
     if (error) {
-      msgBars.changePw.show(error.message || 'Could not update password.');
+      showToast(error.message || 'Could not update password.', 'error');
       return;
     }
 
     closeChangePasswordModal();
     showToast('Password updated successfully', 'success');
-  }, () => msgBars.changePw.show('Could not update password. Please try again.'));
+  }, () => showToast('Could not update password. Please try again.', 'error'));
 }
 
 let pendingRecoveryConflict = null;
@@ -4994,8 +5184,8 @@ function applyTitleCaseToField(inputEl) {
 }
 
 function bindEvents(){
-  el.authTabLogin.addEventListener('click', () => setAuthTab('login'));
-  el.authTabRegister.addEventListener('click', () => setAuthTab('register'));
+  el.authTabLogin?.addEventListener('click', () => setAuthTab('login'));
+  el.authTabRegister?.addEventListener('click', () => setAuthTab('register'));
   el.btnLogin.addEventListener('click', handleLogin);
   el.btnRegister.addEventListener('click', handleRegister);
   el.btnVerifyEmail.addEventListener('click', handleVerifyEmail);
@@ -5012,6 +5202,8 @@ function bindEvents(){
   el.btnUpdateResetPassword.addEventListener('click', handleResetPassword);
   el.resetNewPassword.addEventListener('keydown', (event) => { if (event.key === 'Enter') handleResetPassword(); });
   el.resetConfirmPassword.addEventListener('keydown', (event) => { if (event.key === 'Enter') handleResetPassword(); });
+  el.resetNewPassword.addEventListener('input', updateResetPasswordChecklist);
+  if (el.btnGoogleLogin) el.btnGoogleLogin.addEventListener('click', handleGoogleLogin);
   el.btnCancelReset.addEventListener('click', async () => {
     // Cancelling must actually end the live recovery session — otherwise
     // a valid, auto-refreshing access token is left sitting around
@@ -5422,6 +5614,8 @@ async function init(){
 
   await loadConfig();
   bindEvents();
+  prefillRememberedEmail();
+  updateResetPasswordChecklist();
 
   pendingSignupEmail = getPendingSignup().email;
 

@@ -14,6 +14,7 @@
       "text": "#212121"
     },
     "dark": {
+      "primary": "#1769FF",
       "background": "#0F0F0F",
       "surface": "#000000",
       "text": "#F3F4F6"
