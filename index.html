@@ -827,8 +827,73 @@ body.dark-theme .user-row__info::before{background:rgba(91,156,255,.18);color:#7
 .admin-user-list .kebab-btn{width:36px;height:36px;font-size:15px;}
 .admin-panel .bills-pagination{margin:0;padding:14px 20px 20px;}
 
-.spinner-inline{width:22px;height:22px;border:3px solid var(--line);border-top-color:var(--primary);border-radius:50%;animation:pdfSpin .8s linear infinite;margin:20px auto;}
-@keyframes pdfSpin{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}
+/* ---------- Data loading skeletons ---------- */
+@keyframes jasSkeletonPulse{
+  0%,100%{opacity:.58;}
+  50%{opacity:.95;}
+}
+.admin-stat.is-loading .admin-stat__icon{
+  background:#EEF0F3 !important;color:transparent !important;box-shadow:none;
+  animation:jasSkeletonPulse 1s ease-in-out infinite;
+}
+.admin-stat.is-loading .admin-stat__icon i{visibility:hidden;}
+.admin-stat.is-loading .admin-stat__value{
+  width:58px;height:22px;margin:8px auto 7px;border-radius:6px;
+  font-size:0;color:transparent !important;background:#EEF0F3 !important;
+  animation:jasSkeletonPulse 1s ease-in-out infinite;
+}
+.admin-stat.is-loading .admin-stat__label{
+  width:62px;height:10px;margin:0 auto;border-radius:5px;font-size:0;color:transparent;
+  background:#EEF0F3 !important;animation:jasSkeletonPulse 1s ease-in-out infinite;
+}
+body.dark-theme .admin-stat.is-loading .admin-stat__icon,
+body.dark-theme .admin-stat.is-loading .admin-stat__value,
+body.dark-theme .admin-stat.is-loading .admin-stat__label{
+  background:#151515 !important;
+  border:1px solid #202020;
+}
+.admin-list-loading-skeleton{padding:0 18px;}
+.admin-skeleton-row{
+  min-height:82px;padding:14px 0;border-top:1px solid var(--line);position:relative;
+}
+.admin-skeleton-row:first-child{border-top:0;}
+.admin-skeleton-row::before{
+  content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);
+  width:46px;height:46px;border-radius:13px;background:#EEF0F3;
+  animation:jasSkeletonPulse 1.25s ease-in-out infinite;
+}
+.admin-skeleton-row::after{
+  content:'';position:absolute;left:62px;right:60px;top:27px;height:10px;border-radius:6px;
+  background:#EEF0F3;animation:jasSkeletonPulse 1.25s ease-in-out infinite;
+  box-shadow:0 20px 0 -1px #EEF0F3;
+}
+body.dark-theme .admin-skeleton-row::before{background:#151515;}
+body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 0 -1px #151515;}
+.bills-loading-skeleton{width:100%;}
+.bills-loading-skeleton__grid{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;
+}
+.bill-card--skeleton{
+  min-height:165px;position:relative;overflow:hidden;
+  background:#FFFFFF !important;border:1.5px solid #E5E7EB !important;
+  box-shadow:var(--shadow-sm);animation:jasSkeletonPulse 1.25s ease-in-out infinite;
+}
+.bill-card--skeleton::before{
+  content:'';position:absolute;left:16px;right:16px;top:20px;height:13px;border-radius:6px;
+  background:#EEF0F3;
+  box-shadow:0 40px 0 0 #EEF0F3,0 62px 0 -1px #EEF0F3,0 112px 0 -2px #EEF0F3;
+}
+body.dark-theme .bill-card--skeleton{
+  background:#000000 !important;border-color:#202020 !important;
+}
+body.dark-theme .bill-card--skeleton::before{
+  background:#151515;
+  box-shadow:0 40px 0 0 #151515,0 62px 0 -1px #151515,0 112px 0 -2px #151515;
+}
+@media(max-width:760px){
+  .bills-loading-skeleton__grid{grid-template-columns:1fr;gap:12px;}
+  .bill-card--skeleton{min-height:128px;}
+}
 /* ---------- Actions kebab menu ---------- */
 .user-actions-menu-wrap{position:relative;display:inline-block;vertical-align:middle;}
 .kebab-btn{background:none;border:1.5px solid var(--line);color:var(--muted);width:28px;height:28px;border-radius:var(--radius-sm);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:background .15s ease,color .15s ease;}
@@ -1703,7 +1768,14 @@ body.dark-theme .auth-logo h1{text-shadow:0 0 22px rgba(1,37,135,.22);}
         </div>
       </div>
 
-      <div id="billsLoading" class="spinner-inline"></div>
+      <div id="billsLoading" class="bills-loading-skeleton hide" aria-hidden="true">
+  <div class="bills-loading-skeleton__grid">
+    <div class="bill-card bill-card--skeleton"></div>
+    <div class="bill-card bill-card--skeleton"></div>
+    <div class="bill-card bill-card--skeleton"></div>
+    <div class="bill-card bill-card--skeleton"></div>
+  </div>
+</div>
 
       <div id="billsEmptyState" class="empty-state hide">
         <i class="fa-regular fa-rectangle-list"></i>
@@ -1725,19 +1797,19 @@ body.dark-theme .auth-logo h1{text-shadow:0 0 22px rgba(1,37,135,.22);}
   <!-- ========== VIEW: ADMIN ========== -->
   <main class="app-shell admin-shell hide" id="viewAdmin">
     <section class="admin-stats" aria-label="User account summary">
-      <article class="card admin-stat">
+      <article class="card admin-stat is-loading">
         <div class="admin-stat__icon"><i class="fa-solid fa-users"></i></div>
         <div class="admin-stat__values"><p class="admin-stat__value" id="adminTotalUsers">0</p><p class="admin-stat__label">Total Users</p></div>
       </article>
-      <article class="card admin-stat admin-stat--approved">
+      <article class="card admin-stat admin-stat--approved is-loading">
         <div class="admin-stat__icon"><i class="fa-solid fa-check"></i></div>
         <div class="admin-stat__values"><p class="admin-stat__value" id="adminApprovedUsers">0</p><p class="admin-stat__label">Approved</p></div>
       </article>
-      <article class="card admin-stat admin-stat--pending">
+      <article class="card admin-stat admin-stat--pending is-loading">
         <div class="admin-stat__icon"><i class="fa-solid fa-clock"></i></div>
         <div class="admin-stat__values"><p class="admin-stat__value" id="adminPendingUsers">0</p><p class="admin-stat__label">Pending</p></div>
       </article>
-      <article class="card admin-stat admin-stat--rejected">
+      <article class="card admin-stat admin-stat--rejected is-loading">
         <div class="admin-stat__icon"><i class="fa-solid fa-xmark"></i></div>
         <div class="admin-stat__values"><p class="admin-stat__value" id="adminRejectedUsers">0</p><p class="admin-stat__label">Rejected</p></div>
       </article>
@@ -1748,7 +1820,11 @@ body.dark-theme .auth-logo h1{text-shadow:0 0 22px rgba(1,37,135,.22);}
         <h2 class="card__heading"><i class="fa-solid fa-user-clock"></i> Pending Approvals</h2>
         <span class="admin-count" id="adminPendingCount">0</span>
       </div>
-      <div id="pendingUsersLoading" class="spinner-inline"></div>
+      <div id="pendingUsersLoading" class="admin-list-loading-skeleton hide" aria-hidden="true">
+  <div class="admin-skeleton-row"></div>
+  <div class="admin-skeleton-row"></div>
+  <div class="admin-skeleton-row"></div>
+</div>
       <div id="pendingUsersEmpty" class="empty-state admin-empty hide">
         <i class="fa-solid fa-user-check"></i>
         <p>No pending requests.</p>
@@ -1768,7 +1844,13 @@ body.dark-theme .auth-logo h1{text-shadow:0 0 22px rgba(1,37,135,.22);}
         </div>
         <button class="admin-filter-btn" id="btnAdminUserFilter" type="button" aria-label="Show all users" title="Show all users"><i class="fa-solid fa-filter"></i></button>
       </div>
-      <div id="allUsersLoading" class="spinner-inline"></div>
+      <div id="allUsersLoading" class="admin-list-loading-skeleton hide" aria-hidden="true">
+  <div class="admin-skeleton-row"></div>
+  <div class="admin-skeleton-row"></div>
+  <div class="admin-skeleton-row"></div>
+  <div class="admin-skeleton-row"></div>
+  <div class="admin-skeleton-row"></div>
+</div>
       <div id="allUsersList" class="admin-user-list"></div>
       <div class="bills-pagination hide" id="allUsersPagination">
         <div class="bills-pagination__info" id="allUsersPaginationInfo"></div>
@@ -4825,6 +4907,7 @@ function sanitizeSearchTerm(term){
 async function loadBills(resetToFirstPage){
   if (resetToFirstPage) billsPage = 1;
 
+  const requestStartedAt = performance.now();
   const requestId = ++billsRequestSeq;
 
   el.billsLoading.classList.remove('hide');
@@ -4882,6 +4965,9 @@ async function loadBills(resetToFirstPage){
   // so drop it rather than let it overwrite more recent results.
   if (requestId !== billsRequestSeq) return;
 
+  const skeletonWait = Math.max(0, 350 - (performance.now() - requestStartedAt));
+  if (skeletonWait) await new Promise(resolve => setTimeout(resolve, skeletonWait));
+  if (requestId !== billsRequestSeq) return;
   el.billsLoading.classList.add('hide');
 
   if (error) {
@@ -5352,23 +5438,28 @@ function filterAdminUsers(){
 }
 
 async function loadAdminStats(){
+  document.querySelectorAll('#viewAdmin .admin-stat').forEach(card => card.classList.add('is-loading'));
   const queries = [
     supabaseClient.from('profiles').select('*', { count: 'exact', head: true }),
     supabaseClient.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
     supabaseClient.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
     supabaseClient.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'rejected')
   ];
-  const results = await Promise.all(queries);
-  if (results.some(result => result.error)) {
-    console.error('Could not load admin account stats.', results.find(result => result.error)?.error);
-    return;
+  try {
+    const results = await Promise.all(queries);
+    if (results.some(result => result.error)) {
+      console.error('Could not load admin account stats.', results.find(result => result.error)?.error);
+      return;
+    }
+    const [total, approved, pending, rejected] = results.map(result => result.count || 0);
+    el.adminTotalUsers.textContent = String(total);
+    el.adminApprovedUsers.textContent = String(approved);
+    el.adminPendingUsers.textContent = String(pending);
+    el.adminRejectedUsers.textContent = String(rejected);
+    el.adminPendingCount.textContent = String(pending);
+  } finally {
+    document.querySelectorAll('#viewAdmin .admin-stat').forEach(card => card.classList.remove('is-loading'));
   }
-  const [total, approved, pending, rejected] = results.map(result => result.count || 0);
-  el.adminTotalUsers.textContent = String(total);
-  el.adminApprovedUsers.textContent = String(approved);
-  el.adminPendingUsers.textContent = String(pending);
-  el.adminRejectedUsers.textContent = String(rejected);
-  el.adminPendingCount.textContent = String(pending);
 }
 
 function renderAllUsersPagination(){
