@@ -26,6 +26,8 @@
   --danger:#D64545;
   --success:#1F9254;
   --warning:#B7791F;
+  --input-bg:#FFFFFF;
+  --focus-ring:rgba(1,37,135,.16);
   --radius:12px;
   --radius-sm:8px;
   --shadow-sm:0 1px 3px rgba(20,30,50,.07);
@@ -37,8 +39,11 @@ body.dark-theme {
   --primary :var(--dark-primary, #1769FF);
   --bg: var(--dark-bg, #000000);
   --text: var(--dark-text, #F3F4F6);
-  --surface: var(--dark-surface, #000000);
-  --white: var(--dark-surface, #000000);
+  --muted:#A1A1AA;
+  --surface: var(--dark-surface, #0B0B0D);
+  --white: var(--dark-surface, #0B0B0D);
+  --input-bg:#050506;
+  --focus-ring:rgba(23,105,255,.28);
   --line: var(--dark-line, #2D3748AA);
   --shadow-sm: var(--dark-shadow-sm, 0 1px 3px rgba(0,0,0,0.5));
   --shadow-md: var(--dark-shadow-md, 0 10px 28px rgba(0,0,0,0.8));
@@ -53,6 +58,7 @@ body.dark-theme .btn--ghost:hover { background: #1A202C; }
 html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--font);-webkit-tap-highlight-color:transparent;overflow-x:hidden; transition: background 0.3s ease, color 0.3s ease;}
 body{min-height:100vh;display:flex;flex-direction:column;}
 button,input,textarea,select{font-family:var(--font);}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid var(--focus-ring);outline-offset:2px;}
 img{max-width:100%;display:block;}
 
 .hide { display: none !important; }
@@ -154,11 +160,11 @@ img{max-width:100%;display:block;}
 .field label .required{color:var(--danger);}
 .field input,.field textarea,.field select{
   width:100%;padding:11px 13px;border:1.5px solid var(--line);border-radius:var(--radius-sm);
-  font-size:14.5px;color:var(--text);background:var(--white);outline:none;
+  font-size:14.5px;color:var(--text);background:var(--input-bg);outline:none;
   transition:border-color .15s ease,box-shadow .15s ease, background 0.3s ease;
 }
 .field textarea{resize:vertical;min-height:64px;line-height:1.5;}
-.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(21,101,192,.14);}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--focus-ring);}
 
 .field input.input-error, .field textarea.input-error {border-color: var(--danger);box-shadow: 0 0 0 3px rgba(214, 69, 69, 0.14);}
 
@@ -177,7 +183,7 @@ img{max-width:100%;display:block;}
   display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:transform .08s ease,background .15s ease,box-shadow .15s ease;}
 .btn:active{transform:scale(.97);}
 .btn:disabled{opacity:.6;cursor:not-allowed;}
-.btn--primary{background:var(--primary);color:#FFFFFF;box-shadow:0 3px 10px rgba(21,101,192,.28);}
+.btn--primary{background:var(--primary);color:#FFFFFF;box-shadow:0 2px 6px rgba(1,37,135,.2);}
 .btn--outline{background:var(--white);color:var(--primary);border:1.5px solid var(--primary);}
 .btn--outline:hover{background:#EEF4FC;}
 .btn--ghost{background:var(--white);color:var(--muted);border:1.5px solid var(--line);}
@@ -250,6 +256,7 @@ img{max-width:100%;display:block;}
 .field--icon input,.field--icon textarea{padding-left:40px;}
 .field--icon textarea{padding-top:12px;}
 .field--icon input::placeholder,.field--icon textarea::placeholder{color:#9CA3AF;opacity:1;}
+.otp-field input{padding-right:40px;}
 .visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
 
 @media(max-width:640px){
@@ -444,7 +451,7 @@ body.dark-theme .pdf-loading-overlay p{color:#F3F4F6;}
   box-shadow:var(--shadow-sm); transition:background .15s ease,color .15s ease,transform .08s ease;
 }
 .auth-theme-toggle:hover{color:var(--primary);}
-.auth-card{height:100vh;width:100%;max-width:400px;background:var(--white);border-radius:var(--radius);padding:30px 26px;box-shadow:var(--shadow-md);border:1px solid var(--line);}
+.auth-card{width:100%;max-width:400px;background:var(--white);border-radius:var(--radius);padding:30px 26px;box-shadow:var(--shadow-md);border:1px solid var(--line);}
 .auth-logo{display:flex;flex-direction:column;align-items:center;gap:4px;margin-bottom:22px;}
 .auth-logo img{height:56px;width:56px;object-fit:contain;margin-bottom:6px;}
 .auth-logo h1{margin:0;font-size:16px;letter-spacing:2px;color:var(--primary);font-weight:700;}
@@ -497,22 +504,33 @@ body.dark-theme .pdf-loading-overlay p{color:#F3F4F6;}
 .auth-bottom-text{text-align:center;font-size:12.5px;color:var(--muted);margin-top:2px;}
 .auth-bottom-text .auth-link{color:var(--primary);font-weight:700;}
 
-/* ---------- Password requirement checklist ---------- */
-.pw-checklist{display:flex;flex-direction:column;gap:6px;padding:2px 2px 0;}
-.pw-checklist__item{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);transition:color .15s ease;}
-.pw-checklist__item i{font-size:13px;color:var(--line);transition:color .15s ease;}
-.pw-checklist__item.ok{color:var(--success);}
-.pw-checklist__item.ok i{color:var(--success);}
-
 /* ---------- Email verification / OTP ---------- */
-.verify-email-text{margin:0 0 8px;text-align:center;color:var(--muted);font-size:13px;line-height:1.55;}
-.verify-email-address{display:block;margin:0 0 4px;text-align:center;color:var(--text);font-size:13.5px;font-weight:700;word-break:break-word;}
-.verify-timer{display:flex;flex-direction:column;align-items:center;gap:4px;margin-top:2px;font-size:12px;color:var(--muted);line-height:1.4;}
+.verify-hero{display:flex;flex-direction:column;align-items:center;text-align:center;margin:2px 0 8px;}
+.verify-hero__icon{width:82px;height:82px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#EAF1FF;color:var(--primary);font-size:36px;margin-bottom:18px;}
+.verify-hero__icon i:last-child{font-size:15px;margin-left:-11px;margin-top:30px;color:#FFFFFF;background:var(--primary);border-radius:50%;padding:5px;}
+.verify-hero h1{margin:0 0 8px;font-size:24px;line-height:1.2;color:var(--text);}
+.verify-email-text{margin:0 0 5px;text-align:center;color:var(--muted);font-size:13px;line-height:1.55;}
+.verify-email-address{display:block;margin:0;text-align:center;color:var(--primary);font-size:13.5px;font-weight:700;word-break:break-word;}
+.otp-boxes{display:flex;width:100%;max-width:100%;gap:10px;margin:14px 0 2px;overflow:hidden;}
+.otp-boxes .otp-box{flex:1 1 0;width:0 !important;min-width:0 !important;height:58px;padding:0 !important;border:1.5px solid var(--line);border-radius:10px;background:var(--input-bg);color:var(--text);font-size:25px;font-weight:700;line-height:1;text-align:center;outline:none;caret-color:var(--primary);box-sizing:border-box;}
+.otp-box:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--focus-ring);}
+.verify-otp-help{margin:0 0 2px;text-align:center;color:var(--muted);font-size:12px;line-height:1.45;}
+.verify-divider{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:12px;justify-content:center;}
+.verify-divider::before,.verify-divider::after{content:'';height:1px;background:var(--line);flex:1;}
+.verify-info{display:flex;align-items:flex-start;gap:10px;padding:13px 14px;border:1px solid #DDE8FC;border-radius:10px;background:#F2F6FF;color:#334155;font-size:12.5px;line-height:1.45;}
+.verify-info i{color:var(--primary);font-size:16px;margin-top:1px;}
+.verify-info strong{display:block;color:var(--text);margin-bottom:2px;}
+.verify-timer{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--input-bg);font-size:12.5px;color:var(--text);line-height:1.4;}
+.verify-timer > i{color:var(--muted);font-size:16px;}
 .verify-timer strong{color:var(--primary);font-weight:700;}
 .verify-timer.expired strong{color:var(--danger);}
-.verify-resend{margin-top:2px;}
-.verify-resend[disabled]{opacity:.55;cursor:not-allowed;}
-.verify-back{margin-top:0;}
+.verify-resend{margin:0;border:none;background:transparent;color:var(--primary);font-size:12.5px;font-weight:700;text-align:left;padding:0;box-shadow:none;}
+.verify-resend:hover:not(:disabled){background:transparent;text-decoration:underline;}
+.verify-resend[disabled]{color:var(--text);cursor:default;opacity:1;}
+body.dark-theme .verify-hero__icon{background:#0E1F3D;color:#71AEFF;}
+body.dark-theme .verify-info{background:#0D1C33;border-color:#1B355C;color:#B9C7DC;}
+body.dark-theme .verify-info strong{color:#F3F4F6;}
+@media(max-width:360px){.otp-boxes{gap:7px}.otp-box{height:52px;font-size:22px}.verify-hero__icon{width:72px;height:72px;margin-bottom:14px}.verify-hero h1{font-size:22px;}}
 
 .pending-shell{flex:1;display:flex;align-items:center;justify-content:center;padding:24px 16px;text-align:center;position:relative;}
 .pending-card{max-width:400px;background:var(--white);border-radius:var(--radius);padding:34px 26px;box-shadow:var(--shadow-md);border:1px solid var(--line);}
@@ -1039,45 +1057,54 @@ body.dark-theme .admin-user-list .user-row__info::before{background:rgba(91,156,
     <i class="fa-solid fa-moon"></i>
   </button>
   <div class="auth-card">
-    <div class="auth-logo">
-      <img src="assets/logo/logo.png" alt="Logo">
-      <h1 id="verifyCompanyName"></h1>
-      <span>Verify your email address</span>
+    <div class="verify-hero">
+      <div class="verify-hero__icon" aria-hidden="true"><i class="fa-regular fa-envelope"></i><i class="fa-solid fa-check"></i></div>
+      <h1>Verify Your Email</h1>
+      <p class="verify-email-text">We have sent a 6-digit verification code to</p>
+      <span class="verify-email-address" id="verifyEmailAddress"></span>
     </div>
 
     <div class="auth-form" id="emailVerificationForm">
       <div>
-        <p class="verify-email-text">We sent an 8-digit verification code to</p>
+        <p class="verify-email-text">We sent a 6-digit verification code to</p>
         <span class="verify-email-address" id="verifyEmailAddress"></span>
       </div>
 
-      <div class="field">
-        <label for="verifyOtp">Verification Code</label>
+      <div class="field field--icon otp-field">
         <input
-          type="text"
+          type="hidden"
           id="verifyOtp"
           class="verify-otp-input"
           inputmode="numeric"
           autocomplete="one-time-code"
           pattern="[0-9]*"
-          maxlength="8"
-          placeholder="••••••••"
-          aria-label="8-digit verification code"
+          maxlength="6"
+          placeholder="••••••"
+          aria-label="6-digit verification code"
           style="font-size:20px;letter-spacing:5px;text-align:center;"
         >
+        <div class="otp-boxes" role="group" aria-label="6-digit verification code">
+          <input class="otp-box" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" maxlength="1" aria-label="Digit 1">
+          <input class="otp-box" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Digit 2">
+          <input class="otp-box" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Digit 3">
+          <input class="otp-box" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Digit 4">
+          <input class="otp-box" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Digit 5">
+          <input class="otp-box" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Digit 6">
+        </div>
       </div>
-
-      <div class="verify-timer" id="verifyTimerWrap">
-        <span id="verifyResendTimerText">You can request a new code in <strong id="verifyResendTimer">00:60</strong></span>
-      </div>
+      <p class="verify-otp-help">Enter the 6-digit code sent to your email address.</p>
 
       <button class="btn btn--primary btn--full" id="btnVerifyEmail">
-        <i class="fa-solid fa-shield-halved"></i> Verify Email
+        <i class="fa-solid fa-shield-halved"></i> Verify Code
       </button>
 
-      <button type="button" class="btn btn--outline btn--full verify-resend" id="btnResendVerification" disabled>
-        <i class="fa-solid fa-rotate"></i> Resend Code
-      </button>
+      <div class="verify-divider">or</div>
+      <div class="verify-info"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><div><strong>Didn't receive the code?</strong>Check your spam folder or resend the code.</div></div>
+      <div class="verify-timer" id="verifyTimerWrap">
+        <i class="fa-regular fa-clock" aria-hidden="true"></i>
+        <span id="verifyResendTimerText">Resend code in <strong id="verifyResendTimer">00:60</strong></span>
+        <button type="button" class="verify-resend" id="btnResendVerification" disabled>Resend Code</button>
+      </div>
       <div style="margin-top:12px;display:flex;justify-content:center;">
         <a class="auth-link" id="btnBackFromVerification">
           <i class="fa-solid fa-arrow-left"></i> Back to Login
@@ -1101,7 +1128,7 @@ body.dark-theme .admin-user-list .user-row__info::before{background:rgba(91,156,
         <i class="fa-solid fa-envelope"></i>
       </div>
       <p id="otpConfirmMessage">
-        We will send an 8-digit verification code to your email address.
+        We will send a 6-digit verification code to your email address.
       </p>
       <p id="otpConfirmEmail" class="confirm-target" style="word-break:break-word;"></p>
     </div>
@@ -1147,12 +1174,6 @@ body.dark-theme .admin-user-list .user-row__info::before{background:rgba(91,156,
         <button type="button" class="pw-toggle-btn" data-target="resetConfirmPassword" aria-label="Show password">
           <i class="fa-regular fa-eye"></i>
         </button>
-      </div>
-      <div class="pw-checklist" id="resetPwChecklist">
-        <div class="pw-checklist__item" data-rule="len"><i class="fa-solid fa-circle-check"></i> At least 8 characters</div>
-        <div class="pw-checklist__item" data-rule="upper"><i class="fa-solid fa-circle-check"></i> One uppercase letter</div>
-        <div class="pw-checklist__item" data-rule="num"><i class="fa-solid fa-circle-check"></i> One number</div>
-        <div class="pw-checklist__item" data-rule="special"><i class="fa-solid fa-circle-check"></i> One special character</div>
       </div>
       <button class="btn btn--primary btn--full" id="btnUpdateResetPassword" style="margin-top:4px;">
         Reset Password
@@ -1843,7 +1864,6 @@ function cacheElements(){
   el.resetPasswordCompanyName = document.getElementById('resetPasswordCompanyName');
   el.resetNewPassword = document.getElementById('resetNewPassword');
   el.resetConfirmPassword = document.getElementById('resetConfirmPassword');
-  el.resetPwChecklist = document.getElementById('resetPwChecklist');
   el.btnUpdateResetPassword = document.getElementById('btnUpdateResetPassword');
   el.btnCancelReset = document.getElementById('btnCancelReset');
 
@@ -2627,20 +2647,6 @@ function setAuthTab(tab){
   hideAuthMsg();
 }
 
-function updateResetPasswordChecklist(){
-  if (!el.resetPwChecklist) return;
-  const pw = el.resetNewPassword.value;
-  const rules = {
-    len: pw.length >= 8,
-    upper: /[A-Z]/.test(pw),
-    num: /[0-9]/.test(pw),
-    special: /[^A-Za-z0-9]/.test(pw)
-  };
-  el.resetPwChecklist.querySelectorAll('[data-rule]').forEach((item) => {
-    item.classList.toggle('ok', !!rules[item.dataset.rule]);
-  });
-}
-
 async function handleGoogleLogin(){
   hideAuthMsg();
   try {
@@ -2737,10 +2743,13 @@ function updateVerificationTimers(){
   // getSignupExpiryRemaining() — we just no longer display the countdown.
   el.btnResendVerification.disabled = cooldown > 0;
   if (cooldown > 0) {
-    el.verifyResendTimerText.classList.remove('hide');
+    el.btnResendVerification.classList.add('hide');
+    el.verifyResendTimerText.textContent = 'Resend code in ';
+    el.verifyResendTimerText.appendChild(el.verifyResendTimer);
     el.verifyResendTimer.textContent = formatCountdown(cooldown);
   } else {
-    el.verifyResendTimerText.classList.add('hide');
+    el.btnResendVerification.classList.remove('hide');
+    el.verifyResendTimerText.textContent = 'You can resend the code now';
   }
 }
 
@@ -2750,11 +2759,26 @@ function startVerificationTimers(){
   signupVerificationTimer = setInterval(updateVerificationTimers, 1000);
 }
 
+function getOtpBoxes(){
+  return Array.from(document.querySelectorAll('.otp-box'));
+}
+
+function setVerificationOtp(value = ''){
+  const code = String(value).replace(/\D/g, '').slice(0, 6);
+  el.verifyOtp.value = code;
+  getOtpBoxes().forEach((box, index) => { box.value = code[index] || ''; });
+  return code;
+}
+
+function submitOtpWhenComplete(){
+  if (el.verifyOtp.value.length === 6) handleVerifyEmail();
+}
+
 function showEmailVerification(email, message = 'Enter the code from your email to verify your account.'){ 
   pendingSignupEmail = email;
-  el.verifyCompanyName.textContent = (CONFIG.company.name + ' Billing').toUpperCase();
+  if (el.verifyCompanyName) el.verifyCompanyName.textContent = (CONFIG.company.name + ' Billing').toUpperCase();
   el.verifyEmailAddress.textContent = email;
-  el.verifyOtp.value = '';
+  setVerificationOtp('');
   hideVerificationMsg();
   showScreen('verify-email');
   startVerificationTimers();
@@ -2836,7 +2860,7 @@ async function handleLogin(){
       if (isEmailNotConfirmedError(error)) {
         await confirmAndSendSignupOtp(email, {
           confirmTitle: 'Email Not Verified',
-          confirmMessage: 'Your email address is not verified. Would you like us to send a new 8-digit verification code?',
+          confirmMessage: 'Your email address is not verified. Would you like us to send a new 6-digit verification code?',
           declineMsg: 'Please verify your email before logging in.',
           successMsg: 'Your email is not verified. We sent a new verification code.'
         });
@@ -2927,7 +2951,7 @@ function askToSendOtp(email, options = {}) {
   return new Promise(resolve => {
     const {
       title = 'Send Verification Code?',
-      message = 'We will send an 8-digit verification code to this email address.'
+      message = 'We will send a 6-digit verification code to this email address.'
     } = options;
 
     el.otpConfirmTitle.textContent = title;
@@ -3052,9 +3076,9 @@ async function handleRegister() {
       // same confirm-then-send flow used when logging into an unverified account.
       await confirmAndSendSignupOtp(email, {
         confirmTitle: 'Account Already Exists',
-        confirmMessage: 'This email is registered but not verified. Would you like us to send a new 8-digit verification code?',
+        confirmMessage: 'This email is registered but not verified. Would you like us to send a new 6-digit verification code?',
         declineMsg: 'No verification email was sent.',
-        successMsg: 'This account is not verified. We sent a new 8-digit verification code.'
+        successMsg: 'This account is not verified. We sent a new 6-digit verification code.'
       });
       return;
     }
@@ -3062,7 +3086,7 @@ async function handleRegister() {
     // New account: ask before signUp(), because signUp() can send the email.
     const sendOtp = await askToSendOtp(email, {
       title: 'Send Verification Code?',
-      message: 'We will send an 8-digit verification code to this email address.'
+      message: 'We will send a 6-digit verification code to this email address.'
     });
 
     if (!sendOtp) {
@@ -3103,7 +3127,7 @@ async function handleRegister() {
     savePendingSignup(email, Date.now());
     showEmailVerification(
       email,
-      'Account created. Enter the 8-digit verification code sent to your email.'
+      'Account created. Enter the 6-digit verification code sent to your email.'
     );
   });
 }
@@ -3111,13 +3135,13 @@ async function handleRegister() {
 let verificationInProgress = false;
 
 async function handleVerifyEmail(){
-  // Guards against a double submit when the auto-submit-on-8-digits
+  // Guards against a double submit when the auto-submit-on-6-digits
   // 'input' handler and the 'keydown' Enter handler both fire for the
-  // same code (e.g. typing the 8th digit and pressing Enter together).
+  // same code (e.g. typing the 6th digit and pressing Enter together).
   if (verificationInProgress) return;
 
   const email = pendingSignupEmail || getPendingSignup().email;
-  const token = el.verifyOtp.value.replace(/\D/g, '').slice(0, 8);
+  const token = el.verifyOtp.value.replace(/\D/g, '').slice(0, 6);
 
   if (!email) {
     showVerificationMsg(
@@ -3126,8 +3150,8 @@ async function handleVerifyEmail(){
     return;
   }
 
-  if (!/^\d{8}$/.test(token)) {
-    showVerificationMsg('Enter the 8-digit verification code.');
+  if (!/^\d{6}$/.test(token)) {
+    showVerificationMsg('Enter the 6-digit verification code.');
     el.verifyOtp.focus();
     return;
   }
@@ -3172,7 +3196,7 @@ async function handleVerifyEmail(){
 
     currentSession = data?.session || null;
     clearPendingSignup();
-    el.verifyOtp.value = '';
+    setVerificationOtp('');
 
     if (currentSession) {
       showVerificationMsg(
@@ -3212,7 +3236,7 @@ async function handleResendVerification(){
 
   const sendOtp = await askToSendOtp(email, {
     title: 'Resend Verification Code?',
-    message: 'We will send a new 8-digit verification code to this email address.'
+    message: 'We will send a new 6-digit verification code to this email address.'
   });
 
   if (!sendOtp) {
@@ -3234,9 +3258,9 @@ async function handleResendVerification(){
       return;
     }
 
-    el.verifyOtp.value = '';
+    setVerificationOtp('');
     showVerificationMsg(
-      'A new 8-digit verification code has been sent. The previous code is no longer needed.',
+      'A new 6-digit verification code has been sent. The previous code is no longer needed.',
       'info'
     );
     startVerificationTimers();
@@ -3252,7 +3276,7 @@ function handleBackFromVerification(){
 
   // Cancel only temporary OTP state. Never delete the Supabase Auth account.
   clearPendingSignup();
-  el.verifyOtp.value = '';
+  setVerificationOtp('');
   showScreen('auth');
   setAuthTab('login');
   if (email) el.loginEmail.value = email;
@@ -5465,18 +5489,35 @@ function bindEvents(){
   el.btnVerifyEmail.addEventListener('click', handleVerifyEmail);
   el.btnResendVerification.addEventListener('click', handleResendVerification);
   el.btnBackFromVerification.addEventListener('click', handleBackFromVerification);
-  el.verifyOtp.addEventListener('input', () => {
-    el.verifyOtp.value = el.verifyOtp.value.replace(/\D/g, '').slice(0, 8);
-    if (el.verifyOtp.value.length === 8) handleVerifyEmail();
-  });
-  el.verifyOtp.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter') handleVerifyEmail();
+  getOtpBoxes().forEach((box, index, boxes) => {
+    box.addEventListener('input', () => {
+      box.value = box.value.replace(/\D/g, '').slice(-1);
+      setVerificationOtp(boxes.map(item => item.value).join(''));
+      if (box.value && index < boxes.length - 1) boxes[index + 1].focus();
+      submitOtpWhenComplete();
+    });
+    box.addEventListener('keydown', (event) => {
+      if (event.key === 'Backspace' && !box.value && index > 0) {
+        boxes[index - 1].value = '';
+        boxes[index - 1].focus();
+        setVerificationOtp(boxes.map(item => item.value).join(''));
+      }
+      if (event.key === 'Enter') handleVerifyEmail();
+    });
+    box.addEventListener('paste', (event) => {
+      const code = event.clipboardData?.getData('text') || '';
+      const digits = code.replace(/\D/g, '').slice(0, 6);
+      if (!digits) return;
+      event.preventDefault();
+      setVerificationOtp(digits);
+      boxes[Math.min(digits.length, 6) - 1].focus();
+      submitOtpWhenComplete();
+    });
   });
   el.btnSendReset.addEventListener('click', handleForgotPassword);
   el.btnUpdateResetPassword.addEventListener('click', handleResetPassword);
   el.resetNewPassword.addEventListener('keydown', (event) => { if (event.key === 'Enter') handleResetPassword(); });
   el.resetConfirmPassword.addEventListener('keydown', (event) => { if (event.key === 'Enter') handleResetPassword(); });
-  el.resetNewPassword.addEventListener('input', updateResetPasswordChecklist);
   if (el.btnGoogleLogin) el.btnGoogleLogin.addEventListener('click', handleGoogleLogin);
   el.btnCancelReset.addEventListener('click', async () => {
     // Cancelling must actually end the live recovery session — otherwise
@@ -5912,7 +5953,6 @@ async function init(){
   await loadConfig();
   bindEvents();
   prefillRememberedEmail();
-  updateResetPasswordChecklist();
 
   pendingSignupEmail = getPendingSignup().email;
 
@@ -6069,7 +6109,7 @@ async function init(){
       showEmailVerification(
         pending.email,
         getSignupExpiryRemaining(pending.sentAt) > 0
-          ? 'Enter the 8-digit verification code sent to your email.'
+          ? 'Enter the 6-digit verification code sent to your email.'
           : 'Your previous verification code has expired. Request a new code to continue.'
       );
     } else {
