@@ -60,6 +60,16 @@ body{min-height:100vh;display:flex;flex-direction:column;}
 button,input,textarea,select{font-family:var(--font);}
 button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid var(--focus-ring);outline-offset:2px;}
 img{max-width:100%;display:block;}
+input[type="checkbox"]{
+  appearance:none;-webkit-appearance:none;position:relative;display:inline-grid;place-content:center;
+  width:16px;height:16px;margin:0;flex:0 0 16px;border:1.5px solid var(--line);border-radius:4px;
+  background:var(--input-bg);cursor:pointer;transition:background .15s ease,border-color .15s ease;
+}
+input[type="checkbox"]::after{content:'\f00c';font-family:"Font Awesome 6 Free";font-weight:900;font-size:9px;line-height:1;color:#FFFFFF;transform:scale(0);transition:transform .12s ease;}
+input[type="checkbox"]:checked{background:var(--primary);border-color:var(--primary);}
+input[type="checkbox"]:checked::after{transform:scale(1);}
+body.dark-theme input[type="checkbox"]{background:#050506;border-color:#3F3F46;}
+body.dark-theme input[type="checkbox"]:checked{background:var(--primary);border-color:var(--primary);}
 
 .hide { display: none !important; }
 
