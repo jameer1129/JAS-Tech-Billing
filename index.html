@@ -40,7 +40,7 @@ body.dark-theme {
   --bg: var(--dark-bg, #000000);
   --text: var(--dark-text, #F3F4F6);
   --muted:#A1A1AA;
-  --surface: var(--dark-surface, #0B0B0D);
+  --surface: var(--dark-surface, #000000);
   --white: var(--dark-surface, #0B0B0D);
   --input-bg:#050506;
   --focus-ring:rgba(23,105,255,.28);
@@ -808,19 +808,19 @@ body.dark-theme .admin-stat--pending .admin-stat__value{color:#FFB020;}
 body.dark-theme .admin-stat--rejected .admin-stat__icon{background:rgba(255,69,58,.18);color:#FF6259;}
 body.dark-theme .admin-stat--rejected .admin-stat__value{color:#FF6259;}
 .admin-panel{padding:0;overflow:visible;}
-.admin-panel__header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 18px 0}
+.admin-panel__header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 18px 12px;}
 .admin-panel__header .card__heading{margin:0;}
 .admin-count{min-width:32px;height:32px;padding:0 10px;border-radius:10px;background:rgba(1,37,135,.1);color:var(--primary);font-size:14px;font-weight:750;display:flex;align-items:center;justify-content:center;}
 body.dark-theme .admin-count{background:rgba(23,105,255,.18);color:#5B9CFF;}
 .admin-empty{padding:0 16px 34px;}.admin-empty i{font-size:34px;width:72px;height:72px;margin:0 auto 12px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#F3F5F8;color:#94A3B8;}
 .admin-empty p{font-size:16px;}.admin-empty span{font-size:13px;}
 body.dark-theme .admin-empty i{background:rgba(148,163,184,.14);color:#94A3B8;}
-.admin-users-toolbar{display:flex;align-items:center;gap:10px;padding:18px 10px;}
+.admin-users-toolbar{display:flex;align-items:center;gap:10px;padding:0 18px 10px;}
 .admin-users-toolbar .bills-search-input-wrap{flex:1;}.admin-users-toolbar .bills-search-input-wrap input{padding-top:10px;padding-bottom:10px;}
 .admin-filter-btn{width:40px;height:40px;border:1.5px solid var(--line);border-radius:var(--radius-sm);background:var(--white);color:var(--muted);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;}
 .admin-filter-btn:hover{color:var(--primary);border-color:var(--primary);}
 .admin-user-list, .pending-users-list{padding:0 18px;}
-.user-row{padding:12px 0;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:nowrap;min-height:82px;}
+.user-row{padding:14px 0;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:nowrap;min-height:82px;}
 .user-row__info{padding-left:62px;position:relative;gap:4px;min-width:0;display:flex;flex-direction:column;justify-content:center;}
 .user-row__info::before{content:attr(data-initials);position:absolute;left:0;top:50%;transform:translateY(-50%);width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;background:#E7EEFF;color:#1D4ED8;font-size:16px;font-weight:750;}
 .user-row__info b{font-size:14px;line-height:1.25;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -860,10 +860,18 @@ body.dark-theme .user-row__info::before{background:rgba(91,156,255,.18);color:#7
 
 /* Full-screen boot loader shown before auth state is known */
 .boot-loader{position:fixed;inset:0;background:rgba(15,23,42,.42);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:9998;display:flex;align-items:center;justify-content:center;}
-.boot-loader__card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:var(--surface);border-radius:var(--radius-sm);padding:24px 28px;}
-.boot-loader__bar-track{width:160px;height:4px;background:var(--line);border-radius:4px;overflow:hidden;}
-@keyframes barSlide{0%{transform:translateX(-100%);}50%{transform:translateX(80%);}100%{transform:translateX(260%);}}
-.boot-loader__label{font-size:13px;font-weight:600;color:var(--text);}
+.boot-loader__card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:28px 32px;min-width:220px;box-sizing:border-box;}
+.boot-loader__logo{width:72px;height:72px;display:block;object-fit:contain;}
+.boot-loader__bar-track{width:180px;height:4px;background:var(--line);border-radius:999px;overflow:hidden;}
+.boot-loader__bar-fill{height:100%;width:45%;background:var(--primary);border-radius:999px;animation:barSlide 1.1s ease-in-out infinite;}
+@keyframes barSlide{0%{transform:translateX(-120%);}50%{transform:translateX(120%);}100%{transform:translateX(320%);}}
+.boot-loader__label{padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;font-size:14px;}
+@media(max-width:640px){
+  .boot-loader__card{gap:16px;min-width:176px;padding:24px 24px;border-radius:16px;}
+  .boot-loader__logo{width:60px;height:60px;}
+  .boot-loader__bar-track{width:140px;height:4px;}
+  .boot-loader__label{font-size:12px;}
+}
 
 /* PDF Generation specific styles */
 .invoice-page{
@@ -1234,9 +1242,12 @@ body.dark-theme .auth-logo h1{text-shadow:0 0 22px rgba(1,37,135,.22);}
 <body>
 
 <!-- ================= BOOT LOADER ================= -->
-<div class="boot-loader" id="bootLoader">
+<div class="boot-loader" id="bootLoader" aria-live="polite" aria-busy="true">
   <div class="boot-loader__card">
-    <div class="boot-loader__bar-track"><div class="boot-loader__bar-fill"></div></div>
+    <img src="assets/logo/logo.png" alt="JAS Tech" class="boot-loader__logo">
+    <div class="boot-loader__bar-track" aria-hidden="true">
+      <div class="boot-loader__bar-fill"></div>
+    </div>
     <div class="boot-loader__label">Loading Data</div>
   </div>
 </div>
@@ -5378,28 +5389,48 @@ function handleAllUsersPaginationClick(e){
 }
 
 async function setUserStatus(userId, status){
-  const { error } = await supabaseClient.from('profiles').update({ status }).eq('id', userId);
-  if (error) {
+  showActionLoader(status === 'approved' ? 'Approving User' : 'Rejecting User');
+
+  try {
+    const { error } = await supabaseClient
+      .from('profiles')
+      .update({ status })
+      .eq('id', userId);
+
+    if (error) throw error;
+
+    showToast(status === 'approved' ? 'User approved' : 'User rejected', 'success');
+    loadAdminStats();
+    loadPendingUsers();
+    loadAllUsers();
+  } catch (error) {
     console.error(error);
     showToast('Action failed.', 'error');
-    return;
+  } finally {
+    hideActionLoader();
   }
-  showToast(status === 'approved' ? 'User approved' : 'User rejected', 'success');
-  loadAdminStats();
-  loadPendingUsers();
-  loadAllUsers();
 }
 
 async function setUserRole(userId, role){
-  const { error } = await supabaseClient.from('profiles').update({ role }).eq('id', userId);
-  if (error) {
+  showActionLoader(role === 'admin' ? 'Making Admin' : 'Making Employee');
+
+  try {
+    const { error } = await supabaseClient
+      .from('profiles')
+      .update({ role })
+      .eq('id', userId);
+
+    if (error) throw error;
+
+    showToast('Role updated', 'success');
+    loadAllUsers();
+  } catch (error) {
     console.error(error);
     showToast('Could not change role.', 'error');
     loadAllUsers();
-    return;
+  } finally {
+    hideActionLoader();
   }
-  showToast('Role updated', 'success');
-  loadAllUsers();
 }
 
 function handlePendingUsersClick(e){
