@@ -610,7 +610,7 @@ body.dark-theme .toast-card--error{
 .btn--google svg{width:18px;height:18px;flex-shrink:0;}
 
 /* ---------- Bottom link line ---------- */
-.auth-bottom-text{text-align:center;font-size:12.5px;color:var(--muted);margin-top:2px;}
+.auth-bottom-text{text-align:center;font-size:12.5px;color:var(--muted);margin-top:20px;}
 
 /* ---------- Email verification / OTP ---------- */
 .verify-hero{display:flex;flex-direction:column;align-items:center;text-align:center;margin:2px 0 8px;}
@@ -918,14 +918,13 @@ body.dark-theme .bill-card--skeleton::before{
 /* Full-screen boot loader shown before auth state is known */
 .boot-loader{position:fixed;inset:0;background:rgba(15,23,42,.42);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:9998;display:flex;align-items:center;justify-content:center;}
 .boot-loader__card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:28px 32px;min-width:220px;box-sizing:border-box;}
-.boot-loader__logo{width:72px;height:72px;display:block;object-fit:contain;}
+.boot-loader__logo{width:60px;height:60px;display:block;object-fit:contain;}
 .boot-loader__bar-track{width:180px;height:4px;background:var(--line);border-radius:999px;overflow:hidden;}
 .boot-loader__bar-fill{height:100%;width:45%;background:var(--primary);border-radius:999px;animation:barSlide 1.1s ease-in-out infinite;}
 @keyframes barSlide{0%{transform:translateX(-120%);}50%{transform:translateX(120%);}100%{transform:translateX(320%);}}
 .boot-loader__label{padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;font-size:14px;font-weight:500;}
 @media(max-width:640px){
   .boot-loader__card{gap:16px;min-width:176px;padding:24px 24px;border-radius:16px;}
-  .boot-loader__logo{width:60px;height:60px;}
   .boot-loader__bar-track{width:140px;height:4px;}
 }
 
@@ -1198,7 +1197,6 @@ body.dark-theme .auth-logo h1{text-shadow:0 0 22px rgba(1,37,135,.22);}
 
 #forgotPasswordForm .auth-card-heading{text-align:center;}
 #forgotPasswordForm .auth-field{margin-top:2px;}
-#forgotPasswordForm .auth-bottom-text{margin-top:10px;}
 
 /* ---------- Verification / reset ---------- */
 #emailVerificationScreen .auth-card,#resetPasswordScreen .auth-card{max-width:430px;}
