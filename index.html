@@ -159,7 +159,6 @@ body.dark-theme input[type="checkbox"]:checked{background:var(--primary);border-
 .card__heading-row .card__heading{margin-bottom:0;}
 
 .toggle-container {margin:8px 0;display: flex;align-items: center;gap: 6px;font-size: 12.5px;color: var(--muted);user-select: none;font-weight: 600; cursor: pointer;}
-.toggle-container :hover { color: var(--primary); }
 .toggle-container input { cursor: pointer; width: 15px; height: 15px; accent-color: var(--primary); margin: 0; }
 .field-group{display:flex;flex-direction:column;gap:12px;}
 .field-group--pair{flex-direction:row;}
@@ -499,10 +498,6 @@ body.dark-theme .toast-card--error{
     transform:none;
     width:auto;
     gap:10px;
-  }
-
-  .toast-card__msg{
-    font-size:13px;
   }
 }
 
@@ -1326,7 +1321,7 @@ body.dark-theme .auth-logo h1{text-shadow:0 0 22px rgba(1,37,135,.22);}
       </div>
       <div class="auth-row-between">
         <label class="auth-checkbox">
-          <input type="checkbox" id="loginRememberMe"> Remember me
+          <input type="checkbox" id="loginRememberMe" checked> Remember me
         </label>
         <a href="#" onclick="setAuthTab('forgot'); return false;" class="auth-link">Forgot Password?</a>
       </div>
@@ -2942,7 +2937,7 @@ function clearPasswordRecoveryPending() {
 // value can be reused both for choosing the Supabase client's storage and
 // for gating the auth-state-change listener (see init()).
 
-function createSupabaseClient(authStorage, detectSessionInUrl){
+function createSupabaseClient(authStorage, detectSessionInUrl, storageKey = 'jas_auth'){
   if (!CONFIG.supabase || !CONFIG.supabase.url || !CONFIG.supabase.anonKey) {
     console.error('Supabase config missing in config.json');
     showToast('Supabase is not configured. Check config.json', 'error');
@@ -2953,7 +2948,7 @@ function createSupabaseClient(authStorage, detectSessionInUrl){
     auth: {
       persistSession: true,
       autoRefreshToken: true,
-      storageKey: 'jas_auth',
+      storageKey,
       storage: authStorage,
       // IMPORTANT: every Supabase client instance independently scans
       // window.location.hash for recovery/magic-link tokens by default
@@ -2971,10 +2966,68 @@ function createSupabaseClient(authStorage, detectSessionInUrl){
   });
 }
 
+const NORMAL_AUTH_STORAGE = {
+  persistent: window.localStorage,
+  session: window.sessionStorage
+};
+const OAUTH_REMEMBER_KEY = 'jas_oauth_remember_me';
+
+function getRememberMeEnabled(){
+  return el.loginRememberMe ? el.loginRememberMe.checked : true;
+}
+
+function getStoredOAuthRememberChoice(){
+  try {
+    const value = window.sessionStorage.getItem(OAUTH_REMEMBER_KEY);
+    return value === null ? null : value === '1';
+  } catch (err) {
+    return null;
+  }
+}
+
+function clearStoredOAuthRememberChoice(){
+  try { window.sessionStorage.removeItem(OAUTH_REMEMBER_KEY); }
+  catch (err) { /* ignore storage errors */ }
+}
+
 function initSupabase(recoveryContext){
+  // Password recovery is always temporary and isolated in sessionStorage.
+  if (recoveryContext) {
+    supabaseClient = createSupabaseClient(window.sessionStorage, true, 'jas_recovery_auth');
+    return supabaseClient;
+  }
+
+  // Normal login storage follows the Remember me checkbox.
   supabaseClient = createSupabaseClient(
-    recoveryContext ? window.sessionStorage : window.localStorage
+    getRememberMeEnabled()
+      ? NORMAL_AUTH_STORAGE.persistent
+      : NORMAL_AUTH_STORAGE.session
   );
+  return supabaseClient;
+}
+
+function clearInactiveNormalAuthStorage(rememberMe){
+  // A normal login must exist in exactly ONE browser storage.
+  // Remove the opposite storage first so an older session can never survive
+  // alongside the newly-selected Remember me mode.
+  try {
+    if (rememberMe) {
+      window.sessionStorage.removeItem('jas_auth');
+    } else {
+      window.localStorage.removeItem('jas_auth');
+    }
+  } catch (err) {
+    console.warn('Could not clear inactive auth storage:', err);
+  }
+}
+
+function setNormalAuthStorage(rememberMe){
+  // Do not touch the recovery client/session. This is only for normal login.
+  clearInactiveNormalAuthStorage(rememberMe);
+  supabaseClient = createSupabaseClient(
+    rememberMe ? NORMAL_AUTH_STORAGE.persistent : NORMAL_AUTH_STORAGE.session
+  );
+  return supabaseClient;
 }
 
 
@@ -3040,6 +3093,20 @@ function setAuthTab(tab){
 async function handleGoogleLogin(){
   hideAuthMsg();
   try {
+    // OAuth performs a full-page redirect, so carry the Remember me choice
+    // through the redirect in sessionStorage. The callback will create ONLY
+    // the selected storage client with detectSessionInUrl enabled.
+    const rememberMe = getRememberMeEnabled();
+    try {
+      window.sessionStorage.setItem(OAUTH_REMEMBER_KEY, rememberMe ? '1' : '0');
+    } catch (err) {
+      console.warn('Could not save OAuth Remember me choice:', err);
+    }
+
+    // Ensure an OAuth login can never leave an older normal session in the
+    // opposite storage. This also prevents Google from ending up in both.
+    setNormalAuthStorage(rememberMe);
+
     const { error } = await supabaseClient.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: window.location.origin + window.location.pathname }
@@ -3214,18 +3281,6 @@ async function resendSignupOtp(email, options = {}){
   return { error: null, cooldown: SIGNUP_OTP_RESEND_COOLDOWN_SECONDS };
 }
 
-const REMEMBERED_EMAIL_KEY = 'jasTechBilling.rememberedEmail';
-
-function prefillRememberedEmail(){
-  try {
-    const saved = localStorage.getItem(REMEMBERED_EMAIL_KEY);
-    if (saved && el.loginEmail) {
-      el.loginEmail.value = saved;
-      if (el.loginRememberMe) el.loginRememberMe.checked = true;
-    }
-  } catch (err) { /* localStorage unavailable — ignore */ }
-}
-
 async function handleLogin(){
   const email = el.loginEmail.value.trim().toLowerCase();
   const password = el.loginPassword.value;
@@ -3236,6 +3291,11 @@ async function handleLogin(){
   hideAuthMsg();
 
   await withGuardedSubmit(el.btnLogin, 'Signing in...', async () => {
+    // Supabase stores the newly-issued session in the client's configured storage.
+    // Recreate the normal client immediately before login so Remember me controls
+    // where this login actually persists.
+    setNormalAuthStorage(getRememberMeEnabled());
+
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
 
     if (error) {
@@ -3272,13 +3332,6 @@ async function handleLogin(){
 
     currentSession = data.session;
     clearPendingSignup();
-    try {
-      if (el.loginRememberMe && el.loginRememberMe.checked) {
-        localStorage.setItem(REMEMBERED_EMAIL_KEY, email);
-      } else {
-        localStorage.removeItem(REMEMBERED_EMAIL_KEY);
-      }
-    } catch (err) { /* localStorage unavailable — ignore */ }
 
     showActionLoader('Loading your account...');
     await afterAuthResolved();
@@ -6369,14 +6422,15 @@ async function init(){
 
   await loadConfig();
   bindEvents();
-  prefillRememberedEmail();
-
+  const storedOAuthRemember = getStoredOAuthRememberChoice();
+  if (el.loginRememberMe) el.loginRememberMe.checked = storedOAuthRemember === null ? true : storedOAuthRemember;
   pendingSignupEmail = getPendingSignup().email;
 
   const urlParams = new URLSearchParams(window.location.search);
   const isPasswordResetLink = urlParams.get('mode') === 'update-password';
   const hasPendingRecovery = !!sessionStorage.getItem(PASSWORD_RECOVERY_KEY);
   const recoveryContext = isPasswordResetLink || hasPendingRecovery;
+  const oauthCallbackContext = !recoveryContext && getStoredOAuthRememberChoice() !== null;
 
   syncDisplayToggleState();
 
@@ -6389,27 +6443,32 @@ async function init(){
   // logged in on this device. Merely checking whether jas_auth exists is
   // not enough because the reset link may belong to a different user.
   //
-  // Recovery session  -> sessionStorage
-  // Normal session    -> localStorage
-  // These are deliberately kept separate so one cannot overwrite the other.
+  // Recovery session -> sessionStorage.
+  // Normal sessions can use either localStorage (Remember me ON) or
+  // sessionStorage (Remember me OFF). Recovery is kept isolated so it cannot
+  // overwrite either normal session.
   let localClient = null;
 
   if (recoveryContext) {
-    // detectSessionInUrl:false on localClient is critical here — this
-    // client exists only to read whichever account is already logged in
-    // on this device. It must never absorb the recovery-link tokens from
-    // the URL, or it will silently overwrite the existing local session
-    // with the reset-link account before the conflict check even runs.
+    // Recovery gets its own storage key so it can coexist safely with a
+    // normal Remember-me-OFF session, which also lives in sessionStorage.
+    // Both normal storages are inspected without parsing the recovery URL.
     localClient = createSupabaseClient(window.localStorage, false);
-    supabaseClient = createSupabaseClient(window.sessionStorage);
+    const sessionClient = createSupabaseClient(window.sessionStorage, false);
+    supabaseClient = createSupabaseClient(window.sessionStorage, true, 'jas_recovery_auth');
 
-    if (!supabaseClient || !localClient) {
+    if (!supabaseClient || !localClient || !sessionClient) {
       showScreen('auth');
       return;
     }
 
     const { data: { session: localSession } = {} } =
       await localClient.auth.getSession();
+    const { data: { session: sessionStorageSession } = {} } =
+      await sessionClient.auth.getSession();
+
+    const existingNormalClient = localSession ? localClient : (sessionStorageSession ? sessionClient : null);
+    const existingNormalSession = localSession || sessionStorageSession || null;
 
     // Register the recovery listener before getSession() so the reset-link
     // session is captured even when Supabase establishes it asynchronously.
@@ -6430,7 +6489,7 @@ async function init(){
     const resetSession = recoverySession || recoverySessionFromEvent;
 
     if (resetSession) {
-      const localUserId = localSession?.user?.id || null;
+      const localUserId = existingNormalSession?.user?.id || null;
       const resetUserId = resetSession.user?.id || null;
 
       if (localUserId && resetUserId && localUserId === resetUserId) {
@@ -6449,13 +6508,13 @@ async function init(){
         return;
       }
 
-      if (localSession) {
+      if (existingNormalSession) {
         // A different account is already logged in. Do NOT log it out silently.
         // Ask first. Cancel keeps the existing account; Log Out & Reset
         // explicitly signs it out and then opens the reset screen.
         openRecoveryConflictConfirm({
-          localClient,
-          localSession,
+          localClient: existingNormalClient,
+          localSession: existingNormalSession,
           recoveryClient: supabaseClient,
           resetSession
         });
@@ -6482,17 +6541,92 @@ async function init(){
     return;
   }
 
-  // Normal application load: use the persistent localStorage session.
-  initSupabase(false);
+  // OAuth callback load: ONLY the storage selected before the Google redirect
+  // is allowed to parse the callback URL. Creating both clients with URL parsing
+  // enabled is what previously caused the same Google session to land in both
+  // localStorage and sessionStorage.
+  let normalAuthResolved = false;
+  let activeNormalClient = null;
 
-  if (!supabaseClient) {
+  if (oauthCallbackContext) {
+    const rememberMe = getStoredOAuthRememberChoice() === true;
+    clearInactiveNormalAuthStorage(rememberMe);
+    const oauthClient = createSupabaseClient(
+      rememberMe ? window.localStorage : window.sessionStorage,
+      true
+    );
+
+    if (!oauthClient) {
+      clearStoredOAuthRememberChoice();
+      showScreen('auth');
+      return;
+    }
+
+    activeNormalClient = oauthClient;
+    supabaseClient = oauthClient;
+
+    const { data: { session: oauthSession } = {} } = await oauthClient.auth.getSession();
+    clearStoredOAuthRememberChoice();
+
+    if (oauthSession) {
+      currentSession = oauthSession;
+      clearPendingSignup();
+      normalAuthResolved = true;
+      await afterAuthResolved();
+    } else {
+      showScreen('auth');
+    }
+
+    activeNormalClient.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        currentSession = null;
+        currentProfile = null;
+        showScreen('auth');
+        return;
+      }
+      if (event === 'SIGNED_IN' && session && !normalAuthResolved) {
+        currentSession = session;
+        normalAuthResolved = true;
+        afterAuthResolved().catch(console.error);
+      }
+    });
+
+    return;
+  }
+
+  // Normal application load: inspect storage without parsing the URL.
+  // This guarantees a normal page load cannot accidentally copy a Google
+  // callback into both browser storages.
+  const persistentClient = createSupabaseClient(window.localStorage, false);
+  const sessionClient = createSupabaseClient(window.sessionStorage, false);
+
+  if (!persistentClient || !sessionClient) {
     showScreen('auth');
     return;
   }
 
-  let normalAuthResolved = false;
+  activeNormalClient = persistentClient;
 
-  supabaseClient.auth.onAuthStateChange((event, session) => {
+  const { data: { session: localSession } = {} } = await persistentClient.auth.getSession();
+
+  if (localSession) {
+    activeNormalClient = persistentClient;
+    supabaseClient = persistentClient;
+    // Keep normal authentication exclusive to one browser storage.
+    try { window.sessionStorage.removeItem('jas_auth'); } catch (err) {}
+  } else {
+    const { data: { session: tabSession } = {} } = await sessionClient.auth.getSession();
+    if (tabSession) {
+      activeNormalClient = sessionClient;
+      supabaseClient = sessionClient;
+      try { window.localStorage.removeItem('jas_auth'); } catch (err) {}
+    } else {
+      // Default to Remember me ON for the next login.
+      supabaseClient = persistentClient;
+    }
+  }
+
+  activeNormalClient.auth.onAuthStateChange((event, session) => {
     if (event === 'SIGNED_OUT') {
       currentSession = null;
       currentProfile = null;
@@ -6509,7 +6643,7 @@ async function init(){
     }
   });
 
-  const { data: { session } = {} } = await supabaseClient.auth.getSession();
+  const { data: { session } = {} } = await activeNormalClient.auth.getSession();
 
   if (session) {
     currentSession = session;
@@ -6537,8 +6671,19 @@ async function init(){
   document.addEventListener('visibilitychange', async () => {
     if (!document.hidden && supabaseClient && !currentSession) {
       try {
-        const { data: { session: visibleSession } = {} } =
-          await supabaseClient.auth.getSession();
+        let visibleSession = null;
+        ({ data: { session: visibleSession } = {} } = await supabaseClient.auth.getSession());
+
+        // When the current client is the persistent client and it has no session,
+        // also check the tab session so Remember me OFF still restores correctly.
+        if (!visibleSession && supabaseClient !== sessionClient) {
+          const { data: { session: tabSession } = {} } = await sessionClient.auth.getSession();
+          if (tabSession) {
+            supabaseClient = sessionClient;
+            visibleSession = tabSession;
+          }
+        }
+
         if (visibleSession) {
           currentSession = visibleSession;
           await afterAuthResolved();
