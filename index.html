@@ -199,7 +199,7 @@ body.dark-theme .nav-tabs{
 
 .app-shell{flex:1;width:100%;max-width:760px;margin:0 auto;padding:20px 16px 0px;display:flex;flex-direction:column;gap:16px;}
 
-.card{background:var(--white);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow-sm);border:1px solid var(--line); transition: background 0.3s ease, border-color 0.3s ease;}
+.card{background:var(--surface);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow-sm);border:1px solid var(--line); transition: background 0.3s ease, border-color 0.3s ease;}
 .card__heading{margin:0 0 14px;font-size:12px;font-weight:700;text-transform:uppercase;color:var(--primary-text);display:flex;align-items:center;gap:8px;}
 .card__heading-row{display:flex;align-items:center;justify-content:space-between;gap:8px;}
 .card__heading-row .card__heading{margin-bottom:0;}
@@ -234,7 +234,7 @@ body.dark-theme .nav-tabs{
   display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:transform .08s ease,background .15s ease,box-shadow .15s ease;}
 .btn:active{transform:scale(.97);}
 .btn:disabled{opacity:.6;cursor:not-allowed;}
-.btn--primary{background:linear-gradient(180deg,var(--primary) 0%,#012587 100%);color:#FFFFFF;box-shadow:var(--shadow-sm);min-height:50px;border-radius:13px;font-size:13.5px;letter-spacing:.1px;}
+.btn--primary{background:var(--primary);color:#FFFFFF;box-shadow:var(--shadow-sm);min-height:50px;border-radius:13px;font-size:13.5px;letter-spacing:.1px;}
 .btn--outline{background:var(--white);color:var(--primary-text);border:1.5px solid var(--primary-text);}
 .btn--outline:hover{background:#EEF4FC;}
 .btn--ghost{background:var(--white);color:var(--muted);border:1.5px solid var(--line);}
@@ -993,7 +993,7 @@ body.dark-theme .bill-card--skeleton::before{
 .inv-customer { display:flex; gap:14px; align-items:flex-start; position:relative; z-index:5;}
 .inv-customer__icon { width:34px; height:34px; border-radius:50%; background:var(--primary); color:#FFFFFF; display:flex; align-items:center; justify-content:center; font-size:16px; margin-top:2px; flex-shrink:0;}
 .inv-customer__details { display:flex; flex-direction:column; gap:4px; }
-.inv-customer__label { font-size:13px; font-weight:700; letter-spacing:0.8px; color:var(--primary); text-transform:uppercase; line-height:1; margin-bottom:2px;margin-top:12px;}
+.inv-customer__label { font-size:13px; font-weight:750; letter-spacing:0.8px; color:var(--primary); text-transform:uppercase; line-height:1; margin-bottom:2px;margin-top:12px;}
 .inv-customer__name { font-size:18px; font-weight:700; color:#000000; white-space:nowrap; }
 .truncate{max-width:260px;display:inline-block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle}
 .inv-customer__line { font-size:14px; color:#000000; font-weight:600; white-space:nowrap; }
@@ -1080,23 +1080,6 @@ body.dark-theme .bill-card--skeleton::before{
 .invoice-page.compact-2 .inv-customer{margin-top:6px;}
 .invoice-page.compact-2 .inv-table{margin-top:6px;}
 .invoice-page.compact-2 .inv-bottom-row{margin-top:6px;}
-
-/* ==========================================================
-   JAS TECH — MODERN MOBILE UI (condensed)
-   Same visual result as the 800-line version — every light/dark
-   pair is now ONE rule driven by theme variables instead of two
-   separate rules. Same IDs / JS hooks, untouched.
-   ========================================================== */
-
-
-
-
-
-/* ---------- Auth shell / card / logo ---------- */
-
-
-
-
 
 body.dark-theme .auth-logo h1{text-shadow:0 0 22px rgba(1,37,135,.22);}
 .auth-logo h1::after{content:"";display:block;width:42px;height:3px;margin:9px auto 0;border-radius:99px;background:linear-gradient(90deg,transparent,#012587,transparent);}
@@ -2059,9 +2042,8 @@ body.dark-theme .pdf-option__switch input:checked + .pdf-option__switch-track{
 
     <section class="card admin-panel">
       <div class="admin-panel__header">
-        <h2 class="card__heading"><i class="fa-solid fa-user-clock"></i> Pending Approvals</h2>
-        <span class="admin-count" id="adminPendingCount">0</span>
-      </div>
+              <h2 class="card__heading"><i class="fa-solid fa-users"></i> Pending Approvals</h2>
+            </div>
       <div id="pendingUsersLoading" class="admin-list-loading-skeleton hide" aria-hidden="true">
   <div class="admin-skeleton-row"></div>
   <div class="admin-skeleton-row"></div>
