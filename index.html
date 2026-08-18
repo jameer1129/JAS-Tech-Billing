@@ -3175,33 +3175,64 @@ function clearPasswordRecoveryPending() {
 // value can be reused both for choosing the Supabase client's storage and
 // for gating the auth-state-change listener (see init()).
 
-function createSupabaseClient(authStorage, detectSessionInUrl, storageKey = 'jas_auth'){
+const AUTH_STORAGE_KEY = 'jas_auth';
+const LOCAL_AUTH_STORAGE_KEY = 'jas_auth_local';
+const SESSION_AUTH_STORAGE_KEY = 'jas_auth_session';
+const RECOVERY_AUTH_STORAGE_KEY = 'jas_recovery_auth';
+
+// Supabase warns when two GoTrueClient instances use the same storage key
+// in one browser context. JAS Tech intentionally needs localStorage and
+// sessionStorage to coexist for Remember-me ON/OFF, so each normal storage
+// gets its own key. Existing sessions under the old key are migrated once.
+function getNormalAuthStorageKey(authStorage){
+  return authStorage === window.localStorage
+    ? LOCAL_AUTH_STORAGE_KEY
+    : SESSION_AUTH_STORAGE_KEY;
+}
+
+function migrateLegacyAuthStorage(authStorage, targetKey){
+  try {
+    if (!authStorage.getItem(targetKey)) {
+      const legacy = authStorage.getItem(AUTH_STORAGE_KEY);
+      if (legacy) authStorage.setItem(targetKey, legacy);
+    }
+    authStorage.removeItem(AUTH_STORAGE_KEY);
+  } catch (err) {
+    console.warn('Could not migrate legacy auth storage:', err);
+  }
+}
+
+const supabaseClientCache = new Map();
+
+function createSupabaseClient(authStorage, detectSessionInUrl, storageKey = null){
   if (!CONFIG.supabase || !CONFIG.supabase.url || !CONFIG.supabase.anonKey) {
     console.error('Supabase config missing in config.json');
     showToast('Supabase is not configured. Check config.json', 'error');
     return null;
   }
 
-  return window.supabase.createClient(CONFIG.supabase.url, CONFIG.supabase.anonKey, {
+  const isNormalStorage = authStorage === window.localStorage || authStorage === window.sessionStorage;
+  const resolvedStorageKey = storageKey || (isNormalStorage ? getNormalAuthStorageKey(authStorage) : AUTH_STORAGE_KEY);
+
+  if (isNormalStorage) migrateLegacyAuthStorage(authStorage, resolvedStorageKey);
+
+  const cacheKey = `${resolvedStorageKey}:${detectSessionInUrl !== false ? 'url' : 'no-url'}`;
+  if (supabaseClientCache.has(cacheKey)) return supabaseClientCache.get(cacheKey);
+
+  const client = window.supabase.createClient(CONFIG.supabase.url, CONFIG.supabase.anonKey, {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
-      storageKey,
+      storageKey: resolvedStorageKey,
       storage: authStorage,
-      // IMPORTANT: every Supabase client instance independently scans
-      // window.location.hash for recovery/magic-link tokens by default
-      // (detectSessionInUrl defaults to true). On the password-recovery
-      // screen we create TWO clients pointed at the same URL: one to
-      // inspect the existing localStorage session, one to hold the new
-      // recovery session in sessionStorage. If both are left at the
-      // default, the localStorage client also silently grabs the
-      // recovery tokens from the URL and overwrites the already
-      // logged-in account. Only the dedicated recovery (sessionStorage)
-      // client is allowed to parse the URL; pass detectSessionInUrl:false
-      // for any client that's only meant to inspect an existing session.
+      // Only the client dedicated to the recovery flow may parse the URL.
+      // Normal clients must never consume recovery/OAuth URL tokens.
       detectSessionInUrl: detectSessionInUrl !== false
     }
   });
+
+  supabaseClientCache.set(cacheKey, client);
+  return client;
 }
 
 const NORMAL_AUTH_STORAGE = {
@@ -3231,7 +3262,7 @@ function clearStoredOAuthRememberChoice(){
 function initSupabase(recoveryContext){
   // Password recovery is always temporary and isolated in sessionStorage.
   if (recoveryContext) {
-    supabaseClient = createSupabaseClient(window.sessionStorage, true, 'jas_recovery_auth');
+    supabaseClient = createSupabaseClient(window.sessionStorage, true, RECOVERY_AUTH_STORAGE_KEY);
     return supabaseClient;
   }
 
@@ -3250,9 +3281,11 @@ function clearInactiveNormalAuthStorage(rememberMe){
   // alongside the newly-selected Remember me mode.
   try {
     if (rememberMe) {
-      window.sessionStorage.removeItem('jas_auth');
+      window.sessionStorage.removeItem(SESSION_AUTH_STORAGE_KEY);
+      window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
     } else {
-      window.localStorage.removeItem('jas_auth');
+      window.localStorage.removeItem(LOCAL_AUTH_STORAGE_KEY);
+      window.localStorage.removeItem(AUTH_STORAGE_KEY);
     }
   } catch (err) {
     console.warn('Could not clear inactive auth storage:', err);
@@ -6689,7 +6722,7 @@ async function init(){
     // Both normal storages are inspected without parsing the recovery URL.
     localClient = createSupabaseClient(window.localStorage, false);
     const sessionClient = createSupabaseClient(window.sessionStorage, false);
-    supabaseClient = createSupabaseClient(window.sessionStorage, true, 'jas_recovery_auth');
+    supabaseClient = createSupabaseClient(window.sessionStorage, true, RECOVERY_AUTH_STORAGE_KEY);
 
     if (!supabaseClient || !localClient || !sessionClient) {
       showScreen('auth');
@@ -6847,13 +6880,13 @@ async function init(){
     activeNormalClient = persistentClient;
     supabaseClient = persistentClient;
     // Keep normal authentication exclusive to one browser storage.
-    try { window.sessionStorage.removeItem('jas_auth'); } catch (err) {}
+    try { window.sessionStorage.removeItem(SESSION_AUTH_STORAGE_KEY); window.sessionStorage.removeItem(AUTH_STORAGE_KEY); } catch (err) {}
   } else {
     const { data: { session: tabSession } = {} } = await sessionClient.auth.getSession();
     if (tabSession) {
       activeNormalClient = sessionClient;
       supabaseClient = sessionClient;
-      try { window.localStorage.removeItem('jas_auth'); } catch (err) {}
+      try { window.localStorage.removeItem(LOCAL_AUTH_STORAGE_KEY); window.localStorage.removeItem(AUTH_STORAGE_KEY); } catch (err) {}
     } else {
       // Default to Remember me ON for the next login.
       supabaseClient = persistentClient;
