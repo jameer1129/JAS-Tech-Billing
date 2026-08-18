@@ -3,7 +3,7 @@ JAS TECH BILLING — service-worker.js
 Fresh-First With Timeout Fallback + Stale-While-Revalidate
 ========================================================= */
 
-const CACHE_NAME = "jas-tech-assets-v2.0.3";
+const CACHE_NAME = "jas-tech-assets-v2.0.4";
 
 // How long we wait for the network before falling back to whatever's cached.
 // Without this, a slow/flaky connection makes fetch() hang indefinitely on
@@ -11,6 +11,8 @@ const CACHE_NAME = "jas-tech-assets-v2.0.3";
 const NETWORK_TIMEOUT_MS = 5000;
 
 const STATIC_ASSETS = [
+  "./index.html",
+  "./manifest.json",
   "./assets/logo/logo.png",
   "./assets/logo/main-logo.png",
   "./assets/logo/horizontal-logo.png",
@@ -126,7 +128,12 @@ self.addEventListener("fetch", (event) => {
     url.pathname.endsWith(".html") ||
     url.pathname.endsWith("config.json")
   ) {
-    event.respondWith(networkFirstWithTimeout(event.request));
+    event.respondWith(
+      networkFirstWithTimeout(event.request).catch(async () => {
+        const cache = await caches.open(CACHE_NAME);
+        return (await cache.match("./index.html")) || Response.error();
+      })
+    );
     return;
   }
 
