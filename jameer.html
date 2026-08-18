@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>JAS Tech Offline Screen Preview</title>
+<style>/*
+ * JAS TECH BILLING — INTERNAL CSS
+ * Cleaned component architecture.
+ * JavaScript hooks and existing HTML class names are preserved.
+ * Theme values live in variables; component rules follow by section.
+ */
+
+
+:root {
+  --primary: #012587;
+  --primary-text: #012587;
+  --bg: #F8F9FC;
+  --surface: #FFFFFF;
+  --text: #212121;
+  --muted: #6B7280;
+  --line: #E5E7EB;
+  --white: #FFFFFF;
+  --danger: #D64545;
+  --success: #1F9254;
+  --warning: #B7791F;
+  --input-bg: #FFFFFF;
+  --focus-ring: rgba(1,37,135,.16);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow-sm: 0 1px 3px rgba(20,30,50,.07);
+  --shadow-md: 0 10px 28px rgba(20,30,50,.12);
+  --font: "Segoe UI",-apple-system,BlinkMacSystemFont,Roboto,Arial,sans-serif;
+  --nb-bg: transparent;
+  --nb-border: var(--line);
+  --nb-focus-bg: rgba(1,37,135,.035);
+  --nb-sep: #DDE2EA;
+}
+
+body.dark-theme {
+  --primary: #012587;
+  --primary-text: #5278D8;
+  --bg: #000000;
+  --surface: #000000;
+  --text: #F3F4F6;
+  --muted: #A1A1AA;
+  --white: #0B0B0D;
+  --input-bg: #050506;
+  --focus-ring: rgba(1,37,135,.28);
+  --line: #2D3748AA;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.5);
+  --shadow-md: 0 10px 28px rgba(0,0,0,.8);
+  --nb-bg: #000000;
+  --nb-border: #1B1F27;
+  --nb-focus-bg: rgba(23,105,255,.045);
+  --nb-sep: #343B46;
+}
+
+body.dark-theme .product-table thead th,
+body.dark-theme .bills-table thead th { background: #1A202C; color: var(--primary-text); }
+body.dark-theme .btn--outline:hover,
+body.dark-theme .btn--ghost:hover { background: #1A202C; }
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--font);-webkit-tap-highlight-color:transparent;overflow-x:hidden; transition: background 0.3s ease, color 0.3s ease;}
+body{min-height:100vh;display:flex;flex-direction:column;}
+button,input,textarea,select{font-family:var(--font);}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid var(--focus-ring);outline-offset:2px;}
+img{max-width:100%;display:block;}
+input[type="checkbox"]{
+  appearance:none;-webkit-appearance:none;position:relative;display:inline-grid;place-content:center;
+  width:16px;height:16px;margin:0;flex:0 0 16px;border:1.5px solid var(--line);border-radius:4px;
+  background:var(--input-bg);cursor:pointer;transition:background .15s ease,border-color .15s ease;
+}
+input[type="checkbox"]::after{content:"";font-family:"Font Awesome 6 Free";font-weight:900;font-size:9px;line-height:1;color:#FFFFFF;transform:scale(0);transition:transform .12s ease;}
+input[type="checkbox"]:checked{background:var(--primary);border-color:var(--primary);}
+input[type="checkbox"]:checked::after{transform:scale(1);}
+body.dark-theme input[type="checkbox"]{background:#050506;border-color:#3F3F46;}
+body.dark-theme input[type="checkbox"]:checked{background:var(--primary);border-color:var(--primary);}
+
+.hide { display: none !important; }
+/* ---------- Offline handling ---------- */
+
+.offline-screen{
+  position:fixed;
+  inset:0;
+  z-index:5000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:60px 28px 20px;
+  background:var(--bg);
+  color:var(--text);
+  text-align:center;
+  overflow:hidden;
+}
+
+.offline-screen__content{
+  width:min(100%,390px);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:0;
+  position:relative;
+  z-index:1;
+}
+
+.offline-screen__brand{
+  width:140px;
+  height:140px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin-bottom:28px;
+  position:relative;
+}
+
+.offline-screen__brand::before,
+.offline-screen__brand::after{
+  content:"";
+  position:absolute;
+  border:1px solid rgba(1,37,135,.10);
+  border-radius:50%;
+  pointer-events:none;
+}
+
+.offline-screen__brand::before{
+  width:190px;
+  height:190px;
+}
+
+.offline-screen__brand::after{
+  width:250px;
+  height:250px;
+  border-color:rgba(1,37,135,.065);
+}
+
+.offline-screen__icon-wrap{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:2;
+  width:104px;
+  height:104px;
+  border-radius:50%;
+}
+
+/* BIG OFFLINE SCREEN PULSE */
+.offline-screen__icon-wrap::after{
+  content:"";
+  position:absolute;
+  inset:-14px;
+  border-radius:50%;
+  border:1.5px solid var(--primary);
+  pointer-events:none;
+  animation:offlineScreenPulse 1.8s ease-out infinite;
+}
+
+@keyframes offlineScreenPulse{
+  0%{
+    transform:scale(.82);
+    opacity:.5;
+  }
+
+  100%{
+    transform:scale(1.35);
+    opacity:0;
+  }
+}
+
+.offline-screen__logo{
+  font-size:52px;
+  position:relative;
+  z-index:2;
+  filter:drop-shadow(0 12px 28px rgba(1,37,135,.20));
+}
+
+.icon-badge{
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.icon-badge .fa-cloud{
+  font-size:1.8em;
+  color:transparent;
+  -webkit-text-stroke:.1em var(--primary);
+  paint-order:stroke fill;
+}
+
+.icon-badge .fa-circle-xmark{
+  position:absolute;
+  right:-6%;
+  bottom:0;
+  font-size:.6em;
+  color:var(--danger);
+}
+
+.offline-screen h2{
+  margin:0 0 14px;
+  font-size:27px;
+  line-height:1.15;
+  font-weight:750;
+  color:var(--text);
+  letter-spacing:-.45px;
+}
+
+.offline-screen p{
+  margin:0 0 26px;
+  max-width:350px;
+  color:var(--muted);
+  font-size:15px;
+  line-height:1.55;
+}
+
+.offline-screen .btn{
+  width:min(100%,288px);
+  min-height:54px;
+  border-radius:14px;
+  font-size:15px;
+  box-shadow:0 8px 22px rgba(1,37,135,.22);
+}
+
+.offline-screen .btn i{
+  font-size:17px;
+}
+
+.offline-screen__divider{
+  width:min(100%,300px);
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin:28px 0 20px;
+  color:var(--muted);
+  font-size:13px;
+}
+
+.offline-screen__divider::before,
+.offline-screen__divider::after{
+  content:"";
+  height:1px;
+  background:var(--line);
+  flex:1;
+}
+
+.offline-screen__help{
+  width:min(100%,360px);
+  display:flex;
+  align-items:center;
+  text-align:left;
+  gap:16px;
+  padding:15px 16px;
+  border:1px solid var(--line);
+  border-radius:15px;
+  background:var(--surface);
+  box-shadow:var(--shadow-sm);
+}
+
+.offline-screen__help-icon{
+  width:56px;
+  height:56px;
+  flex:0 0 56px;
+  border-radius:14px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:rgba(1,37,135,.10);
+  color:var(--primary-text);
+  font-size:22px;
+}
+
+.offline-screen__help strong{
+  display:block;
+  margin:0 0 4px;
+  color:var(--text);
+  font-size:14px;
+  font-weight:750;
+}
+
+.offline-screen__help span{
+  display:block;
+  color:var(--muted);
+  font-size:12.5px;
+  line-height:1.5;
+}
+
+
+/* ---------- Offline Banner ---------- */
+
+.offline-banner{
+  position:fixed;
+  top:14px;
+  left:50%;
+  transform:translate(-50%,-150%);
+  z-index:4000;
+  width:min(380px,calc(100vw - 32px));
+
+  display:flex;
+  align-items:center;
+  gap:12px;
+
+  padding:11px 14px;
+  border-radius:16px;
+
+  background:var(--surface);
+  border:1.5px solid var(--line);
+  color:var(--text);
+
+  text-align:left;
+
+  box-shadow:
+    0 12px 28px rgba(0,0,0,.16),
+    0 2px 8px rgba(0,0,0,.06);
+
+  transition:transform .3s cubic-bezier(.2,.8,.2,1);
+  pointer-events:none;
+}
+
+.offline-banner.show{
+  transform:translate(-50%,0);
+}
+
+.offline-banner__icon{
+  flex-shrink:0;
+  position:relative;
+  width:36px;
+  height:36px;
+  border-radius:50%;
+  background:rgba(1,37,135,.10);
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+/* Banner icon itself */
+.offline-banner__icon .icon-badge{
+  font-size:15px;
+  position:relative;
+  z-index:3;
+}
+
+/* BANNER PULSE */
+.offline-banner__icon::after{
+  content:"";
+  position:absolute;
+  inset:-5px;
+  border-radius:50%;
+  border:1.5px solid var(--primary);
+  pointer-events:none;
+
+  animation:offlineBannerPulse 1.8s ease-out infinite;
+}
+
+@keyframes offlineBannerPulse{
+  0%{
+    transform:scale(.82);
+    opacity:.55;
+  }
+
+  60%{
+    opacity:.25;
+  }
+
+  100%{
+    transform:scale(1.45);
+    opacity:0;
+  }
+}
+
+.offline-banner__text{
+  flex:1;
+  min-width:0;
+}
+
+.offline-banner__text strong{
+  display:block;
+  font-size:13.5px;
+  font-weight:750;
+  color:var(--text);
+  line-height:1.25;
+}
+
+.offline-banner__text span{
+  display:block;
+  font-size:11.5px;
+  color:var(--muted);
+  font-weight:600;
+  line-height:1.4;
+  margin-top:2px;
+}
+
+
+/* ---------- Dark Theme ---------- */
+
+body.dark-theme .offline-screen__brand::before{
+  border-color:rgba(82,120,216,.2);
+}
+
+body.dark-theme .offline-screen__brand::after{
+  border-color:rgba(82,120,216,.15);
+}
+
+body.dark-theme .offline-screen__logo{
+  filter:drop-shadow(0 12px 30px rgba(23,105,255,.5));
+}
+
+body.dark-theme .offline-screen__help-icon{
+  background:rgba(23,105,255,.15);
+  color:#5F93FF;
+}
+
+body.dark-theme .offline-screen__help{
+  background:#050505;
+  border-color:#242833;
+}
+
+
+/* ---------- Mobile ---------- */
+
+@media(max-width:480px){
+
+  .offline-screen{
+    padding:24px 18px;
+  }
+
+  .offline-screen__brand{
+    width:118px;
+    height:118px;
+    margin-bottom:22px;
+  }
+
+  .offline-screen__brand::before{
+    width:162px;
+    height:162px;
+  }
+
+  .offline-screen__brand::after{
+    width:216px;
+    height:216px;
+  }
+
+  .offline-screen__icon-wrap{
+    width:88px;
+    height:88px;
+  }
+
+  .offline-screen__logo{
+    font-size:44px;
+  }
+
+  .offline-screen h2{
+    font-size:25px;
+    margin-bottom:12px;
+  }
+
+  .offline-screen p{
+    font-size:14px;
+    margin-bottom:22px;
+  }
+
+  .offline-screen .btn{
+    width:min(100%,300px);
+  }
+
+  .offline-screen__help{
+    padding:14px;
+    gap:13px;
+  }
+
+  .offline-screen__help-icon{
+    width:52px;
+    height:52px;
+    flex-basis:52px;
+  }
+
+}
+
+</style>
+<style>
+  /* Preview only: show the offline screen immediately */
+  .offline-screen.hide {
+    display: flex !important;
+  }
+  .offline-banner {
+    transform: translate(-50%, 0) !important;
+    display: flex !important;
+  }
+</style>
+
+</head>
+<body class="dark-theme">
+<!-- ================= OFFLINE UI ================= -->
+<div class="offline-screen hide" id="offlineScreen">
+  <div class="offline-screen__content">
+    <div class="offline-screen__brand" aria-hidden="true">
+      <div class="offline-screen__icon-wrap">
+        <span class="icon-badge offline-screen__logo">
+          <i class="fa-solid fa-cloud"></i>
+          <i class="fa-solid fa-circle-xmark"></i>
+        </span>
+      </div>
+    </div>
+
+    <h2>You’re Offline</h2>
+    <p>No internet connection detected.<br>Please check your connection and try again.</p>
+
+    <button class="btn btn--primary" id="btnOfflineRetry" type="button">
+      <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+      Try Again
+    </button>
+
+    <div class="offline-screen__divider" aria-hidden="true"><span>or</span></div>
+
+    <div class="offline-screen__help">
+      <div class="offline-screen__help-icon" aria-hidden="true">
+        <i class="fa-solid fa-wifi"></i>
+      </div>
+      <div>
+        <strong>Still no internet?</strong>
+        <span>Make sure Wi-Fi or mobile data is on<br>and you’re in range.</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="offline-banner">
+  <div class="offline-banner__icon" aria-hidden="true">
+    <span class="icon-badge">
+      <i class="fa-solid fa-cloud"></i>
+      <i class="fa-solid fa-circle-xmark"></i>
+    </span>
+  </div>
+  <div class="offline-banner__text">
+    <strong>You’re offline</strong>
+    <span>Some features may not work until you reconnect</span>
+  </div>
+</div>
+
+</body>
+</html>

@@ -3,7 +3,7 @@ JAS TECH BILLING — service-worker.js
 Fresh-First With Timeout Fallback + Stale-While-Revalidate
 ========================================================= */
 
-const CACHE_NAME = "jas-tech-assets-v2.0.4";
+const CACHE_NAME = "jas-tech-assets-v2.0.6";
 
 // How long we wait for the network before falling back to whatever's cached.
 // Without this, a slow/flaky connection makes fetch() hang indefinitely on
@@ -23,12 +23,20 @@ const STATIC_ASSETS = [
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches
-      .open(CACHE_NAME)
-      .then((cache) => cache.addAll(STATIC_ASSETS))
-      .catch((error) => {
-        console.warn("Service worker asset cache failed:", error);
-      }),
+    caches.open(CACHE_NAME).then((cache) =>
+      // cache.addAll() is all-or-nothing: if a single asset 404s or fails,
+      // the whole call rejects and the install "succeeds" with an empty
+      // cache (since the failure was only logged, not surfaced) — meaning
+      // nothing is actually available offline. Cache each asset on its own
+      // so one bad path can't take the rest down with it.
+      Promise.allSettled(
+        STATIC_ASSETS.map((asset) =>
+          cache.add(asset).catch((error) => {
+            console.warn(`Service worker failed to cache "${asset}":`, error);
+          }),
+        ),
+      ),
+    ),
   );
 
   self.skipWaiting();
@@ -56,6 +64,9 @@ self.addEventListener("activate", (event) => {
  * page forever: if the network hasn't answered within NETWORK_TIMEOUT_MS, or
  * it fails outright, we fall back to the last good cached copy instead.
  * A successful network response always refreshes the cache for next time.
+ * A network response that comes back but isn't ok (e.g. a 500) is treated
+ * the same as a failure, so a flaky-but-connected network still prefers a
+ * good cached copy over showing the user an error page.
  */
 async function networkFirstWithTimeout(
   request,
@@ -71,7 +82,13 @@ async function networkFirstWithTimeout(
 
     if (response && response.ok) {
       cache.put(request, response.clone()).catch(() => {});
+      return response;
     }
+
+    // Server responded, but with an error (5xx/4xx) — prefer a cached copy
+    // over surfacing that error to the user, if we have one.
+    const cached = await cache.match(request);
+    if (cached) return cached;
     return response;
   } catch (error) {
     clearTimeout(timeout);
@@ -88,8 +105,8 @@ async function networkFirstWithTimeout(
 /**
  * Serves instantly from cache when available while refreshing that cache
  * entry in the background, so the *next* load benefits from any update.
- * Good for assets that rarely change (CDN libraries, images) where a few
- * minutes of staleness is a non-issue but a network stall is.
+ * Good for assets that rarely change (CDN libraries, fonts, images) where a
+ * few minutes of staleness is a non-issue but a network stall is.
  */
 function staleWhileRevalidate(request) {
   return caches.open(CACHE_NAME).then((cache) =>
@@ -105,7 +122,11 @@ function staleWhileRevalidate(request) {
         })
         .catch(() => cached);
 
-      return cached || network;
+      // If there's nothing cached and the network also fails, `network`
+      // resolves to `undefined` via the catch above — respondWith(undefined)
+      // isn't a valid Response and surfaces as a broken browser error, so
+      // fall back to a real Response instead.
+      return cached || network.then((res) => res || Response.error());
     }),
   );
 }
@@ -147,6 +168,18 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // Fonts (e.g. Font Awesome's .woff2/.woff/.ttf, used by the offline UI
+  // icons): same stale-while-revalidate strategy. These were previously
+  // uncached and fell through to network-only, which meant icons could
+  // fail to render on the very screen meant to work offline.
+  if (
+    event.request.destination === "font" ||
+    /\.(woff2?|ttf|otf|eot)$/i.test(url.pathname)
+  ) {
+    event.respondWith(staleWhileRevalidate(event.request));
+    return;
+  }
+
   // Images: same stale-while-revalidate strategy.
   if (
     event.request.destination === "image" ||
@@ -156,6 +189,12 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Everything else: network only.
-  event.respondWith(fetch(event.request));
+  // Everything else: network only. Catch and return a proper error Response
+  // instead of letting a rejected fetch() surface as an unhandled promise
+  // rejection in the console (this is expected when actually offline with
+  // nothing cached for this URL — there's nothing to serve — but it should
+  // fail quietly rather than throwing).
+  event.respondWith(
+    fetch(event.request).catch(() => Response.error()),
+  );
 });

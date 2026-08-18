@@ -89,86 +89,83 @@ body.dark-theme input[type="checkbox"]{background:#050506;border-color:#3F3F46;}
 body.dark-theme input[type="checkbox"]:checked{background:var(--primary);border-color:var(--primary);}
 
 .hide { display: none !important; }
-  /* ---------- Offline handling ---------- */
-  .offline-screen{
-    position:fixed;inset:0;z-index:5000;display:flex;align-items:center;justify-content:center;
-    padding:60px 28px 20px;background:var(--bg);color:var(--text);text-align:center;
-    overflow:hidden;
-  }
-  .offline-screen__content{
-    width:min(100%,390px);display:flex;flex-direction:column;align-items:center;
-    gap:0;position:relative;z-index:1;
-  }
-  .offline-screen__brand{
-    width:116px;height:116px;display:flex;align-items:center;justify-content:center;
-    margin-bottom:24px;position:relative;
-  }
-  .offline-screen__brand::before,.offline-screen__brand::after{
-    content:"";position:absolute;border:1px solid rgba(1,37,135,.10);border-radius:50%;
-    pointer-events:none;
-  }
-  .offline-screen__brand::before{width:170px;height:170px;}
-  .offline-screen__brand::after{width:236px;height:236px;border-color:rgba(1,37,135,.065);}
-  .offline-screen__logo{
-    width:104px;height:104px;object-fit:contain;position:relative;z-index:2;
-    filter:drop-shadow(0 12px 28px rgba(1,37,135,.20));
-  }
-  .offline-screen h2{margin:0 0 14px;font-size:27px;line-height:1.15;font-weight:750;color:var(--text);letter-spacing:-.45px;}
-  .offline-screen p{
-    margin:0 0 26px;max-width:350px;color:var(--muted);font-size:15px;line-height:1.55;
-  }
-  .offline-screen .btn{
-    width:min(100%,288px);min-height:54px;border-radius:14px;font-size:15px;
-    box-shadow:0 8px 22px rgba(1,37,135,.22);
-  }
-  .offline-screen .btn i{font-size:17px;}
-  .offline-screen__divider{
-    width:min(100%,300px);display:flex;align-items:center;gap:12px;margin:28px 0 20px;
-    color:var(--muted);font-size:13px;
-  }
-  .offline-screen__divider::before,.offline-screen__divider::after{
-    content:"";height:1px;background:var(--line);flex:1;
-  }
-  .offline-screen__help{
-    width:min(100%,360px);display:flex;align-items:center;text-align:left;gap:16px;
-    padding:15px 16px;border:1px solid var(--line);border-radius:15px;
-    background:var(--surface);box-shadow:var(--shadow-sm);
-  }
-  .offline-screen__help-icon{
-    width:56px;height:56px;flex:0 0 56px;border-radius:14px;display:flex;align-items:center;
-    justify-content:center;background:rgba(1,37,135,.10);color:var(--primary-text);font-size:22px;
-  }
-  .offline-screen__help strong{display:block;margin:0 0 4px;color:var(--text);font-size:14px;font-weight:750;}
-  .offline-screen__help span{display:block;color:var(--muted);font-size:12.5px;line-height:1.5;}
-  .offline-banner{
-    position:fixed;top:max(5px,env(safe-area-inset-top));left:50%;
-    transform:translate(-50%,-150%);z-index:4000;width:min(400px,calc(100vw - 32px));
-    min-height:40px;padding:8px 16px;border-radius:0 0 14px 14px;
-    background:#B7791F;color:#FFFFFF;display:flex;align-items:center;justify-content:center;
-    gap:8px;text-align:center;font-size:12.5px;font-weight:750;letter-spacing:.05px;
-    box-shadow:0 6px 18px rgba(0,0,0,.22);transition:transform .24s cubic-bezier(.2,.8,.2,1);
-    pointer-events:none;
-  }
-  .offline-banner.show{transform:translate(-50%,0);}
-  .offline-banner i{font-size:13px;}
-  body.dark-theme .offline-screen__brand::before{border-color:rgba(82,120,216,.2);}
-  body.dark-theme .offline-screen__brand::after{border-color:rgba(82,120,216,.15);}
-  body.dark-theme .offline-screen__logo{filter:drop-shadow(0 12px 30px rgba(23,105,255,.5));}
-  body.dark-theme .offline-screen__help-icon{background:rgba(23,105,255,.15);color:#5F93FF;}
-  body.dark-theme .offline-screen__help{background:#050505;border-color:#242833;}
-  @media(max-width:480px){
-    .offline-screen{padding:24px 18px;}
-    .offline-screen__brand{width:100px;height:100px;margin-bottom:20px;}
-    .offline-screen__brand::before{width:148px;height:148px;}
-    .offline-screen__brand::after{width:205px;height:205px;}
-    .offline-screen__logo{width:92px;height:92px;}
-    .offline-screen h2{font-size:25px;margin-bottom:12px;}
-    .offline-screen p{font-size:14px;margin-bottom:22px;}
-    .offline-screen .btn{width:min(100%,300px);}
-    .offline-screen__help{padding:14px;gap:13px;}
-    .offline-screen__help-icon{width:52px;height:52px;flex-basis:52px;}
-  }
+ /* ---------- Offline handling ---------- */
+.offline-screen{position:fixed;inset:0;z-index:5000;display:flex;align-items:center;justify-content:center;padding:60px 28px 20px;background:var(--bg);color:var(--text);text-align:center;overflow:hidden}
+.offline-screen__content{width:min(100%,390px);display:flex;flex-direction:column;align-items:center;gap:0;position:relative;z-index:1}
 
+.offline-screen__icon-wrap{position:relative;display:flex;align-items:center;justify-content:center;z-index:2;width:104px;height:104px;border-radius:50%;--ring-color:var(--primary);animation:offlineCorePulse 2.8s ease-out infinite}
+.offline-screen__icon-wrap::before,.offline-screen__icon-wrap::after{content:"";position:absolute;border:1.5px solid var(--primary);border-radius:50%;opacity:0;pointer-events:none}
+.offline-screen__icon-wrap::before{inset:-14px;animation:offlineRing1 2.8s ease-out infinite}
+.offline-screen__icon-wrap::after{inset:-28px;animation:offlineRing2 2.8s ease-out infinite}
+.offline-screen__icon-wrap .offline-ring-3,.offline-screen__icon-wrap .offline-ring-4{position:absolute;border:1.5px solid var(--ring-color);border-radius:50%;pointer-events:none;opacity:0}
+.offline-screen__icon-wrap .offline-ring-3{inset:-42px;animation:offlineRing3 2.8s ease-out infinite}
+.offline-screen__icon-wrap .offline-ring-4{inset:-56px;animation:offlineRing4 2.8s ease-out infinite}
+
+.offline-screen__logo{font-size:52px;position:relative;z-index:5;filter:drop-shadow(0 12px 28px rgba(1,37,135,.20))}
+.icon-badge{position:relative;display:inline-flex;align-items:center;justify-content:center}
+.icon-badge .fa-cloud{font-size:1.8em;color:transparent;-webkit-text-stroke:.1em var(--primary);paint-order:stroke fill}
+.icon-badge .fa-circle-xmark{position:absolute;right:-6%;bottom:0;font-size:.6em;color:var(--danger);background:var(--bg);border-radius:50%}
+
+.offline-screen h2{margin:28px 0;font-size:27px;line-height:1.15;font-weight:750;color:var(--text);letter-spacing:-.45px}
+.offline-screen p{margin:0 0 26px;max-width:350px;color:var(--muted);font-size:15px;line-height:1.55}
+.offline-screen .btn{width:min(100%,288px);min-height:54px;border-radius:14px;font-size:15px;box-shadow:0 8px 22px rgba(1,37,135,.22)}
+.offline-screen .btn i{font-size:17px}
+
+.offline-screen__divider{width:min(100%,300px);display:flex;align-items:center;gap:12px;margin:28px 0 20px;color:var(--muted);font-size:13px}
+.offline-screen__divider::before,.offline-screen__divider::after{content:"";height:1px;background:var(--line);flex:1}
+
+.offline-screen__help{width:min(100%,360px);display:flex;align-items:center;text-align:left;gap:16px;padding:15px 16px;border:1px solid var(--line);border-radius:15px;background:var(--surface);box-shadow:var(--shadow-sm)}
+.offline-screen__help-icon{width:56px;height:56px;flex:0 0 56px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:rgba(1,37,135,.10);color:var(--primary-text);font-size:22px}
+.offline-screen__help strong{display:block;margin:0 0 4px;color:var(--text);font-size:14px;font-weight:750}
+.offline-screen__help span{display:block;color:var(--muted);font-size:12.5px;line-height:1.5}
+
+.offline-banner{position:fixed;top:14px;left:50%;transform:translate(-50%,-150%);z-index:4000;width:min(380px,calc(100vw - 32px));display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:16px;text-align:left;box-shadow:0 12px 28px rgba(0,0,0,.16),0 2px 8px rgba(0,0,0,.06);transition:transform .3s cubic-bezier(.2,.8,.2,1);pointer-events:none;background:var(--white);}
+.offline-banner.show{transform:translate(-50%,0)}
+.offline-banner__icon{flex-shrink:0;position:relative;width:36px;height:36px;border-radius:50%;background:rgba(1,37,135,.10);display:flex;align-items:center;justify-content:center}
+.offline-banner__icon .icon-badge{font-size:15px;position:relative;z-index:2}
+.offline-banner__icon::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:1.5px solid var(--primary-text);opacity:.45;animation:offlineBannerPulse 1.8s ease-out infinite}
+.offline-banner__text{flex:1;min-width:0}
+.offline-banner__text strong{display:block;font-size:13.5px;font-weight:750;color:var(--text);line-height:1.25}
+.offline-banner__text span{display:block;font-size:11.5px;color:var(--muted);font-weight:600;line-height:1.4;margin-top:2px}
+
+/* Animations */
+@keyframes offlineCorePulse{0%,100%{transform:scale(1)}50%{transform:scale(1.035)}}
+@keyframes offlineRing1{0%{transform:scale(.70);opacity:.45}65%{opacity:.18}100%{transform:scale(1.18);opacity:0}}
+@keyframes offlineRing2{0%{transform:scale(.55);opacity:0}15%{opacity:.38}70%{opacity:.14}100%{transform:scale(1.25);opacity:0}}
+@keyframes offlineRing3{0%{transform:scale(.45);opacity:0}25%{opacity:.30}75%{opacity:.10}100%{transform:scale(1.30);opacity:0}}
+@keyframes offlineRing4{0%{transform:scale(.35);opacity:0}35%{opacity:.22}80%{opacity:.07}100%{transform:scale(1.32);opacity:0}}
+@keyframes offlineBannerPulse{0%{transform:scale(.8);opacity:.45}100%{transform:scale(1.35);opacity:0}}
+
+/* Dark theme */
+body.dark-theme .offline-screen__logo{filter:drop-shadow(0 12px 30px rgba(23,105,255,.5))}
+body.dark-theme .offline-screen__help-icon{background:rgba(23,105,255,.15);color:#5F93FF}
+body.dark-theme .offline-screen__help{background:#050505;border-color:#242833}
+body.dark-theme .offline-screen__icon-wrap{--ring-color:#1769FF}
+body.dark-theme .offline-screen__icon-wrap::before,
+body.dark-theme .offline-screen__icon-wrap::after,
+body.dark-theme .offline-screen__icon-wrap .offline-ring-3,
+body.dark-theme .offline-screen__icon-wrap .offline-ring-4{border-color:#1769FF}
+
+/* Mobile */
+@media(max-width:480px){
+.offline-screen{padding:24px 18px}
+.offline-screen__icon-wrap{width:88px;height:88px}
+.offline-screen__logo{font-size:44px}
+.offline-screen h2{font-size:25px;margin-bottom:12px}
+.offline-screen p{font-size:14px;margin-bottom:22px}
+.offline-screen .btn{width:min(100%,300px)}
+.offline-screen__help{padding:14px;gap:13px}
+.offline-screen__help-icon{width:52px;height:52px;flex-basis:52px}
+.offline-screen__icon-wrap::before{inset:-12px}
+.offline-screen__icon-wrap::after{inset:-24px}
+.offline-screen__icon-wrap .offline-ring-3{inset:-36px}
+.offline-screen__icon-wrap .offline-ring-4{inset:-48px}
+}
+
+/* Reduced motion */
+@media(prefers-reduced-motion:reduce){
+.offline-screen__icon-wrap,.offline-screen__icon-wrap::before,.offline-screen__icon-wrap::after,.offline-screen__icon-wrap .offline-ring-3,.offline-screen__icon-wrap .offline-ring-4,.offline-banner__icon::after{animation:none!important}
+}
 
 /* ---------- App bar ---------- */
 .app-bar{background:var(--primary);color:#FFFFFF;display:flex;align-items:center;justify-content:space-between;padding:12px 22px;position:fixed;top:0;left:0;right:0;width:100%;z-index:50;box-shadow:var(--shadow-md);}
@@ -1562,34 +1559,56 @@ body.dark-theme .pdf-option__switch input:checked + .pdf-option__switch-track{
 <div class="offline-screen hide" id="offlineScreen" aria-live="polite">
   <div class="offline-screen__content">
     <div class="offline-screen__brand" aria-hidden="true">
-      <img src="assets/logo/logo.png" alt="" class="offline-screen__logo">
+      <div class="offline-screen__icon-wrap">
+        <!-- Animated outer rings -->
+        <span class="offline-ring-3"></span>
+        <span class="offline-ring-4"></span>
+        <!-- Main offline icon -->
+        <span class="icon-badge offline-screen__logo">
+          <i class="fa-solid fa-cloud"></i>
+          <i class="fa-solid fa-circle-xmark"></i>
+        </span>
+      </div>
     </div>
-
     <h2>You’re Offline</h2>
-    <p>No internet connection detected.<br>Please check your connection and try again.</p>
-
+    <p>
+      No internet connection detected.<br>
+      Please check your connection and try again.
+    </p>
     <button class="btn btn--primary" id="btnOfflineRetry" type="button">
       <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
       Try Again
     </button>
-
-    <div class="offline-screen__divider" aria-hidden="true"><span>or</span></div>
-
+    <div class="offline-screen__divider" aria-hidden="true">
+      <span>or</span>
+    </div>
     <div class="offline-screen__help">
       <div class="offline-screen__help-icon" aria-hidden="true">
         <i class="fa-solid fa-wifi"></i>
       </div>
       <div>
         <strong>Still no internet?</strong>
-        <span>Make sure Wi-Fi or mobile data is on<br>and you’re in range.</span>
+        <span>
+          Make sure Wi-Fi or mobile data is on<br>
+          and you’re in range.
+        </span>
       </div>
     </div>
   </div>
 </div>
 
+<!-- ================= OFFLINE BANNER ================= -->
 <div class="offline-banner" id="offlineBanner" role="status" aria-live="polite">
-  <i class="fa-solid fa-wifi-slash" aria-hidden="true"></i>
-  <span>You’re offline</span>
+  <div class="offline-banner__icon" aria-hidden="true">
+    <span class="icon-badge">
+      <i class="fa-solid fa-cloud"></i>
+      <i class="fa-solid fa-circle-xmark"></i>
+    </span>
+  </div>
+  <div class="offline-banner__text">
+    <strong>You’re offline</strong>
+    <span>Some features may not work until you reconnect</span>
+  </div>
 </div>
 
 <!-- ================= BOOT LOADER ================= -->
