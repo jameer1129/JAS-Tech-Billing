@@ -3,7 +3,7 @@ JAS TECH BILLING — service-worker.js
 Fresh-First With Timeout Fallback + Stale-While-Revalidate
 ========================================================= */
 
-const CACHE_NAME = "jas-tech-assets-v2.0.6";
+const CACHE_NAME = "jas-tech-assets-v2.0.3";
 
 // How long we wait for the network before falling back to whatever's cached.
 // Without this, a slow/flaky connection makes fetch() hang indefinitely on
