@@ -119,22 +119,12 @@ body.dark-theme input[type="checkbox"]:checked{background:var(--primary);border-
 .offline-screen__help strong{display:block;margin:0 0 4px;color:var(--text);font-size:14px;font-weight:750}
 .offline-screen__help span{display:block;color:var(--muted);font-size:12.5px;line-height:1.5}
 
-.offline-banner{position:fixed;top:14px;left:50%;transform:translate(-50%,-150%);z-index:4000;width:min(380px,calc(100vw - 32px));display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:16px;text-align:left;box-shadow:0 12px 28px rgba(0,0,0,.16),0 2px 8px rgba(0,0,0,.06);transition:transform .3s cubic-bezier(.2,.8,.2,1);pointer-events:none;background:var(--white);}
-.offline-banner.show{transform:translate(-50%,0)}
-.offline-banner__icon{flex-shrink:0;position:relative;width:36px;height:36px;border-radius:50%;background:rgba(1,37,135,.10);display:flex;align-items:center;justify-content:center}
-.offline-banner__icon .icon-badge{font-size:15px;position:relative;z-index:2}
-.offline-banner__icon::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:1.5px solid var(--primary-text);opacity:.45;animation:offlineBannerPulse 1.8s ease-out infinite}
-.offline-banner__text{flex:1;min-width:0}
-.offline-banner__text strong{display:block;font-size:13.5px;font-weight:750;color:var(--text);line-height:1.25}
-.offline-banner__text span{display:block;font-size:11.5px;color:var(--muted);font-weight:600;line-height:1.4;margin-top:2px}
-
 /* Animations */
 @keyframes offlineCorePulse{0%,100%{transform:scale(1)}50%{transform:scale(1.035)}}
 @keyframes offlineRing1{0%{transform:scale(.70);opacity:.45}65%{opacity:.18}100%{transform:scale(1.18);opacity:0}}
 @keyframes offlineRing2{0%{transform:scale(.55);opacity:0}15%{opacity:.38}70%{opacity:.14}100%{transform:scale(1.25);opacity:0}}
 @keyframes offlineRing3{0%{transform:scale(.45);opacity:0}25%{opacity:.30}75%{opacity:.10}100%{transform:scale(1.30);opacity:0}}
 @keyframes offlineRing4{0%{transform:scale(.35);opacity:0}35%{opacity:.22}80%{opacity:.07}100%{transform:scale(1.32);opacity:0}}
-@keyframes offlineBannerPulse{0%{transform:scale(.8);opacity:.45}100%{transform:scale(1.35);opacity:0}}
 
 /* Dark theme */
 body.dark-theme .offline-screen__logo{filter:drop-shadow(0 12px 30px rgba(23,105,255,.5))}
@@ -164,7 +154,7 @@ body.dark-theme .offline-screen__icon-wrap .offline-ring-4{border-color:#1769FF}
 
 /* Reduced motion */
 @media(prefers-reduced-motion:reduce){
-.offline-screen__icon-wrap,.offline-screen__icon-wrap::before,.offline-screen__icon-wrap::after,.offline-screen__icon-wrap .offline-ring-3,.offline-screen__icon-wrap .offline-ring-4,.offline-banner__icon::after{animation:none!important}
+.offline-screen__icon-wrap,.offline-screen__icon-wrap::before,.offline-screen__icon-wrap::after,.offline-screen__icon-wrap .offline-ring-3,.offline-screen__icon-wrap .offline-ring-4{animation:none!important}
 }
 
 /* ---------- App bar ---------- */
@@ -1597,20 +1587,6 @@ body.dark-theme .pdf-option__switch input:checked + .pdf-option__switch-track{
   </div>
 </div>
 
-<!-- ================= OFFLINE BANNER ================= -->
-<div class="offline-banner" id="offlineBanner" role="status" aria-live="polite">
-  <div class="offline-banner__icon" aria-hidden="true">
-    <span class="icon-badge">
-      <i class="fa-solid fa-cloud"></i>
-      <i class="fa-solid fa-circle-xmark"></i>
-    </span>
-  </div>
-  <div class="offline-banner__text">
-    <strong>You’re offline</strong>
-    <span>Some features may not work until you reconnect</span>
-  </div>
-</div>
-
 <!-- ================= BOOT LOADER ================= -->
 <div class="boot-loader" id="bootLoader" aria-live="polite" aria-busy="true">
   <div class="boot-loader__card">
@@ -2557,7 +2533,6 @@ const el = {};
 function cacheElements(){
   el.bootLoader = document.getElementById('bootLoader');
   el.offlineScreen = document.getElementById('offlineScreen');
-  el.offlineBanner = document.getElementById('offlineBanner');
   el.btnOfflineRetry = document.getElementById('btnOfflineRetry');
   el.authScreen = document.getElementById('authScreen');
   el.authCompanyName = document.getElementById('authCompanyName');
@@ -3539,16 +3514,11 @@ function showOfflineScreen(){
   if (el.bootLoader) el.bootLoader.classList.add('hide');
 }
 
-function setOfflineBanner(show){
-  if (el.offlineBanner) el.offlineBanner.classList.toggle('show', show);
-}
-
 function handleOffline(){
-  setOfflineBanner(true);
+  showOfflineScreen();
 }
 
 function handleOnline(){
-  setOfflineBanner(false);
   if (offlineStartup) window.location.reload();
 }
 
