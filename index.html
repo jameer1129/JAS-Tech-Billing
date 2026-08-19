@@ -1,6 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+<head><style id="theme-preload">
+html.theme-preload{background:#000!important}html.theme-preload,html.theme-preload body{background:#000!important;color:#F3F4F6!important}
+html.theme-preload,html.theme-preload body{transition:none!important}
+html.theme-preload .boot-loader{background: rgba(15,23,42,.42);}
+html.theme-preload .boot-loader__card{background:#000!important;border-color:#1B1F27!important}
+html.theme-preload .boot-loader__bar-track{background:#1B1F27!important}
+</style>
+<script>
+(function(){
+  try{
+    if(localStorage.getItem('jas_theme')==='dark'){
+      document.documentElement.classList.add('theme-preload');
+    }
+  }catch(e){}
+})();
+</script>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
 <title>JAS Tech Billing</title>
@@ -983,7 +999,7 @@ body.dark-theme .bill-card--skeleton::before{
 .actions-popup__sep{height:1px;background:var(--line);margin:4px 0;}
 
 /* Full-screen boot loader shown before auth state is known */
-.boot-loader{position:fixed;inset:0;background:rgba(15,23,42,.42);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:9998;display:flex;align-items:center;justify-content:center;}
+.boot-loader{position:fixed;inset:0;background: rgba(15,23,42,.42);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:9998;display:flex;align-items:center;justify-content:center;}
 .boot-loader__card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:28px 32px;min-width:220px;box-sizing:border-box;}
 .boot-loader__logo{width:50px;height:50px;display:block;object-fit:contain;}
 .boot-loader__bar-track{width:180px;height:5px;background:var(--line);border-radius:999px;overflow:hidden;}
@@ -3528,6 +3544,7 @@ function handleOnline(){
 
 function showScreen(name){
   hideOverlay(el.bootLoader); el.bootLoader.classList.add('hide');
+  document.documentElement.classList.remove('theme-preload');
   el.authScreen.classList.toggle('hide', name !== 'auth');
   el.emailVerificationScreen.classList.toggle('hide', name !== 'verify-email');
   el.resetPasswordScreen.classList.toggle('hide', name !== 'reset-password');
@@ -6820,6 +6837,8 @@ async function init(){
   } else {
     applyTheme(false);
   }
+  // Keep the preload mask until the first real screen is shown.
+  // showScreen() removes it after the boot loader is hidden.
 
   if (!navigator.onLine) {
     showOfflineScreen();
