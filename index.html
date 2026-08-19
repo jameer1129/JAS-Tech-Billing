@@ -944,7 +944,7 @@ body.dark-theme .admin-stat--rejected .admin-stat__value{color:#FF6259;}
 .admin-empty p{font-size:16px;}.admin-empty span{font-size:13px;}
 body.dark-theme .admin-empty i{background:rgba(148,163,184,.14);color:#94A3B8;}
 .admin-users-toolbar{display:flex;align-items:center;gap:10px;padding:0 18px 10px;}
-.admin-users-toolbar .bills-search-input-wrap{flex:1;}.admin-users-toolbar .bills-search-input-wrap input{padding-top:10px;padding-bottom:10px;}
+.admin-users-toolbar .bills-search-input-wrap{flex:1;}.admin-users-toolbar .bills-search-input-wrap input{padding-top:10px;padding-bottom:10px;}.admin-users-toolbar .bills-search-input-wrap input::-webkit-search-cancel-button,.admin-users-toolbar .bills-search-input-wrap input::-webkit-search-decoration{-webkit-appearance:none;appearance:none;display:none;}
 .admin-filter-btn{width:40px;height:40px;border:1.5px solid var(--line);border-radius:var(--radius-sm);background:var(--white);color:var(--muted);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;}
 .admin-filter-btn:hover{color:var(--primary-text);border-color:var(--primary-text);}
 .admin-user-list, .pending-users-list{padding:0 18px;}
@@ -2454,7 +2454,7 @@ body.dark-theme #viewAdmin .admin-panel .card__heading i{background:rgba(23,105,
       <div class="bills-search-wrap">
         <div class="bills-search-input-wrap field--icon">
           <i class="fa-solid fa-magnifying-glass search-icon"></i>
-          <input type="text" id="billSearchInput" name="invoice-search" placeholder="Search invoice, customer, phone..." autocomplete="off" readonly maxlength="80">
+          <input type="text" id="billSearchInput" name="invoice-search" placeholder="Search invoice, customer, phone, product name..." autocomplete="off" readonly maxlength="80">
           <button class="bills-search-clear hide" id="btnClearSearch" aria-label="Clear search"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="bills-filter-row">
@@ -2565,7 +2565,7 @@ body.dark-theme #viewAdmin .admin-panel .card__heading i{background:rgba(23,105,
       <div class="admin-users-toolbar">
         <div class="bills-search-input-wrap field--icon">
           <i class="fa-solid fa-magnifying-glass search-icon"></i>
-          <input type="search" id="adminUserSearch" name="user-search" placeholder="Search users..." autocomplete="off" readonly maxlength="80" aria-label="Search users">
+          <input type="text" id="adminUserSearch" name="user-search" placeholder="Search users..." autocomplete="off" readonly maxlength="80" aria-label="Search users">
         </div>
         <button class="admin-filter-btn" id="btnAdminUserFilter" type="button" aria-label="Show all users" title="Show all users"><i class="fa-solid fa-filter"></i></button>
       </div>
@@ -5771,7 +5771,25 @@ async function loadBills(resetToFirstPage){
   if (rawQuery) {
     const term = sanitizeSearchTerm(rawQuery);
     if (term) {
-      query = query.or(`invoice_no.ilike.%${term}%,customer_name.ilike.%${term}%,customer_phone.ilike.%${term}%`);
+      // Search invoice/customer/phone plus product names from bill_items.
+      // Product names live in a separate table, so first find the matching
+      // invoice numbers and include those invoices in the main bill search.
+      let matchingProductInvoices = [];
+      const { data: productMatches, error: productSearchError } = await supabaseClient
+        .from('bill_items')
+        .select('invoice_no')
+        .ilike('item_name', `%${term}%`)
+        .limit(1000);
+
+      if (!productSearchError && productMatches) {
+        matchingProductInvoices = [...new Set(productMatches.map(row => row.invoice_no).filter(Boolean))];
+      }
+
+      const productFilter = matchingProductInvoices.length
+        ? `,invoice_no.in.(${matchingProductInvoices.map(v => `\"${String(v).replace(/\"/g, '\\\"')}\"`).join(',')})`
+        : '';
+
+      query = query.or(`invoice_no.ilike.%${term}%,customer_name.ilike.%${term}%,customer_phone.ilike.%${term}%${productFilter}`);
     }
   }
 
@@ -7118,12 +7136,33 @@ function bindEvents(){
   el.pendingUsersList.addEventListener('click', handlePendingUsersClick);
   el.allUsersList.addEventListener('click', handleAllUsersClick);
   el.allUsersPaginationControls.addEventListener('click', handleAllUsersPaginationClick);
-  el.adminUserSearch.addEventListener('input', filterAdminUsers);
-  el.btnAdminUserFilter.addEventListener('click', () => {
-    el.adminUserSearch.value = '';
+  function updateAdminUserSearchButton(){
+    if (!el.adminUserSearch || !el.btnAdminUserFilter) return;
+    const hasSearch = !!el.adminUserSearch.value.trim();
+    el.btnAdminUserFilter.innerHTML = hasSearch
+      ? '<i class="fa-solid fa-xmark"></i>'
+      : '<i class="fa-solid fa-filter"></i>';
+    el.btnAdminUserFilter.setAttribute('aria-label', hasSearch ? 'Clear user search' : 'Show all users');
+    el.btnAdminUserFilter.setAttribute('title', hasSearch ? 'Clear user search' : 'Show all users');
+  }
+
+  el.adminUserSearch.addEventListener('input', () => {
     filterAdminUsers();
-    el.adminUserSearch.focus();
+    updateAdminUserSearchButton();
   });
+
+  el.btnAdminUserFilter.addEventListener('click', () => {
+    if (el.adminUserSearch.value.trim()) {
+      el.adminUserSearch.value = '';
+      filterAdminUsers();
+      updateAdminUserSearchButton();
+      el.adminUserSearch.focus();
+    } else {
+      el.adminUserSearch.focus();
+    }
+  });
+
+  updateAdminUserSearchButton();
 
   el.btnCloseLogoutModal.addEventListener('click', () => {
     if (pendingRecoveryConflict) {
