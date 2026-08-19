@@ -2421,7 +2421,7 @@ body.dark-theme #viewAdmin .admin-panel .card__heading i{background:rgba(23,105,
     <section class="nb-section nb-section--notes" id="notesCardWrap">
       <h2 class="card__heading"><i class="fa-solid fa-clipboard-list"></i> Notes</h2>
       <div class="field">
-        <textarea id="invoiceNotes" maxlength="500" placeholder="Optional notes for the customer (terms, warranty, payment info…)"></textarea>
+        <textarea id="invoiceNotes" maxlength="800" placeholder="Optional notes for the customer (terms, warranty, payment info…)"></textarea>
       </div>
     </section>
 
@@ -2454,7 +2454,7 @@ body.dark-theme #viewAdmin .admin-panel .card__heading i{background:rgba(23,105,
       <div class="bills-search-wrap">
         <div class="bills-search-input-wrap field--icon">
           <i class="fa-solid fa-magnifying-glass search-icon"></i>
-          <input type="text" id="billSearchInput" name="invoice-search" placeholder="Search invoice, customer, phone, product name..." autocomplete="off" readonly maxlength="80">
+          <input type="text" id="billSearchInput" name="invoice-search" placeholder="Search invoice, customer, phone, product name..." autocomplete="new-password" readonly maxlength="80">
           <button class="bills-search-clear hide" id="btnClearSearch" aria-label="Clear search"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="bills-filter-row">
@@ -2603,7 +2603,7 @@ body.dark-theme #viewAdmin .admin-panel .card__heading i{background:rgba(23,105,
       </div>
       <div class="field field--icon">
         <i class="fa-solid fa-align-left" aria-hidden="true"></i>
-        <input type="text" id="prodDesc" autocomplete="off" placeholder="Description (optional)" aria-label="Description" maxlength="150">
+        <input type="text" id="prodDesc" autocomplete="off" placeholder="Description (optional)" aria-label="Description" maxlength="250">
       </div>
       <div class="field field--icon">
         <i class="fa-solid fa-barcode" aria-hidden="true"></i>
