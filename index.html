@@ -45,7 +45,7 @@ html.theme-preload .boot-loader__bar-track{background:#1B1F27!important}
   --surface: #FFFFFF;
   --text: #212121;
   --muted: #6B7280;
-  --line: #E5E7EB;
+  --line: #d5d5d5;
   --white: #FFFFFF;
   --danger: #D64545;
   --success: #1F9254;
@@ -72,7 +72,7 @@ body.dark-theme {
   --muted: #A1A1AA;
   --white: #0B0B0D;
   --input-bg: #050506;
-  --focus-ring: rgba(1,37,135,.28);
+  --focus-ring: rgba(82,120,216,.28);
   --line: #2D3748AA;
   --shadow-sm: 0 1px 3px rgba(0,0,0,.5);
   --shadow-md: 0 10px 28px rgba(0,0,0,.8);
@@ -104,6 +104,11 @@ input[type="checkbox"]:checked{background:var(--primary);border-color:var(--prim
 input[type="checkbox"]:checked::after{transform:scale(1);}
 body.dark-theme input[type="checkbox"]{background:#050506;border-color:#3F3F46;}
 body.dark-theme input[type="checkbox"]:checked{background:var(--primary);border-color:var(--primary);}
+
+/* Hide number input spinner arrows */
+input[type="number"]{-moz-appearance:textfield;appearance:textfield;}
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
 
 .hide { display: none !important; }
  /* ---------- Offline handling ---------- */
@@ -261,7 +266,7 @@ body.dark-theme .nav-tabs{
 }
 @media(max-width:640px){
   #appScreen > .nav-tabs ~ #viewNewBill.app-shell{
-    padding:110px 18px 0;
+    padding:110px 18px 24px;
   }
 }
 
@@ -291,7 +296,7 @@ body.dark-theme .nav-tabs{
   transition:border-color .15s ease,box-shadow .15s ease, background 0.3s ease;
 }
 .field textarea{resize:vertical;min-height:64px;line-height:1.5;}
-.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--focus-ring);}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--primary-text);box-shadow:0 0 0 3px var(--focus-ring);}
 
 .field input.input-error, .field textarea.input-error {border-color: var(--danger);box-shadow: 0 0 0 3px rgba(214, 69, 69, 0.14);}
 
@@ -377,16 +382,59 @@ body.dark-theme .nav-tabs{
 
 /* ---------- New bill form ---------- */
 .customer-fields{gap:10px;}
-.field--icon{position:relative;}
-.field--icon > i{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;pointer-events:none;z-index:1;}
-.field--icon > i.fa-location-dot{top:18px;transform:none;}
-.field--icon input,.field--icon textarea{padding-left:40px;}
+/* Icon fields — same look as Bill To: border wraps icon + input */
+.field--icon{
+  position:relative;
+  border:1.5px solid var(--line);
+  border-radius:var(--radius-sm);
+  background:var(--input-bg);
+  overflow:hidden;
+}
+.field--icon > i{
+  position:absolute;left:0;top:0;bottom:0;width:30px;height:100%;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(1, 37, 135, .08);color:var(--primary-text);font-size:12px;
+  border-radius:0;pointer-events:none;z-index:1;
+}
+body.dark-theme .field--icon > i{background:rgba(23, 105, 255, .16);}
+.field--icon input,.field--icon textarea{
+  border:0 !important;border-radius:0 !important;
+  background:transparent;padding-left:40px;
+  box-shadow:none !important;outline:none !important;
+  width:100%;
+}
 .field--icon textarea{padding-top:12px;}
 .field--icon input::placeholder,.field--icon textarea::placeholder{color:#9CA3AF;opacity:1;}
+.field--icon:focus-within{
+  border-color:var(--primary-text) !important;
+  box-shadow:0 0 0 3px var(--focus-ring) !important;
+}
+.field--icon:has(.input-error){
+  border-color:var(--danger) !important;
+  box-shadow:0 0 0 3px rgba(214,69,69,.14) !important;
+}
+
 .otp-field input{padding-right:40px;}
 .visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
 
 @media(max-width:640px){
+  #viewNewBill{
+    padding-left:0 !important;
+    padding-right:0 !important;
+  }
+  #viewNewBill > .nb-all-card{
+    width:100%;
+    border-left:0;
+    border-right:0;
+    border-radius:0;
+  }
+  #viewNewBill > .nb-all-card > .nb-section{
+    padding-left:18px !important;
+    padding-right:18px !important;
+  }
+
+  #viewNewBill.app-shell{padding-bottom:0 !important;flex:0 0 auto;}
+
   .product-table-wrap{overflow:visible;border:none;border-radius:0;}
   .product-table{display:block;width:100%;border:0;}
   .product-table thead{display:none;}
@@ -661,7 +709,7 @@ body.dark-theme .toast-card--error{
 .auth-field__icon{position:absolute;left:15px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;pointer-events:none;}
 .auth-field input{width:100%;padding:14px 44px 14px 42px;border-radius:13px;border:1px solid var(--line);background:var(--input-bg);color:var(--text);font-size:14px;outline:none;transition:border-color .15s ease,box-shadow .15s ease,background .15s ease;min-height:52px;box-shadow:var(--shadow-sm);}
 .auth-field input::placeholder{color:var(--muted);}
-.auth-field input:focus{border-color:#012587;box-shadow:0 0 0 3px var(--focus-ring);background:var(--input-bg);}
+.auth-field input:focus{border-color:var(--primary-text);box-shadow:0 0 0 3px var(--focus-ring);background:var(--input-bg);}
 .auth-field input.input-error{border-color:var(--danger);box-shadow:0 0 0 3px rgba(214,69,69,.14);}
 .auth-field.has-toggle input{padding-right:42px;}
 .auth-field .pw-toggle-btn{top:50%;transform:translateY(-50%);}
@@ -696,7 +744,7 @@ body.dark-theme .toast-card--error{
 .verify-email-address{display:block;margin:0;text-align:center;color:var(--primary-text);font-size:13.5px;font-weight:700;word-break:break-word;}
 .otp-boxes{display:flex;width:100%;max-width:100%;gap:10px;margin:14px 0 2px;overflow:hidden;}
 .otp-boxes .otp-box{flex:1 1 0;width:0 !important;min-width:0 !important;height:58px;padding:0 !important;border:1.5px solid var(--line);border-radius:10px;background:var(--input-bg);color:var(--text);font-size:25px;font-weight:700;line-height:1;text-align:center;outline:none;caret-color:var(--primary);box-sizing:border-box;}
-.otp-box:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--focus-ring);}
+.otp-box:focus{border-color:var(--primary-text);box-shadow:0 0 0 3px var(--focus-ring);}
 .verify-otp-help{margin:0 0 2px;text-align:center;color:var(--muted);font-size:12px;line-height:1.45;}
 .verify-divider{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:12px;justify-content:center;}
 .verify-divider::before,.verify-divider::after{content:"";height:1px;background:var(--line);flex:1;}
@@ -743,9 +791,9 @@ body.dark-theme .verify-info strong{color:#F3F4F6;}
 /* ---------- Previous Bills / Admin ---------- */
 .bills-search-wrap{display:flex;flex-direction:column;gap:10px;margin-bottom:12px;}
 .bills-search-input-wrap{position:relative;}
-.bills-search-input-wrap i.search-icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;pointer-events:none;}
-.bills-search-input-wrap input{width:100%;padding:11px 38px 11px 38px;border:1.5px solid var(--line);border-radius:var(--radius-sm);font-size:14px;color:var(--text);background:var(--white);outline:none;transition:border-color .15s ease,box-shadow .15s ease,background .3s ease;}
-.bills-search-input-wrap input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(21,101,192,.14);}
+.bills-search-input-wrap i.search-icon{font-size:12px;}
+.bills-search-input-wrap input{width:100%;padding:11px 38px 11px 40px;border:0 !important;border-radius:0 !important;font-size:14px;color:var(--text);background:transparent;outline:none;box-shadow:none !important;}
+.bills-search-input-wrap input:focus{border:0;box-shadow:none;}
 body.dark-theme .bills-search-input-wrap input{background:var(--surface);color:var(--text);}
 .bills-search-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;transition:color .15s ease,background .15s ease;}
 .bills-search-clear:hover{color:var(--text);background:var(--bg);}
@@ -779,9 +827,14 @@ body.dark-theme .date-dropdown{background:var(--surface);border-color:var(--line
   transition:border-color .15s ease,box-shadow .15s ease, background 0.3s ease;
 }
 .date-picker__input:hover{border-color:var(--primary);}
-.date-picker__input.open,.date-picker__input:focus-visible{border-color:var(--primary);box-shadow:0 0 0 3px rgba(21,101,192,.14);}
-.date-picker__input i{color:var(--muted);font-size:14px;flex-shrink:0;}
+.date-picker__input.open,.date-picker__input:focus-visible{border-color:var(--primary-text);box-shadow:0 0 0 3px var(--focus-ring);}
 .date-picker__input .date-picker__text.placeholder{color:var(--muted);font-weight:400;}
+.date-picker__input.field--icon{
+  justify-content:flex-start;
+  padding-left:40px;
+}
+.date-picker__input.field--icon .date-picker__text{padding:0;}
+
 body.dark-theme .date-picker__input{background:var(--surface);}
 
 .date-picker__overlay{position:fixed;inset:0;background:rgba(15,23,42,.75);display:flex;align-items:center;justify-content:center;padding:20px 16px;z-index:200;animation:fadeIn .15s ease;}
@@ -909,6 +962,13 @@ body.dark-theme .user-row__info::before{background:rgba(91,156,255,.18);color:#7
 .pending-users-list .user-row__actions .btn{flex:0 0 auto;}
 .admin-user-list .kebab-btn{width:36px;height:36px;font-size:15px;}
 .admin-panel .bills-pagination{margin:0;padding:14px 20px 20px;}
+/* ---------- Admin user search empty state ---------- */
+.admin-search-empty{padding:30px 16px 34px;text-align:center;}
+.admin-search-empty__icon{width:58px;height:58px;margin:0 auto 12px;border-radius:16px;display:flex;align-items:center;justify-content:center;background:#F3F5F8;color:#94A3B8;font-size:24px;}
+.admin-search-empty p{margin:0 0 5px;font-size:15px;font-weight:650;color:var(--text);}
+.admin-search-empty span{display:block;font-size:12.5px;color:var(--muted);}
+body.dark-theme .admin-search-empty__icon{background:rgba(148,163,184,.14);color:#94A3B8;}
+
 
 /* ---------- Data loading skeletons ---------- */
 @keyframes jasSkeletonPulse{
@@ -1225,7 +1285,7 @@ body.dark-theme .auth-logo h1{text-shadow:0 0 22px rgba(1,37,135,.22);}
   gap:10px;
   padding:9px 0;
   margin:0;
-  cursor:pointer;
+  cursor:default;
   user-select:none;
   color:var(--text);
 }
@@ -1271,6 +1331,7 @@ body.dark-theme .auth-logo h1{text-shadow:0 0 22px rgba(1,37,135,.22);}
 
 .pdf-option__switch{
   position:relative;
+  cursor:pointer;
   width:44px;
   height:26px;
   justify-self:end;
@@ -1287,6 +1348,7 @@ body.dark-theme .auth-logo h1{text-shadow:0 0 22px rgba(1,37,135,.22);}
 
 .pdf-option__switch-track{
   position:absolute;
+  cursor:pointer;
   inset:0;
   border-radius:999px;
   background:var(--line);
@@ -1473,7 +1535,7 @@ body.dark-theme .pdf-option__switch input:checked + .pdf-option__switch-track{
   background:var(--input-bg);border:1px solid var(--line);color:var(--text);border-radius:13px;
 }
 #emailVerificationScreen .otp-boxes .otp-box{background:var(--input-bg);border:1px solid var(--line);border-radius:12px;}
-#emailVerificationScreen .otp-boxes .otp-box:focus{border-color:#012587;box-shadow:0 0 0 3px rgba(1,37,135,.18);}
+#emailVerificationScreen .otp-boxes .otp-box:focus{border-color:var(--primary-text);box-shadow:0 0 0 3px var(--focus-ring);}
 #resetPasswordScreen .auth-logo{margin-bottom:24px;}
 #resetPasswordScreen .auth-card-heading{text-align:center;}
 
@@ -1501,56 +1563,381 @@ body.dark-theme .pdf-option__switch input:checked + .pdf-option__switch-track{
 }
 
 /* ==========================================================
-   NEW BILL — flat mobile layout
+   NEW BILL — enhanced layout (desktop + mobile)
    ========================================================== */
-@media (max-width:640px){
-  #viewNewBill.app-shell{max-width:100%;padding:0 18px;gap:0;}
+
+/* Desktop / tablet: elevated section cards with clearer hierarchy */
+#viewNewBill.app-shell{
+  max-width:720px;
+  gap:14px;
+  padding-bottom:0;
+  flex:0 0 auto;
+}
+
+#viewNewBill > .card{
+  padding:20px 22px;
+  border-radius:16px;
+  transition:box-shadow .2s ease,border-color .2s ease;
+}
+
+/* One unified New Bill card — inner sections stay visually grouped without separate cards */
+#viewNewBill > .nb-all-card{
+  padding:0;
+  overflow:hidden;
+}
+
+#viewNewBill > .nb-all-card > .nb-section{
+  padding:20px 22px;
+  margin:0;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  box-shadow:none;
+}
+
+#viewNewBill > .nb-all-card > .nb-section + .nb-section{
+  border-top:1px solid var(--line);
+}
+
+#viewNewBill > .nb-all-card > .nb-section--summary{
+  padding:20px 22px;
+}
+
+#viewNewBill > .nb-all-card > .nb-section--summary .summary-grid{
+  width:100%;
+}
+
+#viewNewBill > .card:hover{
+  box-shadow:var(--shadow-md);
+}
+
+#viewNewBill .card__heading,
+#viewNewBill .card__heading-row .card__heading{
+  font-size:12.5px;
+  letter-spacing:.4px;
+  margin-bottom:16px;
+}
+
+#viewNewBill .card__heading i{
+  width:28px;
+  height:28px;
+  border-radius:9px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  background:rgba(1,37,135,.08);
+  color:var(--primary-text);
+  font-size:13px;
+}
+
+body.dark-theme #viewNewBill .card__heading i{
+  background:rgba(23,105,255,.16);
+}
+
+#viewNewBill .card__heading-row{
+  margin-bottom:4px;
+}
+
+#viewNewBill .card__heading-row .card__heading{
+  margin-bottom:0;
+}
+
+/* Bill To — grouped fields (connected, one outer border) */
+#viewNewBill .customer-fields{
+  gap:0;width:100%;
+  border:1.5px solid var(--line);
+  border-radius:14px;
+  overflow:visible; /* allow per-row focus glow (hidden clips it) */
+  background:var(--input-bg);
+}
+#viewNewBill .customer-fields .field{
+  margin:0;width:100%;position:relative;border-radius:0;
+}
+#viewNewBill .customer-fields .field + .field{border-top:1px solid var(--line);}
+#viewNewBill .customer-fields .field:first-child{border-radius:12.5px 12.5px 0 0;}
+#viewNewBill .customer-fields .field:last-child{border-radius:0 0 12.5px 12.5px;}
+/* No per-field border — group has the border */
+#viewNewBill .customer-fields .field--icon{
+  border:0;border-radius:0;box-shadow:none;overflow:visible;background:transparent;
+}
+/* ✅ Correct — icon is a direct child of the field */
+#viewNewBill .customer-fields .field:first-child > i{
+  border-radius:12.5px 0 0 0;   /* top of first icon */
+}
+#viewNewBill .customer-fields .field:last-child > i{
+  border-radius:0 0 0 12.5px;   /* bottom of last icon */
+}
+#viewNewBill .customer-fields .field--icon input,
+#viewNewBill .customer-fields .field--icon textarea{
+  border:0 !important;border-radius:0 !important;background:transparent;
+  min-height:52px;padding:14px 16px 14px 40px;
+  box-shadow:none !important;outline:none !important;
+}
+#viewNewBill .customer-fields .field--icon textarea{
+  min-height:72px;padding-top:15px;resize:vertical;border-radius:0 !important;
+}
+/* Focus only on the active ROW (not whole card) */
+#viewNewBill .customer-fields .field:focus-within::after,
+#viewNewBill .customer-fields .field:has(.input-error)::after{
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:5;border-radius:inherit;
+}
+#viewNewBill .customer-fields .field:focus-within::after{border:1.5px solid var(--primary-text);}
+#viewNewBill .customer-fields .field:has(.input-error)::after{border:1.5px solid var(--danger);}
+#viewNewBill .customer-fields .field.field--icon:focus-within{
+  border:0 !important;
+  box-shadow:0 0 0 3px var(--focus-ring) !important;
+  z-index:3;
+}
+#viewNewBill .customer-fields .field.field--icon:has(input.input-error),
+#viewNewBill .customer-fields .field.field--icon:has(textarea.input-error){
+  border:0 !important;
+  box-shadow:0 0 0 3px rgba(214,69,69,.14) !important;
+  z-index:3;
+}
+
+/* Invoice date field polish */
+#viewNewBill .date-picker__input{
+  border-radius:12px;
+  min-height:50px;
+  font-weight:600;
+}
+
+/* Products section */
+#viewNewBill #btnAddProduct{
+  min-height:32px;
+  padding:6px 11px;
+  border-radius:9px;
+  font-size:12px;
+  font-weight:700;
+  gap:5px;
+}
+
+#viewNewBill #productListWrap{
+  padding-top:6px;
+}
+
+#viewNewBill .empty-state{
+  padding:40px 16px;
+  border:1.5px dashed var(--line);
+  border-radius:14px;
+  background:rgba(1,37,135,.02);
+}
+
+#viewNewBill .empty-state i{
+  width:56px;
+  height:56px;
+  margin:0 auto 14px;
+  border-radius:16px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:22px;
+  background:rgba(1,37,135,.08);
+  color:var(--primary-text);
+}
+
+body.dark-theme #viewNewBill .empty-state{
+  background:rgba(23,105,255,.04);
+  border-color:#2D3748;
+}
+
+body.dark-theme #viewNewBill .empty-state i{
+  background:rgba(23,105,255,.14);
+  color:#5B9CFF;
+}
+
+#viewNewBill .product-table-wrap{
+  border-radius:12px;
+  border-width:1.5px;
+}
+
+#viewNewBill .product-table thead th{
+  padding:12px 14px;
+}
+
+/* Summary card — more prominent total */
+#viewNewBill .summary-grid{
+  gap:12px;
+}
+
+#viewNewBill .summary-row{
+  font-size:14px;
+  padding:2px 2px;
+}
+
+#viewNewBill .summary-total{
+  margin-top:8px;
+  border-radius:14px;
+  padding:16px 20px;
+  box-shadow:0 8px 22px rgba(1,37,135,.18);
+}
+
+#viewNewBill .summary-total .label{
+  font-size:13px;
+}
+
+#viewNewBill .summary-total .value{
+  font-size:26px;
+  letter-spacing:-.3px;
+}
+#viewNewBill .nb-section--summary{
+  padding:0;
+  overflow:hidden;
+  border-radius:14px;
+  border:1px solid var(--line);
+  box-shadow:none;
+}
+#viewNewBill .nb-section--summary .summary-grid{gap:0;}
+#viewNewBill .nb-section--summary .summary-row{
+  min-height:50px;
+  margin:0 0 6px;
+  padding:0 18px;
+  font-size:16px;
+  color:var(--text);
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:var(--surface);
+}
+#viewNewBill .nb-section--summary .summary-row b{
+  font-size:16px;
+  color:var(--text);
+}
+#viewNewBill .nb-section--summary .summary-total{
+  min-height:66px;
+  margin:8px 0 0;
+  padding:0 18px;
+  border-radius:12px;
+  box-shadow:none;
+}
+#viewNewBill .nb-section--summary .summary-total .label{
+  font-size:16px;
+  letter-spacing:.7px;
+  font-weight:700;
+}
+#viewNewBill .nb-section--summary .summary-total .value{
+  font-size:26px;
+  letter-spacing:-.3px;
+  font-weight:750;
+}
+body.dark-theme #viewNewBill .nb-section--summary{
+  background:#000;
+  border-color:#1B1F27;
+}
+body.dark-theme #viewNewBill .nb-section--summary .summary-row{
+  border-bottom-color:#1B1F27;
+}
+
+/* Notes textarea */
+#viewNewBill #invoiceNotes{
+  min-height:96px;
+  border-radius:12px;
+  line-height:1.55;
+}
+
+/* PDF options card already styled — tighten spacing in New Bill context */
+#viewNewBill .pdf-options-card{
+  padding:18px 20px 12px;
+}
 
 
-  #viewNewBill > .card{background:transparent;border:0;box-shadow:none;border-radius:0;padding:24px 0 22px;margin:0;}
-  #viewNewBill > .card + .card{border-top:1px solid var(--nb-border);}
+#viewNewBill .action-bar-grid .btn--preview,
+#viewNewBill .action-bar-grid .btn--download{
+  min-height:48px;
+  border-radius:13px;
+  font-size:14.5px;
+  font-weight:700;
+}
 
-
-  #viewNewBill .card__heading,#viewNewBill .card__heading-row .card__heading{color:var(--primary-text);font-size:12px;font-weight:700;letter-spacing:.35px;}
-  #viewNewBill .card__heading i{width:18px;text-align:center;font-size:14px;}
-  #viewNewBill .card__heading-row{margin:0 0 4px;}
-
-
-  #viewNewBill .field-group{gap:0;}
-  #viewNewBill .field{position:relative;}
-  #viewNewBill .field + .field{border-top:1px solid var(--nb-border);}
-
-
-  #viewNewBill .field--icon > i{left:2px;color:#A7B0BE;font-size:14px;}
-  #viewNewBill .field--icon input,#viewNewBill .field--icon textarea,#viewNewBill .date-picker__input{
-    width:100%;min-height:58px;padding:16px 34px;border:0;border-radius:0;background:transparent;color:var(--text);box-shadow:none;font-size:15.5px;
-  }
-  #viewNewBill .field--icon textarea{min-height:76px;padding-top:17px;resize:none;}
-  #viewNewBill .field--icon input::placeholder,#viewNewBill .field--icon textarea::placeholder{color:#A7B0BE;opacity:1;}
-  #viewNewBill .field--icon input:focus,#viewNewBill .field--icon textarea:focus{border:0;box-shadow:none;outline:none;}
-  #viewNewBill .field:focus-within{background:var(--nb-focus-bg);}
-
-
-  #viewNewBill .date-picker__input{min-height:58px;padding-left:0;padding-right:2px;justify-content:space-between;border:0;}
-  #viewNewBill .date-picker__input:hover,#viewNewBill .date-picker__input.open,#viewNewBill .date-picker__input:focus-visible{border:0;box-shadow:none;}
-  #viewNewBill .date-picker__input i{color:#A7B0BE;font-size:16px;}
-  #viewNewBill .date-picker__text{font-size:15.5px;}
-
-  #viewNewBill .field-group > .field{
-    border-bottom:1.5px solid var(--nb-sep)!important;
-  }
-
-  #viewNewBill .field-group > .field:focus-within{
-    border-bottom-color:var(--primary)!important;
-  }
-
-  #viewNewBill .field-group > .field:has(input.input-error),
-  #viewNewBill .field-group > .field:has(textarea.input-error){
-    border-bottom-color:var(--danger)!important;
-  }
+#viewNewBill .action-bar-grid .btn--reset{
+  min-height:44px;
+  border-radius:12px;
+  font-weight:650;
 }
 
 </style>
+
+<style id="summary-flat-layout">
+/* New Bill summary — one unified block, not individual cards */
+#viewNewBill .nb-section--summary .summary-grid{gap:0;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--surface);}
+#viewNewBill .nb-section--summary .summary-row{min-height:50px;margin:0;padding:0 18px;border:0;border-radius:0;background:transparent;color:var(--text);font-size:16px;}
+#viewNewBill .nb-section--summary .summary-row + .summary-row{border-top:1px solid var(--line);}
+#viewNewBill .nb-section--summary .summary-row b{font-size:16px;color:var(--text);}
+#viewNewBill .nb-section--summary .summary-total{min-height:66px;margin:0;padding:0 18px;border:0;border-radius:0;background:#012587;color:#fff;box-shadow:none;}
+#viewNewBill .nb-section--summary .summary-total .label{font-size:16px;letter-spacing:.7px;font-weight:700;color:#fff;}
+#viewNewBill .nb-section--summary .summary-total .value{font-size:26px;letter-spacing:-.3px;font-weight:750;color:#fff;}
+body.dark-theme #viewNewBill .nb-section--summary .summary-grid{background:#000;border-color:#1B1F27;}
+body.dark-theme #viewNewBill .nb-section--summary .summary-row + .summary-row{border-top-color:#1B1F27;}
+</style>
+
+<style id="pdf-options-header-match">
+/* Make PDF Options header match the other New Bill section headers */
+#viewNewBill .pdf-options__heading{
+  display:flex;align-items:center;gap:8px;margin:0;
+}
+#viewNewBill .pdf-options__heading-icon{
+  width:28px;height:28px;border-radius:9px;
+  display:inline-flex;align-items:center;justify-content:center;
+  flex:0 0 28px;
+  background:rgba(1,37,135,.08);
+  color:var(--primary-text);font-size:13px;
+}
+#viewNewBill .pdf-options__heading h2{
+  margin:0;font-size:12.5px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.4px;
+  line-height:1.2;color:var(--primary-text);
+}
+body.dark-theme #viewNewBill .pdf-options__heading-icon{
+  background:rgba(23,105,255,.16);
+}
+</style>
+
+
+<style id="admin-header-icon-style">
+/* Admin panel headers — match New Bill header icon style */
+#viewAdmin .admin-panel .card__heading i{
+  width:28px;height:28px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;
+  flex:0 0 28px;background:rgba(1,37,135,.08);color:var(--primary-text);font-size:13px;
+}
+body.dark-theme #viewAdmin .admin-panel .card__heading i{background:rgba(23,105,255,.16);}
+</style>
+
+
+<style id="mobile-summary-actions-tune">
+@media(max-width:640px){
+  /* Compact Summary on mobile */
+  #viewNewBill .nb-section--summary .summary-row{
+    min-height:44px;
+    padding:0 16px;
+    font-size:14px;
+  }
+  #viewNewBill .nb-section--summary .summary-row b{
+    font-size:14px;
+  }
+  #viewNewBill .nb-section--summary .summary-total{
+    min-height:56px;
+    padding:0 16px;
+  }
+  #viewNewBill .nb-section--summary .summary-total .label{
+    font-size:14px;
+    letter-spacing:.55px;
+  }
+  #viewNewBill .nb-section--summary .summary-total .value{
+    font-size:22px;
+    letter-spacing:-.2px;
+  }
+
+  /* Small left/right breathing room for bottom action buttons */
+  #viewNewBill .action-bar-grid{
+    margin-left:10px;
+    margin-right:10px;
+  }
+}
+</style>
+
+
+
+
+
 </head>
 <body>
 
@@ -1905,12 +2292,13 @@ body.dark-theme .pdf-option__switch input:checked + .pdf-option__switch-track{
 
   <!-- ========== VIEW: NEW BILL ========== -->
   <main class="app-shell" id="viewNewBill">
-    <section class="card">
-      <h2 class="card__heading"><i class="fa-regular fa-user"></i> Bill To</h2>
+    <section class="card nb-all-card">
+    <section class="nb-section nb-section--customer">
+      <h2 class="card__heading"><i class="fa-solid fa-address-card"></i> Bill To</h2>
       <div class="field-group customer-fields">
         <div class="field field--icon">
           <label class="visually-hidden" for="customerName">Customer Name</label>
-          <i class="fa-regular fa-user"></i>
+          <i class="fa-solid fa-user"></i>
           <input type="text" id="customerName" autocomplete="off" required maxlength="60" placeholder="Customer name *">
         </div>
         <div class="field field--icon">
@@ -1926,13 +2314,13 @@ body.dark-theme .pdf-option__switch input:checked + .pdf-option__switch-track{
       </div>
     </section>
 
-    <section class="card">
-      <h2 class="card__heading"><i class="fa-regular fa-file-lines"></i>Date</h2>
+    <section class="nb-section nb-section--date">
+      <h2 class="card__heading"><i class="fa-solid fa-calendar-days"></i> Invoice Date</h2>
       <div class="field-group">
         <div class="field">
           <label for="invoiceDate" class="hide">Date</label>
           <div class="date-picker" id="invoiceDatePicker">
-            <button type="button" class="date-picker__input" id="invoiceDateInput" aria-haspopup="true" aria-expanded="false">
+            <button type="button" class="date-picker__input field--icon" id="invoiceDateInput" aria-haspopup="true" aria-expanded="false">
               <span class="date-picker__text" id="invoiceDateText"></span>
               <i class="fa-regular fa-calendar"></i>
             </button>
@@ -1942,17 +2330,17 @@ body.dark-theme .pdf-option__switch input:checked + .pdf-option__switch-track{
       </div>
     </section>
 
-    <section class="card">
+    <section class="nb-section nb-section--products">
       <div class="card__heading-row">
-        <h2 class="card__heading"><i class="fa-solid fa-laptop"></i> Products</h2>
-        <button class="btn btn--outline btn--sm" id="btnAddProduct" style="min-height:28px; padding: 6px 8px;"><i class="fa-solid fa-plus"></i> Add Product</button>
+        <h2 class="card__heading"><i class="fa-solid fa-box-open"></i> Products</h2>
+        <button class="btn btn--outline btn--sm" id="btnAddProduct"><i class="fa-solid fa-plus"></i> Add</button>
       </div>
 
-      <div id="productListWrap" style="padding-top:10px">
+      <div id="productListWrap">
         <div id="emptyState" class="empty-state">
-          <i class="fa-regular fa-rectangle-list"></i>
-          <p>No products added yet.</p>
-          <span>Tap "Add Product" to start building this invoice.</span>
+          <i class="fa-solid fa-cart-plus"></i>
+          <p>No products yet</p>
+          <span>Add items to build this invoice. Qty, rate, and amount update automatically.</span>
         </div>
 
         <div class="product-table-wrap hide" id="productTableWrap">
@@ -1973,14 +2361,14 @@ body.dark-theme .pdf-option__switch input:checked + .pdf-option__switch-track{
       </div>
     </section>
 
-    <section class="card pdf-options-card">
+    <section class="pdf-options-card nb-section nb-section--options">
       <div class="pdf-options__heading">
         <div class="pdf-options__heading-icon"><i class="fa-solid fa-sliders"></i></div>
         <h2>PDF Options</h2>
       </div>
 
       <div class="pdf-options__list">
-        <label class="pdf-option" id="watermarkToggleWrap">
+        <div class="pdf-option" id="watermarkToggleWrap">
           <span class="pdf-option__icon"><i class="fa-solid fa-droplet"></i></span>
           <span class="pdf-option__copy">
             <span class="pdf-option__title">Watermark</span>
@@ -1990,9 +2378,9 @@ body.dark-theme .pdf-option__switch input:checked + .pdf-option__switch-track{
             <input type="checkbox" id="toggleWatermark" checked>
             <span class="pdf-option__switch-track"></span>
           </span>
-        </label>
+        </div>
 
-        <label class="pdf-option" id="qrToggleWrap">
+        <div class="pdf-option" id="qrToggleWrap">
           <span class="pdf-option__icon"><i class="fa-solid fa-qrcode"></i></span>
           <span class="pdf-option__copy">
             <span class="pdf-option__title">QR Code</span>
@@ -2002,9 +2390,9 @@ body.dark-theme .pdf-option__switch input:checked + .pdf-option__switch-track{
             <input type="checkbox" id="toggleQrVisibility" checked>
             <span class="pdf-option__switch-track"></span>
           </span>
-        </label>
+        </div>
 
-        <label class="pdf-option" id="signatureToggleWrap">
+        <div class="pdf-option" id="signatureToggleWrap">
           <span class="pdf-option__icon"><i class="fa-solid fa-pen"></i></span>
           <span class="pdf-option__copy">
             <span class="pdf-option__title">Signature</span>
@@ -2014,9 +2402,9 @@ body.dark-theme .pdf-option__switch input:checked + .pdf-option__switch-track{
             <input type="checkbox" id="toggleSignatureVisibility" checked>
             <span class="pdf-option__switch-track"></span>
           </span>
-        </label>
+        </div>
 
-        <label class="pdf-option" id="notesToggleWrap">
+        <div class="pdf-option" id="notesToggleWrap">
           <span class="pdf-option__icon"><i class="fa-regular fa-file-lines"></i></span>
           <span class="pdf-option__copy">
             <span class="pdf-option__title">Notes on PDF</span>
@@ -2026,18 +2414,18 @@ body.dark-theme .pdf-option__switch input:checked + .pdf-option__switch-track{
             <input type="checkbox" id="toggleNotesVisibility" checked>
             <span class="pdf-option__switch-track"></span>
           </span>
-        </label>
+        </div>
       </div>
     </section>
 
-    <section class="card" id="notesCardWrap">
+    <section class="nb-section nb-section--notes" id="notesCardWrap">
       <h2 class="card__heading"><i class="fa-solid fa-clipboard-list"></i> Notes</h2>
       <div class="field">
-        <textarea id="invoiceNotes" maxlength="500" placeholder="Enter optional notes to show on the invoice..."></textarea>
+        <textarea id="invoiceNotes" maxlength="500" placeholder="Optional notes for the customer (terms, warranty, payment info…)"></textarea>
       </div>
     </section>
 
-    <section class="card">
+    <section class="nb-section nb-section--summary">
       <h2 class="card__heading"><i class="fa-solid fa-calculator"></i> Summary</h2>
       <div class="summary-grid">
         <div class="summary-row"><span>Total Items</span><b id="totalItems">0</b></div>
@@ -2045,10 +2433,11 @@ body.dark-theme .pdf-option__switch input:checked + .pdf-option__switch-track{
         <div class="summary-total"><span class="label">Grand Total</span><span class="value" id="grandTotal">₹0</span></div>
       </div>
     </section>
+    </section>
 
     <div class="action-bar-grid">
       <button class="btn btn--outline btn--preview" id="btnPreview">
-        <i class="fa-regular fa-eye"></i> Preview Look
+        <i class="fa-regular fa-eye"></i> Preview
       </button>
       <button class="btn btn--primary btn--download" id="btnDownload">
         <i class="fa-solid fa-download"></i> Download PDF
@@ -2063,7 +2452,7 @@ body.dark-theme .pdf-option__switch input:checked + .pdf-option__switch-track{
   <main class="app-shell hide" id="viewPreviousBills">
     <section class="card">
       <div class="bills-search-wrap">
-        <div class="bills-search-input-wrap">
+        <div class="bills-search-input-wrap field--icon">
           <i class="fa-solid fa-magnifying-glass search-icon"></i>
           <input type="text" id="billSearchInput" name="invoice-search" placeholder="Search invoice, customer, phone..." autocomplete="off" readonly maxlength="80">
           <button class="bills-search-clear hide" id="btnClearSearch" aria-label="Clear search"><i class="fa-solid fa-xmark"></i></button>
@@ -2154,7 +2543,7 @@ body.dark-theme .pdf-option__switch input:checked + .pdf-option__switch-track{
 
     <section class="card admin-panel">
       <div class="admin-panel__header">
-              <h2 class="card__heading"><i class="fa-solid fa-users"></i> Pending Approvals</h2>
+              <h2 class="card__heading"><i class="fa-solid fa-user-clock"></i> Pending Approvals</h2>
             </div>
       <div id="pendingUsersLoading" class="admin-list-loading-skeleton hide" aria-hidden="true">
   <div class="admin-skeleton-row"></div>
@@ -2174,7 +2563,7 @@ body.dark-theme .pdf-option__switch input:checked + .pdf-option__switch-track{
         <h2 class="card__heading"><i class="fa-solid fa-users"></i> All Users</h2>
       </div>
       <div class="admin-users-toolbar">
-        <div class="bills-search-input-wrap">
+        <div class="bills-search-input-wrap field--icon">
           <i class="fa-solid fa-magnifying-glass search-icon"></i>
           <input type="search" id="adminUserSearch" name="user-search" placeholder="Search users..." autocomplete="off" readonly maxlength="80" aria-label="Search users">
         </div>
@@ -2810,7 +3199,7 @@ function applyConfig(){
   root.setProperty('--bg', lightTheme.background || '#F8F9FC');
   root.setProperty('--surface', lightTheme.surface || '#FFFFFF');
   root.setProperty('--text', lightTheme.text || '#212121');
-  root.setProperty('--line', lightTheme.border || '#E5E7EB');
+  root.setProperty('--line', lightTheme.border || '#d5d5d5');
   root.setProperty('--white', lightTheme.surface || '#FFFFFF');
   root.setProperty('--radius', CONFIG.theme.radius || '12px');
   root.setProperty('--dark-bg', darkTheme.background || '#000000');
@@ -5887,9 +6276,27 @@ function renderAllUsers(users){
 function filterAdminUsers(){
   if (!el.adminUserSearch || !el.allUsersList) return;
   const term = el.adminUserSearch.value.trim().toLowerCase();
-  el.allUsersList.querySelectorAll('.user-row').forEach(row => {
-    row.classList.toggle('hide', Boolean(term) && !row.textContent.toLowerCase().includes(term));
+  el.allUsersList.querySelector('.admin-search-empty')?.remove();
+
+  const rows = [...el.allUsersList.querySelectorAll('.user-row')];
+  let visibleCount = 0;
+  rows.forEach(row => {
+    const match = !term || row.textContent.toLowerCase().includes(term);
+    row.classList.toggle('hide', !match);
+    if (match) visibleCount++;
   });
+
+  const noResults = Boolean(term) && rows.length > 0 && visibleCount === 0;
+  if (noResults) {
+    const empty = document.createElement('div');
+    empty.className = 'admin-search-empty';
+    empty.innerHTML = `
+      <div class="admin-search-empty__icon"><i class="fa-solid fa-user-slash" aria-hidden="true"></i></div>
+      <p>No users found</p>
+      <span>No users match “${escapeHtml(el.adminUserSearch.value.trim())}”. Try a different search.</span>
+    `;
+    el.allUsersList.appendChild(empty);
+  }
 }
 
 async function loadAdminStats(){
@@ -6282,22 +6689,22 @@ function syncDisplayToggleState(){
 
   el.toggleNotesVisibility.checked = notesChecked;
   el.toggleNotesVisibility.disabled = !notesEnabledByConfig;
-  el.toggleNotesVisibility.closest('label')?.classList.toggle('hide', !notesEnabledByConfig);
+  el.toggleNotesVisibility.closest('.pdf-option')?.classList.toggle('hide', !notesEnabledByConfig);
 
   el.toggleWatermark.checked = watermarkChecked;
   el.toggleWatermark.disabled = !watermarkEnabledByConfig;
-  el.toggleWatermark.closest('label')?.classList.toggle('hide', !watermarkEnabledByConfig);
+  el.toggleWatermark.closest('.pdf-option')?.classList.toggle('hide', !watermarkEnabledByConfig);
 
   if (el.toggleQrVisibility) {
     el.toggleQrVisibility.checked = qrChecked;
     el.toggleQrVisibility.disabled = !qrEnabledByConfig;
-    el.toggleQrVisibility.closest('label')?.classList.toggle('hide', !qrEnabledByConfig);
+    el.toggleQrVisibility.closest('.pdf-option')?.classList.toggle('hide', !qrEnabledByConfig);
   }
 
   if (el.toggleSignatureVisibility) {
     el.toggleSignatureVisibility.checked = signatureChecked;
     el.toggleSignatureVisibility.disabled = !signatureEnabledByConfig;
-    el.toggleSignatureVisibility.closest('label')?.classList.toggle('hide', !signatureEnabledByConfig);
+    el.toggleSignatureVisibility.closest('.pdf-option')?.classList.toggle('hide', !signatureEnabledByConfig);
   }
 
   state.includeNotesOnPdf = notesChecked && notesEnabledByConfig;
@@ -6501,6 +6908,16 @@ function bindEvents(){
   el.invoiceNotes.addEventListener('input', (e) => {
     state.notes = e.target.value;
     if (currentSession) saveBillStateToLocalStorage();
+  });
+
+  document.querySelectorAll('.pdf-option__switch-track').forEach(track => {
+    track.addEventListener('click', () => {
+      const input = track.previousElementSibling;
+      if (input && !input.disabled) {
+        input.checked = !input.checked;
+        input.dispatchEvent(new Event('change', {bubbles:true}));
+      }
+    });
   });
 
   el.toggleNotesVisibility.addEventListener('change', (e) => {
