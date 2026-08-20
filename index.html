@@ -1057,9 +1057,13 @@ body.dark-theme #viewNewBill .card__heading i{
   border-radius:14px;
   overflow:visible; /* allow per-row focus glow (hidden clips it) */
   background:var(--input-bg);
-}.customer-fields .field{
+}
+#viewNewBill .customer-fields .field{
   margin:0;width:100%;position:relative;border-radius:0;
-}.customer-fields .field + .field{border-top:1px solid var(--line);}.customer-fields .field:first-child{border-radius:12.5px 12.5px 0 0;}.customer-fields .field:last-child{border-radius:0 0 12.5px 12.5px;}
+}
+#viewNewBill .customer-fields .field + .field{border-top:1px solid var(--line);}
+#viewNewBill .customer-fields .field:first-child{border-radius:12.5px 12.5px 0 0;}
+#viewNewBill .customer-fields .field:last-child{border-radius:0 0 12.5px 12.5px;}
 /* No per-field border — group has the border */
 #viewNewBill .customer-fields .field--icon{
   border:0;border-radius:0;box-shadow:none;overflow:visible;background:transparent;
@@ -1067,22 +1071,33 @@ body.dark-theme #viewNewBill .card__heading i{
 /* ✅ Correct — icon is a direct child of the field */
 #viewNewBill .customer-fields .field:first-child > i{
   border-radius:12.5px 0 0 0;   /* top of first icon */
-}.customer-fields .field:last-child > i{
+}
+#viewNewBill .customer-fields .field:last-child > i{
   border-radius:0 0 0 12.5px;   /* bottom of last icon */
-}.customer-fields .field--icon input,.customer-fields .field--icon textarea{
+}
+#viewNewBill .customer-fields .field--icon input,
+#viewNewBill .customer-fields .field--icon textarea{
   border:0 !important;border-radius:0 !important;background:transparent;
   min-height:52px;padding:14px 16px 14px 40px;
   box-shadow:none !important;outline:none !important;
-}.customer-fields .field--icon textarea{
+}
+#viewNewBill .customer-fields .field--icon textarea{
   min-height:72px;padding-top:15px;resize:vertical;border-radius:0 !important;
-}/* Focus only on the active ROW (not whole card) */
-#viewNewBill .customer-fields .field:focus-within::after,.customer-fields .field:has(.input-error)::after{
+}
+/* Focus only on the active ROW (not whole card) */
+#viewNewBill .customer-fields .field:focus-within::after,
+#viewNewBill .customer-fields .field:has(.input-error)::after{
   content:"";position:absolute;inset:0;pointer-events:none;z-index:5;border-radius:inherit;
-}.customer-fields .field:focus-within::after{border:1.5px solid var(--primary-text);}.customer-fields .field:has(.input-error)::after{border:1.5px solid var(--danger);}.customer-fields .field.field--icon:focus-within{
+}
+#viewNewBill .customer-fields .field:focus-within::after{border:1.5px solid var(--primary-text);}
+#viewNewBill .customer-fields .field:has(.input-error)::after{border:1.5px solid var(--danger);}
+#viewNewBill .customer-fields .field.field--icon:focus-within{
   border:0 !important;
   box-shadow:0 0 0 3px var(--focus-ring) !important;
   z-index:3;
-}.customer-fields .field.field--icon:has(input.input-error),.customer-fields .field.field--icon:has(textarea.input-error){
+}
+#viewNewBill .customer-fields .field.field--icon:has(input.input-error),
+#viewNewBill .customer-fields .field.field--icon:has(textarea.input-error){
   border:0 !important;
   box-shadow:0 0 0 3px rgba(214,69,69,.14) !important;
   z-index:3;
