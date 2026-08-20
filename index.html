@@ -19,9 +19,13 @@ html.theme-preload .boot-loader__bar-track{background:#1B1F27!important}
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
-<title>JAS Tech Billing</title>
+<!-- These three tags are placeholders only. They render for a split second
+     before config.json loads, then get overwritten by applyConfig() in the
+     script below. You do NOT need to edit them per company — just update
+     config.json's "company.name" field. -->
+<title>Billing App</title>
 <meta name="theme-color" content="#012587">
-<meta name="description" content="Professional billing software for JAS Tech — generate invoices in seconds.">
+<meta name="description" content="Professional billing software — generate invoices in seconds." id="metaDescription">
 
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="assets/icons/app-icon.png">
@@ -225,42 +229,52 @@ body.dark-theme .btn--ghost:hover { background: #1A202C; }
 .empty-state p{margin:0 0 4px;font-weight:600;color:var(--text);}
 .empty-state span{font-size:12.5px;}
 
-/* ---------- Tables (product / bills — shared cell styles) ---------- */
+/* ---------- Tables (bills) + product meta + action buttons ---------- */
 
-body.dark-theme .product-table thead th,
 body.dark-theme .bills-table thead th { background: #1A202C; color: var(--primary-text); }
 
-.product-table-wrap{width:100%;overflow-x:auto;overflow-y:visible;-webkit-overflow-scrolling:touch;border-radius:var(--radius-sm);border:1px solid var(--line);}
-
-.product-table,.bills-table{width:100%;border-collapse:collapse;font-size:13.5px;table-layout:fixed;}
-.product-table thead th,.bills-table thead th{background:#EEF4FC;color:var(--primary-text);text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;transition:background .3s ease;}
-.product-table tbody td,.bills-table tbody td{min-width:0;padding:12px;border-top:1px solid var(--line);vertical-align:top;white-space:normal;overflow-wrap:anywhere;word-break:break-word;}
-.product-table .prod-name{font-weight:600;color:var(--text);white-space:normal;overflow-wrap:anywhere;word-break:break-word;display:block;}
-.product-table tbody td:nth-child(1),.product-table tbody td:nth-child(3),.product-table tbody td:nth-child(4),.product-table tbody td:nth-child(5){white-space:nowrap;}
-.product-table .prod-meta,
-.inv-table .prod-meta { margin-top: 4px; line-height: 1.45; }
-.prod-desc-line { color: var(--muted); font-size: 12px; margin-top: 2px; white-space:normal; word-break:break-word; overflow-wrap:anywhere; }
-.prod-sn-line { font-size: 12px; margin-top: 2px; color: var(--text) !important; white-space:normal; word-break:break-word; overflow-wrap:anywhere; }
-.prod-sn-line .sn-label { color: var(--primary);font-weight: 700; }
-.prod-sn-line .sn-value { color: var(--muted); font-weight: 500; }
-
-.col-idx{text-align:center;color:var(--muted);}
-
-.product-table .col-idx{width:44px;}
-.product-table .col-qty{width:70px;}
-.product-table .col-rate,.product-table .col-amount{width:118px;}
-.col-name{width:auto;}
-.col-actions{text-align:right;width:1px;}
-.product-table .col-actions{width:94px;}
-.product-table tbody td.col-idx,
-.product-table tbody td.col-actions,
+.bills-table{width:100%;border-collapse:collapse;font-size:13.5px;table-layout:fixed;}
+.bills-table thead th{background:#EEF4FC;color:var(--primary-text);text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;transition:background .3s ease;}
+.bills-table tbody td{min-width:0;padding:12px;border-top:1px solid var(--line);vertical-align:top;white-space:normal;overflow-wrap:anywhere;word-break:break-word;}
 .bills-table tbody td.col-actions{white-space:nowrap;}
 .bills-table tbody td:not(.col-actions):not(:nth-child(2)){white-space:nowrap;}
+.col-actions{text-align:right;width:1px;}
 
-.row-action-btn{background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;padding:0px 12px;border-radius:6px;display:inline-block;vertical-align:middle;}
-.row-action-btn:hover{color:var(--primary-text);}
-.row-action-btn.delete:hover{color:var(--danger);}
+.prod-meta,.inv-table .prod-meta{margin-top:4px;line-height:1.45;}
+.prod-desc-line{color:var(--muted);font-size:12px;margin-top:2px;white-space:normal;word-break:break-word;overflow-wrap:anywhere;}
+.prod-sn-line{font-size:12px;margin-top:2px;color:var(--text)!important;white-space:normal;word-break:break-word;overflow-wrap:anywhere;}
+.prod-sn-line .sn-label{color:var(--primary);font-weight:700;}
+.prod-sn-line .sn-value{color:var(--muted);font-weight:500;}
 
+.row-action-btn{background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;padding:0;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;transition:color .15s,background .15s;}
+.row-action-btn:hover{color:var(--primary-text);background:var(--bg);}
+.row-action-btn.delete:hover{color:var(--danger);background:rgba(214,69,69,.08);}
+
+/* ---------- Product cards ---------- */
+.product-list__items{display:flex;flex-direction:column;gap:10px;}
+.prod-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow-sm);}
+.prod-card__top{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg);border-bottom:1px solid var(--line);font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
+body.dark-theme .prod-card__top{background:#0D0F14;}
+.prod-card__idx{width:24px;height:24px;border-radius:7px;display:flex;align-items:center;justify-content:center;background:rgba(1,37,135,.14);color:var(--primary-text);font-size:11px;}
+.prod-card__top i.fa-box{color:var(--primary-text);}
+.prod-card__actions{margin-left:auto;display:flex;gap:5px;}
+.prod-card__actions .row-action-btn{width:30px;height:28px;border:1px solid var(--line);border-radius:8px;color:var(--muted);}
+.prod-card__actions .row-action-btn:hover{color:var(--primary-text);border-color:var(--primary-text);}
+.prod-card__actions .row-action-btn.delete:hover{color:var(--danger);border-color:var(--danger);}
+.prod-card__content{display:flex;flex-wrap:wrap;gap:8px;padding:10px;}
+.prod-card__info{flex:1 1 auto;min-width:70px;}
+.prod-card .prod-name{font-size:14px;font-weight:700;line-height:1.35;overflow-wrap:anywhere;}
+.prod-card .prod-desc-line{font-size:12.5px;color:var(--muted);margin-top:3px;overflow-wrap:anywhere;}
+.prod-card .prod-sn-line{display:inline-block;margin-top:5px;padding:3px 8px;border-radius:7px;background:rgba(1,37,135,.07);font-size:11.5px;overflow-wrap:anywhere;}
+body.dark-theme .prod-card .prod-sn-line{background:rgba(23,105,255,.14);}
+.prod-card .prod-sn-line .sn-label{color:var(--primary-text);font-weight:700;}
+.prod-stat{flex:1 1 auto;min-width:70px;padding:7px 10px;border-radius:9px;background:var(--bg);font-size:13px;box-sizing:border-box;}
+.prod-stat__label{display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:3px;white-space:nowrap;}
+.prod-stat b{display:block;overflow-wrap:anywhere;}
+.prod-stat--amt{background:rgba(1,37,135,.07);}
+.prod-stat--amt .prod-stat__label,.prod-stat--amt b{color:var(--primary-text);}
+body.dark-theme .prod-stat{background:#0A0A0C;}
+body.dark-theme .prod-stat--amt{background:rgba(23,105,255,.14);}
 /* ---------- Kebab / actions popup menu ---------- */
 
 .user-actions-menu-wrap{position:relative;display:inline-block;vertical-align:middle;}
@@ -1152,11 +1166,6 @@ body.dark-theme #viewNewBill .empty-state{
 body.dark-theme #viewNewBill .empty-state i{
   background:rgba(23,105,255,.14);
   color:#5B9CFF;
-}.product-table-wrap{
-  border-radius:12px;
-  border-width:1.5px;
-}.product-table thead th{
-  padding:12px 14px;
 }
 
 /* ---------- Summary card ---------- */
@@ -1462,29 +1471,6 @@ body.dark-theme .pdf-option__switch input:checked + .pdf-option__switch-track{
   }
 
   #viewNewBill.app-shell{padding-bottom:0 !important;flex:0 0 auto;}
-
-  .product-table-wrap{overflow:visible;border:none;border-radius:0;}
-  .product-table{display:block;width:100%;border:0;}
-  .product-table thead{display:none;}
-  .product-table tbody{display:flex;flex-direction:column;gap:10px;}
-  .product-table tr{display:grid;grid-template-columns:1fr 1fr;gap:10px 8px;background:var(--white);border:1.5px solid var(--line);border-radius:14px;padding:13px 14px;box-shadow:var(--shadow-sm);}
-  .product-table tbody td{border:0;padding:0;white-space:normal !important;}
-  .product-table td.col-idx{display:none;}
-  .product-table td.col-name{grid-column:1 / -1;min-width:0;padding-bottom:10px;border-bottom:1px solid var(--line);}
-  .product-table td.col-qty,.product-table td.col-rate{display:flex;flex-direction:column;gap:3px;font-size:13.5px;font-weight:700;color:var(--text);min-width:0;}
-  .product-table td.col-qty::before,.product-table td.col-rate::before,.product-table td.col-amount::before{content:attr(data-label);font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;}
-  .product-table td.col-rate{align-items:flex-end;}
-  .product-table td.col-amount{grid-column:1;display:flex;flex-direction:column;gap:3px;font-size:15px;font-weight:800;color:var(--primary-text);align-self:center;padding-top:10px;margin-top:1px;border-top:1px solid var(--line);}
-  .product-table td.col-actions{grid-column:2;display:flex;justify-content:flex-end;align-items:center;align-self:center;gap:6px;padding-top:10px;margin-top:1px;border-top:1px solid var(--line);width:auto;}
-  .product-table .row-action-btn{width:36px;height:36px;padding:0;border:1.5px solid var(--line);border-radius:10px;display:flex;align-items:center;justify-content:center;}
-  .product-table .row-action-btn:active{background:var(--bg);}
-  .product-table .row-action-btn.delete{color:var(--danger);}
-  body.dark-theme .product-table tr{background:var(--surface);}
-}
-@media(max-width:360px){
-  .product-table tr{gap:8px 6px;padding:12px;}
-  .product-table td.col-qty,.product-table td.col-rate{font-size:12.5px;}
-  .product-table td.col-amount{font-size:14px;}
 }
 
 @media(max-width:640px){
@@ -2044,7 +2030,7 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
 <!-- ================= BOOT LOADER ================= -->
 <div class="boot-loader" id="bootLoader" aria-live="polite" aria-busy="true">
   <div class="boot-loader__card">
-    <img src="assets/logo/logo.png" alt="JAS Tech" class="boot-loader__logo">
+    <img src="assets/logo/logo.png" alt="Company Logo" class="boot-loader__logo">
     <div class="boot-loader__bar-track" aria-hidden="true">
       <div class="boot-loader__bar-fill"></div>
     </div>
@@ -2401,20 +2387,8 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
           <span>Add items to build this invoice. Qty, rate, and amount update automatically.</span>
         </div>
 
-        <div class="product-table-wrap hide" id="productTableWrap">
-          <table class="product-table" id="productTable">
-            <thead>
-              <tr>
-                <th class="col-idx">#</th>
-                <th>Product</th>
-                <th class="col-qty">Qty</th>
-                <th class="col-rate">Rate</th>
-                <th class="col-amount">Amount</th>
-                <th class="col-actions"></th>
-              </tr>
-            </thead>
-            <tbody id="productTableBody"></tbody>
-          </table>
+        <div class="product-list hide" id="productTableWrap">
+          <div class="product-list__items" id="productTableBody"></div>
         </div>
       </div>
     </section>
@@ -2430,7 +2404,7 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
           <span class="pdf-option__icon"><i class="fa-solid fa-droplet"></i></span>
           <span class="pdf-option__copy">
             <span class="pdf-option__title">Watermark</span>
-            <span class="pdf-option__description">Show JAS Tech watermark on PDF</span>
+            <span class="pdf-option__description">Show company watermark on PDF</span>
           </span>
           <span class="pdf-option__switch">
             <input type="checkbox" id="toggleWatermark" checked>
@@ -3310,6 +3284,11 @@ function applyConfig(){
   el.authCompanyName.textContent = (CONFIG.company.name + ' Billing').toUpperCase();
   el.resetPasswordCompanyName.textContent = (CONFIG.company.name + ' Billing').toUpperCase();
   document.title = CONFIG.company.name + ' Billing';
+
+  const metaDescription = document.getElementById('metaDescription');
+  if (metaDescription) {
+    metaDescription.setAttribute('content', `Professional billing software for ${CONFIG.company.name} — generate invoices in seconds.`);
+  }
 
   if(CONFIG.invoice.defaultNotes) el.invoiceNotes.value = CONFIG.invoice.defaultNotes;
   if(CONFIG.invoice.defaultNotes) state.notes = CONFIG.invoice.defaultNotes;
@@ -5225,17 +5204,25 @@ function renderProducts(){
   el.productTableBody.innerHTML = products.map((p, idx) => {
     const metaHtml = buildProductMetaHtml(p);
     return `
-      <tr data-id="${p.id}">
-        <td class="col-idx">${idx+1}</td>
-        <td class="col-name"><div class="prod-name">${escapeHtml(p.name)}</div>${metaHtml}</td>
-        <td class="col-qty" data-label="Qty">${p.qty}</td>
-        <td class="col-rate" data-label="Rate">${formatCurrency(p.rate)}</td>
-        <td class="col-amount" data-label="Amount">${formatCurrency(p.qty * p.rate)}</td>
-        <td class="col-actions">
-          <button class="row-action-btn" data-action="edit" data-id="${p.id}" aria-label="Edit product"><i class="fa-solid fa-pen"></i></button>
-          <button class="row-action-btn delete" data-action="delete" data-id="${p.id}" aria-label="Delete product"><i class="fa-solid fa-trash"></i></button>
-        </td>
-      </tr>`;
+      <article class="prod-card" data-id="${p.id}">
+        <div class="prod-card__top">
+          <span class="prod-card__idx">${idx+1}</span>
+          <i class="fa-solid fa-box"></i><span>Item</span>
+          <div class="prod-card__actions">
+            <button class="row-action-btn" data-action="edit" data-id="${p.id}" aria-label="Edit product" title="Edit"><i class="fa-solid fa-pen-to-square"></i></button>
+            <button class="row-action-btn delete" data-action="delete" data-id="${p.id}" aria-label="Delete product" title="Delete"><i class="fa-solid fa-trash-can"></i></button>
+          </div>
+        </div>
+        <div class="prod-card__content">
+          <div class="prod-card__info">
+            <div class="prod-name">${escapeHtml(p.name)}</div>
+            ${metaHtml}
+          </div>
+          <div class="prod-stat"><span class="prod-stat__label">Qty</span><b>${p.qty}</b></div>
+          <div class="prod-stat"><span class="prod-stat__label">Rate</span><b>${formatCurrency(p.rate)}</b></div>
+          <div class="prod-stat prod-stat--amt"><span class="prod-stat__label">Amount</span><b>${formatCurrency(p.qty * p.rate)}</b></div>
+        </div>
+      </article>`;
   }).join('');
 }
 
