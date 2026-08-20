@@ -565,7 +565,7 @@ body.dark-theme .confirm-icon--info{background:rgba(1,37,135,.4);color:var(--pri
 .confirm-icon--success{background:rgba(31,146,84,.3);color:var(--success);}
 .confirm-icon--danger{background:rgba(255,69,58,.2);color:var(--danger);}
 .modal--confirm p{margin:0;color:var(--muted);font-size:13.5px;line-height:1.5;}
-.modal--confirm .confirm-target{color:var(--text);font-weight:700;}
+.modal--confirm .confirm-target{color:var(--text);font-weight:700;overflow-wrap:anywhere;word-break:break-word;}
 
 .modal--preview { z-index: 150 !important; align-items: center !important; }
 .modal--preview .modal { max-width: 840px; width: 95%; border-radius: var(--radius); max-height: 95vh; display: flex; flex-direction: column; background: #525659 !important; }
@@ -780,7 +780,7 @@ body.dark-theme .offline-screen__icon-wrap{--ring-color:#1769FF}
 
 /* ---------- Auth shell / card / logo ---------- */
 
-.auth-shell{flex:1;display:flex;align-items:center;justify-content:center;padding:24px 16px;position:relative;min-height:100vh;background:radial-gradient(circle at 50% 0%, rgba(1,37,135,.075), transparent 30%), var(--bg);}
+.auth-shell{flex:1;display:flex;align-items:center;justify-content:center;position:relative;min-height:100vh;background:radial-gradient(circle at 50% 0%, rgba(1,37,135,.075), transparent 30%), var(--bg);}
 
 .auth-theme-toggle{position:absolute;top:max(16px, env(safe-area-inset-top));right:16px;background:var(--surface);border:1px solid var(--line);color:var(--muted);width:42px;height:42px;border-radius:12px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-sm);transition:background .15s ease,color .15s ease,transform .08s ease;backdrop-filter:blur(10px);}
 .auth-theme-toggle:hover{color:var(--primary-text);border-color:var(--line);background:var(--surface);}
@@ -829,7 +829,7 @@ body.dark-theme .auth-logo h1{text-shadow:0 0 22px rgba(1,37,135,.22);}
 .auth-checkbox-line a{color:var(--primary-text);font-weight:600;text-decoration:none;}
 .auth-checkbox-line a:hover{text-decoration:underline;}
 
-.auth-bottom-text{text-align:center;font-size:12px;color:var(--muted);margin-top:20px;}
+.auth-bottom-text{text-align:center;font-size:12px;color:var(--muted);margin:20px 0;}
 
 .auth-link{color:var(--primary-text);font-size:12px;font-weight:600;cursor:pointer;text-decoration:none;transition:text-decoration 0.2s ease;}
 .auth-link:hover{text-decoration:underline;color:var(--primary-text);}
@@ -887,7 +887,7 @@ body.dark-theme .verify-info strong{color:#F3F4F6;}
 /* ---------- Forgot-password hero ---------- */
 
 .auth-hero-icon{
-  position:relative;width:112px;height:112px;margin:2px auto 22px;display:flex;align-items:center;
+  position:relative;width:112px;height:112px;margin:12px auto 22px;display:flex;align-items:center;
   justify-content:center;border-radius:34px;background:radial-gradient(circle at 45% 35%, rgba(1,37,135,.16), rgba(1,37,135,.035) 55%, transparent 72%);color:var(--primary-text);overflow:visible;
 }
 .auth-hero-icon::before{
@@ -900,8 +900,8 @@ body.dark-theme .verify-info strong{color:#F3F4F6;}
   border-radius:50%;color:#FFFFFF;background:#012587;box-shadow:0 6px 18px rgba(1,37,135,.35);
 }
 .auth-hero-icon__ring{position:absolute;border-radius:50%;pointer-events:none;}
-.auth-hero-icon__ring--one{width:132px;height:132px;border:1px solid rgba(1,37,135,.15);}
-.auth-hero-icon__ring--two{width:154px;height:154px;border:1px solid rgba(1,37,135,.07);}
+.auth-hero-icon__ring--one{width:132px;height:132px;border:1px solid rgba(1,37,135,.5);}
+.auth-hero-icon__ring--two{width:154px;height:154px;border:1px solid rgba(1,37,135,.4);}
 
 #forgotPasswordForm .auth-card-heading{text-align:center;}
 #forgotPasswordForm .auth-field{margin-top:2px;}
@@ -940,14 +940,12 @@ body.dark-theme .verify-info strong{color:#F3F4F6;}
   .auth-form{gap:11px;}
   .auth-card-heading h2{font-size:21px;}
   .auth-field input{min-height:54px;font-size:14px;}
-  .auth-hero-icon{width:108px;height:108px;margin-top:12px;margin-bottom:20px;}
 }
 @media (max-width:380px){
   .auth-card{padding-left:18px;padding-right:18px;}
   .auth-logo img{width:60px;height:60px;}
   .auth-logo h1{font-size:18px;letter-spacing:2px;}
   .auth-card-heading h2{font-size:19px;}
-  .auth-hero-icon{width:96px;height:96px;}
   .auth-hero-icon > i:first-of-type{font-size:45px;}
 }
 
@@ -1652,7 +1650,7 @@ body.dark-theme .bill-card,body.dark-theme .bill-card__print{background:var(--su
 
 /* ---------- Pagination ---------- */
 
-.bills-pagination{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line);}
+.bills-pagination{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:14px;padding:8px;border-block:1px solid var(--line);}
 .bills-pagination__info{font-size:12.5px;color:var(--muted);font-weight:600;}
 .bills-pagination__controls{display:flex;align-items:center;gap:4px;flex-wrap:wrap;}
 .page-btn{min-width:32px;height:32px;padding:0 8px;border:1.5px solid var(--line);background:var(--white);color:var(--text);border-radius:var(--radius-sm);font-size:12.5px;font-weight:600;cursor:pointer;transition:border-color .15s ease,color .15s ease,background .15s ease;display:flex;align-items:center;justify-content:center;}
