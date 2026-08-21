@@ -697,7 +697,12 @@ body.dark-theme .nav-tabs{
   display:flex; align-items:center; gap:7px; transition:color .15s ease, border-color .15s ease;
 }
 .nav-tab:hover{color:var(--primary-text);}
-.nav-tab.active{color:var(--primary-text); border-bottom-color:var(--primary-text);}
+.nav-tab.active{
+  color:var(--primary-text);
+  border-bottom-color:var(--primary-text);
+  background:linear-gradient(to top,rgba(1,37,135,.15),transparent);
+}
+body.dark-theme .nav-tab.active{background:linear-gradient(to top,rgba(82,120,216,.2),transparent);}
 
 /* ---------- Boot loader ---------- */
 
@@ -1032,13 +1037,6 @@ body.dark-theme .field--icon > i{background:rgba(23, 105, 255, .16);}
 
 /* ---------- Layout: elevated section cards ---------- */
 
-#viewNewBill.app-shell{
-  max-width:720px;
-  gap:14px;
-  padding-bottom:0;
-  flex:0 0 auto;
-}
-
 #viewNewBill > .card{
   padding:20px 22px;
   border-radius:16px;
@@ -1071,10 +1069,6 @@ body.dark-theme .field--icon > i{background:rgba(23, 105, 255, .16);}
   width:100%;
 }
 
-#viewNewBill > .card:hover{
-  box-shadow:var(--shadow-md);
-}/* ---------- Card heading ---------- */
-
 #viewNewBill .card__heading,.card__heading-row .card__heading{
   font-size:12.5px;
   letter-spacing:.4px;
@@ -1095,12 +1089,7 @@ body.dark-theme .field--icon > i{background:rgba(23, 105, 255, .16);}
 
 body.dark-theme #viewNewBill .card__heading i{
   background:rgba(23,105,255,.16);
-}.card__heading-row{
-  margin-bottom:4px;
-}.card__heading-row .card__heading{
-  margin-bottom:0;
 }
-
 /* ---------- Bill To — grouped fields ---------- */
 
 /* Bill To — grouped fields (connected, one outer border) */
@@ -1299,62 +1288,6 @@ body.dark-theme #viewNewBill .nb-section--summary .summary-row + .summary-row{
 
 /* ---------- PDF Options ---------- */
 
-.pdf-options-card{
-  padding:18px 20px;
-}
-
-.pdf-options__heading{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  margin:0 0 12px;
-}
-
-/* Header icon/title treatment — matches other New Bill section headers
-   (folds in what used to be a separate "pdf-options-header-match" patch). */
-#viewNewBill .pdf-options__heading{
-  display:flex;align-items:center;gap:8px;margin:0;
-}.pdf-options__heading-icon{
-  width:28px;height:28px;border-radius:9px;
-  display:inline-flex;align-items:center;justify-content:center;
-  flex:0 0 28px;
-  background:rgba(1,37,135,.08);
-  color:var(--primary-text);font-size:13px;
-}.pdf-options__heading h2{
-  margin:0;font-size:12.5px;font-weight:700;
-  text-transform:uppercase;letter-spacing:.4px;
-  line-height:1.2;color:var(--primary-text);
-}
-body.dark-theme #viewNewBill .pdf-options__heading-icon{
-  background:rgba(23,105,255,.16);
-}
-
-.pdf-options__heading-icon{
-  width:auto;
-  height:auto;
-  flex:0 0 auto;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  color:var(--primary-text);
-  font-size:14px;
-}
-
-.pdf-options__heading h2{
-  margin:0;
-  color:var(--primary-text);
-  font-size:12px;
-  line-height:1.2;
-  font-weight:700;
-  text-transform:uppercase;
-  letter-spacing:.2px;
-}
-
-.pdf-options__list{
-  display:flex;
-  flex-direction:column;
-}
-
 .pdf-option{
   min-height:62px;
   display:grid;
@@ -1454,42 +1387,10 @@ body.dark-theme #viewNewBill .pdf-options__heading-icon{
   transform:translateX(18px);
 }
 
-.pdf-option__switch input:focus-visible + .pdf-option__switch-track{
-  box-shadow:0 0 0 3px var(--focus-ring);
-}
-
-.pdf-option:has(.pdf-option__switch input:disabled){
-  cursor:not-allowed;
-  opacity:.5;
-}
-
-body.dark-theme .pdf-options-card{
-  background:var(--surface);
-  border-color:var(--line);
-}
-
-body.dark-theme .pdf-option__icon{
-  background:var(--bg);
-  border-color:var(--line);
-  color:var(--primary-text);
-}
-
-/* Note: the original combo selector here also listed
-   "body.dark-theme .pdf-option__heading-icon" — a typo (missing the "s" in
-   "options") that never matched any element, so it's dropped as dead CSS. */
-body.dark-theme .pdf-option__description{
-  color:var(--muted);
-}
-
 body.dark-theme .pdf-option__switch-track{
   background:#3A3A40;
 }
 
-body.dark-theme .pdf-option__switch input:checked + .pdf-option__switch-track{
-  background:var(--primary-text);
-}.pdf-options-card{
-  padding:18px 20px 12px;
-}
 
 /* ---------- Responsive ---------- */
 
@@ -1771,7 +1672,7 @@ body.dark-theme .admin-stat--rejected .admin-stat__value{color:#FF6259;}
   flex:0 0 28px;background:rgba(1,37,135,.08);color:var(--primary-text);font-size:13px;
 }
 body.dark-theme #viewAdmin .admin-panel .card__heading i{background:rgba(23,105,255,.16);}/* ---------- Empty state ---------- */
-.admin-empty{margin:0 12px 12px;padding:18px 14px;min-height:128px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;border:1.5px dashed var(--line);border-radius:14px;background:rgba(23,105,255,.04);}
+.admin-empty{margin:0 18px 18px;padding:18px 14px;min-height:128px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;border:1.5px dashed var(--line);border-radius:14px;background:rgba(23,105,255,.04);}
 .admin-empty__icon{position:relative;width:48px;height:48px;margin:0 0 10px;display:flex;align-items:center;justify-content:center;}
 .admin-empty__icon::before{content:"";position:absolute;inset:0;border-radius:14px;background:rgba(23,105,255,.14);}
 .admin-empty__icon > i{position:relative;z-index:1;margin:0;font-size:20px;color:#5B9CFF;}
@@ -2432,10 +2333,9 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
       </div>
     </section>
 
-    <section class="pdf-options-card nb-section nb-section--options">
-      <div class="pdf-options__heading">
-        <div class="pdf-options__heading-icon"><i class="fa-solid fa-sliders"></i></div>
-        <h2>PDF Options</h2>
+    <section class="nb-section nb-section--options">
+      <div class="card__heading-row">
+        <div class="card__heading"><i class="fa-solid fa-sliders"></i>PDF Options</div>
       </div>
 
       <div class="pdf-options__list">
@@ -2616,20 +2516,20 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
 
     <section class="card admin-panel">
       <div class="admin-panel__header">
-              <h2 class="card__heading"><i class="fa-solid fa-user-clock"></i> Pending Approvals</h2>
-            </div>
+        <h2 class="card__heading"><i class="fa-solid fa-user-clock"></i> Pending Approvals</h2>
+      </div>
       <div id="pendingUsersLoading" class="admin-list-loading-skeleton hide" aria-hidden="true">
-  <div class="admin-skeleton-row"></div>
-  <div class="admin-skeleton-row"></div>
-  <div class="admin-skeleton-row"></div>
-</div>
+        <div class="admin-skeleton-row"></div>
+        <div class="admin-skeleton-row"></div>
+        <div class="admin-skeleton-row"></div>
+      </div>
       <div id="pendingUsersEmpty" class="empty-state admin-empty hide">
-  <div class="admin-empty__icon" aria-hidden="true">
-    <i class="fa-solid fa-user-check"></i>
-  </div>
-  <p>All caught up</p>
-  <span>No pending sign-ups right now. New requests will show here for approval.</span>
-</div>
+        <div class="admin-empty__icon" aria-hidden="true">
+          <i class="fa-solid fa-user-check"></i>
+        </div>
+        <p>All caught up</p>
+        <span>No pending sign-ups right now. New requests will show here for approval.</span>
+      </div>
       <div id="pendingUsersList" class="pending-users-list"></div>
     </section>
 
@@ -2645,29 +2545,36 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
         <button class="admin-filter-btn" id="btnAdminUserFilter" type="button" aria-label="Show all users" title="Show all users"><i class="fa-solid fa-filter"></i></button>
       </div>
       <div class="admin-user-filters hide" id="adminUserFilters">
-  <div class="admin-user-filter-wrap">
-    <button type="button" class="date-filter-btn" id="btnAdminRoleFilter"><span id="adminRoleFilterLabel">All Roles</span><i class="fa-solid fa-chevron-down caret"></i></button>
-    <div class="date-dropdown hide" id="adminRoleDropdown">
-      <button type="button" class="date-dropdown__item active" data-role="">All Roles</button>
-      <button type="button" class="date-dropdown__item" data-role="admin">Admin</button>
-      <button type="button" class="date-dropdown__item" data-role="employee">Employee</button>
-    </div>
-  </div>
-  <div class="admin-user-filter-wrap">
-    <button type="button" class="date-filter-btn" id="btnAdminStatusFilter"><span id="adminStatusFilterLabel">All Status</span><i class="fa-solid fa-chevron-down caret"></i></button>
-    <div class="date-dropdown hide" id="adminStatusDropdown">
-      <button type="button" class="date-dropdown__item active" data-status="">All Status</button>
-      <button type="button" class="date-dropdown__item" data-status="approved">Approved</button>
-      <button type="button" class="date-dropdown__item" data-status="pending">Pending</button>
-      <button type="button" class="date-dropdown__item" data-status="rejected">Rejected</button>
-    </div>
-  </div>
-</div>
+        <div class="admin-user-filter-wrap">
+          <button type="button" class="date-filter-btn" id="btnAdminRoleFilter"><span id="adminRoleFilterLabel">All Roles</span><i class="fa-solid fa-chevron-down caret"></i></button>
+          <div class="date-dropdown hide" id="adminRoleDropdown">
+            <button type="button" class="date-dropdown__item active" data-role="">All Roles</button>
+            <button type="button" class="date-dropdown__item" data-role="admin">Admin</button>
+            <button type="button" class="date-dropdown__item" data-role="employee">Employee</button>
+          </div>
+        </div>
+        <div class="admin-user-filter-wrap">
+          <button type="button" class="date-filter-btn" id="btnAdminStatusFilter"><span id="adminStatusFilterLabel">All Status</span><i class="fa-solid fa-chevron-down caret"></i></button>
+          <div class="date-dropdown hide" id="adminStatusDropdown">
+            <button type="button" class="date-dropdown__item active" data-status="">All Status</button>
+            <button type="button" class="date-dropdown__item" data-status="approved">Approved</button>
+            <button type="button" class="date-dropdown__item" data-status="pending">Pending</button>
+            <button type="button" class="date-dropdown__item" data-status="rejected">Rejected</button>
+          </div>
+        </div>
+      </div>
       <div id="allUsersLoading" class="admin-list-loading-skeleton hide" aria-hidden="true">
-  <div class="admin-skeleton-row"></div>
-  <div class="admin-skeleton-row"></div>
-  <div class="admin-skeleton-row"></div>
-</div>
+        <div class="admin-skeleton-row"></div>
+        <div class="admin-skeleton-row"></div>
+        <div class="admin-skeleton-row"></div>
+      </div>
+      <div id="allUsersEmpty" class="empty-state admin-empty hide" style="margin-top:8px;">
+        <div class="admin-empty__icon" aria-hidden="true">
+          <i class="fa-solid fa-user-slash"></i>
+        </div>
+        <p>No users found</p>
+        <span>Try adjusting your filters or check back later.</span>
+      </div>
       <div id="allUsersList" class="admin-user-list"></div>
       <div class="bills-pagination hide" id="allUsersPagination">
         <div class="bills-pagination__info" id="allUsersPaginationInfo"></div>
@@ -3235,6 +3142,7 @@ function cacheElements(){
   el.adminRoleFilterLabel = document.getElementById('adminRoleFilterLabel');
   el.adminStatusFilterLabel = document.getElementById('adminStatusFilterLabel');
   el.allUsersLoading = document.getElementById('allUsersLoading');
+  el.allUsersEmpty = document.getElementById('allUsersEmpty');
   el.allUsersList = document.getElementById('allUsersList');
   el.allUsersPagination = document.getElementById('allUsersPagination');
   el.allUsersPaginationInfo = document.getElementById('allUsersPaginationInfo');
@@ -6342,10 +6250,8 @@ async function loadPendingUsers(){
     return;
   }
 
-  if (!data.length) {
-    el.pendingUsersEmpty.classList.remove('hide');
-    return;
-  }
+  el.pendingUsersEmpty.classList.toggle('hide', data.length > 0);
+  if (!data.length) return;
 
   el.pendingUsersList.innerHTML = data.map(u => {
     const initials = (u.name || u.email || '?').split(/\s+/).filter(Boolean).slice(0, 2).map(part => part.charAt(0)).join('').toUpperCase();
@@ -6376,6 +6282,7 @@ async function loadAllUsers(resetToFirstPage = false){
   const status = el.adminStatusFilter?.dataset.value || '';
 
   el.allUsersLoading.classList.remove('hide');
+  el.allUsersEmpty.classList.add('hide');
   el.allUsersList.innerHTML = '';
 
   const from = (usersPage - 1) * USERS_PAGE_SIZE;
@@ -6412,24 +6319,13 @@ async function loadAllUsers(resetToFirstPage = false){
   }
 
   usersTotalCount = count || 0;
-  renderAllUsers(data || []);
+  const users = data || [];
+  el.allUsersEmpty.classList.toggle('hide', users.length > 0);
+  renderAllUsers(users);
   renderAllUsersPagination();
 }
 
 function renderAllUsers(users){
-  if (!users.length) {
-    el.allUsersList.innerHTML = `
-      <div class="empty-state admin-empty">
-        <div class="admin-empty__icon" aria-hidden="true">
-          <i class="fa-solid fa-user-slash"></i>
-        </div>
-        <p>No users found</p>
-        <span>Try adjusting your filters or check back later.</span>
-      </div>
-    `;
-    return;
-  }
-
   el.allUsersList.innerHTML = users.map(u => {
     const isSelf = u.id === currentProfile.id;
     const initials = (u.name || u.email || '?').split(/\s+/).filter(Boolean).slice(0, 2).map(part => part.charAt(0)).join('').toUpperCase();
