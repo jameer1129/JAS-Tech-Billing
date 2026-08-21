@@ -541,7 +541,7 @@ body.dark-theme .toast-card--error{
 @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
 .modal{background:var(--bg);width:100%;max-width:480px;border-radius:var(--radius);max-height:90vh;overflow-y:auto;animation:modalPop .18s ease; transition: background 0.3s ease;border:1px solid var(--line);}
 @keyframes modalPop{from{transform:scale(.96);opacity:0;}to{transform:scale(1);opacity:1;}}
-.modal__header{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 8px;}
+.modal__header{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 8px;border-bottom: 1.5px solid var(--line);}
 .modal__header h3{margin:0;font-size:16px;color:var(--primary-text);}
 .modal__close{background:transparent;border:none;width:32px;height:32px;border-radius:8px;cursor:pointer;color:var(--muted);font-size:14px;}
 .modal__body{padding:12px 20px;display:flex;flex-direction:column;gap:14px;}
@@ -717,7 +717,7 @@ body.dark-theme .nav-tabs{
 .offline-screen{position:fixed;inset:0;z-index:5000;display:flex;align-items:center;justify-content:center;padding:60px 28px 20px;background:var(--bg);color:var(--text);text-align:center;overflow:hidden}
 .offline-screen__content{width:min(100%,390px);display:flex;flex-direction:column;align-items:center;gap:0;position:relative;z-index:1}
 
-.offline-screen__icon-wrap{position:relative;display:flex;align-items:center;justify-content:center;z-index:2;width:120px;height:120px;border-radius:50%;--ring-color:var(--primary-text);animation:offlineCorePulse 2.8s ease-out infinite}
+.offline-screen__icon-wrap{position:relative;display:flex;align-items:center;justify-content:center;z-index:2;width:120px;height:120px;border-radius:50%;--ring-color:var(--primary-text);}
 .offline-screen__icon-wrap::before,.offline-screen__icon-wrap::after{content:"";position:absolute;border:1.5px solid var(--primary-text);border-radius:50%;opacity:0;pointer-events:none}
 .offline-screen__icon-wrap::before{inset:0;animation:offlineRing 2.8s linear infinite}
 .offline-screen__icon-wrap::after{inset:0;animation:offlineRing 2.8s linear infinite;animation-delay:.7s}
@@ -745,7 +745,6 @@ body.dark-theme .nav-tabs{
 .offline-screen__help span{display:block;color:var(--muted);font-size:12.5px;line-height:1.5}
 
 /* Animations */
-@keyframes offlineCorePulse{0%,100%{transform:scale(1)}50%{transform:scale(1.035)}}
 @keyframes offlineRing{0%{transform:scale(1);opacity:.5}70%{opacity:.12}100%{transform:scale(2.3);opacity:0}}
 
 /* Dark theme */
@@ -932,6 +931,32 @@ body.dark-theme .verify-info strong{color:#F3F4F6;}
 }
 
 /* ---------- Responsive ---------- */
+
+/* ---------- Change Password ---------- */
+.change-pw-help{
+  margin:-3px 0 0;
+  font-size:11.5px;
+  line-height:1.45;
+  color:var(--muted);
+  text-align:left;
+  overflow-wrap:anywhere;
+}
+.change-pw-help .auth-link{
+  font-size:11.5px;
+  white-space:normal;
+}
+
+@media (max-width:640px){
+  #changePasswordModalOverlay .modal__footer.change-pw-footer{
+    flex-direction:column;
+    gap:9px;
+  }
+  #changePasswordModalOverlay .modal__footer.change-pw-footer .btn{
+    width:100%;
+    flex:0 0 auto;
+    min-height:48px;
+  }
+}
 
 @media (max-width:640px){
   .auth-shell{min-height:100dvh;align-items:center;}
@@ -1126,8 +1151,8 @@ body.dark-theme #viewNewBill .card__heading i{
 /* ---------- Products section ---------- */
 
 #viewNewBill #btnAddProduct{
-  min-height:32px;
-  padding:6px 11px;
+  min-height:28px;
+  padding:5px 11px;
   border-radius:9px;
   font-size:12px;
   font-weight:700;
@@ -1600,7 +1625,7 @@ body.dark-theme .bills-filter-toggle.active{background:rgba(1,37,135,.15);}
 
 .bills-search-input-wrap{position:relative;}
 .bills-search-input-wrap i.search-icon{font-size:12px;}
-.bills-search-input-wrap input{width:100%;padding:11px 38px 11px 40px;border:0 !important;border-radius:0 !important;font-size:14px;color:var(--text);background:transparent;outline:none;box-shadow:none !important;}
+.bills-search-input-wrap input{width:100%;padding:11px 11px 11px 40px;border:0 !important;border-radius:0 !important;font-size:14px;color:var(--text);background:transparent;outline:none;box-shadow:none !important;}
 .bills-search-input-wrap input:focus{border:0;box-shadow:none;}
 body.dark-theme .bills-search-input-wrap input{background:var(--surface);color:var(--text);}
 .bills-search-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;transition:color .15s ease,background .15s ease;}
@@ -2375,7 +2400,7 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
     <section class="nb-section nb-section--products">
       <div class="card__heading-row">
         <h2 class="card__heading"><i class="fa-solid fa-box-open"></i> Products</h2>
-        <button class="btn btn--outline btn--sm" id="btnAddProduct"><i class="fa-solid fa-plus"></i> Add</button>
+        <button class="btn btn--primary btn--sm" id="btnAddProduct"><i class="fa-solid fa-plus"></i> Add</button>
       </div>
 
       <div id="productListWrap">
@@ -2860,10 +2885,15 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
         <input type="password" id="changePwConfirm" autocomplete="new-password" placeholder="Confirm new password" aria-label="Confirm new password" maxlength="64">
         <button type="button" class="pw-toggle-btn" data-target="changePwConfirm" aria-label="Show password"><i class="fa-regular fa-eye"></i></button>
       </div>
+
+      <p class="change-pw-help">
+        Don't know your current password?
+        <a href="#" id="btnChangePwForgot" class="auth-link">Log Out &amp; Forgot Password</a>
+      </p>
     </div>
-    <div class="modal__footer">
-      <button class="btn btn--ghost" id="btnCancelChangePw">Cancel</button>
+    <div class="modal__footer change-pw-footer">
       <button class="btn btn--primary" id="btnConfirmChangePw"><i class="fa-solid fa-key"></i> Update Password</button>
+      <button class="btn btn--ghost" id="btnCancelChangePw">Cancel</button>
     </div>
   </div>
 </div>
@@ -3946,6 +3976,10 @@ function setAuthTab(tab){
 
 async function handleGoogleLogin(){
   hideAuthMsg();
+  const googleButton = el.btnGoogleLogin;
+  if (googleButton?.disabled) return;
+  if (googleButton) googleButton.disabled = true;
+  showActionLoader('Signing in with Google...');
   try {
     // OAuth performs a full-page redirect, so carry the Remember me choice
     // through the redirect in sessionStorage. The callback will create ONLY
@@ -3965,9 +3999,15 @@ async function handleGoogleLogin(){
       provider: 'google',
       options: { redirectTo: window.location.origin + window.location.pathname }
     });
-    if (error) showAuthMsg(error.message || 'Could not start Google sign-in.');
+    if (error) {
+      hideActionLoader();
+      if (googleButton) googleButton.disabled = false;
+      showAuthMsg(error.message || 'Could not start Google sign-in.');
+    }
   } catch (err) {
     console.error(err);
+    hideActionLoader();
+    if (googleButton) googleButton.disabled = false;
     showAuthMsg('Could not start Google sign-in. Please try again.');
   }
 }
@@ -6929,6 +6969,18 @@ function bindEvents(){
   el.btnCloseChangePwModal.addEventListener('click', closeChangePasswordModal);
   el.btnCancelChangePw.addEventListener('click', closeChangePasswordModal);
   el.btnConfirmChangePw.addEventListener('click', handleChangePassword);
+
+  // If the user does not know the current password, perform a real logout
+  // and take them directly to the normal Forgot Password flow.
+  const btnChangePwForgot = document.getElementById('btnChangePwForgot');
+  if (btnChangePwForgot) {
+    btnChangePwForgot.addEventListener('click', async (event) => {
+      event.preventDefault();
+      closeChangePasswordModal();
+      await handleLogout();
+      setAuthTab('forgot');
+    });
+  }
   el.btnDrawerOpen.addEventListener('click', openDrawer);
   el.btnDrawerClose.addEventListener('click', closeDrawer);
   el.drawerBackdrop.addEventListener('click', closeDrawer);
