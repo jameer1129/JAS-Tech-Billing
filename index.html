@@ -5616,7 +5616,7 @@ async function generatePdfBlob(){
       margin: 0,
       filename: `${CONFIG.invoice.filePrefix}${state.invoiceNumber}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#FFFFFF', logging: false, width: 794, windowWidth: 794, scrollX: 0, scrollY: 0, x: 0, y: 0 },
+      html2canvas: { scale: 4, useCORS: true, allowTaint: true, backgroundColor: '#FFFFFF', logging: false, width: 794, windowWidth: 794, scrollX: 0, scrollY: 0, x: 0, y: 0 },
       jsPDF: { unit: 'px', format: [794, 1123], orientation: 'portrait' },
       pagebreak: { mode: ['css', 'legacy'] }
     };
