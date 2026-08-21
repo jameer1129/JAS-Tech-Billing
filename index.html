@@ -732,7 +732,7 @@ body.dark-theme .nav-tab.active{background:linear-gradient(to top,rgba(82,120,21
    OFFLINE SCREEN
    ========================================================== */
 
-.offline-screen{position:fixed;inset:0;z-index:5000;display:flex;align-items:center;justify-content:center;padding:60px 28px 20px;background:var(--bg);color:var(--text);text-align:center;overflow:hidden}
+.offline-screen{position:fixed;inset:0;z-index:5000;display:flex;align-items:center;justify-content:center;padding:60px 28px 20px;background:var(--bg);color:var(--text);text-align:center;overflow:hidden;height:100dvh;min-height:100dvh}
 .offline-screen__content{width:min(100%,390px);display:flex;flex-direction:column;align-items:center;gap:0;position:relative;z-index:1}
 
 .offline-screen__icon-wrap{position:relative;display:flex;align-items:center;justify-content:center;z-index:2;width:120px;height:120px;border-radius:50%;--ring-color:var(--primary-text);}
@@ -1924,6 +1924,9 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
 
 <!-- ================= OFFLINE UI ================= -->
 <div class="offline-screen hide" id="offlineScreen" aria-live="polite">
+  <button class="auth-theme-toggle theme-toggle" aria-label="Toggle Theme">
+    <i class="fa-solid fa-moon"></i>
+  </button>
   <div class="offline-screen__content">
     <div class="offline-screen__brand" aria-hidden="true">
       <div class="offline-screen__icon-wrap">
@@ -1939,7 +1942,7 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
     </div>
     <h2>You’re Offline</h2>
     <p>
-      No internet connection detected.<br>
+      No internet or poor connection detected.<br>
       Please check your connection and try again.
     </p>
     <button class="btn btn--primary" id="btnOfflineRetry" type="button">
