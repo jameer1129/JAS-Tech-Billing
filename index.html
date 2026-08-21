@@ -10,7 +10,12 @@ html.theme-preload .boot-loader__bar-track{background:#1B1F27!important}
 <script>
 /* Clear Google sign-in loader when returning from OAuth (including Back/Cancel). */
 window.addEventListener('pageshow', () => {
+  const hasOAuthReturn = sessionStorage.getItem(OAUTH_REMEMBER_KEY) !== null;
+
+  if (!hasOAuthReturn) return;
+
   if (typeof hideActionLoader === 'function') hideActionLoader();
+
   const googleBtn = document.getElementById('btnGoogleLogin');
   if (googleBtn) googleBtn.disabled = false;
 });
@@ -272,7 +277,7 @@ body.dark-theme .prod-card__top{background:#0D0F14;}
 .prod-card__info{flex:1 1 auto;min-width:70px;}
 .prod-card .prod-name{font-size:14px;font-weight:700;line-height:1.35;overflow-wrap:anywhere;}
 .prod-card .prod-desc-line{font-size:12.5px;color:var(--muted);margin-top:3px;overflow-wrap:anywhere;}
-.prod-card .prod-sn-line{display:inline-block;margin-top:5px;padding:3px 8px;border-radius:7px;background:rgba(1,37,135,.07);font-size:11.5px;overflow-wrap:anywhere;}
+.prod-card .prod-sn-line{display:inline-block;margin-top:5px;padding:1px 3px;border-radius:7px;background:rgba(1,37,135,.07);font-size:11.5px;overflow-wrap:anywhere;}
 body.dark-theme .prod-card .prod-sn-line{background:rgba(23,105,255,.14);}
 .prod-card .prod-sn-line .sn-label{color:var(--primary-text);font-weight:700;}
 .prod-stat{flex:1 1 auto;min-width:70px;padding:7px 10px;border-radius:9px;background:var(--bg);font-size:13px;box-sizing:border-box;}
@@ -548,7 +553,7 @@ body.dark-theme .toast-card--error{
 @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
 .modal{background:var(--bg);width:100%;max-width:480px;border-radius:var(--radius);max-height:90vh;overflow-y:auto;animation:modalPop .18s ease; transition: background 0.3s ease;border:1px solid var(--line);}
 @keyframes modalPop{from{transform:scale(.96);opacity:0;}to{transform:scale(1);opacity:1;}}
-.modal__header{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 8px;border-bottom: 1.5px solid var(--line);}
+.modal__header{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 8px;}
 .modal__header h3{margin:0;font-size:16px;color:var(--primary-text);}
 .modal__close{background:transparent;border:none;width:32px;height:32px;border-radius:8px;cursor:pointer;color:var(--muted);font-size:14px;}
 .modal__body{padding:12px 20px;display:flex;flex-direction:column;gap:14px;}
@@ -707,14 +712,14 @@ body.dark-theme .nav-tab.active{background:linear-gradient(to top,rgba(82,120,21
 /* ---------- Boot loader ---------- */
 
 .boot-loader{position:fixed;inset:0;background: rgba(15,23,42,.42);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:9998;display:flex;align-items:center;justify-content:center;}
-.boot-loader__card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:28px 32px;min-width:220px;box-sizing:border-box;}
+.boot-loader__card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px 22px;min-width:220px;box-sizing:border-box;}
 .boot-loader__logo{width:50px;height:50px;display:block;object-fit:contain;}
 .boot-loader__bar-track{width:180px;height:5px;background:var(--line);border-radius:999px;overflow:hidden;}
 .boot-loader__bar-fill{height:100%;width:45%;background:var(--primary-text);border-radius:999px;animation:barSlide 1.1s ease-in-out infinite;}
 @keyframes barSlide{0%{transform:translateX(-120%);}50%{transform:translateX(120%);}100%{transform:translateX(320%);}}
 .boot-loader__label{padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;font-size:14px;font-weight:500;}
 @media(max-width:640px){
-  .boot-loader__card{gap:16px;min-width:176px;padding:24px 24px;border-radius:16px;}
+  .boot-loader__card{gap:16px;min-width:176px;padding:14px 18px;border-radius:16px;}
   .boot-loader__bar-track{width:140px;}
 }
 
@@ -959,15 +964,6 @@ body.dark-theme .verify-info strong{color:#F3F4F6;}
 }
 
 @media (max-width:640px){
-  #changePasswordModalOverlay .change-pw-help .auth-link{
-    display:block;
-    width:max-content;
-    max-width:100%;
-    margin-top:2px;
-  }
-}
-
-@media (max-width:640px){
   #changePasswordModalOverlay .modal__footer.change-pw-footer{
     flex-direction:column;
     gap:9px;
@@ -1072,7 +1068,7 @@ body.dark-theme .field--icon > i{background:rgba(23, 105, 255, .16);}
 #viewNewBill .card__heading,.card__heading-row .card__heading{
   font-size:12.5px;
   letter-spacing:.4px;
-  margin-bottom:16px;
+  margin-bottom:12px;
 }
 
 #viewNewBill .card__heading i{
@@ -1719,7 +1715,7 @@ body.dark-theme .user-row__info::before{background:rgba(91,156,255,.18);color:#7
 .pending-users-list .user-row__actions{width:100%;display:flex;justify-content:flex-end;align-items:center;gap:8px;flex-wrap:wrap;}
 .pending-users-list .user-row__actions .btn{flex:0 0 auto;}
 .admin-user-list .kebab-btn{width:36px;height:36px;font-size:15px;}
-.admin-panel .bills-pagination{margin:0;padding:14px 20px;}
+.admin-panel .bills-pagination{margin:0;padding:8px 14px;}
 
 /* ---------- Search empty state ---------- */
 
@@ -2810,7 +2806,7 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
       </div>
 
       <p class="change-pw-help">
-        Don't know your current password?
+        Don't know password?
         <a href="#" id="btnChangePwForgot" class="auth-link">Log Out &amp; Forgot Password</a>
       </p>
     </div>
@@ -7588,13 +7584,15 @@ async function init(){
 
     const { data: { session: oauthSession } = {} } = await oauthClient.auth.getSession();
     clearStoredOAuthRememberChoice();
-
+    
     if (oauthSession) {
       currentSession = oauthSession;
       clearPendingSignup();
       normalAuthResolved = true;
+      showActionLoader('Loading your account...');
       await afterAuthResolved();
     } else {
+      hideActionLoader();
       showScreen('auth');
     }
 
