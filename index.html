@@ -8,6 +8,13 @@ html.theme-preload .boot-loader__card{background:#000!important;border-color:#1B
 html.theme-preload .boot-loader__bar-track{background:#1B1F27!important}
 </style>
 <script>
+/* Clear Google sign-in loader when returning from OAuth (including Back/Cancel). */
+window.addEventListener('pageshow', () => {
+  if (typeof hideActionLoader === 'function') hideActionLoader();
+  const googleBtn = document.getElementById('btnGoogleLogin');
+  if (googleBtn) googleBtn.disabled = false;
+});
+
 (function(){
   try{
     if(localStorage.getItem('jas_theme')==='dark'){
@@ -943,7 +950,16 @@ body.dark-theme .verify-info strong{color:#F3F4F6;}
 }
 .change-pw-help .auth-link{
   font-size:11.5px;
-  white-space:normal;
+  white-space:nowrap;
+}
+
+@media (max-width:640px){
+  #changePasswordModalOverlay .change-pw-help .auth-link{
+    display:block;
+    width:max-content;
+    max-width:100%;
+    margin-top:2px;
+  }
 }
 
 @media (max-width:640px){
@@ -2892,8 +2908,8 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
       </p>
     </div>
     <div class="modal__footer change-pw-footer">
-      <button class="btn btn--primary" id="btnConfirmChangePw"><i class="fa-solid fa-key"></i> Update Password</button>
       <button class="btn btn--ghost" id="btnCancelChangePw">Cancel</button>
+      <button class="btn btn--primary" id="btnConfirmChangePw"><i class="fa-solid fa-key"></i> Update Password</button>
     </div>
   </div>
 </div>
@@ -3976,44 +3992,57 @@ function setAuthTab(tab){
 
 async function handleGoogleLogin(){
   hideAuthMsg();
+
   const googleButton = el.btnGoogleLogin;
   if (googleButton?.disabled) return;
+
   if (googleButton) googleButton.disabled = true;
   showActionLoader('Signing in with Google...');
+
+  let redirectStarted = false;
+
   try {
-    // OAuth performs a full-page redirect, so carry the Remember me choice
-    // through the redirect in sessionStorage. The callback will create ONLY
-    // the selected storage client with detectSessionInUrl enabled.
     const rememberMe = getRememberMeEnabled();
+
     try {
-      window.sessionStorage.setItem(OAUTH_REMEMBER_KEY, rememberMe ? '1' : '0');
+      window.sessionStorage.setItem(
+        OAUTH_REMEMBER_KEY,
+        rememberMe ? '1' : '0'
+      );
     } catch (err) {
       console.warn('Could not save OAuth Remember me choice:', err);
     }
 
-    // Ensure an OAuth login can never leave an older normal session in the
-    // opposite storage. This also prevents Google from ending up in both.
     setNormalAuthStorage(rememberMe);
 
     const { error } = await supabaseClient.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin + window.location.pathname }
+      options: {
+        redirectTo: window.location.origin + window.location.pathname
+      }
     });
+
     if (error) {
       hideActionLoader();
       if (googleButton) googleButton.disabled = false;
       showAuthMsg(error.message || 'Could not start Google sign-in.');
+      return;
     }
+
+    // OAuth redirect has started. Keep the loader visible until navigation.
+    redirectStarted = true;
   } catch (err) {
     console.error(err);
     hideActionLoader();
     if (googleButton) googleButton.disabled = false;
     showAuthMsg('Could not start Google sign-in. Please try again.');
+  } finally {
+    if (!redirectStarted && googleButton) {
+      googleButton.disabled = false;
+    }
   }
 }
 
-// Auth feedback uses the same dismissible toast cards as the rest of the app.
-// There are no inline form alerts, keeping every auth page at its intended height.
 function showAuthMsg(msg, kind = 'error'){ showToast(msg, kind, AUTH_TOAST_DURATION_MS); }
 function hideAuthMsg(){ /* Toasts are independently dismissible. */ }
 
