@@ -1637,7 +1637,7 @@ body.dark-theme .bill-card--skeleton::before{
 .admin-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;}
 .admin-stat{min-height:108px;padding:8px;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;border-radius:16px;}
 .admin-stat::after{content:"";position:absolute;right:-14px;bottom:-18px;width:68px;height:68px;border-radius:50%;background:currentColor;opacity:.07;}
-.admin-stat__icon{width:28px;height:28px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:12px;background:rgba(1,37,135,.1);color:var(--primary-text);}
+.admin-stat__icon{width:32px;height:32px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:14px;background:rgba(1,37,135,.1);color:var(--primary-text);}
 .admin-stat__values{text-align: center;}
 .admin-stat__value{margin:8px 0 0;font-size:clamp(18px,5vw,23px);line-height:1;font-weight:700;color:var(--primary-text);letter-spacing:-.2px;}
 .admin-stat__label{font-size:11px;font-weight:600;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -1653,7 +1653,9 @@ body.dark-theme .admin-stat--pending .admin-stat__icon{background:rgba(255,176,3
 body.dark-theme .admin-stat--pending .admin-stat__value{color:#FFB020;}
 body.dark-theme .admin-stat--rejected .admin-stat__icon{background:rgba(255,69,58,.18);color:#FF6259;}
 body.dark-theme .admin-stat--rejected .admin-stat__value{color:#FF6259;}
-
+@media(max-width:640px){
+  .admin-stat__icon{width:28px;height:28px;font-size:12px;}
+}
 /* ---------- Panel header ---------- */
 
 .admin-panel{padding:0;overflow:visible;}
