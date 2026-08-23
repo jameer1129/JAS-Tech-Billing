@@ -3,7 +3,7 @@ JAS TECH BILLING — service-worker.js
 Fresh-First With Timeout Fallback + Stale-While-Revalidate
 ========================================================= */
 
-const CACHE_NAME = "jas-tech-assets-v2.1.4";
+const CACHE_NAME = "jas-tech-assets-v2.1.5";
 
 // How long we wait for the network before falling back to whatever's cached.
 // Without this, a slow/flaky connection makes fetch() hang indefinitely on
@@ -113,7 +113,18 @@ function staleWhileRevalidate(request) {
     cache.match(request).then((cached) => {
       const network = fetch(request)
         .then((response) => {
-          if (response && response.ok) {
+          // response.ok is only meaningful for same-origin/CORS responses.
+          // Cross-origin requests without a `crossorigin` attribute (e.g.
+          // our <script src="https://cdn.jsdelivr.net/..."> tags) come
+          // back as "opaque" responses: status is always 0 and .ok is
+          // always false, even on a successful download, because the
+          // browser hides the details for no-cors requests. Treating
+          // opaque as "cacheable" is the only way to actually get these
+          // CDN scripts into the cache — a rejected fetch (thrown error)
+          // is still caught separately below and skips caching.
+          const isCacheable =
+            response && (response.ok || response.type === "opaque");
+          if (isCacheable) {
             cache.put(request, response.clone()).catch((error) => {
               console.warn("Cache update failed:", error);
             });
@@ -151,6 +162,10 @@ self.addEventListener("fetch", (event) => {
   ) {
     event.respondWith(
       networkFirstWithTimeout(event.request).catch(async () => {
+        const isNavigationOrHtml =
+          event.request.mode === "navigate" || url.pathname.endsWith(".html");
+        if (!isNavigationOrHtml) return Response.error();
+
         const cache = await caches.open(CACHE_NAME);
         return (await cache.match("./index.html")) || Response.error();
       })
@@ -158,12 +173,24 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // JS/CSS (CDN libraries — Font Awesome, PDF/Excel generation, etc.):
-  // serve from cache instantly if we have it, refreshing in the
-  // background. These are effectively version-pinned CDN URLs, so a
+  // JS/CSS (CDN libraries — Font Awesome, PDF/Excel generation, Supabase
+  // SDK, etc.): serve from cache instantly if we have it, refreshing in
+  // the background. These are effectively version-pinned CDN URLs, so a
   // stale-for-a-few-minutes copy is harmless — but re-downloading all of
   // them from scratch on every reopen is a common source of slow loads.
-  if (url.pathname.endsWith(".js") || url.pathname.endsWith(".css")) {
+  //
+  // Matched by BOTH file extension and request.destination: some CDN
+  // URLs (e.g. jsDelivr's "@2" version-pinned Supabase SDK URL) have no
+  // literal ".js" extension in the path, so extension-only matching let
+  // them fall through to the network-only branch below — which has no
+  // cache fallback, so a single transient network blip on that one
+  // request produced a hard failure instead of degrading gracefully.
+  if (
+    url.pathname.endsWith(".js") ||
+    url.pathname.endsWith(".css") ||
+    event.request.destination === "script" ||
+    event.request.destination === "style"
+  ) {
     event.respondWith(staleWhileRevalidate(event.request));
     return;
   }
