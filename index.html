@@ -1968,7 +1968,7 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
     <div class="boot-loader__bar-track" aria-hidden="true">
       <div class="boot-loader__bar-fill"></div>
     </div>
-    <div class="boot-loader__label">Loading Data</div>
+    <div class="boot-loader__label">Loading Data...</div>
   </div>
 </div>
 
@@ -2842,6 +2842,18 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script>
+
+const MAX_NETWORK_WAIT_MS = 20000;
+
+let bootDeadline = null;
+
+const MIN_NETWORK_WAIT_MS = 3000;
+
+function nextNetworkTimeoutMs(){
+  if (bootDeadline === null) return MAX_NETWORK_WAIT_MS;
+  return Math.max(bootDeadline - Date.now(), MIN_NETWORK_WAIT_MS);
+}
+
 // Used only if config.json fails to load/parse, so applyConfig() has a safe
 // shape to read instead of crashing on CONFIG being null. Leaving
 // supabase.url/anonKey empty is intentional: the existing check in init()
@@ -3187,7 +3199,14 @@ function setupAutoSaveListeners(){
 
 async function loadConfig(){
   try {
-    const response = await fetch('./config.json');
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), nextNetworkTimeoutMs());
+    let response;
+    try {
+      response = await fetch('./config.json', { signal: controller.signal });
+    } finally {
+      clearTimeout(timeoutId);
+    }
     if (!response.ok) throw new Error(`Failed to load config.json: ${response.status}`);
     CONFIG = await response.json();
   } catch (error) {
@@ -3958,8 +3977,16 @@ let offlineStartup = false;
 //     believes it has a connection. This is far more likely a server-side
 //     problem (outage, misconfiguration, CORS, etc.) than the user's own
 //     internet, so telling them to "check your connection" is misleading.
+// Tracks which diagnosis is currently on screen (and when it was set) so
+// the generic native 'offline' event can't stomp on a more specific
+// diagnosis that was just shown a moment ago. See handleOffline() below.
+let offlineScreenReason = null;
+let offlineScreenReasonAt = 0;
+
 function showOfflineScreen(reason = 'offline'){
   offlineStartup = true;
+  offlineScreenReason = reason;
+  offlineScreenReasonAt = Date.now();
   updateOfflineScreenCopy(reason);
   showScreen('offline');
 }
@@ -3975,7 +4002,13 @@ function updateOfflineScreenCopy(reason){
   }
 }
 
+const OFFLINE_EVENT_GRACE_MS = 5000;
+
 function handleOffline(){
+  const withinGraceOfServerDiagnosis =
+    offlineScreenReason === 'server' &&
+    (Date.now() - offlineScreenReasonAt) < OFFLINE_EVENT_GRACE_MS;
+  if (withinGraceOfServerDiagnosis) return;
   showOfflineScreen('offline');
 }
 
@@ -3985,15 +4018,6 @@ function isSupabaseRequest(input){
 
 const nativeFetch = window.fetch.bind(window);
 
-// Without this, a very slow connection (as opposed to a fully failed one)
-// never throws at all -- navigator.onLine stays true and the request just
-// hangs, leaving whatever loader is showing ("Signing in...", "Saving
-// invoice...", etc.) spinning indefinitely with the triggering button
-// disabled and no way for the user to back out. Aborting after a generous
-// window turns that silent hang into the same "Connection Trouble" message
-// used for a failed request, so the user isn't stuck staring at a spinner.
-const SUPABASE_FETCH_TIMEOUT_MS = 20000;
-
 window.fetch = async function(input, init){
   const isSupabase = isSupabaseRequest(input);
   let timeoutId = null;
@@ -4001,7 +4025,7 @@ window.fetch = async function(input, init){
 
   if (isSupabase) {
     const controller = new AbortController();
-    timeoutId = setTimeout(() => controller.abort(), SUPABASE_FETCH_TIMEOUT_MS);
+    timeoutId = setTimeout(() => controller.abort(), nextNetworkTimeoutMs());
 
     // Respect any abort signal the caller already passed in (e.g. Supabase's
     // own internal cancellation) rather than overriding it outright.
@@ -4036,6 +4060,7 @@ function handleOnline(){
 }
 
 function showScreen(name){
+  bootDeadline = null;
   hideOverlay(el.bootLoader); el.bootLoader.classList.add('hide');
   document.documentElement.classList.remove('theme-preload');
   el.authScreen.classList.toggle('hide', name !== 'auth');
@@ -4053,7 +4078,7 @@ function showActionLoader(message = 'Please wait...'){
 
 function hideActionLoader(){
   el.bootLoader.classList.add('hide');
-  el.bootLoader.querySelector('.boot-loader__label').textContent = 'Loading Data';
+  el.bootLoader.querySelector('.boot-loader__label').textContent = 'Loading Data...';
 }
 
 const SIGNUP_OTP_RESEND_COOLDOWN_SECONDS = 60;
@@ -6077,7 +6102,7 @@ async function reprintBill(invoiceNo){
 
   // Prevent duplicate requests and show the same clean full-screen loader used
   // during app startup while the invoice items are fetched.
-  showActionLoader('Loading Bill');
+  showActionLoader('Loading Bill...');
 
   try {
     const { data: items, error } = await supabaseClient
@@ -7472,6 +7497,8 @@ function bindEvents(){
 
 async function init(){
   cacheElements();
+
+  bootDeadline = Date.now() + MAX_NETWORK_WAIT_MS;
 
  // Apply the saved theme before showing the offline screen.
   const savedTheme = localStorage.getItem('jas_theme');
