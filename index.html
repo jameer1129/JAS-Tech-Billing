@@ -4982,11 +4982,6 @@ function deleteProduct(){
 
 const BILL_SAVE_KEY = 'jas_autosave_bill';
 
-// The autosave must never be shared across accounts on the same browser —
-// suffix the storage key with the account's user id so Account A's draft
-// can't ever surface for Account B, regardless of whether every logout path
-// remembers to clear it. Falls back to the bare key only if no id is known
-// (shouldn't normally happen, since callers require a session).
 function billSaveKeyFor(userId){
   return userId ? `${BILL_SAVE_KEY}_${userId}` : BILL_SAVE_KEY;
 }
@@ -4996,14 +4991,9 @@ function saveBillStateToLocalStorage(){
   
   const billData = {
     customer: state.customer,
-    invoiceNumber: state.invoiceNumber,
-    dateStr: state.dateStr,
-    invoiceDateValue: el.invoiceDate.value, // Save the actual date input value
+    invoiceDateValue: el.invoiceDate.value, // Single source of truth for the invoice date
     notes: state.notes,
     products: state.products,
-    // showWatermark/showQr/showSignature/includeNotesOnPdf are intentionally
-    // NOT stored here — they already persist via jas_pref_* keys, so storing
-    // them again in the bill snapshot would just duplicate that data.
     timestamp: Date.now()
   };
   
@@ -5049,7 +5039,7 @@ function restoreBillStateFromLocalStorage(){
   state.customer = (saved.customer && typeof saved.customer === 'object' && !Array.isArray(saved.customer))
     ? saved.customer
     : { name: '', address: '', mobile: '' };
-  state.invoiceNumber = saved.invoiceNumber || '';
+  // Invoice number is intentionally not restored — it is generated automatically.
   state.notes = saved.notes || '';
   // Autosave is trusted JSON we wrote ourselves, but validate the shape
   // anyway: a valid-JSON-but-wrong-shape value here (e.g. products stored
@@ -5107,8 +5097,6 @@ function normalizeBillForComparison(bill) {
   if (!bill) {
     return {
       customer: { name: '', address: '', mobile: '' },
-      invoiceNumber: '',
-      dateStr: '',
       invoiceDateValue: '',
       notes: '',
       products: []
@@ -5121,8 +5109,6 @@ function normalizeBillForComparison(bill) {
       address: String(bill.customer?.address || '').trim(),
       mobile: String(bill.customer?.mobile || '').trim()
     },
-    invoiceNumber: String(bill.invoiceNumber || ''),
-    dateStr: String(bill.dateStr || ''),
     invoiceDateValue: String(bill.invoiceDateValue || ''),
     notes: String(bill.notes || ''),
     products: Array.isArray(bill.products)
@@ -5146,8 +5132,6 @@ function billStatesAreEqual(current, saved) {
 function getCurrentBillStateForComparison() {
   return {
     customer: state.customer,
-    invoiceNumber: state.invoiceNumber,
-    dateStr: state.dateStr,
     invoiceDateValue: el.invoiceDate.value,
     notes: state.notes,
     products: state.products
@@ -5167,7 +5151,6 @@ function checkAndPromptForRestore(){
     String(customer.name || '').trim() ||
     String(customer.address || '').trim() ||
     String(customer.mobile || '').trim();
-  const hasNotes = String(saved.notes || '').trim();
   const hasProducts = Array.isArray(saved.products) && saved.products.length > 0;
 
   if (!hasCustomerData && !hasNotes && !hasProducts) {
