@@ -3156,36 +3156,12 @@ function cacheElements(){
 }
 
 function setupAutoSaveListeners(){
-  // Save bill state before page unload
-  window.addEventListener('beforeunload', (e) => {
-    if (currentSession && (state.products.length > 0 || state.customer.name)) {
-      saveBillStateToLocalStorage();
-    }
-  });
-
-  // Also save when tab loses focus
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden && currentSession) {
-      if (state.products.length > 0 || state.customer.name) {
-        saveBillStateToLocalStorage();
-      }
-    }
-  });
-
-  // pagehide is more reliable than beforeunload for mobile/PWA app closing.
-  window.addEventListener('pagehide', () => {
-    if (currentSession && (state.products.length > 0 || state.customer.name)) {
-      saveBillStateToLocalStorage();
-    }
-  });
-
   // Save when customer fields / date / notes change.
-  // (Watermark/QR/Signature/Notes-visibility toggles already persist themselves
-  // via jas_pref_* keys, so they're intentionally skipped here to avoid double-saving.)
+  // Product add/edit/delete operations save directly themselves.
   document.addEventListener('change', (e) => {
     if (e.target && (
-      e.target.id === 'customerName' || 
-      e.target.id === 'customerAddress' || 
+      e.target.id === 'customerName' ||
+      e.target.id === 'customerAddress' ||
       e.target.id === 'customerMobile' ||
       e.target.id === 'invoiceDate' ||
       e.target.id === 'invoiceNotes'
@@ -5184,6 +5160,20 @@ function checkAndPromptForRestore(){
 
   const saved = getSavedBillState();
   if (!saved) return;
+
+  // Never show Restore for an autosave that contains no actual bill data.
+  const customer = saved.customer || {};
+  const hasCustomerData =
+    String(customer.name || '').trim() ||
+    String(customer.address || '').trim() ||
+    String(customer.mobile || '').trim();
+  const hasNotes = String(saved.notes || '').trim();
+  const hasProducts = Array.isArray(saved.products) && saved.products.length > 0;
+
+  if (!hasCustomerData && !hasNotes && !hasProducts) {
+    clearSavedBillState();
+    return;
+  }
 
   // If New Bill already contains exactly the same data as the autosaved
   // draft, there is nothing to restore and no prompt should appear.
