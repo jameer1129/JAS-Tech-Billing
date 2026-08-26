@@ -99,7 +99,35 @@ html,body{
   font-family:var(--font);
   -webkit-tap-highlight-color:transparent;
   overflow-x:hidden;
-  transition: background 0.4s ease, color 0.4s ease;
+}
+
+/* ---------- theme reveal ---------- */
+::view-transition-old(root),
+::view-transition-new(root){
+  animation:none;
+  mix-blend-mode:normal;
+}
+::view-transition-old(root){z-index:1;}
+::view-transition-new(root){
+  z-index:2;
+  clip-path:circle(0 at var(--theme-x,50%) var(--theme-y,50%));
+}
+html.theme-reveal::view-transition-new(root){
+  animation:themeReveal .72s cubic-bezier(.22,.8,.24,1) forwards;
+}
+@keyframes themeReveal{
+  to{clip-path:circle(var(--theme-radius,150vmax) at var(--theme-x,50%) var(--theme-y,50%));}
+}
+@media(prefers-reduced-motion:reduce){
+  ::view-transition-old(root),::view-transition-new(root){animation:none!important;}
+  html.theme-reveal::view-transition-new(root){clip-path:none;}
+}
+@supports not (view-transition-name:root){
+  html.theme-fallback body{animation:themeFallback .28s ease-out;}
+}
+@keyframes themeFallback{
+  0%{opacity:.72;transform:scale(.985);}
+  100%{opacity:1;transform:none;}
 }
 body{min-height:100vh;display:flex;flex-direction:column;}
 button,input,textarea,select{font-family:var(--font);}
@@ -6867,6 +6895,37 @@ function applyTheme(isDark){
     themeColorMeta.setAttribute('content', (activeTheme && activeTheme.primary) || '#012587');
   }
 }
+function switchTheme(isDark, x, y){
+  const root = document.documentElement;
+  const supportsViewTransition = typeof document.startViewTransition === 'function';
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (reducedMotion || !supportsViewTransition) {
+    root.classList.add('theme-fallback');
+    applyTheme(isDark);
+    requestAnimationFrame(() => root.classList.remove('theme-fallback'));
+    return;
+  }
+
+  const px = Math.max(0, Math.min(window.innerWidth, x ?? window.innerWidth / 2));
+  const py = Math.max(0, Math.min(window.innerHeight, y ?? window.innerHeight / 2));
+  const maxX = Math.max(px, window.innerWidth - px);
+  const maxY = Math.max(py, window.innerHeight - py);
+  const radius = Math.hypot(maxX, maxY);
+
+  root.style.setProperty('--theme-x', `${px}px`);
+  root.style.setProperty('--theme-y', `${py}px`);
+  root.style.setProperty('--theme-radius', `${radius}px`);
+  root.classList.add('theme-reveal');
+
+  const transition = document.startViewTransition(() => applyTheme(isDark));
+  transition.finished.finally(() => {
+    root.classList.remove('theme-reveal');
+    root.style.removeProperty('--theme-x');
+    root.style.removeProperty('--theme-y');
+    root.style.removeProperty('--theme-radius');
+  });
+}
 function updateNotesInputState(){
   if (!el.invoiceNotes || !el.toggleNotesVisibility) return;
   const notesEnabledByConfig = CONFIG?.display?.showNotes !== false;
@@ -7523,7 +7582,12 @@ async function init(){
   document.addEventListener('click', e => {
     const themeToggle = e.target.closest('.theme-toggle');
     if (!themeToggle) return;
-    applyTheme(!document.body.classList.contains('dark-theme'));
+    const rect = themeToggle.getBoundingClientRect();
+    switchTheme(
+      !document.body.classList.contains('dark-theme'),
+      rect.left + rect.width / 2,
+      rect.top + rect.height / 2
+    );
   });
   if (!navigator.onLine) {
     showOfflineScreen();
