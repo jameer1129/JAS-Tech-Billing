@@ -4,7 +4,7 @@
 html.theme-preload,html.theme-preload body{background:#000!important;color:#F3F4F6!important;}
 html.theme-preload,html.theme-preload body{transition:none!important;}
 html.theme-preload .boot-loader{background: rgba(15,23,42,.42);}
-html.theme-preload .boot-loader__card{background:#000!important;border-color:#1B1F27!important;}
+html.theme-preload .boot-loader__card{background:#000!important;}
 html.theme-preload .boot-loader__bar-track{background:#1B1F27!important;}</style>
 <script>window.addEventListener('pageshow', (event) => {
   if (!event.persisted) return;
@@ -1069,11 +1069,12 @@ body.dark-theme .nav-tab.active{background:linear-gradient(to top,rgba(82,120,21
   justify-content:center;
   gap:18px;
   background:var(--surface);
-  border:1px solid var(--line);
+  border:1px solid color-mix(in srgb, var(--primary-text) 40%, transparent);
   border-radius:18px;
   padding:18px 22px;
   min-width:220px;
   box-sizing:border-box;
+  filter: drop-shadow(0 10px 26px rgba(1, 37, 135, .24));
 }
 .boot-loader__logo{width:50px;height:50px;display:block;object-fit:contain;}
 .boot-loader__bar-track{width:180px;height:5px;background:var(--line);border-radius:999px;overflow:hidden;}
@@ -1094,7 +1095,7 @@ body.dark-theme .nav-tab.active{background:linear-gradient(to top,rgba(82,120,21
   font-weight:500;
 }
 
-@media(max-width:640px){.boot-loader__card{gap:16px;min-width:176px;padding:14px 18px;border-radius:16px;}
+@media(max-width:640px){.boot-loader__card{gap:16px;min-width:176px;padding:16px 22px;border-radius:16px;}
 .boot-loader__bar-track{width:140px;}
 
 }/* ---------- App footer ---------- */
@@ -4389,7 +4390,7 @@ async function handleGoogleLogin(){
   const googleButton = el.btnGoogleLogin;
   if (googleButton?.disabled) return;
   if (googleButton) googleButton.disabled = true;
-  showActionLoader('Signing in with Google...');
+  showActionLoader('Signing in with Google…');
   let redirectStarted = false;
   try {
     const rememberMe = getRememberMeEnabled();
@@ -4507,13 +4508,13 @@ function showScreen(name){
   el.appScreen.classList.toggle('hide', name !== 'app');
   el.offlineScreen.classList.toggle('hide', name !== 'offline');
 }
-function showActionLoader(message = 'Please wait...'){
+function showActionLoader(message = 'Please wait…'){
   el.bootLoader.querySelector('.boot-loader__label').textContent = message;
   el.bootLoader.classList.remove('hide');
 }
 function hideActionLoader(){
   el.bootLoader.classList.add('hide');
-  el.bootLoader.querySelector('.boot-loader__label').textContent = 'Loading Data...';
+  el.bootLoader.querySelector('.boot-loader__label').textContent = 'Loading Data…';
 }
 const SIGNUP_OTP_RESEND_COOLDOWN_SECONDS = 60;
 const SIGNUP_OTP_EXPIRY_SECONDS = 3600;
@@ -4655,7 +4656,7 @@ async function handleLogin(){
         return;
       }
       if (isInvalidCredentialsError(error)) {
-        showActionLoader('Checking your account...');
+        showActionLoader('Checking your account…');
         const emailCheck = await emailExists(email);
         if (emailCheck.ok && !emailCheck.exists) {
           showAuthMsg('No account found with this email. Please register to continue.');
@@ -4673,7 +4674,7 @@ async function handleLogin(){
     }
     currentSession = data.session;
     clearPendingSignup();
-    showActionLoader('Loading your account...');
+    showActionLoader('Loading your account…');
     await afterAuthResolved();
   });
 }
@@ -4768,7 +4769,7 @@ async function confirmAndSendSignupOtp(email, { confirmTitle, confirmMessage, de
     showAuthMsg(declineMsg, 'info');
     return false;
   }
-  showActionLoader('Sending verification code...');
+  showActionLoader('Sending verification code…');
   try {
     const resend = await resendSignupOtp(email);
     if (!resend.error) {
@@ -4807,7 +4808,7 @@ async function handleRegister() {
   // just guarantees the button gets re-enabled however this flow ends.
   await withGuardedSubmit(el.btnRegister, null, async () => {
     // Check the account BEFORE asking to send anything.
-    showActionLoader('Checking email...');
+    showActionLoader('Checking email…');
     let emailCheck;
     try {
       emailCheck = await emailExists(email);
@@ -4845,7 +4846,7 @@ async function handleRegister() {
       showAuthMsg('Registration cancelled. No verification email was sent.', 'info');
       return;
     }
-    showActionLoader('Creating your account...');
+    showActionLoader('Creating your account…');
     const { data, error } = await supabaseClient.auth.signUp({
       email,
       password,
@@ -4911,7 +4912,7 @@ async function handleVerifyEmail(){
   el.btnVerifyEmail.disabled = true;
   el.verifyOtp.disabled = true;
   hideVerificationMsg();
-  showActionLoader('Verifying your email...');
+  showActionLoader('Verifying your email…');
   try {
     const { data, error } = await supabaseClient.auth.verifyOtp({
       email,
@@ -4976,7 +4977,7 @@ async function handleResendVerification(){
   }
   el.btnResendVerification.disabled = true;
   hideVerificationMsg();
-  showActionLoader('Sending verification code...');
+  showActionLoader('Sending verification code…');
   try {
     const resend = await resendSignupOtp(email);
     if (resend.error) {
@@ -5015,7 +5016,7 @@ async function handleForgotPassword(){
     // Check whether the account actually exists before calling
     // resetPasswordForEmail(). This prevents a new/unregistered email
     // from reaching the success message below.
-    showActionLoader('Checking your account...');
+    showActionLoader('Checking your account…');
     let emailCheck;
     try {
       emailCheck = await emailExists(email);
@@ -5035,7 +5036,7 @@ async function handleForgotPassword(){
       showAuthMsg('No account found with this email. Please register to continue.');
       return;
     }
-    showActionLoader('Sending reset link...');
+    showActionLoader('Sending reset link…');
     const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
       // Resolve against the full current URL (not just window.location.origin)
       // so this works correctly when the app is hosted in a subpath, e.g. a
@@ -5084,7 +5085,7 @@ async function handleResetPassword(){
   }, () => showToast('Failed to update password. Please try again.', 'error'));
 }
 async function handleLogout(){
-  showActionLoader('Logging Out');
+  showActionLoader('Logging Out…');
   try {
     // Reset the current invoice first
     resetInvoice(true);
@@ -6229,7 +6230,7 @@ async function reprintBill(invoiceNo){
   isPreviousBillMode = true;
   // Prevent duplicate requests and show the same clean full-screen loader used
   // during app startup while the invoice items are fetched.
-  showActionLoader('Loading Bill...');
+  showActionLoader('Loading Bill…');
   try {
     const { data: items, error } = await supabaseClient
       .from('bill_items')
@@ -7613,7 +7614,7 @@ async function init(){
       currentSession = oauthSession;
       clearPendingSignup();
       normalAuthResolved = true;
-      showActionLoader('Loading your account...');
+      showActionLoader('Loading your account…');
       await afterAuthResolved();
     } else {
       hideActionLoader();
