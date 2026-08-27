@@ -1038,15 +1038,15 @@ body.dark-theme .confirm-icon--info{background:rgba(1,37,135,.4);color:var(--pri
   box-shadow:var(--shadow-sm);
 }
 .drawer__item-icon--blue{
-  background:radial-gradient(circle,transparent,rgba(47,95,222,.16));
+  background:radial-gradient(circle,transparent,rgba(47,95,222,.18));
   color:#285ED8;
 }
 .drawer__item-icon--purple{
-  background:radial-gradient(circle,transparent,rgba(108,92,231,.15));
+  background:radial-gradient(circle,transparent,rgba(108,92,231,.18));
   color:#6655D7;
 }
 .drawer__item-icon--red{
-  background:radial-gradient(circle,transparent,rgba(190,48,67,.14));
+  background:radial-gradient(circle,transparent,rgba(190,48,67,.18));
   color:#B52F42;
 }
 .drawer__item-text{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0;}
@@ -1084,15 +1084,15 @@ body.dark-theme .confirm-icon--info{background:rgba(1,37,135,.4);color:var(--pri
 .app-bar__title h1{letter-spacing:2px;}
 
 body.dark-theme .drawer__item-icon--blue{
-  background:radial-gradient(circle,transparent,rgba(47,95,222,.34));
+  background:radial-gradient(circle,transparent,rgba(47,95,222,.4));
   color:#72A7FF;
 }
 body.dark-theme .drawer__item-icon--purple{
-  background:radial-gradient(circle,transparent,rgba(108,92,231,.30));
+  background:radial-gradient(circle,transparent,rgba(108,92,231,.4));
   color:#B5A8FF;
 }
 body.dark-theme .drawer__item-icon--red{
-  background:radial-gradient(circle,transparent,rgba(190,48,67,.30));
+  background:radial-gradient(circle,transparent,rgba(190,48,67,.4));
   color:#FF7888;
 }
 body.dark-theme .drawer__footer{background:rgba(127, 127, 127, .08);;}
@@ -3492,7 +3492,7 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
       </span>
     </button>
     <button class="drawer__item" id="drawerChangePw">
-      <span class="drawer__item-icon drawer__item-icon--purple"><i class="fa-solid fa-key"></i></span>
+      <span class="drawer__item-icon drawer__item-icon--purple"><i class="fa-solid fa-lock"></i></span>
       <span class="drawer__item-text">
         <span class="drawer__item-title">Change Password</span>
         <span class="drawer__item-subtitle">Update your password</span>
@@ -3618,7 +3618,7 @@ let draftBillSnapshot = null; // backup of the in-progress New Bill draft while 
 const BILLS_PAGE_SIZE = 10;
 const USERS_PAGE_SIZE = 10;
 const A4_PAGE_HEIGHT_PX = 1123; // A4 height in px at 96dpi, used for PDF pagination
-const TOAST_DURATION_MS = 25000;
+const TOAST_DURATION_MS = 2500;
 const AUTH_TOAST_DURATION_MS = 5000;
 const MAX_VISIBLE_TOASTS = 3;
 const SEARCH_DEBOUNCE_MS = 350;
