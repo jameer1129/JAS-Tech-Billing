@@ -1,13 +1,10 @@
 /* =========================================================
 JAS TECH BILLING — service-worker.js
-Fresh-First With Timeout Fallback + Stale-While-Revalidate
+Network-First HTML + Stale-While-Revalidate Assets
+Safe Persistent Cache + Timeout Fallback
 ========================================================= */
 
-const CACHE_NAME = "jas-tech-assets-v2.1.5";
-
-// How long we wait for the network before falling back to whatever's cached.
-// Without this, a slow/flaky connection makes fetch() hang indefinitely on
-// reopen — that's what caused the occasional "stuck loading" reports.
+const CACHE_NAME = "jas-tech-assets-v2.1.6";
 const NETWORK_TIMEOUT_MS = 5000;
 
 const STATIC_ASSETS = [
@@ -23,20 +20,20 @@ const STATIC_ASSETS = [
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) =>
-      // cache.addAll() is all-or-nothing: if a single asset 404s or fails,
-      // the whole call rejects and the install "succeeds" with an empty
-      // cache (since the failure was only logged, not surfaced) — meaning
-      // nothing is actually available offline. Cache each asset on its own
-      // so one bad path can't take the rest down with it.
-      Promise.allSettled(
-        STATIC_ASSETS.map((asset) =>
-          cache.add(asset).catch((error) => {
-            console.warn(`Service worker failed to cache "${asset}":`, error);
-          }),
-        ),
-      ),
-    ),
+    caches.open(CACHE_NAME).then(async (cache) => {
+      await Promise.allSettled(
+        STATIC_ASSETS.map(async (asset) => {
+          try {
+            await cache.add(asset);
+          } catch (error) {
+            console.warn(
+              `Service worker failed to cache "${asset}":`,
+              error,
+            );
+          }
+        }),
+      );
+    }),
   );
 
   self.skipWaiting();
@@ -50,96 +47,103 @@ self.addEventListener("activate", (event) => {
         Promise.all(
           keys
             .filter((key) => key !== CACHE_NAME)
-            .map((key) => caches.delete(key)),
+            .map((key) =>
+              caches.delete(key).catch(() => false),
+            ),
         ),
-      ),
+      )
+      .then(() => self.clients.claim()),
   );
-
-  self.clients.claim();
 });
 
-/**
- * Always prefers a fresh network response (so users get the latest app/config
- * quickly under normal conditions), but never lets a slow network hang the
- * page forever: if the network hasn't answered within NETWORK_TIMEOUT_MS, or
- * it fails outright, we fall back to the last good cached copy instead.
- * A successful network response always refreshes the cache for next time.
- * A network response that comes back but isn't ok (e.g. a 500) is treated
- * the same as a failure, so a flaky-but-connected network still prefers a
- * good cached copy over showing the user an error page.
- */
+async function fetchWithTimeout(
+  request,
+  timeoutMs = NETWORK_TIMEOUT_MS,
+) {
+  const controller = new AbortController();
+  const timer = setTimeout(
+    () => controller.abort(),
+    timeoutMs,
+  );
+
+  try {
+    return await fetch(request, {
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function updateCache(cache, request, response) {
+  if (!response) return;
+
+  const cacheable =
+    response.ok || response.type === "opaque";
+
+  if (!cacheable) return;
+
+  try {
+    await cache.put(request, response.clone());
+  } catch (error) {
+    console.warn(
+      `Cache update failed for "${request.url}":`,
+      error,
+    );
+  }
+}
+
 async function networkFirstWithTimeout(
   request,
   timeoutMs = NETWORK_TIMEOUT_MS,
 ) {
   const cache = await caches.open(CACHE_NAME);
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const response = await fetch(request, { signal: controller.signal });
-    clearTimeout(timeout);
+    const response = await fetchWithTimeout(
+      request,
+      timeoutMs,
+    );
 
     if (response && response.ok) {
-      cache.put(request, response.clone()).catch(() => {});
+      updateCache(cache, request, response);
       return response;
     }
 
-    // Server responded, but with an error (5xx/4xx) — prefer a cached copy
-    // over surfacing that error to the user, if we have one.
     const cached = await cache.match(request);
+
     if (cached) return cached;
+
     return response;
   } catch (error) {
-    clearTimeout(timeout);
-
     const cached = await cache.match(request);
+
     if (cached) return cached;
 
-    // Nothing cached to fall back to (e.g. very first ever load while
-    // offline/slow) — surface the original failure instead of hanging.
     throw error;
   }
 }
 
-/**
- * Serves instantly from cache when available while refreshing that cache
- * entry in the background, so the *next* load benefits from any update.
- * Good for assets that rarely change (CDN libraries, fonts, images) where a
- * few minutes of staleness is a non-issue but a network stall is.
- */
-function staleWhileRevalidate(request) {
-  return caches.open(CACHE_NAME).then((cache) =>
-    cache.match(request).then((cached) => {
-      const network = fetch(request)
-        .then((response) => {
-          // response.ok is only meaningful for same-origin/CORS responses.
-          // Cross-origin requests without a `crossorigin` attribute (e.g.
-          // our <script src="https://cdn.jsdelivr.net/..."> tags) come
-          // back as "opaque" responses: status is always 0 and .ok is
-          // always false, even on a successful download, because the
-          // browser hides the details for no-cors requests. Treating
-          // opaque as "cacheable" is the only way to actually get these
-          // CDN scripts into the cache — a rejected fetch (thrown error)
-          // is still caught separately below and skips caching.
-          const isCacheable =
-            response && (response.ok || response.type === "opaque");
-          if (isCacheable) {
-            cache.put(request, response.clone()).catch((error) => {
-              console.warn("Cache update failed:", error);
-            });
-          }
-          return response;
-        })
-        .catch(() => cached);
+async function staleWhileRevalidate(request) {
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(request);
 
-      // If there's nothing cached and the network also fails, `network`
-      // resolves to `undefined` via the catch above — respondWith(undefined)
-      // isn't a valid Response and surfaces as a broken browser error, so
-      // fall back to a real Response instead.
-      return cached || network.then((res) => res || Response.error());
-    }),
-  );
+  try {
+    const response = await fetchWithTimeout(request);
+
+    if (
+      response &&
+      (response.ok || response.type === "opaque")
+    ) {
+      updateCache(cache, request, response);
+    }
+
+    return response;
+  } catch (error) {
+    if (cached) return cached;
+
+    return Response.error();
+  }
 }
 
 self.addEventListener("fetch", (event) => {
@@ -147,80 +151,85 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(event.request.url);
 
-  // Never intercept Supabase requests
-  if (url.hostname === "supabase.co" || url.hostname.endsWith(".supabase.co")) {
+  // Never intercept Supabase requests.
+  if (
+    url.hostname === "supabase.co" ||
+    url.hostname.endsWith(".supabase.co")
+  ) {
     return;
   }
 
-  // HTML and config.json: try the network first (so users get the latest
-  // app/config), but fall back to cache if the network is slow or down
-  // instead of hanging indefinitely.
+  // HTML and config: fresh first, cached fallback.
   if (
     event.request.mode === "navigate" ||
     url.pathname.endsWith(".html") ||
     url.pathname.endsWith("config.json")
   ) {
     event.respondWith(
-      networkFirstWithTimeout(event.request).catch(async () => {
-        const isNavigationOrHtml =
-          event.request.mode === "navigate" || url.pathname.endsWith(".html");
-        if (!isNavigationOrHtml) return Response.error();
+      networkFirstWithTimeout(event.request).catch(
+        async () => {
+          const isNavigationOrHtml =
+            event.request.mode === "navigate" ||
+            url.pathname.endsWith(".html");
 
-        const cache = await caches.open(CACHE_NAME);
-        return (await cache.match("./index.html")) || Response.error();
-      })
+          if (!isNavigationOrHtml) {
+            return Response.error();
+          }
+
+          const cache = await caches.open(CACHE_NAME);
+
+          return (
+            (await cache.match("./index.html")) ||
+            Response.error()
+          );
+        },
+      ),
     );
+
     return;
   }
 
-  // JS/CSS (CDN libraries — Font Awesome, PDF/Excel generation, Supabase
-  // SDK, etc.): serve from cache instantly if we have it, refreshing in
-  // the background. These are effectively version-pinned CDN URLs, so a
-  // stale-for-a-few-minutes copy is harmless — but re-downloading all of
-  // them from scratch on every reopen is a common source of slow loads.
-  //
-  // Matched by BOTH file extension and request.destination: some CDN
-  // URLs (e.g. jsDelivr's "@2" version-pinned Supabase SDK URL) have no
-  // literal ".js" extension in the path, so extension-only matching let
-  // them fall through to the network-only branch below — which has no
-  // cache fallback, so a single transient network blip on that one
-  // request produced a hard failure instead of degrading gracefully.
+  // JavaScript and CSS.
   if (
     url.pathname.endsWith(".js") ||
     url.pathname.endsWith(".css") ||
     event.request.destination === "script" ||
     event.request.destination === "style"
   ) {
-    event.respondWith(staleWhileRevalidate(event.request));
+    event.respondWith(
+      staleWhileRevalidate(event.request),
+    );
+
     return;
   }
 
-  // Fonts (e.g. Font Awesome's .woff2/.woff/.ttf, used by the offline UI
-  // icons): same stale-while-revalidate strategy. These were previously
-  // uncached and fell through to network-only, which meant icons could
-  // fail to render on the very screen meant to work offline.
+  // Fonts.
   if (
     event.request.destination === "font" ||
     /\.(woff2?|ttf|otf|eot)$/i.test(url.pathname)
   ) {
-    event.respondWith(staleWhileRevalidate(event.request));
+    event.respondWith(
+      staleWhileRevalidate(event.request),
+    );
+
     return;
   }
 
-  // Images: same stale-while-revalidate strategy.
+  // Images.
   if (
     event.request.destination === "image" ||
-    /\.(png|jpg|jpeg|gif|svg|webp|ico)$/i.test(url.pathname)
+    /\.(png|jpg|jpeg|gif|svg|webp|ico)$/i.test(
+      url.pathname,
+    )
   ) {
-    event.respondWith(staleWhileRevalidate(event.request));
+    event.respondWith(
+      staleWhileRevalidate(event.request),
+    );
+
     return;
   }
 
-  // Everything else: network only. Catch and return a proper error Response
-  // instead of letting a rejected fetch() surface as an unhandled promise
-  // rejection in the console (this is expected when actually offline with
-  // nothing cached for this URL — there's nothing to serve — but it should
-  // fail quietly rather than throwing).
+  // Everything else: network only.
   event.respondWith(
     fetch(event.request).catch(() => Response.error()),
   );
