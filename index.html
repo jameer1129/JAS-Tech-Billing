@@ -6943,10 +6943,18 @@ function switchTheme(isDark, x, y){
     return;
   }
 
-  const px = Math.max(0, Math.min(window.innerWidth, x ?? window.innerWidth / 2));
-  const py = Math.max(0, Math.min(window.innerHeight, y ?? window.innerHeight / 2));
-  const maxX = Math.max(px, window.innerWidth - px);
-  const maxY = Math.max(py, window.innerHeight - py);
+  const vv = window.visualViewport;
+  const vpWidth = vv ? vv.width : window.innerWidth;
+  const vpHeight = vv ? vv.height : window.innerHeight;
+  const vpOffsetLeft = vv ? vv.offsetLeft : 0;
+  const vpOffsetTop = vv ? vv.offsetTop : 0;
+
+  const rawX = (x ?? vpOffsetLeft + vpWidth / 2) - vpOffsetLeft;
+  const rawY = (y ?? vpOffsetTop + vpHeight / 2) - vpOffsetTop;
+  const px = Math.max(0, Math.min(vpWidth, rawX));
+  const py = Math.max(0, Math.min(vpHeight, rawY));
+  const maxX = Math.max(px, vpWidth - px);
+  const maxY = Math.max(py, vpHeight - py);
   const radius = Math.hypot(maxX, maxY);
 
   root.style.setProperty('--theme-x', `${px}px`);
