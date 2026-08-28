@@ -744,10 +744,12 @@ body.dark-theme .toast-card--error{--toast-accent:#E13B34;background:#2A1113;bor
   box-shadow: var(--shadow-sm);
 }
 .modal__header{display:flex;align-items:center;justify-content:center;padding:12px 20px;text-align:center;}
-.modal__header h3{margin:0;font-size:16px;color:var(--text);text-align:center;}
+.modal__header h3{margin:0;font-size:16px;color:var(--primary-text);text-align:center;}
 .modal--confirm .modal__header{flex-direction:column;gap:8px;padding: 28px 20px 4px;}
 .modal--confirm .modal__header .confirm-icon{margin:0;}
-.modal__body{padding:12px 20px;display:flex;flex-direction:column;gap:6px;}
+.modal--confirm .modal__header h3{color:var(--text);}
+.modal__body{padding:0px 20px;display:flex;flex-direction:column;gap:8px;}
+.modal--confirm .modal__body{gap:6px;padding:12px 20px;}
 .modal__footer{display:flex;gap:8px;padding:8px 20px 20px;}
 .modal__footer .btn{flex:1;min-height:40px;font-size:13.5px;}
 .bd-row{display:flex;flex-direction:column;padding:10px 0;border-top:1px solid var(--line);}
@@ -778,11 +780,11 @@ body.dark-theme .toast-card--error{--toast-accent:#E13B34;background:#2A1113;bor
   justify-content:center;
   font-size:26px;
   margin:0 auto 10px;
-  color:white;
 }
-.confirm-icon--info{background:var(--primary);}
-.confirm-icon--success{background:var(--success);}
-.confirm-icon--danger{background:var(--danger);}
+.confirm-icon--info{background:color-mix(in srgb, var(--primary) 15%, transparent);color:var(--primary-text);}
+.confirm-icon--success{background:var(--success);color:white;}
+.confirm-icon--danger{background:color-mix(in srgb, var(--danger) 15%, transparent);color:var(--danger);}
+body.dark-theme .confirm-icon--info{background:rgba(1,37,135,.4);}
 .modal--confirm p{margin:0;color:var(--muted);font-size:13.5px;line-height:1.5;}
 .modal--confirm .confirm-target{color:var(--primary-text);font-weight:700;overflow-wrap:anywhere;word-break:break-word;}
 .modal--preview{z-index: 150 !important;align-items: center !important;}
@@ -1610,13 +1612,9 @@ body.dark-theme .auth-hero-icon__ring--two{border:1px solid rgba(23, 105, 255, .
 #resetPasswordForm #btnUpdateResetPassword{margin-top:8px;}
 /* ---------- Responsive ---------- */
 /* ---------- Change Password ---------- */
-.change-pw-help{margin:-3px 0 0;font-size:11.5px;line-height:1.45;color:var(--muted);text-align:left;overflow-wrap:anywhere;}
+.change-pw-help{margin:3px 0 6px;font-size:11.5px;line-height:1.45;color:var(--muted);text-align:left;overflow-wrap:anywhere;}
 .change-pw-help .auth-link{font-size:11.5px;white-space:nowrap;}
 
-@media (max-width:640px){#changePasswordModalOverlay .modal__footer.change-pw-footer{flex-direction:column;gap:9px;}
-#changePasswordModalOverlay .modal__footer.change-pw-footer .btn{width:100%;flex:0 0 auto;min-height:48px;}
-
-}
 @media (max-width:640px){.auth-shell{min-height:100dvh;align-items:center;}
 .auth-card{
   width:100%;
@@ -3362,7 +3360,7 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
 </div>
 <div class="modal-overlay hide" id="billDetailsModalOverlay">
   <div class="modal" role="dialog" aria-modal="true">
-    <div class="modal__header">
+    <div class="modal__header" style="padding-bottom:0;">
       <h3>Bill Details</h3>
     </div>
     <div class="modal__body" id="billDetailsBody"></div>
@@ -3520,7 +3518,7 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
     </div>
     <div class="modal__footer change-pw-footer">
       <button class="btn btn--ghost" id="btnCancelChangePw">Cancel</button>
-      <button class="btn btn--primary" id="btnConfirmChangePw"><i class="fa-solid fa-key"></i> Update Password</button>
+      <button class="btn btn--primary" id="btnConfirmChangePw"><i class="fa-solid fa-key"></i> Update</button>
     </div>
   </div>
 </div>
@@ -4815,6 +4813,7 @@ function askToSendOtp(email, options = {}) {
       el.btnConfirmOtpSend.removeEventListener('click', onConfirm);
       el.btnCancelOtpSendConfirm.removeEventListener('click', onCancel);
     }
+    el.btnConfirmOtpSend.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Send Code';
     el.btnConfirmOtpSend.addEventListener('click', onConfirm);
     el.btnCancelOtpSendConfirm.addEventListener('click', onCancel);
     el.otpSendConfirmOverlay.classList.remove('hide');
@@ -5075,14 +5074,45 @@ function handleBackFromVerification(){
   if (email) el.loginEmail.value = email;
   showAuthMsg('Verification cancelled. Your account is registered but not yet verified — log in anytime to get a new code.', 'info');
 }
+function askToSendResetLink(email) {
+  return new Promise(resolve => {
+    // Reuse the existing confirmation modal so the forgot-password flow
+    // stays visually consistent with the verification-code flow.
+    el.otpConfirmTitle.textContent = 'Send Reset Link?';
+    el.otpConfirmMessage.textContent = 'We will send a password reset link to this email.';
+    el.otpConfirmEmail.textContent = email;
+
+    let settled = false;
+    const finish = (confirmed) => {
+      if (settled) return;
+      settled = true;
+      el.otpSendConfirmOverlay.classList.add('hide');
+      cleanup();
+      resolve(confirmed);
+    };
+    const onConfirm = () => finish(true);
+    const onCancel = () => finish(false);
+
+    function cleanup() {
+      el.btnConfirmOtpSend.removeEventListener('click', onConfirm);
+      el.btnCancelOtpSendConfirm.removeEventListener('click', onCancel);
+    }
+
+    el.btnConfirmOtpSend.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Send Link';
+    el.btnConfirmOtpSend.addEventListener('click', onConfirm);
+    el.btnCancelOtpSendConfirm.addEventListener('click', onCancel);
+    el.otpSendConfirmOverlay.classList.remove('hide');
+  });
+}
+
 async function handleForgotPassword(){
   const email = el.forgotEmail.value.trim().toLowerCase();
   if (!email) return showAuthMsg('Enter your email address.');
   hideAuthMsg();
+
   await withGuardedSubmit(el.btnSendReset, null, async () => {
-    // Check whether the account actually exists before calling
-    // resetPasswordForEmail(). This prevents a new/unregistered email
-    // from reaching the success message below.
+    // Check the account first. The confirmation modal must appear only
+    // after we know the email belongs to an existing account.
     showActionLoader('Checking your account…');
     let emailCheck;
     try {
@@ -5092,31 +5122,37 @@ async function handleForgotPassword(){
       emailCheck = { ok: false, exists: false, confirmed: false };
     }
     hideActionLoader();
-    // Do not continue if the edge-function check could not be completed.
-    // We cannot safely decide whether the reset request should proceed.
+
     if (!emailCheck.ok) {
       showAuthMsg('We could not safely verify this email right now. Please try again.');
       return;
     }
-    // Account does not exist: stop here and do not call Supabase reset.
+
     if (!emailCheck.exists) {
       showAuthMsg('No account found with this email. Please register to continue.');
       return;
     }
+
+    // Ask for confirmation BEFORE sending the reset email.
+    const confirmed = await askToSendResetLink(email);
+    if (!confirmed) {
+      showAuthMsg('No password reset email was sent.', 'info');
+      return;
+    }
+
     showActionLoader('Sending reset link…');
     const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-      // Resolve against the full current URL (not just window.location.origin)
-      // so this works correctly when the app is hosted in a subpath, e.g. a
-      // GitHub Pages project site (https://user.github.io/repo-name/) —
-      // origin alone would drop the "/repo-name/" part and send the reset
-      // link to the domain root, which 404s.
+      // Resolve against the full current URL so this also works when the
+      // app is hosted in a subpath.
       redirectTo: new URL('?mode=update-password', window.location.href).href
     });
     hideActionLoader();
+
     if (error) {
       showAuthMsg(error.message || 'Failed to send reset email. Please try again.');
       return;
     }
+
     el.forgotEmail.value = '';
     showAuthMsg('Check your email for a password reset link.', 'info');
     setTimeout(() => { setAuthTab('login'); }, 2500);
