@@ -3378,7 +3378,7 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
     </div>
     <div class="modal__footer">
       <button class="btn btn--ghost" id="btnClosePreviewModal">Close</button>
-      <button class="btn btn--primary" id="btnDownloadFromPreview"><i class="fa-solid fa-download"></i> Download PDF</button>
+      <button class="btn btn--primary" id="btnDownloadFromPreview"><i class="fa-solid fa-download"></i>Download</button>
     </div>
   </div>
 </div>
@@ -4793,7 +4793,7 @@ function askToSendOtp(email, options = {}) {
   return new Promise(resolve => {
     const {
       title = 'Send Verification Code?',
-      message = 'We will send a 6-digit verification code to this email.'
+      message = 'We’ll send a 6-digit verification code to your email address to verify your identity.'
     } = options;
     el.otpConfirmTitle.textContent = title;
     el.otpConfirmMessage.textContent = message;
@@ -4905,7 +4905,7 @@ async function handleRegister() {
     // New account: ask before signUp(), because signUp() can send the email.
     const sendOtp = await askToSendOtp(email, {
       title: 'Send Verification Code?',
-      message: 'We will send a 6-digit verification code to this email.'
+      message: 'We’ll send a 6-digit verification code to your email address to verify your identity.'
     });
     if (!sendOtp) {
       showAuthMsg('Registration cancelled. No verification email was sent.', 'info');
@@ -5034,7 +5034,7 @@ async function handleResendVerification(){
   }
   const sendOtp = await askToSendOtp(email, {
     title: 'Resend Verification Code?',
-    message: 'We will send a new 6-digit verification code to this email address.'
+    message: 'We’ll send a 6-digit verification code to your email address to verify your identity.'
   });
   if (!sendOtp) {
     showVerificationMsg('No new verification email was sent.', 'info');
@@ -5078,7 +5078,7 @@ function askToSendResetLink(email) {
     // Reuse the existing confirmation modal so the forgot-password flow
     // stays visually consistent with the verification-code flow.
     el.otpConfirmTitle.textContent = 'Send Reset Link?';
-    el.otpConfirmMessage.textContent = 'We will send a password reset link to this email.';
+    el.otpConfirmMessage.textContent = 'We’ll send a password reset link to your email address to create a new password.';
     el.otpConfirmEmail.textContent = email;
 
     let settled = false;
