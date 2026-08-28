@@ -743,21 +743,13 @@ body.dark-theme .toast-card--error{--toast-accent:#E13B34;background:#2A1113;bor
   border:1px solid var(--line);
   box-shadow: var(--shadow-sm);
 }
-.modal__header{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 8px;}
-.modal__header h3{margin:0;font-size:16px;color:var(--primary-text);}
-.modal__close{
-  background:transparent;
-  border:none;
-  width:32px;
-  height:32px;
-  border-radius:8px;
-  cursor:pointer;
-  color:var(--muted);
-  font-size:14px;
-}
-.modal__body{padding:12px 20px;display:flex;flex-direction:column;gap:14px;}
+.modal__header{display:flex;align-items:center;justify-content:center;padding:12px 20px;text-align:center;}
+.modal__header h3{margin:0;font-size:16px;color:var(--text);text-align:center;}
+.modal--confirm .modal__header{flex-direction:column;gap:8px;padding: 28px 20px 4px;}
+.modal--confirm .modal__header .confirm-icon{margin:0;}
+.modal__body{padding:12px 20px;display:flex;flex-direction:column;gap:6px;}
 .modal__footer{display:flex;gap:8px;padding:8px 20px 20px;}
-.modal__footer .btn{flex:1;min-height:40px;padding:9px 14px;font-size:13.5px;}
+.modal__footer .btn{flex:1;min-height:40px;font-size:13.5px;}
 .bd-row{display:flex;flex-direction:column;padding:10px 0;border-top:1px solid var(--line);}
 .bd-row:first-child,.user-row:first-child{border-top:none;}
 .user-row:first-child{padding-top:4px;}
@@ -773,26 +765,26 @@ body.dark-theme .toast-card--error{--toast-accent:#E13B34;background:#2A1113;bor
 }
 .bd-row__label{margin:0;}
 .bd-row__value{margin-top:6px;font-size:14px;color:var(--text);word-break:break-word;}
-.bd-row__value--mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-size:13px;}
+.bd-row__value--mono{font-size:13px;}
 .modal--confirm{z-index:110 !important;}
 .modal--confirm .modal{max-width:380px;}
-.modal--confirm .modal__body{align-items:center;text-align:center;padding:6px 24px 4px;}
+.modal--confirm .modal__body{align-items:center;text-align:center;padding:4px 24px;}
 .modal--confirm .confirm-icon{
-  width:52px;
-  height:52px;
-  border-radius:16px;
+  width:60px;
+  height:60px;
+  border-radius:50%;
   display:flex;
   align-items:center;
   justify-content:center;
-  font-size:20px;
-  margin:6px auto 4px;
+  font-size:26px;
+  margin:0 auto 10px;
+  color:white;
 }
-.confirm-icon--info{background:rgba(1,37,135,.1);color:var(--primary-text);}
-body.dark-theme .confirm-icon--info{background:rgba(1,37,135,.4);color:var(--primary-text);}
-.confirm-icon--success{background:rgba(31,146,84,.3);color:var(--success);}
-.confirm-icon--danger{background:rgba(255,69,58,.2);color:var(--danger);}
+.confirm-icon--info{background:var(--primary);}
+.confirm-icon--success{background:var(--success);}
+.confirm-icon--danger{background:var(--danger);}
 .modal--confirm p{margin:0;color:var(--muted);font-size:13.5px;line-height:1.5;}
-.modal--confirm .confirm-target{color:var(--text);font-weight:700;overflow-wrap:anywhere;word-break:break-word;}
+.modal--confirm .confirm-target{color:var(--primary-text);font-weight:700;overflow-wrap:anywhere;word-break:break-word;}
 .modal--preview{z-index: 150 !important;align-items: center !important;}
 .modal--preview .modal{
   max-width: 840px;
@@ -2911,19 +2903,16 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
 <div class="modal-overlay modal--confirm hide" id="otpSendConfirmOverlay">
   <div class="modal">
     <div class="modal__header">
-      <h3 id="otpConfirmTitle">Send Verification Code?</h3>
-      <button class="modal__close" id="btnCloseOtpSendConfirm" aria-label="Close">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
-    </div>
-    <div class="modal__body">
       <div class="confirm-icon confirm-icon--info">
         <i class="fa-solid fa-envelope"></i>
       </div>
+      <h3 id="otpConfirmTitle">Send Verification Code?</h3>
+    </div>
+    <div class="modal__body">
       <p id="otpConfirmMessage">
         We will send a 6-digit verification code to your email address.
       </p>
-      <p id="otpConfirmEmail" class="confirm-target" style="word-break:break-word;"></p>
+      <p id="otpConfirmEmail" class="confirm-target"></p>
     </div>
     <div class="modal__footer">
       <button class="btn btn--ghost" id="btnCancelOtpSendConfirm">Cancel</button>
@@ -3310,7 +3299,6 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div class="modal__header">
       <h3 id="modalTitle">Add Product</h3>
-      <button class="modal__close" id="btnCloseModal" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div class="modal__body">
       <div class="field field--icon">
@@ -3345,11 +3333,10 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
 <div class="modal-overlay modal--confirm hide" id="deleteModalOverlay">
   <div class="modal">
     <div class="modal__header">
+      <div class="confirm-icon confirm-icon--danger"><i class="fa-solid fa-triangle-exclamation"></i></div>
       <h3>Delete Product</h3>
-      <button class="modal__close" id="btnCloseDeleteModal" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div class="modal__body">
-      <div class="confirm-icon confirm-icon--danger"><i class="fa-solid fa-triangle-exclamation"></i></div>
       <p>Are you sure you want to delete<br><span class="confirm-target" id="deleteTargetName"></span> from this invoice?</p>
     </div>
     <div class="modal__footer">
@@ -3361,12 +3348,11 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
 <div class="modal-overlay modal--confirm hide" id="deleteBillModalOverlay">
   <div class="modal">
     <div class="modal__header">
+      <div class="confirm-icon confirm-icon--danger"><i class="fa-solid fa-triangle-exclamation"></i></div>
       <h3>Delete Bill</h3>
-      <button class="modal__close" id="btnCloseDeleteBillModal" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div class="modal__body">
-      <div class="confirm-icon confirm-icon--danger"><i class="fa-solid fa-triangle-exclamation"></i></div>
-      <p>Are you sure you want to permanently delete invoice<br><span class="confirm-target" id="deleteBillTargetName"></span>?</p>
+      <p>Are you sure you want to permanently delete<br><span class="confirm-target" id="deleteBillTargetName"></span> invoice?</p>
     </div>
     <div class="modal__footer">
       <button class="btn btn--ghost" id="btnCancelDeleteBill">Cancel</button>
@@ -3378,7 +3364,6 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
   <div class="modal" role="dialog" aria-modal="true">
     <div class="modal__header">
       <h3>Bill Details</h3>
-      <button class="modal__close" id="btnCloseBillDetailsModal" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div class="modal__body" id="billDetailsBody"></div>
     <div class="modal__footer">
@@ -3390,24 +3375,23 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
   <div class="modal">
     <div class="modal__header">
       <h3>Invoice Preview</h3>
-      <button class="modal__close" id="btnClosePreviewModal" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div class="modal__body" id="previewModalBody">
       <div id="previewScaleContainer"></div>
     </div>
     <div class="modal__footer">
-      <button class="btn btn--primary btn--full" id="btnDownloadFromPreview"><i class="fa-solid fa-download"></i> Download PDF</button>
+      <button class="btn btn--ghost" id="btnClosePreviewModal">Close</button>
+      <button class="btn btn--primary" id="btnDownloadFromPreview"><i class="fa-solid fa-download"></i> Download PDF</button>
     </div>
   </div>
 </div>
 <div class="modal-overlay modal--confirm hide" id="resetModalOverlay">
   <div class="modal">
     <div class="modal__header">
+      <div class="confirm-icon confirm-icon--danger"><i class="fa-solid fa-triangle-exclamation"></i></div>
       <h3>Reset Invoice</h3>
-      <button class="modal__close" id="btnCloseResetModal" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div class="modal__body">
-      <div class="confirm-icon confirm-icon--danger"><i class="fa-solid fa-triangle-exclamation"></i></div>
       <p>This clears the customer details, all products, and notes, and starts a fresh invoice number.<br>This can't be undone.</p>
     </div>
     <div class="modal__footer">
@@ -3419,10 +3403,10 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
 <div class="modal-overlay modal--confirm hide" id="restoreBillModalOverlay">
   <div class="modal">
     <div class="modal__header">
+      <div class="confirm-icon confirm-icon--info"><i class="fa-solid fa-rotate-right"></i></div>
       <h3>Restore Previous Invoice?</h3>
     </div>
     <div class="modal__body">
-      <div class="confirm-icon confirm-icon--info"><i class="fa-solid fa-rotate-right"></i></div>
       <p>We found a previous invoice that you were working on. Would you like to restore it or start fresh?</p>
     </div>
     <div class="modal__footer">
@@ -3434,11 +3418,10 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
 <div class="modal-overlay modal--confirm hide" id="saveChoiceModalOverlay">
   <div class="modal">
     <div class="modal__header">
+      <div class="confirm-icon confirm-icon--info"><i class="fa-solid fa-database"></i></div>
       <h3>Save Invoice?</h3>
-      <button class="modal__close" id="btnCloseSaveChoiceModal" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div class="modal__body">
-      <div class="confirm-icon confirm-icon--info"><i class="fa-solid fa-database"></i></div>
       <p>Do you want to save this invoice to the database before downloading?</p>
     </div>
     <div class="modal__footer">
@@ -3450,16 +3433,18 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
 <div class="modal-overlay modal--confirm hide" id="pdfActionModalOverlay">
   <div class="modal">
     <div class="modal__header">
+      <div class="confirm-icon confirm-icon--success"><i class="fa-solid fa-check"></i></div>
       <h3>Invoice Ready</h3>
-      <button class="modal__close" id="btnClosePdfActionModal" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div class="modal__body">
-      <div class="confirm-icon confirm-icon--success"><i class="fa-solid fa-circle-check"></i></div>
       <p id="pdfActionMsg">Invoice is ready.</p>
     </div>
     <div class="modal__footer" style="flex-direction:column;gap:10px;">
-      <button class="btn btn--primary btn--full" id="btnPdfDownload"><i class="fa-solid fa-download"></i> Download PDF</button>
-      <button class="btn btn--outline btn--full" id="btnPdfShare"><i class="fa-solid fa-share-nodes"></i> Share PDF</button>
+      <button class="btn btn--ghost btn--full" id="btnPdfActionCancel">Cancel</button>
+      <div style="display:flex;gap:8px;width:100%;">
+        <button class="btn btn--outline" id="btnPdfShare" style="flex:1;"><i class="fa-solid fa-share-nodes"></i> Share PDF</button>
+        <button class="btn btn--primary" id="btnPdfDownload" style="flex:1;"><i class="fa-solid fa-download"></i> Download PDF</button>
+      </div>
     </div>
   </div>
 </div>
@@ -3511,7 +3496,6 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
   <div class="modal" role="dialog" aria-modal="true">
     <div class="modal__header">
       <h3>Change Password</h3>
-      <button class="modal__close" id="btnCloseChangePwModal" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div class="modal__body">
       <div class="field field--icon field--password">
@@ -3543,13 +3527,12 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
 <div class="modal-overlay modal--confirm hide" id="logoutModalOverlay">
   <div class="modal">
     <div class="modal__header">
+      <div class="confirm-icon confirm-icon--info"><i class="fa-solid fa-right-from-bracket"></i></div>
       <h3>Log Out</h3>
-      <button class="modal__close" id="btnCloseLogoutModal" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div class="modal__body">
-      <div class="confirm-icon confirm-icon--info"><i class="fa-solid fa-right-from-bracket"></i></div>
       <p id="logoutModalMessage">Are you sure you want to log out?</p>
-      <p id="logoutModalEmail" style="display:none;margin-bottom:8px;font-weight:700;word-break:break-word;"></p>
+      <p id="logoutModalEmail" class="confirm-target"></p>
     </div>
     <div class="modal__footer">
       <button class="btn btn--ghost" id="btnCancelLogout">Cancel</button>
@@ -3688,7 +3671,6 @@ function cacheElements(){
   el.otpConfirmTitle = document.getElementById('otpConfirmTitle');
   el.otpConfirmMessage = document.getElementById('otpConfirmMessage');
   el.otpConfirmEmail = document.getElementById('otpConfirmEmail');
-  el.btnCloseOtpSendConfirm = document.getElementById('btnCloseOtpSendConfirm');
   el.btnCancelOtpSendConfirm = document.getElementById('btnCancelOtpSendConfirm');
   el.btnConfirmOtpSend = document.getElementById('btnConfirmOtpSend');
   el.pendingScreen = document.getElementById('pendingScreen');
@@ -3724,7 +3706,6 @@ function cacheElements(){
   el.invoiceNotes = document.getElementById('invoiceNotes');
   el.notesCardWrap = document.getElementById('notesCardWrap');
   el.billDetailsModalOverlay = document.getElementById('billDetailsModalOverlay');
-  el.btnCloseBillDetailsModal = document.getElementById('btnCloseBillDetailsModal');
   el.btnCloseBillDetailsModalFooter = document.getElementById('btnCloseBillDetailsModalFooter');
   el.billDetailsBody = document.getElementById('billDetailsBody');
   el.toggleNotesVisibility = document.getElementById('toggleNotesVisibility');
@@ -3737,17 +3718,15 @@ function cacheElements(){
   el.btnDownload = document.getElementById('btnDownload');
   el.btnPreview = document.getElementById('btnPreview');
   el.saveChoiceModalOverlay = document.getElementById('saveChoiceModalOverlay');
-  el.btnCloseSaveChoiceModal = document.getElementById('btnCloseSaveChoiceModal');
   el.btnSaveChoiceNo = document.getElementById('btnSaveChoiceNo');
   el.btnSaveChoiceYes = document.getElementById('btnSaveChoiceYes');
   el.pdfActionModalOverlay = document.getElementById('pdfActionModalOverlay');
-  el.btnClosePdfActionModal = document.getElementById('btnClosePdfActionModal');
   el.pdfActionMsg = document.getElementById('pdfActionMsg');
   el.btnPdfDownload = document.getElementById('btnPdfDownload');
   el.btnPdfShare = document.getElementById('btnPdfShare');
+  el.btnPdfActionCancel = document.getElementById('btnPdfActionCancel');
   el.productModalOverlay = document.getElementById('productModalOverlay');
   el.modalTitle = document.getElementById('modalTitle');
-  el.btnCloseModal = document.getElementById('btnCloseModal');
   el.btnCancelProduct = document.getElementById('btnCancelProduct');
   el.btnSaveProduct = document.getElementById('btnSaveProduct');
   el.prodName = document.getElementById('prodName');
@@ -3757,12 +3736,10 @@ function cacheElements(){
   el.prodRate = document.getElementById('prodRate');
   el.deleteModalOverlay = document.getElementById('deleteModalOverlay');
   el.deleteTargetName = document.getElementById('deleteTargetName');
-  el.btnCloseDeleteModal = document.getElementById('btnCloseDeleteModal');
   el.btnCancelDelete = document.getElementById('btnCancelDelete');
   el.btnConfirmDelete = document.getElementById('btnConfirmDelete');
   el.btnResetPage = document.getElementById('btnResetPage');
   el.resetModalOverlay = document.getElementById('resetModalOverlay');
-  el.btnCloseResetModal = document.getElementById('btnCloseResetModal');
   el.btnCancelResetInvoice = document.getElementById('btnCancelResetInvoice');
   el.btnConfirmReset = document.getElementById('btnConfirmReset');
   el.restoreBillModalOverlay = document.getElementById('restoreBillModalOverlay');
@@ -3797,11 +3774,9 @@ function cacheElements(){
   el.billsPaginationControls = document.getElementById('billsPaginationControls');
   el.deleteBillModalOverlay = document.getElementById('deleteBillModalOverlay');
   el.deleteBillTargetName = document.getElementById('deleteBillTargetName');
-  el.btnCloseDeleteBillModal = document.getElementById('btnCloseDeleteBillModal');
   el.btnCancelDeleteBill = document.getElementById('btnCancelDeleteBill');
   el.btnConfirmDeleteBill = document.getElementById('btnConfirmDeleteBill');
   el.logoutModalOverlay = document.getElementById('logoutModalOverlay');
-  el.btnCloseLogoutModal = document.getElementById('btnCloseLogoutModal');
   el.btnCancelLogout = document.getElementById('btnCancelLogout');
   el.btnConfirmLogout = document.getElementById('btnConfirmLogout');
   el.logoutModalMessage = document.getElementById('logoutModalMessage');
@@ -3822,7 +3797,6 @@ function cacheElements(){
   el.changePwCurrent = document.getElementById('changePwCurrent');
   el.changePwNew = document.getElementById('changePwNew');
   el.changePwConfirm = document.getElementById('changePwConfirm');
-  el.btnCloseChangePwModal = document.getElementById('btnCloseChangePwModal');
   el.btnCancelChangePw = document.getElementById('btnCancelChangePw');
   el.btnConfirmChangePw = document.getElementById('btnConfirmChangePw');
   el.pendingUsersLoading = document.getElementById('pendingUsersLoading');
@@ -4822,7 +4796,7 @@ function askToSendOtp(email, options = {}) {
   return new Promise(resolve => {
     const {
       title = 'Send Verification Code?',
-      message = 'We will send a 6-digit verification code to this email address.'
+      message = 'We will send a 6-digit verification code to this email.'
     } = options;
     el.otpConfirmTitle.textContent = title;
     el.otpConfirmMessage.textContent = message;
@@ -4837,15 +4811,12 @@ function askToSendOtp(email, options = {}) {
     };
     const onConfirm = () => finish(true);
     const onCancel = () => finish(false);
-    const onClose = () => finish(false);
     function cleanup() {
       el.btnConfirmOtpSend.removeEventListener('click', onConfirm);
       el.btnCancelOtpSendConfirm.removeEventListener('click', onCancel);
-      el.btnCloseOtpSendConfirm.removeEventListener('click', onClose);
     }
     el.btnConfirmOtpSend.addEventListener('click', onConfirm);
     el.btnCancelOtpSendConfirm.addEventListener('click', onCancel);
-    el.btnCloseOtpSendConfirm.addEventListener('click', onClose);
     el.otpSendConfirmOverlay.classList.remove('hide');
   });
 }
@@ -4936,7 +4907,7 @@ async function handleRegister() {
     // New account: ask before signUp(), because signUp() can send the email.
     const sendOtp = await askToSendOtp(email, {
       title: 'Send Verification Code?',
-      message: 'We will send a 6-digit verification code to this email address.'
+      message: 'We will send a 6-digit verification code to this email.'
     });
     if (!sendOtp) {
       showAuthMsg('Registration cancelled. No verification email was sent.', 'info');
@@ -6391,9 +6362,7 @@ function setDeleteBillButtonState(isDeleting){
   el.btnConfirmDeleteBill.disabled = isDeleting;
   el.btnConfirmDeleteBill.textContent = isDeleting ? 'Deleting...' : 'Delete';
   el.btnConfirmDeleteBill.setAttribute('aria-busy', isDeleting ? 'true' : 'false');
-  [el.btnCancelDeleteBill, el.btnCloseDeleteBillModal].forEach((btn) => {
-    if (btn) btn.disabled = isDeleting;
-  });
+  if (el.btnCancelDeleteBill) el.btnCancelDeleteBill.disabled = isDeleting;
 }
 function requestDeleteBill(invoiceNo){
   const bill = billsCache.find(b => b.invoice_no === invoiceNo);
@@ -6999,7 +6968,7 @@ function getDismissibleOverlays(){
     [el.saveChoiceModalOverlay, closeSaveChoiceModal],
     [el.pdfActionModalOverlay, closePdfActionModal],
     [el.restoreBillModalOverlay, dismissRestoreBillModalAsStartFresh],
-    [el.otpSendConfirmOverlay, () => el.btnCloseOtpSendConfirm.click()]
+    [el.otpSendConfirmOverlay, () => el.btnCancelOtpSendConfirm.click()]
   ];
 }
 function formatTitleCaseValue(value) {
@@ -7077,7 +7046,6 @@ function bindEvents(){
   }
   document.addEventListener('click', e => { if (!e.target.closest('#userMenuWrap')) closeUserDropdown(); });
   el.drawerChangePw.addEventListener('click', () => { closeDrawer(); openChangePasswordModal(); });
-  el.btnCloseChangePwModal.addEventListener('click', closeChangePasswordModal);
   el.btnCancelChangePw.addEventListener('click', closeChangePasswordModal);
   el.btnConfirmChangePw.addEventListener('click', handleChangePassword);
   // If the user does not know the current password, perform a real logout
@@ -7195,25 +7163,21 @@ function bindEvents(){
     input.addEventListener('focus', () => input.select());
   });
   el.btnAddProduct.addEventListener('click', () => openProductModal(null));
-  el.btnCloseModal.addEventListener('click', closeProductModal);
   el.btnCancelProduct.addEventListener('click', closeProductModal);
   el.btnSaveProduct.addEventListener('click', saveProduct);
   el.productTableBody.addEventListener('click', handleTableClick);
   el.btnDownload.addEventListener('click', openSaveChoiceModal);
-  el.btnCloseSaveChoiceModal.addEventListener('click', closeSaveChoiceModal);
   el.btnSaveChoiceNo.addEventListener('click', () => handleSaveChoice(false));
   el.btnSaveChoiceYes.addEventListener('click', () => handleSaveChoice(true));
-  el.btnClosePdfActionModal.addEventListener('click', closePdfActionModal);
   el.btnPdfDownload.addEventListener('click', downloadPdfBlob);
   el.btnPdfShare.addEventListener('click', sharePdfBlob);
+  el.btnPdfActionCancel.addEventListener('click', closePdfActionModal);
   el.btnDownloadFromPreview.addEventListener('click', handlePreviewDownload);
-  el.btnPreview.addEventListener('click', openPreviewModal);
   el.btnClosePreviewModal.addEventListener('click', closePreviewModal);
-  el.btnCloseDeleteModal.addEventListener('click', closeDeleteModal);
+  el.btnPreview.addEventListener('click', openPreviewModal);
   el.btnCancelDelete.addEventListener('click', closeDeleteModal);
   el.btnConfirmDelete.addEventListener('click', deleteProduct);
   el.btnResetPage.addEventListener('click', openResetModal);
-  el.btnCloseResetModal.addEventListener('click', closeResetModal);
   el.btnCancelResetInvoice.addEventListener('click', closeResetModal);
   el.btnConfirmReset.addEventListener('click', resetInvoice);
   // Restore Bill Modal Listeners
@@ -7359,10 +7323,8 @@ function bindEvents(){
   });
   el.billsTableBody.addEventListener('click', handleBillsTableClick);
   el.billsPaginationControls.addEventListener('click', handleBillsPaginationClick);
-  el.btnCloseDeleteBillModal.addEventListener('click', closeDeleteBillModal);
   el.btnCancelDeleteBill.addEventListener('click', closeDeleteBillModal);
   el.btnConfirmDeleteBill.addEventListener('click', deleteBill);
-  el.btnCloseBillDetailsModal.addEventListener('click', closeBillDetailsModal);
   el.btnCloseBillDetailsModalFooter.addEventListener('click', closeBillDetailsModal);
   el.pendingUsersList.addEventListener('click', handlePendingUsersClick);
   el.allUsersList.addEventListener('click', handleAllUsersClick);
@@ -7446,13 +7408,6 @@ function bindEvents(){
     }
   });
   updateAdminUserSearchButton();
-  el.btnCloseLogoutModal.addEventListener('click', () => {
-    if (pendingRecoveryConflict) {
-      cancelRecoveryConflict();
-      return;
-    }
-    closeLogoutConfirm();
-  });
   el.btnCancelLogout.addEventListener('click', () => {
     if (pendingRecoveryConflict) {
       cancelRecoveryConflict();
