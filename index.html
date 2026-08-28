@@ -53,7 +53,7 @@ html.theme-preload .boot-loader__bar-track{background:#1B1F27;}</style>
   --focus-ring: rgba(1,37,135,.16);
   --radius: 12px;
   --radius-sm: 8px;
-  --shadow-sm: 0 1px 4px rgba(82,120,216,.1);
+  --shadow-sm: 0 2px 4px rgba(82,120,216,.1);
   --font: "Roboto", sans-serif;
   --nb-bg: transparent;
   --nb-border: var(--line);
@@ -272,7 +272,6 @@ body.dark-theme .btn--ghost:hover{background: #1A202C;}
 .btn--primary{min-height:40px;}
 .btn--download,.btn--preview{font-size:13.5px;padding:9px 14px;}
 .btn--reset{padding:9px 14px;font-size:13.5px;}
-.modal__footer{padding:8px 16px 16px;}
 .modal__footer .btn{padding:9px 12px;font-size:13px;}
 .auth-form .btn--primary{min-height:50px;}
 .btn--primary,.btn--google{min-height:52px;}
@@ -743,14 +742,14 @@ body.dark-theme .toast-card--error{--toast-accent:#E13B34;background:#2A1113;bor
   border:1px solid var(--line);
   box-shadow: var(--shadow-sm);
 }
-.modal__header{display:flex;align-items:center;justify-content:center;padding:12px 20px;text-align:center;}
+.modal__header{display:flex;align-items:center;justify-content:center;padding:20px 20px 12px;text-align:center;}
 .modal__header h3{margin:0;font-size:16px;color:var(--primary-text);text-align:center;}
 .modal--confirm .modal__header{flex-direction:column;gap:8px;padding: 28px 20px 4px;}
 .modal--confirm .modal__header .confirm-icon{margin:0;}
 .modal--confirm .modal__header h3{color:var(--text);}
-.modal__body{padding:0px 20px;display:flex;flex-direction:column;gap:8px;}
+.modal__body{padding:6px 20px;display:flex;flex-direction:column;gap:12px;}
 .modal--confirm .modal__body{gap:6px;padding:12px 20px;}
-.modal__footer{display:flex;gap:8px;padding:8px 20px 20px;}
+.modal__footer{display:flex;gap:8px;padding:12px 20px 20px;}
 .modal__footer .btn{flex:1;min-height:40px;font-size:13.5px;}
 .bd-row{display:flex;flex-direction:column;padding:10px 0;border-top:1px solid var(--line);}
 .bd-row:first-child,.user-row:first-child{border-top:none;}
@@ -1588,7 +1587,7 @@ body.dark-theme .verify-info strong{color:#F3F4F6;}
   border-radius:50%;
   color:#FFFFFF;
   background:#012587;
-  box-shadow:0 6px 18px rgba(1,37,135,.35);
+  box-shadow:var(--shadow-sm)
 }
 .auth-hero-icon__ring{position:absolute;border-radius:50%;pointer-events:none;}
 .auth-hero-icon__ring--one{width:132px;height:132px;border:1px solid rgba(1,37,135,.3);}
@@ -6755,12 +6754,24 @@ async function handleChangePassword(){
   }, () => showToast('Could not update password. Please try again.', 'error'));
 }
 let pendingRecoveryConflict = null;
+let pendingChangePwForgotLogout = false;
 function openLogoutConfirm(){
   const email = currentSession?.user?.email || currentProfile?.email || '';
   el.logoutModalMessage.textContent = 'Are you sure you want to log out?';
   el.logoutModalEmail.textContent = email;
   el.logoutModalEmail.style.display = email ? 'block' : 'none';
   el.btnConfirmLogout.innerHTML = 'Log Out';
+  showOverlay(el.logoutModalOverlay);
+}
+// Confirm before logging out from the "Log Out & Forgot Password" link
+// inside the Change Password modal, reusing the same logout confirm modal.
+function openChangePwForgotLogoutConfirm(){
+  const email = currentSession?.user?.email || currentProfile?.email || '';
+  pendingChangePwForgotLogout = true;
+  el.logoutModalMessage.innerHTML = 'You need to log out to reset your password.<br>Are you sure you want to log out?';
+  el.logoutModalEmail.textContent = email;
+  el.logoutModalEmail.style.display = email ? 'block' : 'none';
+  el.btnConfirmLogout.innerHTML = 'Log Out & Reset';
   showOverlay(el.logoutModalOverlay);
 }
 function openRecoveryConflictConfirm(conflict){
@@ -6778,6 +6789,7 @@ function openRecoveryConflictConfirm(conflict){
   showOverlay(el.logoutModalOverlay);
 }
 function closeLogoutConfirm(){
+  pendingChangePwForgotLogout = false;
   hideOverlay(el.logoutModalOverlay);
 }
 async function cancelRecoveryConflict(){
@@ -7088,11 +7100,10 @@ function bindEvents(){
   // and take them directly to the normal Forgot Password flow.
   const btnChangePwForgot = document.getElementById('btnChangePwForgot');
   if (btnChangePwForgot) {
-    btnChangePwForgot.addEventListener('click', async (event) => {
+    btnChangePwForgot.addEventListener('click', (event) => {
       event.preventDefault();
       closeChangePasswordModal();
-      await handleLogout();
-      setAuthTab('forgot');
+      openChangePwForgotLogoutConfirm();
     });
   }
   el.btnDrawerOpen.addEventListener('click', openDrawer);
@@ -7454,6 +7465,11 @@ function bindEvents(){
   el.btnConfirmLogout.addEventListener('click', () => {
     if (pendingRecoveryConflict) {
       confirmRecoveryConflictLogout();
+      return;
+    }
+    if (pendingChangePwForgotLogout) {
+      closeLogoutConfirm();
+      handleLogout().then(() => setAuthTab('forgot'));
       return;
     }
     closeLogoutConfirm();
