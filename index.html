@@ -7231,6 +7231,73 @@ function bindEvents(){
   document.querySelectorAll('.nav-tab').forEach(tab => {
     tab.addEventListener('click', () => switchView(tab.dataset.view));
   });
+
+  // ---------- Swipe between app tabs ----------
+  // Swipes are intentionally allowed over inputs/textareas/selects as well.
+  // Modal dialogs/overlays are excluded so a horizontal gesture inside a modal
+  // never changes the main app tab.
+  let navSwipeStartX = 0;
+  let navSwipeStartY = 0;
+  let navSwipeTracking = false;
+  let navSwipeIgnore = false;
+
+  function getVisibleNavTabs() {
+    return Array.from(document.querySelectorAll('.nav-tab'))
+      .filter(tab => !tab.classList.contains('hide'));
+  }
+
+  function switchViewBySwipe(direction) {
+    const tabs = getVisibleNavTabs();
+    if (!tabs.length) return;
+
+    const activeIndex = tabs.findIndex(tab => tab.classList.contains('active'));
+    if (activeIndex < 0) return;
+
+    // Swipe left = next tab, swipe right = previous tab.
+    const nextIndex = direction === 'left' ? activeIndex + 1 : activeIndex - 1;
+    if (nextIndex < 0 || nextIndex >= tabs.length) return;
+
+    switchView(tabs[nextIndex].dataset.view);
+  }
+
+  document.addEventListener('touchstart', (event) => {
+    if (event.touches.length !== 1) {
+      navSwipeTracking = false;
+      return;
+    }
+
+    const target = event.target instanceof Element ? event.target : null;
+    navSwipeIgnore = !!target?.closest('.modal-overlay, .modal, .date-picker__overlay, .nav-tabs');
+    if (navSwipeIgnore) {
+      navSwipeTracking = false;
+      return;
+    }
+
+    navSwipeStartX = event.touches[0].clientX;
+    navSwipeStartY = event.touches[0].clientY;
+    navSwipeTracking = true;
+  }, { passive: true });
+
+  document.addEventListener('touchend', (event) => {
+    if (!navSwipeTracking || navSwipeIgnore || !event.changedTouches.length) return;
+
+    navSwipeTracking = false;
+    const endTouch = event.changedTouches[0];
+    const dx = endTouch.clientX - navSwipeStartX;
+    const dy = endTouch.clientY - navSwipeStartY;
+    const distance = Math.abs(dx);
+
+    // Require a clearly intentional horizontal swipe; tiny movements
+    // and accidental finger shifts should never change tabs.
+    if (distance < 60 || distance < Math.abs(dy) * 1.25) return;
+
+    // Only handle swipes while the app screen is actually visible.
+    const appScreen = document.getElementById('appScreen');
+    if (!appScreen || appScreen.classList.contains('hide')) return;
+
+    switchViewBySwipe(dx < 0 ? 'left' : 'right');
+  }, { passive: true });
+
   window.addEventListener('resize', () => {
     const activeTab = document.querySelector('.nav-tab.active');
     if (activeTab) updateNavIndicator(activeTab.dataset.view, false);
