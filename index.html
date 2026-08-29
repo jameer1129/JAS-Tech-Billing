@@ -1118,13 +1118,34 @@ body.dark-theme .drawer__footer{background:rgba(127, 127, 127, .08);;}
   box-shadow:0 4px 18px rgba(0,0,0,.06);
   scrollbar-width:none;
 }
+.nav-tabs.nav-tabs--no-motion::before{transition:none!important;}
+.nav-tabs::before{
+  content:"";
+  position:absolute;
+  left:0;
+  bottom:0;
+  width:var(--nav-indicator-width,0px);
+  height:100%;
+  transform:translateX(var(--nav-indicator-x,0px));
+  background:linear-gradient(to top,rgba(1,37,135,.11),transparent 72%);
+  border-bottom:3px solid var(--primary-text);
+  pointer-events:none;
+  z-index:0;
+  transition:transform .34s cubic-bezier(.22,.61,.36,1),width .34s cubic-bezier(.22,.61,.36,1);
+  will-change:transform,width;
+}
 .nav-tabs::-webkit-scrollbar{display:none;}
 body.dark-theme .nav-tabs{background:rgba(0,0,0,.72);border-bottom-color:rgba(255,255,255,.10);box-shadow:0 4px 18px rgba(0,0,0,.28);}
+body.dark-theme .nav-tabs::before{
+  background:linear-gradient(to top,rgba(82,120,216,.14),transparent 72%);
+}
 #appScreen > .nav-tabs ~ .app-shell{padding-top:132px;}
 
 @media(max-width:640px){#appScreen > .nav-tabs ~ #viewNewBill.app-shell{padding:110px 18px 24px;}
 
 }.nav-tab{
+  position:relative;
+  z-index:1;
   border:none;
   background:transparent;
   color:var(--muted);
@@ -1133,47 +1154,13 @@ body.dark-theme .nav-tabs{background:rgba(0,0,0,.72);border-bottom-color:rgba(25
   padding:13px 16px;
   cursor:pointer;
   white-space:nowrap;
-  border-bottom:3px solid transparent;
   display:flex;
   align-items:center;
   gap:7px;
-  transition:color .15s ease, border-color .15s ease;
+  transition:color .15s ease;
 }
 .nav-tab:hover{color:var(--primary-text);}
-.nav-tab.active{color:var(--primary-text);border-bottom-color:var(--primary-text);background:linear-gradient(to top,rgba(1,37,135,.15),transparent);}
-body.dark-theme .nav-tab.active{background:linear-gradient(to top,rgba(82,120,216,.2),transparent);}
-/* ---------- Tab transition direction ---------- */
-.nav-tabs{position:fixed;overflow:hidden;}
-.nav-tab{position:relative;background:transparent !important;}
-.nav-tab.active{border-bottom-color:transparent;background:transparent;}
-.nav-tab-indicator{
-  position:absolute;
-  left:0;
-  bottom:0;
-  height:3px;
-  border-radius:3px 3px 0 0;
-  pointer-events:none;
-  z-index:2;
-  background:linear-gradient(to top,rgba(1,37,135,.20),rgba(1,37,135,.06));
-  box-shadow:0 -1px 8px rgba(1,37,135,.08);
-  transition:left .24s cubic-bezier(.22,.61,.36,1),width .24s cubic-bezier(.22,.61,.36,1);
-}
-.nav-tab-indicator::after{
-  content:"";
-  position:absolute;
-  left:0;right:0;bottom:0;height:3px;
-  border-radius:3px 3px 0 0;
-  background:var(--primary-text);
-}
-body.dark-theme .nav-tab-indicator{
-  background:linear-gradient(to top,rgba(82,120,216,.24),rgba(82,120,216,.07));
-  box-shadow:0 -1px 8px rgba(82,120,216,.10);
-}
-body.dark-theme .nav-tab-indicator::after{background:var(--primary-text);}
-
-@media(prefers-reduced-motion:reduce){
-  .nav-tabs.nav-slide-left,.nav-tabs.nav-slide-right{animation:none!important;}
-}
+.nav-tab.active{color:var(--primary-text);background:transparent;}
 
 /* ---------- Boot loader ---------- */
 .boot-loader{
@@ -5369,43 +5356,30 @@ function enterApp(){
     updateSummary();
   }
 }
+function updateNavIndicator(view, animate = true){
+  const nav = document.querySelector('.nav-tabs');
+  if (!nav) return;
+  const tab = nav.querySelector(`.nav-tab[data-view="${view}"]`);
+  if (!tab || tab.classList.contains('hide')) return;
+
+  if (!animate) nav.classList.add('nav-tabs--no-motion');
+  nav.style.setProperty('--nav-indicator-x', `${tab.offsetLeft}px`);
+  nav.style.setProperty('--nav-indicator-width', `${tab.offsetWidth}px`);
+
+  if (!animate) {
+    requestAnimationFrame(() => nav.classList.remove('nav-tabs--no-motion'));
+  }
+}
+
 function switchView(view){
   const allowedViews = ['newBill', 'previousBills', 'admin'];
   if (!allowedViews.includes(view)) view = 'newBill';
   if (view === 'admin' && (!currentProfile || currentProfile.role !== 'admin')) {
     view = 'newBill';
   }
-
-  // Smoothly move only the active-tab underline/background shard.
-  // The nav itself stays still; the indicator glides to the next title.
-  const navTabs = document.querySelector('.nav-tabs');
-  let indicator = navTabs?.querySelector('.nav-tab-indicator');
-  if (navTabs) {
-    if (!indicator) {
-      indicator = document.createElement('span');
-      indicator.className = 'nav-tab-indicator';
-      navTabs.appendChild(indicator);
-    }
-    const targetTab = navTabs.querySelector(`.nav-tab[data-view="${view}"]`);
-    if (targetTab) {
-      const navRect = navTabs.getBoundingClientRect();
-      const tabRect = targetTab.getBoundingClientRect();
-      indicator.style.left = `${tabRect.left - navRect.left}px`;
-      indicator.style.width = `${tabRect.width}px`;
-    }
-  }
-
-
+  localStorage.setItem(prefKeyFor('jas_last_view'), view);
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.view === view));
-  const activeTab = navTabs?.querySelector(`.nav-tab[data-view="${view}"]`);
-  if (navTabs && indicator && activeTab) {
-    const navRect = navTabs.getBoundingClientRect();
-    const tabRect = activeTab.getBoundingClientRect();
-    requestAnimationFrame(() => {
-      indicator.style.left = `${tabRect.left - navRect.left}px`;
-      indicator.style.width = `${tabRect.width}px`;
-    });
-  }
+  updateNavIndicator(view);
   el.viewNewBill.classList.toggle('hide', view !== 'newBill');
   el.viewPreviousBills.classList.toggle('hide', view !== 'previousBills');
   el.viewAdmin.classList.toggle('hide', view !== 'admin');
@@ -7257,59 +7231,10 @@ function bindEvents(){
   document.querySelectorAll('.nav-tab').forEach(tab => {
     tab.addEventListener('click', () => switchView(tab.dataset.view));
   });
-
-  // Fast, mobile-friendly swipe between the main app panels.
-  let swipeStartX = 0, swipeStartY = 0;
-  let swipeTracking = false, swipeLocked = false;
-  const swipeArea = document.getElementById('appScreen');
-  const swipeViews = ['newBill', 'previousBills', 'admin'];
-  const SWIPE_TRIGGER = 18;
-  const SWIPE_ANGLE = 1.45;
-
-  function goToSwipeView(direction) {
-    const activeTab = document.querySelector('.nav-tab.active:not(.hide)');
-    const currentView = activeTab?.dataset.view || 'newBill';
-    let index = swipeViews.indexOf(currentView);
-    if (index < 0) index = 0;
-    index += direction;
-    while (index >= 0 && index < swipeViews.length) {
-      const nextView = swipeViews[index];
-      if (nextView !== 'admin' || (currentProfile && currentProfile.role === 'admin')) {
-        switchView(nextView);
-        return;
-      }
-      index += direction;
-    }
-  }
-
-  if (swipeArea) {
-    swipeArea.style.touchAction = 'pan-y';
-    swipeArea.addEventListener('touchstart', (e) => {
-      if (e.touches.length !== 1) { swipeTracking = false; return; }
-      const target = e.target.closest('button, a, [contenteditable=\"true\"]');
-      if (target) { swipeTracking = false; return; }
-      swipeStartX = e.touches[0].clientX;
-      swipeStartY = e.touches[0].clientY;
-      swipeTracking = true;
-      swipeLocked = false;
-    }, { passive: true });
-
-    swipeArea.addEventListener('touchmove', (e) => {
-      if (!swipeTracking || swipeLocked || e.touches.length !== 1) return;
-      const dx = e.touches[0].clientX - swipeStartX;
-      const dy = e.touches[0].clientY - swipeStartY;
-      const absX = Math.abs(dx), absY = Math.abs(dy);
-      if (absY > 12 && absX <= absY * 1.15) { swipeTracking = false; return; }
-      if (absX >= SWIPE_TRIGGER && absX > absY * SWIPE_ANGLE) {
-        swipeLocked = true;
-        swipeTracking = false;
-        goToSwipeView(dx < 0 ? 1 : -1);
-      }
-    }, { passive: true });
-
-    swipeArea.addEventListener('touchend', () => { swipeTracking = false; swipeLocked = false; }, { passive: true });
-    swipeArea.addEventListener('touchcancel', () => { swipeTracking = false; swipeLocked = false; }, { passive: true });
-  }
+  window.addEventListener('resize', () => {
+    const activeTab = document.querySelector('.nav-tab.active');
+    if (activeTab) updateNavIndicator(activeTab.dataset.view, false);
+  });
   ['customerName', 'customerAddress', 'prodName', 'prodDesc', 'prodSerial'].forEach((fieldId) => {
     const field = document.getElementById(fieldId);
     if (!field) return;
