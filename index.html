@@ -7233,10 +7233,10 @@ function bindEvents(){
   });
 
   // ---------- Swipe between app tabs ----------
-  // Swipes over UNFOCUSED inputs are allowed. A focused form field is
-  // protected so its own touch/drag/edit behavior is never hijacked.
   // Modal dialogs/overlays are excluded so a horizontal gesture inside a modal
-  // never changes the main app tab.
+  // never changes the main app tab. Swipes are also ignored when they start
+  // on a focused input/textarea/select, so typing/selecting text never
+  // accidentally switches tabs.
   let navSwipeStartX = 0;
   let navSwipeStartY = 0;
   let navSwipeTracking = false;
@@ -7261,29 +7261,22 @@ function bindEvents(){
     switchView(tabs[nextIndex].dataset.view);
   }
 
-  // Horizontal tab swipe. Unfocused fields may start a swipe, but focused
-  // fields are explicitly ignored. Modals and
-  // the tab bar itself remain excluded.
   document.addEventListener('touchstart', (event) => {
     if (event.touches.length !== 1) {
       navSwipeTracking = false;
-      navSwipeIgnore = true;
       return;
     }
 
     const target = event.target instanceof Element ? event.target : null;
-
-    // IMPORTANT: if a form field is currently focused, do NOT treat the
-    // gesture as a tab swipe. This lets the focused field receive its normal
-    // touch/drag/edit behavior. Swiping over an unfocused field is still
-    // allowed, as requested.
-    const focused = document.activeElement;
-    const focusedField = focused instanceof Element &&
-      (focused.matches('input, textarea, select, [contenteditable=\"true\"]') ||
-       !!focused.closest('[contenteditable=\"true\"]'));
-
-    navSwipeIgnore = focusedField ||
-      !!target?.closest('.modal-overlay, .modal, .date-picker__overlay, .nav-tabs');
+    const activeEl = document.activeElement;
+    const startedOnFocusedField =
+      !!activeEl &&
+      activeEl instanceof Element &&
+      ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeEl.tagName) &&
+      (activeEl === target || activeEl.contains(target));
+    navSwipeIgnore =
+      !!target?.closest('.modal-overlay, .modal, .date-picker__overlay, .nav-tabs') ||
+      startedOnFocusedField;
     if (navSwipeIgnore) {
       navSwipeTracking = false;
       return;
@@ -7292,7 +7285,7 @@ function bindEvents(){
     navSwipeStartX = event.touches[0].clientX;
     navSwipeStartY = event.touches[0].clientY;
     navSwipeTracking = true;
-  }, { passive: true, capture: true });
+  }, { passive: true });
 
   document.addEventListener('touchend', (event) => {
     if (!navSwipeTracking || navSwipeIgnore || !event.changedTouches.length) return;
@@ -7301,18 +7294,18 @@ function bindEvents(){
     const endTouch = event.changedTouches[0];
     const dx = endTouch.clientX - navSwipeStartX;
     const dy = endTouch.clientY - navSwipeStartY;
-    const absX = Math.abs(dx);
-    const absY = Math.abs(dy);
+    const distance = Math.abs(dx);
 
-    // Require a real, deliberate horizontal swipe.
-    // 60px prevents tiny finger shifts from changing tabs.
-    if (absX < 60 || absX <= absY * 1.25) return;
+    // Require a clearly intentional horizontal swipe; tiny movements
+    // and accidental finger shifts should never change tabs.
+    if (distance < 60 || distance < Math.abs(dy) * 1.25) return;
 
+    // Only handle swipes while the app screen is actually visible.
     const appScreen = document.getElementById('appScreen');
     if (!appScreen || appScreen.classList.contains('hide')) return;
 
     switchViewBySwipe(dx < 0 ? 'left' : 'right');
-  }, { passive: true, capture: true });
+  }, { passive: true });
 
   window.addEventListener('resize', () => {
     const activeTab = document.querySelector('.nav-tab.active');
