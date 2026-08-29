@@ -1137,7 +1137,7 @@ body.dark-theme .nav-tabs{background:rgba(0,0,0,.72);border-bottom-color:rgba(25
   display:flex;
   align-items:center;
   gap:7px;
-  transition:color .15s ease, border-color .15s ease, background .15s ease;
+  transition:color .15s ease, border-color .15s ease;
 }
 .nav-tab:hover{color:var(--primary-text);}
 .nav-tab.active{color:var(--primary-text);border-bottom-color:var(--primary-text);background:linear-gradient(to top,rgba(1,37,135,.15),transparent);}
@@ -7096,198 +7096,6 @@ function applyTitleCaseToField(inputEl) {
   }
   return formattedValue;
 }
-// ---------- Screen swipe gesture (mobile, WhatsApp-style) ----------
-// Lets the user swipe left/right anywhere on the app screen (not just the
-// nav bar) to move to the next/previous visible tab (New Bill / Previous
-// Bills / Admin). The content tracks the finger in real time and snaps into
-// place on release, and the nav bar's active tab switches live as the
-// dragged content crosses the halfway point - the same feel as WhatsApp's
-// tab bar. Vertical scrolling, text selection in inputs, modals, the
-// drawer, and anything that already scrolls horizontally on its own
-// (tables, pagination, the nav bar itself) are left alone so the gesture
-// never fights normal page interactions.
-function initScreenSwipeNav(){
-  const SWIPE_COMMIT_RATIO = 0.22;   // fraction of screen width to drag before it counts as a full swipe
-  const SWIPE_MIN_VELOCITY = 0.28;   // px/ms - a quick flick commits even with a short drag
-  const DIRECTION_LOCK_SLOP = 8;     // px - how far we wait before deciding this is a horizontal gesture
-  const EDGE_RESISTANCE = 3;         // rubber-band divisor when there's no neighbor tab to go to
-  const SETTLE_MS = 300;             // matches the snap transition duration below (with a little buffer)
-
-  let state = null;
-
-  function getViewEl(view){
-    if (view === 'newBill') return el.viewNewBill;
-    if (view === 'previousBills') return el.viewPreviousBills;
-    if (view === 'admin') return el.viewAdmin;
-    return null;
-  }
-
-  function shouldIgnoreTarget(target){
-    let node = target;
-    let depth = 0;
-    while (node && node !== document.body && depth < 8) {
-      if (node.nodeType === 1) {
-        if (node.matches('input, textarea, select, [contenteditable="true"], .nav-tabs, .modal-overlay, .drawer')) {
-          return true;
-        }
-        const style = window.getComputedStyle(node);
-        if (node.scrollWidth > node.clientWidth + 2 &&
-            (style.overflowX === 'auto' || style.overflowX === 'scroll')) {
-          return true;
-        }
-      }
-      node = node.parentElement;
-      depth++;
-    }
-    return false;
-  }
-
-  function setDragStyle(viewEl, navBottom){
-    viewEl.classList.remove('hide');
-    viewEl.style.position = 'fixed';
-    viewEl.style.top = navBottom + 'px';
-    viewEl.style.left = '0';
-    viewEl.style.right = '0';
-    viewEl.style.bottom = '0';
-    viewEl.style.overflowY = 'auto';
-    viewEl.style.zIndex = '40';
-    viewEl.style.background = 'var(--bg)';
-    viewEl.style.transition = 'none';
-    viewEl.style.willChange = 'transform';
-  }
-
-  function clearDragStyle(viewEl, restoreHide){
-    viewEl.style.position = '';
-    viewEl.style.top = '';
-    viewEl.style.left = '';
-    viewEl.style.right = '';
-    viewEl.style.bottom = '';
-    viewEl.style.overflowY = '';
-    viewEl.style.zIndex = '';
-    viewEl.style.background = '';
-    viewEl.style.transform = '';
-    viewEl.style.transition = '';
-    viewEl.style.willChange = '';
-    if (restoreHide) viewEl.classList.add('hide');
-  }
-
-  document.addEventListener('touchstart', (e) => {
-    if (e.touches.length !== 1) return;
-    if (!el.appScreen || el.appScreen.classList.contains('hide')) return;
-    if (document.querySelector('.modal-overlay:not(.hide)')) return;
-    if (el.appDrawer && el.appDrawer.classList.contains('open')) return;
-    if (shouldIgnoreTarget(e.target)) return;
-
-    const navTabsEl = document.querySelector('.nav-tabs');
-    const visibleTabs = Array.from(document.querySelectorAll('.nav-tab')).filter(t => !t.classList.contains('hide'));
-    const currentIndex = visibleTabs.findIndex(t => t.classList.contains('active'));
-    if (!navTabsEl || currentIndex === -1) return;
-    const fromView = visibleTabs[currentIndex].dataset.view;
-    const fromEl = getViewEl(fromView);
-    if (!fromEl) return;
-
-    state = {
-      startX: e.touches[0].clientX,
-      startY: e.touches[0].clientY,
-      startTime: Date.now(),
-      locked: null,
-      dragging: false,
-      lastDx: 0,
-      visibleTabs,
-      currentIndex,
-      fromEl,
-      toView: null,
-      toEl: null,
-      direction: 0,
-      navBottom: navTabsEl.getBoundingClientRect().bottom,
-      width: window.innerWidth
-    };
-  }, { passive: true });
-
-  document.addEventListener('touchmove', (e) => {
-    if (!state || e.touches.length !== 1) return;
-    const dx = e.touches[0].clientX - state.startX;
-    const dy = e.touches[0].clientY - state.startY;
-
-    if (state.locked === null) {
-      if (Math.abs(dx) < DIRECTION_LOCK_SLOP && Math.abs(dy) < DIRECTION_LOCK_SLOP) return;
-      state.locked = Math.abs(dx) > Math.abs(dy);
-      if (!state.locked) { state = null; return; }
-
-      state.direction = dx < 0 ? 1 : -1; // 1 = next tab, -1 = previous tab
-      const target = state.visibleTabs[state.currentIndex + state.direction];
-      state.toView = target ? target.dataset.view : null;
-      state.toEl = target ? getViewEl(state.toView) : null;
-
-      setDragStyle(state.fromEl, state.navBottom);
-      if (state.toEl) setDragStyle(state.toEl, state.navBottom);
-      state.dragging = true;
-    }
-
-    if (!state.dragging) return;
-    e.preventDefault();
-
-    const dragX = state.toEl ? dx : dx / EDGE_RESISTANCE;
-    state.lastDx = dragX;
-    state.fromEl.style.transform = `translateX(${dragX}px)`;
-    if (state.toEl) {
-      const startOffset = state.direction === 1 ? state.width : -state.width;
-      state.toEl.style.transform = `translateX(${startOffset + dragX}px)`;
-      // Live-track which tab looks active as the content passes the midpoint,
-      // matching WhatsApp's tab bar following the swipe as it happens.
-      const crossedHalfway = Math.abs(dragX) > state.width * 0.5;
-      state.visibleTabs[state.currentIndex].classList.toggle('active', !crossedHalfway);
-      state.visibleTabs[state.currentIndex + state.direction].classList.toggle('active', crossedHalfway);
-    }
-  }, { passive: false });
-
-  document.addEventListener('touchend', () => {
-    if (!state) return;
-    if (!state.dragging) { state = null; return; }
-
-    const dx = state.lastDx;
-    const elapsed = Math.max(Date.now() - state.startTime, 1);
-    const velocity = Math.abs(dx) / elapsed;
-    const commit = !!state.toEl && (Math.abs(dx) > state.width * SWIPE_COMMIT_RATIO || velocity > SWIPE_MIN_VELOCITY);
-
-    const settleTransition = 'transform .28s cubic-bezier(.22,.68,0,1.01)';
-    state.fromEl.style.transition = settleTransition;
-    if (state.toEl) state.toEl.style.transition = settleTransition;
-
-    if (commit) {
-      const exitOffset = state.direction === 1 ? -state.width : state.width;
-      state.fromEl.style.transform = `translateX(${exitOffset}px)`;
-      state.toEl.style.transform = 'translateX(0px)';
-    } else {
-      state.fromEl.style.transform = 'translateX(0px)';
-      if (state.toEl) {
-        const startOffset = state.direction === 1 ? state.width : -state.width;
-        state.toEl.style.transform = `translateX(${startOffset}px)`;
-      }
-      // Snapping back - make sure the nav bar goes back to the original tab.
-      state.visibleTabs[state.currentIndex].classList.add('active');
-      if (state.toEl) state.visibleTabs[state.currentIndex + state.direction].classList.remove('active');
-    }
-
-    const { fromEl, toEl, toView } = state;
-    setTimeout(() => {
-      clearDragStyle(fromEl, commit);
-      if (toEl) clearDragStyle(toEl, !commit);
-      if (commit && toView) switchView(toView);
-    }, SETTLE_MS);
-
-    state = null;
-  }, { passive: true });
-
-  document.addEventListener('touchcancel', () => {
-    if (state && state.dragging) {
-      clearDragStyle(state.fromEl, false);
-      if (state.toEl) clearDragStyle(state.toEl, true);
-      state.visibleTabs[state.currentIndex].classList.add('active');
-    }
-    state = null;
-  }, { passive: true });
-}
 function bindEvents(){
   el.authTabLogin?.addEventListener('click', () => setAuthTab('login'));
   el.authTabRegister?.addEventListener('click', () => setAuthTab('register'));
@@ -7387,7 +7195,53 @@ function bindEvents(){
   document.querySelectorAll('.nav-tab').forEach(tab => {
     tab.addEventListener('click', () => switchView(tab.dataset.view));
   });
-  initScreenSwipeNav();
+
+  // Swipe between the main app panels: New Bill -> Previous Bills -> Admin.
+  // Only a clear horizontal gesture changes tabs; normal vertical scrolling
+  // and typing/selection inside controls are left untouched.
+  let swipeStartX = 0;
+  let swipeStartY = 0;
+  let swipeTracking = false;
+  const swipeArea = document.getElementById('appScreen');
+  const swipeViews = ['newBill', 'previousBills', 'admin'];
+
+  if (swipeArea) {
+    swipeArea.addEventListener('touchstart', (e) => {
+      if (e.touches.length !== 1) { swipeTracking = false; return; }
+      const target = e.target.closest('input, textarea, select, button, a, [contenteditable=\"true\"]');
+      if (target) { swipeTracking = false; return; }
+      swipeStartX = e.touches[0].clientX;
+      swipeStartY = e.touches[0].clientY;
+      swipeTracking = true;
+    }, { passive: true });
+
+    swipeArea.addEventListener('touchend', (e) => {
+      if (!swipeTracking || !e.changedTouches.length) return;
+      swipeTracking = false;
+
+      const dx = e.changedTouches[0].clientX - swipeStartX;
+      const dy = e.changedTouches[0].clientY - swipeStartY;
+      if (Math.abs(dx) < 70 || Math.abs(dx) <= Math.abs(dy) * 1.25) return;
+
+      const activeTab = document.querySelector('.nav-tab.active:not(.hide)');
+      const currentView = activeTab?.dataset.view || 'newBill';
+      let index = swipeViews.indexOf(currentView);
+      if (index < 0) index = 0;
+
+      if (dx < 0) index += 1;
+      else index -= 1;
+
+      // Skip Admin for non-admin users.
+      while (index >= 0 && index < swipeViews.length) {
+        const nextView = swipeViews[index];
+        if (nextView !== 'admin' || (currentProfile && currentProfile.role === 'admin')) {
+          switchView(nextView);
+          break;
+        }
+        index += dx < 0 ? 1 : -1;
+      }
+    }, { passive: true });
+  }
   ['customerName', 'customerAddress', 'prodName', 'prodDesc', 'prodSerial'].forEach((fieldId) => {
     const field = document.getElementById(fieldId);
     if (!field) return;
