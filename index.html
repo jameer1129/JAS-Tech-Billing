@@ -5369,7 +5369,7 @@ function enterApp(){
     updateSummary();
   }
 }
-function switchView(view){function switchView(view){
+function switchView(view){
   const allowedViews = ['newBill', 'previousBills', 'admin'];
   if (!allowedViews.includes(view)) view = 'newBill';
   if (view === 'admin' && (!currentProfile || currentProfile.role !== 'admin')) {
@@ -7286,7 +7286,7 @@ function bindEvents(){
     swipeArea.style.touchAction = 'pan-y';
     swipeArea.addEventListener('touchstart', (e) => {
       if (e.touches.length !== 1) { swipeTracking = false; return; }
-      const target = e.target.closest('input, textarea, select, button, a, [contenteditable=\"true\"]');
+      const target = e.target.closest('button, a, [contenteditable=\"true\"]');
       if (target) { swipeTracking = false; return; }
       swipeStartX = e.touches[0].clientX;
       swipeStartY = e.touches[0].clientY;
@@ -8059,7 +8059,6 @@ if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("./service-worker.js");
   });
-}
 }
 </script>
 </body>
