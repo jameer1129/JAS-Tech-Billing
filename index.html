@@ -1142,6 +1142,39 @@ body.dark-theme .nav-tabs{background:rgba(0,0,0,.72);border-bottom-color:rgba(25
 .nav-tab:hover{color:var(--primary-text);}
 .nav-tab.active{color:var(--primary-text);border-bottom-color:var(--primary-text);background:linear-gradient(to top,rgba(1,37,135,.15),transparent);}
 body.dark-theme .nav-tab.active{background:linear-gradient(to top,rgba(82,120,216,.2),transparent);}
+/* ---------- Tab transition direction ---------- */
+.nav-tabs{position:fixed;overflow:hidden;}
+.nav-tab{position:relative;background:transparent !important;}
+.nav-tab.active{border-bottom-color:transparent;background:transparent;}
+.nav-tab-indicator{
+  position:absolute;
+  left:0;
+  bottom:0;
+  height:3px;
+  border-radius:3px 3px 0 0;
+  pointer-events:none;
+  z-index:2;
+  background:linear-gradient(to top,rgba(1,37,135,.20),rgba(1,37,135,.06));
+  box-shadow:0 -1px 8px rgba(1,37,135,.08);
+  transition:left .24s cubic-bezier(.22,.61,.36,1),width .24s cubic-bezier(.22,.61,.36,1);
+}
+.nav-tab-indicator::after{
+  content:"";
+  position:absolute;
+  left:0;right:0;bottom:0;height:3px;
+  border-radius:3px 3px 0 0;
+  background:var(--primary-text);
+}
+body.dark-theme .nav-tab-indicator{
+  background:linear-gradient(to top,rgba(82,120,216,.24),rgba(82,120,216,.07));
+  box-shadow:0 -1px 8px rgba(82,120,216,.10);
+}
+body.dark-theme .nav-tab-indicator::after{background:var(--primary-text);}
+
+@media(prefers-reduced-motion:reduce){
+  .nav-tabs.nav-slide-left,.nav-tabs.nav-slide-right{animation:none!important;}
+}
+
 /* ---------- Boot loader ---------- */
 .boot-loader{
   position:fixed;
@@ -5336,14 +5369,43 @@ function enterApp(){
     updateSummary();
   }
 }
-function switchView(view){
+function switchView(view){function switchView(view){
   const allowedViews = ['newBill', 'previousBills', 'admin'];
   if (!allowedViews.includes(view)) view = 'newBill';
   if (view === 'admin' && (!currentProfile || currentProfile.role !== 'admin')) {
     view = 'newBill';
   }
-  localStorage.setItem(prefKeyFor('jas_last_view'), view);
+
+  // Smoothly move only the active-tab underline/background shard.
+  // The nav itself stays still; the indicator glides to the next title.
+  const navTabs = document.querySelector('.nav-tabs');
+  let indicator = navTabs?.querySelector('.nav-tab-indicator');
+  if (navTabs) {
+    if (!indicator) {
+      indicator = document.createElement('span');
+      indicator.className = 'nav-tab-indicator';
+      navTabs.appendChild(indicator);
+    }
+    const targetTab = navTabs.querySelector(`.nav-tab[data-view="${view}"]`);
+    if (targetTab) {
+      const navRect = navTabs.getBoundingClientRect();
+      const tabRect = targetTab.getBoundingClientRect();
+      indicator.style.left = `${tabRect.left - navRect.left}px`;
+      indicator.style.width = `${tabRect.width}px`;
+    }
+  }
+
+
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.view === view));
+  const activeTab = navTabs?.querySelector(`.nav-tab[data-view="${view}"]`);
+  if (navTabs && indicator && activeTab) {
+    const navRect = navTabs.getBoundingClientRect();
+    const tabRect = activeTab.getBoundingClientRect();
+    requestAnimationFrame(() => {
+      indicator.style.left = `${tabRect.left - navRect.left}px`;
+      indicator.style.width = `${tabRect.width}px`;
+    });
+  }
   el.viewNewBill.classList.toggle('hide', view !== 'newBill');
   el.viewPreviousBills.classList.toggle('hide', view !== 'previousBills');
   el.viewAdmin.classList.toggle('hide', view !== 'admin');
@@ -7997,6 +8059,7 @@ if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("./service-worker.js");
   });
+}
 }
 </script>
 </body>
