@@ -53,7 +53,7 @@ html.theme-preload .boot-loader__bar-track{background:#1B1F27;}</style>
   --focus-ring: rgba(1,37,135,.16);
   --radius: 12px;
   --radius-sm: 8px;
-  --shadow-sm: 0 2px 4px rgba(82,120,216,.1);
+  --shadow-sm:2px 2px 4px rgba(82,120,216,.1);
   --font: "Roboto", sans-serif;
   --nb-bg: transparent;
   --nb-border: var(--line);
@@ -68,7 +68,7 @@ body.dark-theme{
   --surface: var(--dark-surface, #000000);
   --text: var(--dark-text, #F3F4F6);
   --muted: #A1A1AA;
-  --white: var(--dark-surface, #000);
+  --white: var(--dark-black, #0B0B0D);
   --input-bg: #050506;
   --focus-ring: rgba(82,120,216,.28);
   --line: var(--dark-line, #2D3748AA);
@@ -7096,6 +7096,81 @@ function applyTitleCaseToField(inputEl) {
   }
   return formattedValue;
 }
+// ---------- Screen swipe gesture (mobile) ----------
+// Lets the user swipe left/right anywhere on the app screen (not just the
+// nav bar) to move to the next/previous visible tab (New Bill / Previous
+// Bills / Admin), in addition to tapping a tab directly. Vertical scrolling,
+// text selection in inputs, modals, the drawer, and anything that already
+// scrolls horizontally on its own (tables, pagination, the nav bar itself)
+// are left alone so the gesture never fights normal page interactions.
+function initScreenSwipeNav(){
+  const SWIPE_MIN_DISTANCE = 55;   // px - minimum horizontal travel to count as a swipe
+  const SWIPE_MAX_OFF_AXIS = 65;   // px - max vertical drift allowed, keeps it a horizontal gesture
+  const SWIPE_MAX_DURATION = 700;  // ms - ignore slow drags
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let touchStartTime = 0;
+  let tracking = false;
+
+  function shouldIgnoreTarget(target){
+    let node = target;
+    let depth = 0;
+    while (node && node !== document.body && depth < 8) {
+      if (node.nodeType === 1) {
+        if (node.matches('input, textarea, select, [contenteditable="true"], .nav-tabs, .modal-overlay, .drawer')) {
+          return true;
+        }
+        const style = window.getComputedStyle(node);
+        if (node.scrollWidth > node.clientWidth + 2 &&
+            (style.overflowX === 'auto' || style.overflowX === 'scroll')) {
+          return true;
+        }
+      }
+      node = node.parentElement;
+      depth++;
+    }
+    return false;
+  }
+
+  document.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1) { tracking = false; return; }
+    if (!el.appScreen || el.appScreen.classList.contains('hide')) { tracking = false; return; }
+    if (document.querySelector('.modal-overlay:not(.hide)')) { tracking = false; return; }
+    if (el.appDrawer && el.appDrawer.classList.contains('open')) { tracking = false; return; }
+    if (shouldIgnoreTarget(e.target)) { tracking = false; return; }
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    touchStartTime = Date.now();
+    tracking = true;
+  }, { passive: true });
+
+  document.addEventListener('touchend', (e) => {
+    if (!tracking) return;
+    tracking = false;
+    const touch = e.changedTouches[0];
+    if (!touch) return;
+    const deltaX = touch.clientX - touchStartX;
+    const deltaY = touch.clientY - touchStartY;
+    const elapsed = Date.now() - touchStartTime;
+    if (elapsed > SWIPE_MAX_DURATION) return;
+    if (Math.abs(deltaY) > SWIPE_MAX_OFF_AXIS) return;
+    if (Math.abs(deltaX) < SWIPE_MIN_DISTANCE) return;
+    const visibleTabs = Array.from(document.querySelectorAll('.nav-tab')).filter(t => !t.classList.contains('hide'));
+    if (visibleTabs.length < 2) return;
+    const currentIndex = visibleTabs.findIndex(t => t.classList.contains('active'));
+    if (currentIndex === -1) return;
+    // Swipe left (finger moves right-to-left) -> advance to the next tab.
+    // Swipe right (finger moves left-to-right) -> go back to the previous tab.
+    const nextIndex = deltaX < 0
+      ? Math.min(currentIndex + 1, visibleTabs.length - 1)
+      : Math.max(currentIndex - 1, 0);
+    if (nextIndex !== currentIndex) {
+      switchView(visibleTabs[nextIndex].dataset.view);
+    }
+  }, { passive: true });
+
+  document.addEventListener('touchcancel', () => { tracking = false; }, { passive: true });
+}
 function bindEvents(){
   el.authTabLogin?.addEventListener('click', () => setAuthTab('login'));
   el.authTabRegister?.addEventListener('click', () => setAuthTab('register'));
@@ -7195,6 +7270,7 @@ function bindEvents(){
   document.querySelectorAll('.nav-tab').forEach(tab => {
     tab.addEventListener('click', () => switchView(tab.dataset.view));
   });
+  initScreenSwipeNav();
   ['customerName', 'customerAddress', 'prodName', 'prodDesc', 'prodSerial'].forEach((fieldId) => {
     const field = document.getElementById(fieldId);
     if (!field) return;
