@@ -1490,14 +1490,14 @@ body:has(.auth-shell:not(.hide)){overflow:hidden;}
   font-weight:700;
   word-break:break-word;
 }
-.otp-boxes{display:flex;width:100%;max-width:100%;gap:10px;margin:14px 0 2px;overflow:hidden;}
+.otp-boxes{display:flex;width:100%;max-width:100%;gap:10px;margin:14px 0 2px;overflow:hidden;padding:4px;}
 .otp-boxes .otp-box{
   flex:1 1 0;
   width:0 !important;
   min-width:0 !important;
   height:58px;
   padding:0 !important;
-  border:1.5px solid var(--line);
+  border:2px solid var(--line);
   border-radius:10px;
   background:var(--input-bg);
   color:var(--text);
@@ -1552,6 +1552,7 @@ body:has(.auth-shell:not(.hide)){overflow:hidden;}
   text-align:left;
   padding:0;
   box-shadow:none;
+  cursor: pointer;
 }
 .verify-resend:hover:not(:disabled){background:transparent;text-decoration:underline;}
 .verify-resend[disabled]{color:var(--text);cursor:default;opacity:1;}
@@ -1579,6 +1580,9 @@ body.dark-theme .verify-info strong{color:#F3F4F6;}
 .pending-card h2{font-size:17px;color:var(--text);}
 .pending-card p{margin:0 0 20px;color:var(--muted);font-size:13.5px;line-height:1.55;}
 .pending-card.rejected i{color:var(--danger);}
+.pending-actions{display:flex;gap:10px;justify-content:center;}
+.pending-actions .btn{flex:1;min-height:52px;}
+.pending-actions .btn i{font-size:16px;}
 /* ---------- Forgot-password hero ---------- */
 .auth-hero-icon{
   position:relative;
@@ -1615,7 +1619,7 @@ body.dark-theme .auth-hero-icon__ring--two{border:1px solid rgba(23, 105, 255, .
 /* ---------- Verification / reset screens ---------- */
 #emailVerificationScreen .auth-card,#resetPasswordScreen .auth-card{max-width:430px;}
 #emailVerificationScreen .verify-hero,#resetPasswordScreen .auth-card-heading{text-align:center;}
-#emailVerificationScreen .verify-hero__icon{width:92px;height:92px;margin-bottom:18px;background:rgba(1,37,135,.025);color:var(--primary-text);box-shadow:0 0 30px rgba(1,37,135,.08);}
+#emailVerificationScreen .verify-hero__icon{width:92px;height:92px;margin-bottom:18px;color:var(--primary-text);font-size:60px;background:transparent;}
 #emailVerificationScreen .verify-hero h1{font-size:22px;font-weight:760;}
 #emailVerificationScreen .verify-info,#emailVerificationScreen .verify-timer{background:var(--input-bg);border:1px solid var(--line);color:var(--text);border-radius:13px;}
 #resetPasswordScreen .auth-logo{margin-bottom:24px;}
@@ -2982,7 +2986,10 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
     <i class="fa-regular fa-clock" id="pendingIcon"></i>
     <h2 id="pendingTitle">Waiting for approval</h2>
     <p id="pendingText">Your account has been created. An admin needs to approve it before you can log in and start billing.</p>
-    <button class="btn btn--ghost" id="btnPendingLogout"><i class="fa-solid fa-right-from-bracket" style="font-size:20px;"></i> Log out</button>
+    <div class="pending-actions">
+      <button class="btn btn--ghost" id="btnPendingRefresh"><i class="fa-solid fa-rotate-right"></i> Refresh</button>
+      <button class="btn btn--ghost" id="btnPendingLogout"><i class="fa-solid fa-right-from-bracket"></i> Log out</button>
+    </div>
   </div>
 </div>
 <!-- ================= MAIN APP ================= -->
@@ -3692,6 +3699,7 @@ function cacheElements(){
   el.pendingTitle = document.getElementById('pendingTitle');
   el.pendingText = document.getElementById('pendingText');
   el.btnPendingLogout = document.getElementById('btnPendingLogout');
+  el.btnPendingRefresh = document.getElementById('btnPendingRefresh');
   el.resetPasswordScreen = document.getElementById('resetPasswordScreen');
   el.resetPasswordCompanyName = document.getElementById('resetPasswordCompanyName');
   el.resetNewPassword = document.getElementById('resetNewPassword');
@@ -4655,6 +4663,11 @@ function updateVerificationTimers(){
   } else {
     el.btnResendVerification.classList.remove('hide');
     el.verifyResendTimerText.textContent = 'You can resend the code now';
+    // Nothing left to count down — stop ticking until a resend restarts it.
+    if (signupVerificationTimer) {
+      clearInterval(signupVerificationTimer);
+      signupVerificationTimer = null;
+    }
   }
 }
 function startVerificationTimers(){
@@ -4662,8 +4675,23 @@ function startVerificationTimers(){
   updateVerificationTimers();
   signupVerificationTimer = setInterval(updateVerificationTimers, 1000);
 }
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && signupVerificationTimer) updateVerificationTimers();
+});
 function getOtpBoxes(){
   return Array.from(document.querySelectorAll('.otp-box'));
+}
+// Index of the box that should currently be editable: the first empty one,
+// or the last box once all digits are filled.
+function getActiveOtpIndex(boxes){
+  const idx = boxes.findIndex(box => !box.value);
+  return idx === -1 ? boxes.length - 1 : idx;
+}
+function focusActiveOtpBox(){
+  const boxes = getOtpBoxes();
+  if (!boxes.length) return;
+  const target = boxes[getActiveOtpIndex(boxes)];
+  if (document.activeElement !== target) target.focus();
 }
 function setVerificationOtp(value = ''){
   const code = String(value).replace(/\D/g, '').slice(0, 6);
@@ -4683,7 +4711,7 @@ function showEmailVerification(email, message = 'Enter the code from your email 
   showScreen('verify-email');
   startVerificationTimers();
   if (message) showVerificationMsg(message, 'info');
-  setTimeout(() => el.verifyOtp.focus(), 80);
+  setTimeout(focusActiveOtpBox, 80);
 }
 function isEmailNotConfirmedError(error){
   const text = `${error?.message || ''} ${error?.code || ''}`.toLowerCase();
@@ -4978,7 +5006,7 @@ async function handleVerifyEmail(){
   }
   if (!/^\d{6}$/.test(token)) {
     showVerificationMsg('Enter the 6-digit verification code.');
-    el.verifyOtp.focus();
+    focusActiveOtpBox();
     return;
   }
   const { sentAt } = getPendingSignup();
@@ -5073,7 +5101,7 @@ async function handleResendVerification(){
       'info'
     );
     startVerificationTimers();
-    setTimeout(() => el.verifyOtp.focus(), 80);
+    setTimeout(focusActiveOtpBox, 80);
   } finally {
     hideActionLoader();
   }
@@ -5269,6 +5297,24 @@ async function afterAuthResolved(){
   }
   // approved
   enterApp();
+}
+let pendingRefreshInProgress = false;
+async function handlePendingRefresh(){
+  if (pendingRefreshInProgress) return;
+  pendingRefreshInProgress = true;
+  const icon = el.btnPendingRefresh.querySelector('i');
+  el.btnPendingRefresh.disabled = true;
+  icon.classList.add('fa-spin');
+  try {
+    await afterAuthResolved();
+  } catch (err) {
+    console.error('Failed to refresh approval status', err);
+    showToast('Could not check your status. Please try again.', 'error');
+  } finally {
+    icon.classList.remove('fa-spin');
+    el.btnPendingRefresh.disabled = false;
+    pendingRefreshInProgress = false;
+  }
 }
 function enterApp(){
   // Re-sync now that currentSession is known, so the account-scoped
@@ -7058,6 +7104,25 @@ function bindEvents(){
   el.btnVerifyEmail.addEventListener('click', handleVerifyEmail);
   el.btnResendVerification.addEventListener('click', handleResendVerification);
   el.btnBackFromVerification.addEventListener('click', handleBackFromVerification);
+  const otpBoxesWrap = document.querySelector('.otp-boxes');
+  let otpRefocusTimer = null;
+  if (otpBoxesWrap) {
+    // Lock manual focus/typing to only the box that should be filled next.
+    otpBoxesWrap.addEventListener('focusin', (event) => {
+      clearTimeout(otpRefocusTimer);
+      if (!event.target.classList.contains('otp-box')) return;
+      const boxes = getOtpBoxes();
+      const target = boxes[getActiveOtpIndex(boxes)];
+      if (event.target !== target) target.focus();
+    });
+    // If focus leaves the OTP group entirely, pull it back after 1.5s.
+    otpBoxesWrap.addEventListener('focusout', () => {
+      clearTimeout(otpRefocusTimer);
+      otpRefocusTimer = setTimeout(() => {
+        if (!otpBoxesWrap.contains(document.activeElement)) focusActiveOtpBox();
+      }, 1500);
+    });
+  }
   getOtpBoxes().forEach((box, index, boxes) => {
     box.addEventListener('input', () => {
       box.value = box.value.replace(/\D/g, '').slice(-1);
@@ -7097,6 +7162,7 @@ function bindEvents(){
     window.location.href = window.location.origin + window.location.pathname;
   });
   el.btnPendingLogout.addEventListener('click', openLogoutConfirm);
+  el.btnPendingRefresh.addEventListener('click', handlePendingRefresh);
   el.appBarUser.addEventListener('click', (e) => { e.stopPropagation(); toggleUserDropdown(); });
   // Allow Enter key to submit the change-password modal
   if (el.changePwCurrent) {
