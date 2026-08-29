@@ -7196,16 +7196,32 @@ function bindEvents(){
     tab.addEventListener('click', () => switchView(tab.dataset.view));
   });
 
-  // Swipe between the main app panels: New Bill -> Previous Bills -> Admin.
-  // Only a clear horizontal gesture changes tabs; normal vertical scrolling
-  // and typing/selection inside controls are left untouched.
-  let swipeStartX = 0;
-  let swipeStartY = 0;
-  let swipeTracking = false;
+  // Fast, mobile-friendly swipe between the main app panels.
+  let swipeStartX = 0, swipeStartY = 0;
+  let swipeTracking = false, swipeLocked = false;
   const swipeArea = document.getElementById('appScreen');
   const swipeViews = ['newBill', 'previousBills', 'admin'];
+  const SWIPE_TRIGGER = 18;
+  const SWIPE_ANGLE = 1.45;
+
+  function goToSwipeView(direction) {
+    const activeTab = document.querySelector('.nav-tab.active:not(.hide)');
+    const currentView = activeTab?.dataset.view || 'newBill';
+    let index = swipeViews.indexOf(currentView);
+    if (index < 0) index = 0;
+    index += direction;
+    while (index >= 0 && index < swipeViews.length) {
+      const nextView = swipeViews[index];
+      if (nextView !== 'admin' || (currentProfile && currentProfile.role === 'admin')) {
+        switchView(nextView);
+        return;
+      }
+      index += direction;
+    }
+  }
 
   if (swipeArea) {
+    swipeArea.style.touchAction = 'pan-y';
     swipeArea.addEventListener('touchstart', (e) => {
       if (e.touches.length !== 1) { swipeTracking = false; return; }
       const target = e.target.closest('input, textarea, select, button, a, [contenteditable=\"true\"]');
@@ -7213,34 +7229,24 @@ function bindEvents(){
       swipeStartX = e.touches[0].clientX;
       swipeStartY = e.touches[0].clientY;
       swipeTracking = true;
+      swipeLocked = false;
     }, { passive: true });
 
-    swipeArea.addEventListener('touchend', (e) => {
-      if (!swipeTracking || !e.changedTouches.length) return;
-      swipeTracking = false;
-
-      const dx = e.changedTouches[0].clientX - swipeStartX;
-      const dy = e.changedTouches[0].clientY - swipeStartY;
-      if (Math.abs(dx) < 70 || Math.abs(dx) <= Math.abs(dy) * 1.25) return;
-
-      const activeTab = document.querySelector('.nav-tab.active:not(.hide)');
-      const currentView = activeTab?.dataset.view || 'newBill';
-      let index = swipeViews.indexOf(currentView);
-      if (index < 0) index = 0;
-
-      if (dx < 0) index += 1;
-      else index -= 1;
-
-      // Skip Admin for non-admin users.
-      while (index >= 0 && index < swipeViews.length) {
-        const nextView = swipeViews[index];
-        if (nextView !== 'admin' || (currentProfile && currentProfile.role === 'admin')) {
-          switchView(nextView);
-          break;
-        }
-        index += dx < 0 ? 1 : -1;
+    swipeArea.addEventListener('touchmove', (e) => {
+      if (!swipeTracking || swipeLocked || e.touches.length !== 1) return;
+      const dx = e.touches[0].clientX - swipeStartX;
+      const dy = e.touches[0].clientY - swipeStartY;
+      const absX = Math.abs(dx), absY = Math.abs(dy);
+      if (absY > 12 && absX <= absY * 1.15) { swipeTracking = false; return; }
+      if (absX >= SWIPE_TRIGGER && absX > absY * SWIPE_ANGLE) {
+        swipeLocked = true;
+        swipeTracking = false;
+        goToSwipeView(dx < 0 ? 1 : -1);
       }
     }, { passive: true });
+
+    swipeArea.addEventListener('touchend', () => { swipeTracking = false; swipeLocked = false; }, { passive: true });
+    swipeArea.addEventListener('touchcancel', () => { swipeTracking = false; swipeLocked = false; }, { passive: true });
   }
   ['customerName', 'customerAddress', 'prodName', 'prodDesc', 'prodSerial'].forEach((fieldId) => {
     const field = document.getElementById(fieldId);
