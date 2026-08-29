@@ -171,7 +171,7 @@ input[type="number"]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0
   flex-direction:column;
   gap:16px;
 }
-.card{background:var(--surface);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow-sm);border:1px solid var(--line);transition: background 0.3s ease, border-color 0.3s ease;}
+.card{background:var(--surface);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow-sm);border:1px solid var(--line);transition: background 0.15s ease, border-color 0.15s ease;}
 .card__heading{
   margin:0 0 14px;
   font-size:12px;
@@ -324,7 +324,7 @@ body.dark-theme .bills-table thead th{background: #1A202C;color: var(--primary-t
   text-transform:uppercase;
   letter-spacing:.4px;
   white-space:nowrap;
-  transition:background .3s ease;
+  transition:background .15 ease;
 }
 .bills-table tbody td{
   min-width:0;
@@ -737,7 +737,7 @@ body.dark-theme .toast-card--error{--toast-accent:#E13B34;background:#2A1113;bor
   border-radius:var(--radius);
   max-height:90vh;
   overflow-y:auto;
-  transition: background 0.3s ease;
+  transition: background 0.15s ease;
   border:1px solid var(--line);
   box-shadow: var(--shadow-sm);
 }
@@ -1127,7 +1127,7 @@ body.dark-theme .drawer__footer{background:rgba(127, 127, 127, .08);;}
   width:var(--nav-indicator-width,0px);
   height:100%;
   transform:translateX(var(--nav-indicator-x,0px));
-  background:linear-gradient(to top,rgba(1,37,135,.11),transparent 72%);
+  background:linear-gradient(to top,rgba(1,37,135,.25),transparent 72%);
   border-bottom:3px solid var(--primary-text);
   pointer-events:none;
   z-index:0;
@@ -1137,7 +1137,7 @@ body.dark-theme .drawer__footer{background:rgba(127, 127, 127, .08);;}
 .nav-tabs::-webkit-scrollbar{display:none;}
 body.dark-theme .nav-tabs{background:rgba(0,0,0,.72);border-bottom-color:rgba(255,255,255,.10);box-shadow:0 4px 18px rgba(0,0,0,.28);}
 body.dark-theme .nav-tabs::before{
-  background:linear-gradient(to top,rgba(82,120,216,.14),transparent 72%);
+  background:linear-gradient(to top,rgba(82,120,216,.25),transparent 72%);
 }
 #appScreen > .nav-tabs ~ .app-shell{padding-top:132px;}
 
