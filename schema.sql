@@ -150,14 +150,34 @@ on public.bills(customer_phone);
 create index if not exists
   bills_created_at_idx
 on public.bills(created_at);
--- 5. AUTO-CREATE PROFILE AFTER SIGNUP
-create or replace function public.handle_new_user()
-returns trigger
+-- 5. CREATE PROFILE AFTER VERIFIED EMAIL
+drop trigger if exists
+  on_auth_user_created
+on auth.users;
+drop function if exists public.handle_new_user();
+create or replace function public.ensure_profile()
+returns public.profiles
 language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+  v_user auth.users%rowtype;
+  v_profile public.profiles%rowtype;
 begin
+  if auth.uid() is null then
+    raise exception 'Authentication required';
+  end if;
+  select *
+  into v_user
+  from auth.users
+  where id = auth.uid();
+  if not found then
+    raise exception 'Auth user not found';
+  end if;
+  if v_user.email_confirmed_at is null then
+    raise exception 'Email must be verified before a profile can be created';
+  end if;
   insert into public.profiles (
     id,
     name,
@@ -166,29 +186,29 @@ begin
     status
   )
   values (
-    new.id,
+    v_user.id,
     coalesce(
-      new.raw_user_meta_data->>'name',
-      split_part(new.email, '@', 1)
+      v_user.raw_user_meta_data->>'name',
+      split_part(v_user.email, '@', 1)
     ),
-    new.email,
+    v_user.email,
     'employee',
     'pending'
   )
   on conflict (id)
   do nothing;
-  return new;
+  select *
+  into v_profile
+  from public.profiles
+  where id = v_user.id;
+  return v_profile;
 end;
 $$;
-drop trigger if exists
-  on_auth_user_created
-on auth.users;
-create trigger
-  on_auth_user_created
-after insert
-on auth.users
-for each row
-execute procedure public.handle_new_user();
+grant execute on function public.ensure_profile()
+to authenticated;
+revoke execute on function public.ensure_profile()
+from anon, public;
+
 -- 6. ADMIN CHECK FUNCTION
 --
 -- Returns TRUE when the current user is:
@@ -962,3 +982,46 @@ grant execute on function public.check_email_exists(text) to service_role;
 -- Last:
 --     260809FFFF
 --
+-- Block new Google accounts before Auth user creation and add this in oAuth Hook
+create or replace function public.hook_block_new_google_users(event jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  user_email text;
+  provider text;
+  existing_user boolean;
+begin
+  user_email := lower(trim(event->'user'->>'email'));
+  provider := lower(coalesce(event->'user'->'app_metadata'->>'provider', ''));
+
+  if provider = 'google' then
+    select exists (
+      select 1
+      from public.profiles
+      where lower(email) = user_email
+    )
+    into existing_user;
+
+    if not existing_user then
+      return jsonb_build_object(
+        'error',
+        jsonb_build_object(
+          'http_code', 400,
+          'message', 'Google sign-in is only available for existing accounts. Please register first.'
+        )
+      );
+    end if;
+  end if;
+
+  return '{}'::jsonb;
+end;
+$$;
+
+grant execute on function public.hook_block_new_google_users(jsonb)
+to supabase_auth_admin;
+
+revoke execute on function public.hook_block_new_google_users(jsonb)
+from anon, authenticated, public;
