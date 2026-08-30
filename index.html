@@ -6341,7 +6341,7 @@ function renderBillsTable(){
   }
   el.billsEmptyState.classList.add('hide');
   el.billsTableWrap.classList.remove('hide');
-  const isAdmin = currentProfile.role === 'admin';
+  const isAdmin = ['admin', 'super_admin'].includes((currentProfile.role || '').toLowerCase());
   // Update sort indicators
   document.querySelectorAll('.bills-table thead th.sortable').forEach(th => {
     const isActive = billsSortCol === th.dataset.col;
