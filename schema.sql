@@ -1,6 +1,4 @@
--- =========================================================
 -- JAS TECH BILLING — FINAL SUPABASE DATABASE SCHEMA
--- =========================================================
 --
 -- FINAL DESIGN
 --
@@ -31,17 +29,12 @@
 -- The frontend does NOT generate the official number.
 --
 -- Existing historical invoices are not modified.
--- =========================================================
-
-
-
--- =========================================================
 -- 1. PROFILES
--- =========================================================
 --
 -- One profile per Supabase Auth user.
 --
 -- role:
+--     super_admin
 --     admin
 --     employee
 --
@@ -49,35 +42,34 @@
 --     pending
 --     approved
 --     rejected
--- =========================================================
-
 create table if not exists public.profiles (
   id uuid primary key
     references auth.users(id)
     on delete cascade,
-
   name text not null default '',
-
   email text not null default '',
-
   role text not null default 'employee'
     check (
-      role in ('admin', 'employee')
+      role in ('super_admin', 'admin', 'employee')
     ),
-
   status text not null default 'pending'
     check (
       status in ('pending', 'approved', 'rejected')
     ),
-
   created_at timestamptz not null default now()
 );
-
-
-
--- =========================================================
+-- ROLE CONSTRAINT MIGRATION
+--
+-- Keeps this reference schema safe for both:
+--   1. a brand-new database, and
+--   2. an existing database that still has the old
+--      ('admin', 'employee') constraint.
+alter table public.profiles
+  drop constraint if exists profiles_role_check;
+alter table public.profiles
+  add constraint profiles_role_check
+  check (role in ('super_admin', 'admin', 'employee'));
 -- 2. BILLS
--- =========================================================
 --
 -- One row = one saved invoice.
 --
@@ -103,112 +95,62 @@ create table if not exists public.profiles (
 --
 -- Bill date:
 --     2026-08-07
--- =========================================================
-
 create table if not exists public.bills (
-
   invoice_no text primary key,
-
   customer_name text default '',
-
   customer_phone text default '',
-
   customer_address text default '',
-
   bill_date date,
-
   notes text default '',
-
   include_notes boolean not null default false,
-
   show_watermark boolean not null default false,
-
   show_qr boolean not null default false,
-
   show_signature boolean not null default false,
-
   total numeric(12,2) not null default 0
     check (total >= 0),
-
   created_by uuid
     references public.profiles(id)
     on delete set null,
-
   created_by_name text default '',
-
   created_at timestamptz not null default now()
 );
-
-
-
--- =========================================================
 -- 3. BILL ITEMS
--- =========================================================
 --
 -- One row = one product/service line inside an invoice.
 --
 -- No id, item_no, or sort_order is used.
 -- Items are linked directly using invoice_no.
--- =========================================================
-
 create table if not exists public.bill_items (
-
   invoice_no text not null
     references public.bills(invoice_no)
     on delete cascade,
-
   item_name text not null,
-
   description text default '',
-
   serial text default '',
-
   qty numeric not null default 1
     check (qty > 0),
-
   price numeric not null default 0
     check (price >= 0),
-
   amount numeric not null default 0
     check (amount >= 0)
 );
-
-
-
--- =========================================================
 -- 4. INDEXES
--- =========================================================
-
 create index if not exists
   bill_items_invoice_no_idx
 on public.bill_items(invoice_no);
-
-
 create index if not exists
   bills_invoice_no_idx
 on public.bills(invoice_no);
-
-
 create index if not exists
   bills_customer_name_idx
 on public.bills(customer_name);
-
-
 create index if not exists
   bills_customer_phone_idx
 on public.bills(customer_phone);
-
-
 create index if not exists
   bills_created_at_idx
 on public.bills(created_at);
-
-
-
--- =========================================================
 -- 5. AUTO-CREATE PROFILE AFTER SIGNUP
--- =========================================================
-
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -216,7 +158,6 @@ security definer
 set search_path = public
 as $$
 begin
-
   insert into public.profiles (
     id,
     name,
@@ -224,58 +165,36 @@ begin
     role,
     status
   )
-
   values (
     new.id,
-
     coalesce(
       new.raw_user_meta_data->>'name',
       split_part(new.email, '@', 1)
     ),
-
     new.email,
-
     'employee',
-
     'pending'
   )
-
   on conflict (id)
   do nothing;
-
   return new;
-
 end;
 $$;
-
-
-
 drop trigger if exists
   on_auth_user_created
 on auth.users;
-
-
 create trigger
   on_auth_user_created
-
 after insert
 on auth.users
-
 for each row
 execute procedure public.handle_new_user();
-
-
-
--- =========================================================
 -- 6. ADMIN CHECK FUNCTION
--- =========================================================
 --
--- Returns TRUE only when the current user:
+-- Returns TRUE when the current user is:
 --
---     role   = admin
+--     role   = super_admin OR admin
 --     status = approved
--- =========================================================
-
 create or replace function public.is_admin()
 returns boolean
 language sql
@@ -287,17 +206,11 @@ as $$
     select 1
     from public.profiles
     where id = auth.uid()
-      and role = 'admin'
+      and role in ('super_admin', 'admin')
       and status = 'approved'
   );
 $$;
-
-
-
--- =========================================================
 -- 7. APPROVED USER CHECK
--- =========================================================
-
 create or replace function public.is_approved()
 returns boolean
 language sql
@@ -312,87 +225,49 @@ as $$
       and status = 'approved'
   );
 $$;
-
-
-
--- =========================================================
 -- 8. ENABLE ROW LEVEL SECURITY
--- =========================================================
-
 alter table public.profiles
 enable row level security;
-
-
 alter table public.bills
 enable row level security;
-
-
 alter table public.bill_items
 enable row level security;
-
-
-
--- =========================================================
 -- 9. PROFILE POLICIES
--- =========================================================
-
 drop policy if exists
   "profiles_select_own"
 on public.profiles;
-
-
 create policy
   "profiles_select_own"
-
 on public.profiles
-
 for select
-
 using (
   id = auth.uid()
 );
-
-
-
 drop policy if exists
   "profiles_select_admin"
 on public.profiles;
-
-
 create policy
   "profiles_select_admin"
-
 on public.profiles
-
 for select
-
 using (
   public.is_admin()
 );
-
-
-
 drop policy if exists
   "profiles_update_admin"
 on public.profiles;
-
-
 create policy
   "profiles_update_admin"
-
 on public.profiles
-
 for update
-
 using (
   public.is_admin()
+  and role <> 'super_admin'
+)
+with check (
+  role <> 'super_admin'
 );
-
-
-
--- =========================================================
 -- 10. BILLS POLICIES
--- =========================================================
 --
 -- Approved users:
 --
@@ -409,122 +284,68 @@ using (
 -- There is intentionally NO UPDATE policy.
 --
 -- Saved invoices are immutable.
--- =========================================================
-
 drop policy if exists
   "bills_select_approved"
 on public.bills;
-
-
 create policy
   "bills_select_approved"
-
 on public.bills
-
 for select
-
 using (
   public.is_approved()
 );
-
-
-
 drop policy if exists
   "bills_delete_admin"
 on public.bills;
-
-
 create policy
   "bills_delete_admin"
-
 on public.bills
-
 for delete
-
 using (
   public.is_admin()
 );
-
-
-
--- =========================================================
 -- 11. BILL ITEMS POLICIES
--- =========================================================
-
 drop policy if exists
   "bill_items_select_approved"
 on public.bill_items;
-
-
 create policy
   "bill_items_select_approved"
-
 on public.bill_items
-
 for select
-
 using (
   public.is_approved()
 );
-
-
-
 drop policy if exists
   "bill_items_delete_admin"
 on public.bill_items;
-
-
 create policy
   "bill_items_delete_admin"
-
 on public.bill_items
-
 for delete
-
 using (
   public.is_admin()
 );
-
-
-
--- =========================================================
 -- 12. BASE GRANTS
--- =========================================================
 --
 -- RLS controls rows.
 -- GRANT controls whether the role can access the table.
--- =========================================================
-
 grant usage
 on schema public
 to authenticated;
-
-
 grant select, update
 on public.profiles
 to authenticated;
-
-
 grant select
 on public.bills
 to authenticated;
-
-
 grant select
 on public.bill_items
 to authenticated;
-
-
 grant usage, select
 on all sequences
 in schema public
 to authenticated;
-
-
-
--- =========================================================
 -- 13. CREATE BILL RPC
--- =========================================================
 --
 -- THIS IS THE IMPORTANT PART.
 --
@@ -547,132 +368,61 @@ to authenticated;
 --     created_by
 --
 -- Supabase generates those.
--- =========================================================
-
 create or replace function public.create_bill(
-
   customer_name text,
-
   customer_phone text,
-
   customer_address text,
-
   bill_date date,
-
   notes text,
-
   include_notes boolean,
-
   show_watermark boolean,
-
   show_qr boolean,
-
   show_signature boolean,
-
   created_by_name text,
-
   items jsonb
-
 )
-
 returns public.bills
-
 language plpgsql
-
 security definer
-
 set search_path = public
-
 as $$
-
 declare
-
   new_bill public.bills%rowtype;
-
   item jsonb;
-
-
-  -- =======================================================
   -- INVOICE DATE
   --
   -- IMPORTANT:
   -- Invoice number always uses the actual save date.
   --
   -- NOT bill_date.
-  -- =======================================================
-
   v_invoice_date date := current_date;
-
-
   last_no text;
-
   seq integer := -1;
-
   hex_seq text;
-
   v_invoice_no text;
-
-
-  -- =======================================================
   -- TOTAL CALCULATION
-  -- =======================================================
-
   calculated_total numeric(12,2) := 0;
-
   item_qty numeric;
-
   item_price numeric;
-
   item_amount numeric;
-
-
 begin
-
-
-  -- =======================================================
   -- 1. AUTHENTICATION
-  -- =======================================================
-
   if auth.uid() is null then
-
     raise exception
       'Authentication required.';
-
   end if;
-
-
-
-  -- =======================================================
   -- 2. APPROVED USER
-  -- =======================================================
-
   if not public.is_approved() then
-
     raise exception
       'Not authorized to create bills.';
-
   end if;
-
-
-
-  -- =======================================================
   -- 3. VALIDATE ITEMS
-  -- =======================================================
-
   if items is null
-
      or jsonb_typeof(items) <> 'array'
-
      or jsonb_array_length(items) = 0 then
-
     raise exception
       'At least one invoice item is required.';
-
   end if;
-
-
-
-  -- =======================================================
   -- 4. LOCK INVOICE GENERATION
   --
   -- This prevents two employees from receiving the same
@@ -688,58 +438,37 @@ begin
   -- A transaction ends
   --
   -- B gets 000B
-  -- =======================================================
-
   perform pg_advisory_xact_lock(
-
     hashtext(
       to_char(
         v_invoice_date,
         'YYYYMMDD'
       )
     )
-
   );
-
-
-
-  -- =======================================================
   -- 5. FIND LAST INVOICE FOR TODAY
   --
   -- Only new 10-character invoice numbers are considered.
   --
   -- YYMMDD + NNNN
-  -- =======================================================
-
   select b.invoice_no
-
   into last_no
-
   from public.bills b
-
   where b.invoice_no like
         to_char(
           v_invoice_date,
           'YYMMDD'
         ) || '%'
-
     and char_length(
           b.invoice_no
         ) = 10
-
     and substring(
           b.invoice_no
           from 7
           for 4
         ) ~ '^[0-9A-Fa-f]{4}$'
-
   order by b.invoice_no desc
-
   limit 1;
-
-
-
-  -- =======================================================
   -- 6. EXTRACT HEX SEQUENCE
   --
   -- No invoice today:
@@ -756,12 +485,8 @@ begin
   --     0009 → 000A
   --     000F → 0010
   --     00FF → 0100
-  -- =======================================================
-
   if last_no is not null then
-
     seq :=
-
         get_byte(
           decode(
             substring(
@@ -773,9 +498,7 @@ begin
           ),
           0
         ) * 256
-
       +
-
         get_byte(
           decode(
             substring(
@@ -787,347 +510,188 @@ begin
           ),
           1
         );
-
   end if;
-
-
-
-  -- =======================================================
   -- 7. DAILY LIMIT
-  -- =======================================================
-
   if seq >= 65535 then
-
     raise exception
       'Daily invoice limit reached (FFFF).';
-
   end if;
-
-
-
-  -- =======================================================
   -- 8. GENERATE NEXT HEX NUMBER
-  -- =======================================================
-
   hex_seq :=
-
     upper(
-
       lpad(
-
         to_hex(
           seq + 1
         ),
-
         4,
-
         '0'
-
       )
-
     );
-
-
-
-  -- =======================================================
   -- 9. FINAL INVOICE NUMBER
   --
   -- EXACTLY 10 CHARACTERS
   --
   -- YYMMDDNNNN
-  -- =======================================================
-
   v_invoice_no :=
-
     to_char(
       v_invoice_date,
       'YYMMDD'
     )
-
     ||
-
     hex_seq;
-
-
-
-  -- =======================================================
   -- 10. CALCULATE TOTAL
-  -- =======================================================
-
   for item in
-
     select value
-
     from jsonb_array_elements(items)
-
   loop
-
-
     item_qty :=
-
       coalesce(
         (item->>'qty')::numeric,
         0
       );
-
-
     item_price :=
-
       coalesce(
         (item->>'price')::numeric,
         0
       );
-
-
     if item_qty <= 0 then
-
       raise exception
         'Item quantity must be greater than zero.';
-
     end if;
-
-
     if item_price < 0 then
-
       raise exception
         'Item price cannot be negative.';
-
     end if;
-
-
     item_amount :=
-
       round(
         item_qty * item_price,
         2
       );
-
-
     calculated_total :=
-
       calculated_total
       + item_amount;
-
-
   end loop;
-
-
-
   calculated_total :=
-
     round(
       calculated_total,
       2
     );
-
-
-
-  -- =======================================================
   -- 11. CREATE BILL
   --
   -- bill_date remains the date selected by the user.
   --
   -- invoice_no uses current_date.
-  -- =======================================================
-
   insert into public.bills (
-
     invoice_no,
-
     customer_name,
-
     customer_phone,
-
     customer_address,
-
     bill_date,
-
     notes,
-
     include_notes,
-
     show_watermark,
-
     show_qr,
-
     show_signature,
-
     total,
-
     created_by,
-
     created_by_name
-
   )
-
   values (
-
     v_invoice_no,
-
     coalesce(
       customer_name,
       ''
     ),
-
     coalesce(
       customer_phone,
       ''
     ),
-
     coalesce(
       customer_address,
       ''
     ),
-
     bill_date,
-
     coalesce(
       notes,
       ''
     ),
-
     coalesce(
       include_notes,
       true
     ),
-
     coalesce(
       show_watermark,
       true
     ),
-
     coalesce(
       show_qr,
       true
     ),
-
     coalesce(
       show_signature,
       true
     ),
-
     calculated_total,
-
     auth.uid(),
-
     coalesce(
       created_by_name,
       ''
     )
-
   )
-
   returning *
-
   into new_bill;
-
-
-
-  -- =======================================================
   -- 12. INSERT BILL ITEMS
   --
   -- NO sort_order.
-  -- =======================================================
-
   for item in
-
     select value
-
     from jsonb_array_elements(items)
-
   loop
-
-
     item_qty :=
-
       (item->>'qty')::numeric;
-
-
     item_price :=
-
       (item->>'price')::numeric;
-
-
     item_amount :=
-
       round(
         item_qty * item_price,
         2
       );
-
-
     insert into public.bill_items (
-
       invoice_no,
-
       item_name,
-
       description,
-
       serial,
-
       qty,
-
       price,
-
       amount
-
     )
-
     values (
-
       new_bill.invoice_no,
-
       coalesce(
         item->>'item_name',
         ''
       ),
-
       coalesce(
         item->>'description',
         ''
       ),
-
       coalesce(
         item->>'serial',
         ''
       ),
-
       item_qty,
-
       item_price,
-
       item_amount
-
     );
-
-
   end loop;
-
-
-
-  -- =======================================================
   -- 13. RETURN CREATED BILL
-  -- =======================================================
-
   return new_bill;
-
-
 end;
-
 $$;
-
-
-
--- =========================================================
 -- 14. RPC PERMISSION
--- =========================================================
 --
 -- Only authenticated users can call create_bill().
--- =========================================================
-
 revoke execute
-
 on function public.create_bill(
   text,
   text,
@@ -1139,12 +703,8 @@ on function public.create_bill(
   text,
   jsonb
 )
-
 from public, anon;
-
-
 grant execute
-
 on function public.create_bill(
   text,
   text,
@@ -1158,13 +718,10 @@ on function public.create_bill(
   text,
   jsonb
 )
-
 to authenticated;
-
 -- Run this once in the Supabase SQL editor (Dashboard → SQL Editor).
 -- Creates a fast, indexed email lookup that the edge function calls via RPC,
 -- instead of paginating through every user in auth.users.
-
 create or replace function public.check_email_exists(check_email text)
 returns table(email_exists boolean, confirmed boolean)
 language sql
@@ -1176,16 +733,12 @@ as $$
   where lower(email) = lower(check_email)
   limit 1;
 $$;
-
 -- Lock it down: only the edge function's service-role client may call this.
 -- Nobody else (anon, authenticated users, PostgREST clients) can invoke it.
 revoke all on function public.check_email_exists(text) from public;
 grant execute on function public.check_email_exists(text) to service_role;
-
 -- edge functon to check emai is exist or not
-
 -- import { createClient } from "npm:@supabase/supabase-js@2";
-
 -- const corsHeaders = {
 --   "Access-Control-Allow-Origin": "*",
 --   "Access-Control-Allow-Headers":
@@ -1193,29 +746,21 @@ grant execute on function public.check_email_exists(text) to service_role;
 --   "Access-Control-Allow-Methods": "POST, OPTIONS",
 --   "Content-Type": "application/json",
 -- };
-
 -- const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-
 -- if (!SUPABASE_URL) {
 --   throw new Error("SUPABASE_URL is required");
 -- }
-
 -- const rawSecretKeys = Deno.env.get("SUPABASE_SECRET_KEYS");
-
 -- if (!rawSecretKeys) {
 --   throw new Error("SUPABASE_SECRET_KEYS is required");
 -- }
-
 -- const secretKeys = JSON.parse(rawSecretKeys);
-
 -- // "default" is the usual name for the default Secret API key.
 -- // Change "default" only if you created a differently named secret key.
 -- const ADMIN_KEY = secretKeys["default"];
-
 -- if (!ADMIN_KEY) {
 --   throw new Error("Default secret key is missing");
 -- }
-
 -- const supabaseAdmin = createClient(
 --   SUPABASE_URL,
 --   ADMIN_KEY,
@@ -1227,7 +772,6 @@ grant execute on function public.check_email_exists(text) to service_role;
 --     },
 --   }
 -- );
-
 -- Deno.serve(async (req: Request) => {
 --   // CORS preflight
 --   if (req.method === "OPTIONS") {
@@ -1236,7 +780,6 @@ grant execute on function public.check_email_exists(text) to service_role;
 --       headers: corsHeaders,
 --     });
 --   }
-
 --   // Only POST is allowed
 --   if (req.method !== "POST") {
 --     return new Response(
@@ -1249,10 +792,8 @@ grant execute on function public.check_email_exists(text) to service_role;
 --       }
 --     );
 --   }
-
 --   // Read JSON body
 --   let body;
-
 --   try {
 --     body = await req.json();
 --   } catch {
@@ -1266,11 +807,9 @@ grant execute on function public.check_email_exists(text) to service_role;
 --       }
 --     );
 --   }
-
 --   const email = String(body?.email || "")
 --     .trim()
 --     .toLowerCase();
-
 --   // Validate email
 --   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
 --     return new Response(
@@ -1283,7 +822,6 @@ grant execute on function public.check_email_exists(text) to service_role;
 --       }
 --     );
 --   }
-
 --   try {
 --     // Single indexed lookup via RPC instead of paginating through every user
 --     // in auth.users — stays fast no matter how many users you have.
@@ -1292,10 +830,8 @@ grant execute on function public.check_email_exists(text) to service_role;
 --       "check_email_exists",
 --       { check_email: email }
 --     );
-
 --     if (error) {
 --       console.error("check_email_exists RPC error:", error);
-
 --       return new Response(
 --         JSON.stringify({
 --           error: "Could not check email",
@@ -1306,11 +842,9 @@ grant execute on function public.check_email_exists(text) to service_role;
 --         }
 --       );
 --     }
-
 --     const row = Array.isArray(data) ? data[0] : data;
 --     const exists = !!row;
 --     const emailConfirmed = exists ? Boolean(row.confirmed) : false;
-
 --     return new Response(
 --       JSON.stringify({
 --         exists,
@@ -1322,10 +856,8 @@ grant execute on function public.check_email_exists(text) to service_role;
 --         headers: corsHeaders,
 --       }
 --     );
-
 --   } catch (error) {
 --     console.error("check-email-exists error:", error);
-
 --     return new Response(
 --       JSON.stringify({
 --         error: "Could not check email",
@@ -1337,26 +869,24 @@ grant execute on function public.check_email_exists(text) to service_role;
 --     );
 --   }
 -- });
-
--- =========================================================
--- 15. FIRST ADMIN SETUP
--- =========================================================
+-- 15. FIRST SUPER ADMIN SETUP
 --
--- After registering your account, run:
+-- After registering your account, run this once in the
+-- Supabase SQL Editor to create the protected Super Admin:
 --
 -- update public.profiles
 -- set
---   role = 'admin',
+--   role = 'super_admin',
 --   status = 'approved'
 -- where email = 'your-email@example.com';
 --
--- =========================================================
-
-
-
--- =========================================================
+-- IMPORTANT:
+-- Super Admin rows cannot be modified through the normal
+-- authenticated profiles UPDATE policy. Use the SQL Editor
+-- (or another trusted server-side/admin migration path)
+-- when intentionally changing a Super Admin.
+--
 -- FINAL DATABASE STRUCTURE
--- =========================================================
 --
 -- profiles
 --     ↓
@@ -1432,4 +962,3 @@ grant execute on function public.check_email_exists(text) to service_role;
 -- Last:
 --     260809FFFF
 --
--- =========================================================

@@ -273,6 +273,7 @@ body.dark-theme .btn--ghost:hover{background: #1A202C;}
   letter-spacing:.3px;
 }
 .badge--admin{background:rgba(23,105,255,.16);color:var(--primary-text);}
+.badge--super_admin{background: rgba(168, 85, 247, .16);color: #a855f7;}
 .badge--employee{background:rgba(107,114,128,.14);color:var(--muted);}
 .badge--pending{background:rgba(183,121,31,.12);color:var(--warning);}
 .badge--approved{background:rgba(31,146,84,.12);color:var(--success);}
@@ -3282,6 +3283,7 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
           <button type="button" class="date-filter-btn" id="btnAdminRoleFilter"><span id="adminRoleFilterLabel">All Roles</span><i class="fa-solid fa-chevron-down caret"></i></button>
           <div class="date-dropdown hide" id="adminRoleDropdown">
             <button type="button" class="date-dropdown__item active" data-role="">All Roles</button>
+            <button type="button" class="date-dropdown__item" data-role="super_admin">Super Admin</button>
             <button type="button" class="date-dropdown__item" data-role="admin">Admin</button>
             <button type="button" class="date-dropdown__item" data-role="employee">Employee</button>
           </div>
@@ -5326,7 +5328,7 @@ function enterApp(){
   const fullName = currentProfile.name || currentProfile.email || '';
   el.appBarUserName.textContent = truncateText(fullName, 20);
   el.appBarUserName.setAttribute('title', fullName);
-  el.navAdminTab.classList.toggle('hide', currentProfile.role !== 'admin');
+  el.navAdminTab.classList.toggle('hide', !['admin','super_admin'].includes(currentProfile.role));
   showScreen('app');
   const savedView = localStorage.getItem(prefKeyFor('jas_last_view'));
   const initialView = savedView || 'newBill';
@@ -5356,7 +5358,7 @@ function updateNavIndicator(view, animate = true){
 function switchView(view){
   const allowedViews = ['newBill', 'previousBills', 'admin'];
   if (!allowedViews.includes(view)) view = 'newBill';
-  if (view === 'admin' && (!currentProfile || currentProfile.role !== 'admin')) {
+  if (view === 'admin' && (!currentProfile || !['admin','super_admin'].includes(currentProfile.role))) {
     view = 'newBill';
   }
   localStorage.setItem(prefKeyFor('jas_last_view'), view);
@@ -5391,7 +5393,7 @@ function switchView(view){
     setTimeout(() => checkAndPromptForRestore(), 50);
   }
   if (view === 'previousBills') loadBills();
-  if (view === 'admin' && currentProfile.role === 'admin') { loadAdminStats(); loadPendingUsers(); loadAllUsers(); }
+  if (view === 'admin' && ['admin','super_admin'].includes(currentProfile.role)) { loadAdminStats(); loadPendingUsers(); loadAllUsers(); }
 }
 /* ===================================================================
    PRODUCT MODAL (unchanged from original app)
@@ -6686,7 +6688,7 @@ function renderAllUsers(users){
         </div>
       </div>
       <div class="user-row__actions">
-        ${!isSelf ? `
+        ${!isSelf && u.role !== 'super_admin' ? `
           <div class="user-actions-menu-wrap">
             <button class="kebab-btn" data-id="${u.id}" data-role="${u.role}" data-status="${u.status}" data-name="${escapeHtml(u.name || u.email)}" aria-label="User actions"><i class="fa-solid fa-ellipsis-vertical"></i></button>
           </div>
@@ -6730,6 +6732,11 @@ function handleAllUsersPaginationClick(e){
   handlePaginationClick(e, USERS_PAGE_SIZE, usersTotalCount, () => usersPage, p => usersPage = p, loadAllUsers);
 }
 async function setUserStatus(userId, status){
+  const target = document.querySelector(`.user-row[data-id="${CSS.escape(String(userId))}"]`);
+  if (target?.dataset.role?.toLowerCase() === 'super_admin') {
+    showToast('Super Admin cannot be changed.', 'error');
+    return;
+  }
   showActionLoader(status === 'approved' ? 'Approving User' : 'Rejecting User');
   try {
     const { error } = await supabaseClient
@@ -6749,6 +6756,11 @@ async function setUserStatus(userId, status){
   }
 }
 async function setUserRole(userId, role){
+  const target = document.querySelector(`.user-row[data-id="${CSS.escape(String(userId))}"]`);
+  if (target?.dataset.role?.toLowerCase() === 'super_admin') {
+    showToast('Super Admin cannot be changed.', 'error');
+    return;
+  }
   showActionLoader(role === 'admin' ? 'Making Admin' : 'Making Employee');
   try {
     const { error } = await supabaseClient
@@ -6915,6 +6927,9 @@ async function confirmRecoveryConflictLogout(){
 function handleAllUsersClick(e){
   const kebab = e.target.closest('.kebab-btn');
   if (!kebab) return;
+  // Super Admin accounts are immutable: nobody, including another Super Admin, can open actions for them.
+  if ((kebab.dataset.role || '').toLowerCase() === 'super_admin') return;
+  if (kebab.dataset.role === 'super_admin') return;
   const wrap = kebab.closest('.user-actions-menu-wrap');
   const existing = wrap.querySelector('.actions-popup');
   closeAllActionMenus();
@@ -6922,6 +6937,7 @@ function handleAllUsersClick(e){
   const userId = kebab.dataset.id;
   const userRole = kebab.dataset.role;
   const userStatus = kebab.dataset.status;
+  if (userRole === 'super_admin') return;
   const newRole = userRole === 'admin' ? 'employee' : 'admin';
   const statusItems = userStatus === 'approved'
     ? `<button class="actions-popup__item danger" data-menu="status" data-id="${userId}" data-val="rejected">
