@@ -838,7 +838,7 @@ body.dark-theme .confirm-icon--info{background:rgba(1,37,135,.5);}
 }
 .app-bar__icon-btn:hover{background:rgba(255,255,255,.24);}
 .app-bar__icon-btn:active,.auth-theme-toggle:active{transform:scale(.92);}
-/* ---------- User menu (desktop) ---------- */
+/* ---------- User menu trigger ---------- */
 .user-menu-wrap{position:relative;}
 .app-bar__user{
   display:flex;
@@ -846,18 +846,19 @@ body.dark-theme .confirm-icon--info{background:rgba(1,37,135,.5);}
   gap:8px;
   font-size:12px;
   background:rgba(255,255,255,.14);
-  padding:12px 12px;
+  padding:10px 13px;
   border-radius:20px;
   border:none;
   color:#fff;
   cursor:pointer;
-  transition:background .15s ease;
+  transition:background .15s ease,transform .08s ease;
 }
-.app-bar__user:hover{background:rgba(255,255,255,.26);}
+.app-bar__user:hover{background:rgba(255,255,255,.24);}
+.app-bar__user:active{transform:scale(.97);}
 .app-bar__user i{opacity:.85;}
 .app-bar__user b{
   font-weight:700;
-  max-width:160px;
+  max-width:180px;
   display:inline-block;
   overflow:hidden;
   text-overflow:ellipsis;
@@ -865,42 +866,9 @@ body.dark-theme .confirm-icon--info{background:rgba(1,37,135,.5);}
   vertical-align:middle;
 }
 .app-bar__user .caret{font-size:10px;opacity:.7;margin-left:2px;}
-.user-dropdown{
-  position:absolute;
-  right:0;
-  top:calc(100% + 8px);
-  background:var(--surface);
-  border:1.5px solid var(--line);
-  border-radius:var(--radius-sm);
-  box-shadow:var(--shadow-sm);
-  z-index:300;
-  min-width:180px;
-  overflow:hidden;
-  animation:fadeIn .12s ease;
-}
-.user-dropdown__item{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  padding:11px 16px;
-  font-size:13px;
-  font-weight:600;
-  color:var(--text);
-  cursor:pointer;
-  border:none;
-  background:none;
-  width:100%;
-  text-align:left;
-  transition:background .12s ease;
-}
-.user-dropdown__item:hover{background:var(--bg);}
-.user-dropdown__item i{width:16px;text-align:center;color:var(--muted);font-size:14px;}
-.user-dropdown__sep{height:1px;background:var(--line);margin:4px 0;}
-.user-dropdown__item.danger{color:var(--danger);}
-.user-dropdown__item.danger i{color:var(--danger);}
-.user-dropdown__item.danger:hover{background:rgba(214,69,69,.08);}
-/* ---------- Mobile drawer ---------- */
+/* ---------- Account drawer (shared desktop + mobile) ---------- */
 .app-bar__hamburger{display:none;}
+html.drawer-open,body.drawer-open{overflow:hidden!important;}
 .drawer-backdrop{
   position:fixed;
   inset:0;
@@ -917,8 +885,8 @@ body.dark-theme .confirm-icon--info{background:rgba(1,37,135,.5);}
   top:0;
   right:0;
   bottom:0;
-  width:82%;
-  max-width:340px;
+  width:min(88vw,360px);
+  max-width:360px;
   background:var(--surface);
   z-index:201;
   display:flex;
@@ -3007,13 +2975,10 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
     </div>
     <div class="app-bar__actions">
       <div class="user-menu-wrap" id="userMenuWrap">
-        <button class="app-bar__user" id="appBarUser" aria-label="Account menu" aria-haspopup="true" aria-expanded="false">
+        <button class="app-bar__user" id="appBarUser" aria-label="Account menu" aria-haspopup="dialog" aria-expanded="false" aria-controls="appDrawer">
           <i class="fa-regular fa-circle-user"></i> <b id="appBarUserName"></b> <i class="fa-solid fa-chevron-down caret"></i>
         </button>
       </div>
-      <button class="app-bar__icon-btn theme-toggle" aria-label="Toggle Theme">
-        <i class="fa-solid fa-moon"></i>
-      </button>
       <button class="app-bar__icon-btn app-bar__hamburger" id="btnDrawerOpen" aria-label="Open menu">
         <i class="fa-solid fa-bars"></i>
       </button>
@@ -6801,27 +6766,9 @@ function handlePendingUsersClick(e){
 function closeAllActionMenus(){
   document.querySelectorAll('.actions-popup').forEach(p => p.remove());
 }
-function closeUserDropdown(){
-  const d = document.getElementById('userDropdown');
-  if (d) d.remove();
-  if (el.appBarUser) el.appBarUser.setAttribute('aria-expanded','false');
-}
-function toggleUserDropdown(){
-  const existing = document.getElementById('userDropdown');
-  if (existing) { closeUserDropdown(); return; }
-  const dropdown = document.createElement('div');
-  dropdown.className = 'user-dropdown';
-  dropdown.id = 'userDropdown';
-  dropdown.innerHTML = `
-    <button class="user-dropdown__item" id="ddChangePw"><i class="fa-solid fa-key"></i> Change Password</button>
-    <div class="user-dropdown__sep"></div>
-    <button class="user-dropdown__item danger" id="ddLogout"><i class="fa-solid fa-right-from-bracket"></i> Log Out</button>
-  `;
-  el.userMenuWrap.appendChild(dropdown);
-  el.appBarUser.setAttribute('aria-expanded','true');
-  dropdown.querySelector('#ddChangePw').addEventListener('click', () => { closeUserDropdown(); openChangePasswordModal(); });
-  dropdown.querySelector('#ddLogout').addEventListener('click', () => { closeUserDropdown(); openLogoutConfirm(); });
-}
+function closeUserDropdown(){}
+function toggleUserDropdown(){ openDrawer(); }
+
 function openChangePasswordModal(){
   el.changePwCurrent.value = '';
   el.changePwNew.value = '';
@@ -6999,10 +6946,16 @@ function openDrawer(){
   el.drawerUserRole.textContent = currentProfile ? currentProfile.role : '';
   el.appDrawer.classList.add('open');
   el.drawerBackdrop.classList.add('open');
+  document.documentElement.classList.add('drawer-open');
+  document.body.classList.add('drawer-open');
+  if (el.appBarUser) el.appBarUser.setAttribute('aria-expanded','true');
 }
 function closeDrawer(){
   el.appDrawer.classList.remove('open');
   el.drawerBackdrop.classList.remove('open');
+  document.documentElement.classList.remove('drawer-open');
+  document.body.classList.remove('drawer-open');
+  if (el.appBarUser) el.appBarUser.setAttribute('aria-expanded','false');
 }
 function applyTheme(isDark){
   document.body.classList.toggle('dark-theme', isDark);
@@ -7210,7 +7163,7 @@ function bindEvents(){
   });
   el.btnPendingLogout.addEventListener('click', openLogoutConfirm);
   el.btnPendingRefresh.addEventListener('click', handlePendingRefresh);
-  el.appBarUser.addEventListener('click', (e) => { e.stopPropagation(); toggleUserDropdown(); });
+  el.appBarUser.addEventListener('click', (e) => { e.stopPropagation(); openDrawer(); });
   // Allow Enter key to submit the change-password modal
   if (el.changePwCurrent) {
     el.changePwCurrent.addEventListener('keydown', (event) => { if (event.key === 'Enter') handleChangePassword(); });
@@ -7221,7 +7174,6 @@ function bindEvents(){
   if (el.changePwConfirm) {
     el.changePwConfirm.addEventListener('keydown', (event) => { if (event.key === 'Enter') handleChangePassword(); });
   }
-  document.addEventListener('click', e => { if (!e.target.closest('#userMenuWrap')) closeUserDropdown(); });
   el.drawerChangePw.addEventListener('click', () => { closeDrawer(); openChangePasswordModal(); });
   el.btnCancelChangePw.addEventListener('click', closeChangePasswordModal);
   el.btnConfirmChangePw.addEventListener('click', handleChangePassword);
