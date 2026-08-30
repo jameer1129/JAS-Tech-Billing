@@ -1318,7 +1318,7 @@ body.dark-theme .offline-screen__icon-wrap{--ring-color:#1769FF;}
   justify-content:center;
   position:relative;
   min-height:100vh;
-  background:var(--surface);
+  background:var(--bg);
   overflow:hidden;
 }
 body:has(.auth-shell:not(.hide)){overflow:hidden;}
@@ -1643,8 +1643,6 @@ body.dark-theme .auth-hero-icon__ring--two{border:1px solid rgba(23, 105, 255, .
 
 @media (max-width:640px){.auth-shell{min-height:100dvh;align-items:center;}
 .auth-card{
-  width:100%;
-  max-width:100%;
   height:auto;
   min-height:calc(100dvh - 20px);
   border-radius:0;
@@ -4352,8 +4350,9 @@ function createSupabaseClient(authStorage, detectSessionInUrl, storageKey = null
   const isNormalStorage = authStorage === window.localStorage || authStorage === window.sessionStorage;
   const resolvedStorageKey = storageKey || (isNormalStorage ? getNormalAuthStorageKey(authStorage) : AUTH_STORAGE_KEY);
   if (isNormalStorage) migrateLegacyAuthStorage(authStorage, resolvedStorageKey);
-  const cacheKey = `${resolvedStorageKey}:${detectSessionInUrl !== false ? 'url' : 'no-url'}`;
-  if (supabaseClientCache.has(cacheKey)) return supabaseClientCache.get(cacheKey);
+  const cacheKey = `${CONFIG.supabase.url}|${resolvedStorageKey}|${detectSessionInUrl !== false ? 'url' : 'no-url'}`;
+  const cachedClient = supabaseClientCache.get(cacheKey);
+  if (cachedClient) return cachedClient;
   const client = window.supabase.createClient(CONFIG.supabase.url, CONFIG.supabase.anonKey, {
     auth: {
       persistSession: true,
@@ -7972,8 +7971,7 @@ async function init(){
   // This guarantees a normal page load cannot accidentally copy a Google
   // callback into both browser storages.
   const persistentClient = createSupabaseClient(window.localStorage, false);
-  const sessionClient = createSupabaseClient(window.sessionStorage, false);
-  if (!persistentClient || !sessionClient) {
+  if (!persistentClient) {
     showScreen('auth');
     return;
   }
@@ -7982,9 +7980,13 @@ async function init(){
   if (localSession) {
     activeNormalClient = persistentClient;
     supabaseClient = persistentClient;
-    // Keep normal authentication exclusive to one browser storage.
     try { window.sessionStorage.removeItem(SESSION_AUTH_STORAGE_KEY); window.sessionStorage.removeItem(AUTH_STORAGE_KEY); } catch (err) {}
   } else {
+    const sessionClient = createSupabaseClient(window.sessionStorage, false);
+    if (!sessionClient) {
+      showScreen('auth');
+      return;
+    }
     const { data: { session: tabSession } = {} } = await sessionClient.auth.getSession();
     if (tabSession) {
       activeNormalClient = sessionClient;
