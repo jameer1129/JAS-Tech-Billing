@@ -4343,7 +4343,12 @@ function createSupabaseClient(authStorage, detectSessionInUrl, storageKey = null
   const isNormalStorage = authStorage === window.localStorage || authStorage === window.sessionStorage;
   const resolvedStorageKey = storageKey || (isNormalStorage ? getNormalAuthStorageKey(authStorage) : AUTH_STORAGE_KEY);
   if (isNormalStorage) migrateLegacyAuthStorage(authStorage, resolvedStorageKey);
-  const cacheKey = `${CONFIG.supabase.url}|${resolvedStorageKey}|${detectSessionInUrl !== false ? 'url' : 'no-url'}`;
+  // One long-lived GoTrueClient per storageKey.
+  // detectSessionInUrl changes only how that client initializes; it must NOT
+  // create a second client for the same stored refresh token. Supabase refresh
+  // tokens rotate, so two clients sharing one storage key can race and leave an
+  // older refresh token behind.
+  const cacheKey = `${CONFIG.supabase.url}|${resolvedStorageKey}`;
   const cachedClient = supabaseClientCache.get(cacheKey);
   if (cachedClient) return cachedClient;
   const client = window.supabase.createClient(CONFIG.supabase.url, CONFIG.supabase.anonKey, {
@@ -7881,6 +7886,10 @@ async function init(){
   // localStorage and sessionStorage.
   let normalAuthResolved = false;
   let activeNormalClient = null;
+  // Keep references to both normal clients available for visibility recovery.
+  // Only one is active for a given login, but the two storage keys are isolated.
+  let persistentNormalClient = null;
+  let sessionNormalClient = null;
   if (oauthCallbackContext) {
     const rememberMe = getStoredOAuthRememberChoice() === true;
     currentRememberMe = rememberMe;
@@ -7957,6 +7966,7 @@ async function init(){
   // This guarantees a normal page load cannot accidentally copy a Google
   // callback into both browser storages.
   const persistentClient = createSupabaseClient(window.localStorage, false);
+  persistentNormalClient = persistentClient;
   if (!persistentClient) {
     showScreen('auth');
     return;
@@ -7970,6 +7980,7 @@ async function init(){
     try { window.sessionStorage.removeItem(SESSION_AUTH_STORAGE_KEY); window.sessionStorage.removeItem(AUTH_STORAGE_KEY); } catch (err) {}
   } else {
     const sessionClient = createSupabaseClient(window.sessionStorage, false);
+    sessionNormalClient = sessionClient;
     if (!sessionClient) {
       showScreen('auth');
       return;
@@ -8030,11 +8041,19 @@ async function init(){
         ({ data: { session: visibleSession } = {} } = await supabaseClient.auth.getSession());
         // When the current client is the persistent client and it has no session,
         // also check the tab session so Remember me OFF still restores correctly.
-        if (!visibleSession && supabaseClient !== sessionClient) {
-          const { data: { session: tabSession } = {} } = await sessionClient.auth.getSession();
-          if (tabSession) {
-            supabaseClient = sessionClient;
-            visibleSession = tabSession;
+        // If the active client has no session after the tab becomes visible,
+        // check the other isolated normal storage as well. Use the persistent
+        // references created during startup rather than a block-scoped client.
+        const otherClient = supabaseClient === persistentNormalClient
+          ? sessionNormalClient
+          : persistentNormalClient;
+        if (!visibleSession && otherClient) {
+          const { data: { session: otherSession } = {} } = await otherClient.auth.getSession();
+          if (otherSession) {
+            supabaseClient = otherClient;
+            activeNormalClient = otherClient;
+            currentRememberMe = otherClient === persistentNormalClient;
+            visibleSession = otherSession;
           }
         }
         if (visibleSession) {
