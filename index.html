@@ -152,7 +152,7 @@ input[type="number"]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0
   width:100%;
   max-width:760px;
   margin:0 auto;
-  padding:20px 16px 0px;
+  padding:20px 16px 24px;
   display:flex;
   flex-direction:column;
   gap:16px;
@@ -488,7 +488,7 @@ body.dark-theme .prod-stat--amt{background:rgba(23,105,255,.14);}
   outline:none;
   transition:border-color .15s ease,box-shadow .15s ease, background 0.3s ease;
 }
-.date-picker__input:hover{border-color:var(--primary);}
+.date-picker__input:hover{border-color:var(--primary-text);}
 .date-picker__input.open,.date-picker__input:focus-visible{border-color:var(--primary-text);box-shadow:0 0 0 3px var(--focus-ring);}
 .date-picker__input .date-picker__text.placeholder{color:var(--muted);font-weight:400;}
 .date-picker__input.field--icon{justify-content:flex-start;padding-left:40px;}
@@ -1164,9 +1164,8 @@ body.dark-theme .nav-tabs::before{
 
 @media(max-width:640px){.boot-loader__card{gap:14px;min-width:176px;padding:16px 22px;border-radius:16px;}
 .boot-loader__bar-track{width:140px;}
+}
 
-}/* ---------- App footer ---------- */
-.app-footer{text-align:center;font-size:11px;color:var(--muted);padding:16px 4px;}
 /* ==========================================================
    OFFLINE SCREEN
    ========================================================== */
@@ -1837,7 +1836,6 @@ body.dark-theme .pdf-option__switch-track{background:#3A3A40;}
 @media(max-width:640px){#viewNewBill{padding-left:0 !important;padding-right:0 !important;}
 #viewNewBill > .nb-all-card{width:100%;border-left:0;border-right:0;border-radius:0;}
 #viewNewBill > .nb-all-card > .nb-section{padding-left:18px !important;padding-right:18px !important;}
-#viewNewBill.app-shell{padding-bottom:0 !important;flex:0 0 auto;}
 
 }
 @media(max-width:640px){#viewNewBill .nb-section--summary .summary-row{min-height:44px;padding:0 16px;font-size:14px;}
@@ -2952,6 +2950,9 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
 </div>
 <!-- ================= PENDING / REJECTED SCREEN ================= -->
 <div class="pending-shell hide" id="pendingScreen">
+  <button class="auth-theme-toggle theme-toggle" aria-label="Toggle Theme">
+    <i class="fa-solid fa-moon"></i>
+  </button>
   <div class="pending-card" id="pendingCard">
     <i class="fa-regular fa-clock" id="pendingIcon"></i>
     <h2 id="pendingTitle">Waiting for approval</h2>
@@ -2975,7 +2976,7 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
     <div class="app-bar__actions">
       <div class="user-menu-wrap" id="userMenuWrap">
         <button class="app-bar__user" id="appBarUser" aria-label="Account menu" aria-haspopup="dialog" aria-expanded="false" aria-controls="appDrawer">
-          <i class="fa-regular fa-circle-user"></i> <b id="appBarUserName"></b> <i class="fa-solid fa-chevron-down caret"></i>
+          <i class="fa-regular fa-circle-user"></i> <b id="appBarUserName"></b> <i class="fa-solid fa-chevron-right caret"></i>
         </button>
       </div>
       <button class="app-bar__icon-btn app-bar__hamburger" id="btnDrawerOpen" aria-label="Open menu">
@@ -3279,9 +3280,6 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
       </div>
     </section>
   </main>
-  <footer class="app-footer">
-    <span id="appFooterVersion"></span>
-  </footer>
 </div>
 <div class="modal-overlay hide" id="productModalOverlay">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
@@ -3476,7 +3474,7 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
     <span class="drawer__footer-icon"><i class="fa-solid fa-shield-halved"></i></span>
     <div>
       <div class="drawer__footer-title">Secure &bull; Fast &bull; Reliable</div>
-      <div class="drawer__footer-sub">JAS Tech Billing</div>
+      <span class="drawer__footer-sub" id="drawerFooterVersion"></span>
     </div>
   </div>
 </div>
@@ -3573,6 +3571,37 @@ let supabaseClient = null;
 let currentSession = null;
 let currentProfile = null;   // { id, name, email, role, status }
 let currentAuthTab = 'login';
+// App data follows the same Remember me choice as the login session.
+// Theme is intentionally excluded and remains persistent in localStorage.
+let currentRememberMe = true;
+function getAppStorage(){
+  return currentRememberMe ? window.localStorage : window.sessionStorage;
+}
+const APP_DATA_BASE_KEYS = [
+  'jas_last_view',
+  'jas_autosave_bill',
+  'jas_pref_notes',
+  'jas_pref_watermark',
+  'jas_pref_qr',
+  'jas_pref_signature'
+];
+function syncAppDataStorage(){
+  const userId = currentSession?.user?.id;
+  if (!userId) return;
+  const target = getAppStorage();
+  const source = currentRememberMe ? window.sessionStorage : window.localStorage;
+  for (const baseKey of APP_DATA_BASE_KEYS) {
+    const key = `${baseKey}_${userId}`;
+    try {
+      const targetValue = target.getItem(key);
+      const sourceValue = source.getItem(key);
+      if (targetValue === null && sourceValue !== null) target.setItem(key, sourceValue);
+      source.removeItem(key);
+    } catch (err) {
+      console.warn('Could not sync app data storage:', err);
+    }
+  }
+}
 let billsCache = [];
 let loadedBillForPrint = null;
 let isPreviousBillMode = false; // when re-printing a saved bill
@@ -3739,7 +3768,7 @@ function cacheElements(){
   el.btnClosePreviewModal = document.getElementById('btnClosePreviewModal');
   el.btnDownloadFromPreview = document.getElementById('btnDownloadFromPreview');
   el.toastStack = document.getElementById('toastStack');
-  el.appFooterVersion = document.getElementById('appFooterVersion');
+  el.drawerFooterVersion = document.getElementById('drawerFooterVersion');
   el.billSearchInput = document.getElementById('billSearchInput');
   el.btnClearSearch = document.getElementById('btnClearSearch');
   el.btnBillsFilterToggle = document.getElementById('btnBillsFilterToggle');
@@ -3885,9 +3914,9 @@ function applyConfig(){
   if(CONFIG.invoice.defaultNotes) el.invoiceNotes.value = CONFIG.invoice.defaultNotes;
   if(CONFIG.invoice.defaultNotes) state.notes = CONFIG.invoice.defaultNotes;
   syncDisplayToggleState();
-  if (el.appFooterVersion) {
+  if (el.drawerFooterVersion) {
     const version = CONFIG.footer && CONFIG.footer.appVersion ? CONFIG.footer.appVersion : 'v1.0';
-    el.appFooterVersion.textContent = `${CONFIG.company.name} Billing ${version}`;
+    el.drawerFooterVersion.textContent = `${CONFIG.company.name} Billing ${version}`;
   }
 }
 function pad(n){ return n.toString().padStart(2,'0'); }
@@ -4383,7 +4412,8 @@ function clearInactiveNormalAuthStorage(rememberMe){
 }
 function setNormalAuthStorage(rememberMe){
   // Do not touch the recovery client/session. This is only for normal login.
-  clearInactiveNormalAuthStorage(rememberMe);
+  currentRememberMe = !!rememberMe;
+  clearInactiveNormalAuthStorage(currentRememberMe);
   supabaseClient = createSupabaseClient(
     rememberMe ? NORMAL_AUTH_STORAGE.persistent : NORMAL_AUTH_STORAGE.session
   );
@@ -5277,6 +5307,10 @@ async function afterAuthResolved(){
     return;
   }
   // approved
+  // Keep draft, last-view and PDF preferences in the same storage selected by
+  // Remember me. If the choice changed since the previous login, move the
+  // account-scoped data instead of leaving it behind in the old storage.
+  syncAppDataStorage();
   enterApp();
 }
 let pendingRefreshInProgress = false;
@@ -5307,7 +5341,7 @@ function enterApp(){
   el.appBarUserName.setAttribute('title', fullName);
   el.navAdminTab.classList.toggle('hide', !['admin','super_admin'].includes(currentProfile.role));
   showScreen('app');
-  const savedView = localStorage.getItem(prefKeyFor('jas_last_view'));
+  const savedView = getAppStorage().getItem(prefKeyFor('jas_last_view'));
   const initialView = savedView || 'newBill';
   switchView(initialView);
   // Always initialize the form, then restore if needed
@@ -5338,7 +5372,7 @@ function switchView(view){
   if (view === 'admin' && (!currentProfile || !['admin','super_admin'].includes(currentProfile.role))) {
     view = 'newBill';
   }
-  localStorage.setItem(prefKeyFor('jas_last_view'), view);
+  getAppStorage().setItem(prefKeyFor('jas_last_view'), view);
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.view === view));
   updateNavIndicator(view);
   el.viewNewBill.classList.toggle('hide', view !== 'newBill');
@@ -5466,7 +5500,7 @@ function saveBillStateToLocalStorage(){
     timestamp: Date.now()
   };
   try {
-    localStorage.setItem(billSaveKeyFor(currentSession.user?.id), JSON.stringify(billData));
+    getAppStorage().setItem(billSaveKeyFor(currentSession.user?.id), JSON.stringify(billData));
   } catch (e) {
     console.error('Failed to save bill state:', e);
   }
@@ -5474,7 +5508,7 @@ function saveBillStateToLocalStorage(){
 function getSavedBillState(){
   if (!currentSession) return null;
   try {
-    const saved = localStorage.getItem(billSaveKeyFor(currentSession.user?.id));
+    const saved = getAppStorage().getItem(billSaveKeyFor(currentSession.user?.id));
     return saved ? JSON.parse(saved) : null;
   } catch (e) {
     console.error('Failed to get saved bill state:', e);
@@ -5492,7 +5526,7 @@ function getSavedBillState(){
 function clearSavedBillState(userId){
   const targetId = userId !== undefined ? userId : currentSession?.user?.id;
   try {
-    localStorage.removeItem(billSaveKeyFor(targetId));
+    getAppStorage().removeItem(billSaveKeyFor(targetId));
   } catch (e) {
     console.error('Failed to clear saved bill state:', e);
   }
@@ -7012,10 +7046,10 @@ function syncDisplayToggleState(){
   const watermarkEnabledByConfig = CONFIG?.display?.showWatermark !== false;
   const qrEnabledByConfig = CONFIG?.display?.showQr !== false;
   const signatureEnabledByConfig = CONFIG?.display?.showSignature !== false;
-  const storedNotes = localStorage.getItem(prefKeyFor('jas_pref_notes'));
-  const storedWatermark = localStorage.getItem(prefKeyFor('jas_pref_watermark'));
-  const storedQr = localStorage.getItem(prefKeyFor('jas_pref_qr'));
-  const storedSignature = localStorage.getItem(prefKeyFor('jas_pref_signature'));
+  const storedNotes = getAppStorage().getItem(prefKeyFor('jas_pref_notes'));
+  const storedWatermark = getAppStorage().getItem(prefKeyFor('jas_pref_watermark'));
+  const storedQr = getAppStorage().getItem(prefKeyFor('jas_pref_qr'));
+  const storedSignature = getAppStorage().getItem(prefKeyFor('jas_pref_signature'));
   const notesChecked = notesEnabledByConfig ? (storedNotes === null ? true : storedNotes === 'true') : false;
   const watermarkChecked = watermarkEnabledByConfig ? (storedWatermark === null ? true : storedWatermark === 'true') : false;
   const qrChecked = qrEnabledByConfig ? (storedQr === null ? true : storedQr === 'true') : false;
@@ -7041,16 +7075,16 @@ function syncDisplayToggleState(){
   state.showQr = qrChecked && qrEnabledByConfig;
   state.showSignature = signatureChecked && signatureEnabledByConfig;
   if (!notesEnabledByConfig) {
-    localStorage.setItem(prefKeyFor('jas_pref_notes'), 'false');
+    getAppStorage().setItem(prefKeyFor('jas_pref_notes'), 'false');
   }
   if (!watermarkEnabledByConfig) {
-    localStorage.setItem(prefKeyFor('jas_pref_watermark'), 'false');
+    getAppStorage().setItem(prefKeyFor('jas_pref_watermark'), 'false');
   }
   if (!qrEnabledByConfig) {
-    localStorage.setItem(prefKeyFor('jas_pref_qr'), 'false');
+    getAppStorage().setItem(prefKeyFor('jas_pref_qr'), 'false');
   }
   if (!signatureEnabledByConfig) {
-    localStorage.setItem(prefKeyFor('jas_pref_signature'), 'false');
+    getAppStorage().setItem(prefKeyFor('jas_pref_signature'), 'false');
   }
   const toggleWraps = {
     notes: document.getElementById('notesToggleWrap'),
@@ -7335,7 +7369,7 @@ function bindEvents(){
       return;
     }
     state.includeNotesOnPdf = e.target.checked;
-    localStorage.setItem(prefKeyFor('jas_pref_notes'), e.target.checked);
+    getAppStorage().setItem(prefKeyFor('jas_pref_notes'), e.target.checked);
     updateNotesInputState();
   });
   el.toggleWatermark.addEventListener('change', (e) => {
@@ -7344,7 +7378,7 @@ function bindEvents(){
       return;
     }
     state.showWatermark = e.target.checked;
-    localStorage.setItem(prefKeyFor('jas_pref_watermark'), e.target.checked);
+    getAppStorage().setItem(prefKeyFor('jas_pref_watermark'), e.target.checked);
   });
   if (el.toggleQrVisibility) {
     el.toggleQrVisibility.addEventListener('change', (e) => {
@@ -7353,7 +7387,7 @@ function bindEvents(){
         return;
       }
       state.showQr = e.target.checked;
-      localStorage.setItem(prefKeyFor('jas_pref_qr'), e.target.checked);
+      getAppStorage().setItem(prefKeyFor('jas_pref_qr'), e.target.checked);
     });
   }
   if (el.toggleSignatureVisibility) {
@@ -7363,7 +7397,7 @@ function bindEvents(){
         return;
       }
       state.showSignature = e.target.checked;
-      localStorage.setItem(prefKeyFor('jas_pref_signature'), e.target.checked);
+      getAppStorage().setItem(prefKeyFor('jas_pref_signature'), e.target.checked);
     });
   }
   [el.prodQty, el.prodRate].forEach(input => {
@@ -7849,6 +7883,7 @@ async function init(){
   let activeNormalClient = null;
   if (oauthCallbackContext) {
     const rememberMe = getStoredOAuthRememberChoice() === true;
+    currentRememberMe = rememberMe;
     clearInactiveNormalAuthStorage(rememberMe);
     const oauthClient = createSupabaseClient(
       rememberMe ? window.localStorage : window.sessionStorage,
@@ -7929,6 +7964,7 @@ async function init(){
   activeNormalClient = persistentClient;
   const { data: { session: localSession } = {} } = await persistentClient.auth.getSession();
   if (localSession) {
+    currentRememberMe = true;
     activeNormalClient = persistentClient;
     supabaseClient = persistentClient;
     try { window.sessionStorage.removeItem(SESSION_AUTH_STORAGE_KEY); window.sessionStorage.removeItem(AUTH_STORAGE_KEY); } catch (err) {}
@@ -7940,6 +7976,7 @@ async function init(){
     }
     const { data: { session: tabSession } = {} } = await sessionClient.auth.getSession();
     if (tabSession) {
+      currentRememberMe = false;
       activeNormalClient = sessionClient;
       supabaseClient = sessionClient;
       try { window.localStorage.removeItem(LOCAL_AUTH_STORAGE_KEY); window.localStorage.removeItem(AUTH_STORAGE_KEY); } catch (err) {}
