@@ -24,8 +24,7 @@ html.theme-preload .boot-loader__bar-track{background:#1B1F27;}</style>
       document.documentElement.classList.add('theme-preload');
     }
   }catch(e){}
-})();</script>
-<script>
+})();
 if ('launchQueue' in window) {
   window.launchQueue.setConsumer(({ targetURL }) => {
     if (!targetURL || targetURL === window.location.href) return;
@@ -6933,6 +6932,7 @@ async function cancelRecoveryConflict(){
   supabaseClient = conflict.localClient;
   currentSession = conflict.localSession;
   window.history.replaceState({}, document.title, window.location.pathname);
+  showActionLoader('Loading Data…');
   await afterAuthResolved();
 }
 async function confirmRecoveryConflictLogout(){
@@ -7150,7 +7150,7 @@ function getDismissibleOverlays(){
     [el.resetModalOverlay, closeResetModal],
     [el.deleteBillModalOverlay, closeDeleteBillModal],
     [el.billDetailsModalOverlay, closeBillDetailsModal],
-    [el.logoutModalOverlay, closeLogoutConfirm],
+    [el.logoutModalOverlay, () => pendingRecoveryConflict ? cancelRecoveryConflict() : closeLogoutConfirm()],
     [el.changePasswordModalOverlay, closeChangePasswordModal],
     [el.saveChoiceModalOverlay, closeSaveChoiceModal],
     [el.pdfActionModalOverlay, closePdfActionModal],
