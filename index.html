@@ -3550,10 +3550,11 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
       <h3>Password Reset Link Expired</h3>
     </div>
     <div class="modal__body">
-      <p>The password reset link has expired or has already been used. Please request a new reset link from Forgot Password.</p>
+      <p id="expiredRecoveryMessage"></p>
     </div>
     <div class="modal__footer">
-      <button class="btn btn--primary" id="btnCloseExpiredRecovery">Close</button>
+      <button class="btn btn--ghost" id="btnCancelExpiredRecovery">Cancel</button>
+      <button class="btn btn--primary" id="btnActionExpiredRecovery">Resend</button>
     </div>
   </div>
 </div>
@@ -3832,7 +3833,9 @@ function cacheElements(){
   el.logoutModalMessage = document.getElementById('logoutModalMessage');
   el.logoutModalEmail = document.getElementById('logoutModalEmail');
   el.expiredRecoveryModalOverlay = document.getElementById('expiredRecoveryModalOverlay');
-  el.btnCloseExpiredRecovery = document.getElementById('btnCloseExpiredRecovery');
+  el.expiredRecoveryMessage = document.getElementById('expiredRecoveryMessage');
+  el.btnCancelExpiredRecovery = document.getElementById('btnCancelExpiredRecovery');
+  el.btnActionExpiredRecovery = document.getElementById('btnActionExpiredRecovery');
   el.appBarUser = document.getElementById('appBarUser');
   el.userMenuWrap = document.getElementById('userMenuWrap');
   el.appDrawer = document.getElementById('appDrawer');
@@ -6898,9 +6901,44 @@ function openChangePwForgotLogoutConfirm(){
   el.btnConfirmLogout.innerHTML = 'Log Out & Reset';
   showOverlay(el.logoutModalOverlay);
 }
-function showExpiredRecoveryModal(){
+let expiredRecoveryMode = null;
+function showExpiredRecoveryModal(mode, email = ''){
   if (!el.expiredRecoveryModalOverlay) return;
+  expiredRecoveryMode = mode;
+  if (mode === 'logged-in') {
+    el.expiredRecoveryMessage.innerHTML =
+      'This password reset link has expired or has already been used.<br><br>' +
+      '<strong>' + (email || 'Current account') + '</strong> is currently logged in. ' +
+      'Log out and request a new reset link?';
+    el.btnActionExpiredRecovery.innerHTML = 'Log Out &amp; Resend';
+  } else {
+    el.expiredRecoveryMessage.textContent =
+      'This password reset link has expired or has already been used. Please request a new reset link.';
+    el.btnActionExpiredRecovery.textContent = 'Resend';
+  }
   showOverlay(el.expiredRecoveryModalOverlay);
+}
+async function cancelExpiredRecovery(){
+  const mode = expiredRecoveryMode;
+  expiredRecoveryMode = null;
+  hideOverlay(el.expiredRecoveryModalOverlay);
+  if (mode === 'logged-in') {
+    return;
+  }
+  showScreen('auth');
+  setAuthTab('login');
+}
+async function actionExpiredRecovery(){
+  const mode = expiredRecoveryMode;
+  expiredRecoveryMode = null;
+  hideOverlay(el.expiredRecoveryModalOverlay);
+  if (mode === 'logged-in') {
+    await handleLogout();
+    setAuthTab('forgot');
+    return;
+  }
+  showScreen('auth');
+  setAuthTab('forgot');
 }
 function openRecoveryConflictConfirm(conflict){
   // The boot loader is normally dismissed inside showScreen(), but this path
@@ -7151,6 +7189,7 @@ function getDismissibleOverlays(){
     [el.deleteBillModalOverlay, closeDeleteBillModal],
     [el.billDetailsModalOverlay, closeBillDetailsModal],
     [el.logoutModalOverlay, () => pendingRecoveryConflict ? cancelRecoveryConflict() : closeLogoutConfirm()],
+    [el.expiredRecoveryModalOverlay, cancelExpiredRecovery],
     [el.changePasswordModalOverlay, closeChangePasswordModal],
     [el.saveChoiceModalOverlay, closeSaveChoiceModal],
     [el.pdfActionModalOverlay, closePdfActionModal],
@@ -7693,9 +7732,8 @@ function bindEvents(){
     }
   });
   updateAdminUserSearchButton();
-  el.btnCloseExpiredRecovery?.addEventListener('click', () => {
-    hideOverlay(el.expiredRecoveryModalOverlay);
-  });
+  el.btnCancelExpiredRecovery?.addEventListener('click', cancelExpiredRecovery);
+  el.btnActionExpiredRecovery?.addEventListener('click', actionExpiredRecovery);
   el.btnCancelLogout.addEventListener('click', () => {
     if (pendingRecoveryConflict) {
       cancelRecoveryConflict();
@@ -7921,19 +7959,16 @@ async function init(){
     // The reset link is invalid/expired. If a normal account is already
     // logged in, keep that account active and show only a warning modal.
     clearPasswordRecoveryPending();
+    window.history.replaceState({}, document.title, window.location.pathname);
     if (existingNormalSession) {
       supabaseClient = existingNormalClient;
       currentSession = existingNormalSession;
-      window.history.replaceState({}, document.title, window.location.pathname);
       await afterAuthResolved();
-      showExpiredRecoveryModal();
+      showExpiredRecoveryModal('logged-in', existingNormalSession.user?.email || '');
       return;
     }
     showScreen('auth');
-    setAuthTab('forgot');
-    showAuthMsg(
-      linkError || 'Your reset link is invalid or has expired. Please request a new one.'
-    );
+    showExpiredRecoveryModal('logged-out');
     return;
   }
   // OAuth callback load: ONLY the storage selected before the Google redirect
