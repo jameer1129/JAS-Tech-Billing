@@ -4,6 +4,16 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;750;800&display=swap" rel="stylesheet">
+<script>(function(){
+  function setAppHeight(){
+    document.documentElement.style.setProperty('--app-height', window.innerHeight + 'px');
+  }
+  setAppHeight();
+  window.addEventListener('resize', setAppHeight);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', setAppHeight);
+  }
+})();</script>
 <style>html.theme-preload{background:#000!important;}
 html.theme-preload,html.theme-preload body{background:#000;color:#F3F4F6;}
 html.theme-preload,html.theme-preload body{transition:none;}
@@ -26,7 +36,7 @@ html.theme-preload .boot-loader__bar-track{background:#1B1F27;}</style>
   }catch(e){}
 })();</script>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Billing App</title>
 <meta name="theme-color" content="#012587">
 <meta name="description" content="Professional billing software — generate invoices in seconds." id="metaDescription">
@@ -105,7 +115,7 @@ html,body{
 @media(prefers-reduced-motion:reduce){
   ::view-transition-old(root),::view-transition-new(root){animation:none!important;}
 }
-body{min-height:100vh;display:flex;flex-direction:column;}
+body{min-height:100vh;min-height:100dvh;min-height:var(--app-height, 100dvh);display:flex;flex-direction:column;}
 button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid var(--focus-ring);outline-offset:2px;}
 img{max-width:100%;display:block;}
 input[type="checkbox"]{
@@ -1120,6 +1130,10 @@ body.dark-theme .nav-tabs::before{
 .boot-loader{
   position:fixed;
   inset:0;
+  height:100vh;
+  height:100dvh;
+  height:var(--app-height, 100dvh);
+  width:100vw;
   background: rgba(15,23,42,.42);
   backdrop-filter:blur(6px);
   -webkit-backdrop-filter:blur(6px);
