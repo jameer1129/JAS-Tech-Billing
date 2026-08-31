@@ -25,6 +25,22 @@ html.theme-preload .boot-loader__bar-track{background:#1B1F27;}</style>
     }
   }catch(e){}
 })();</script>
+<script>
+if ('launchQueue' in window) {
+  window.launchQueue.setConsumer(({ targetURL }) => {
+    if (!targetURL || targetURL === window.location.href) return;
+    try {
+      const url = new URL(targetURL, window.location.href);
+      if (
+        url.origin === window.location.origin &&
+        url.searchParams.get('mode') === 'update-password'
+      ) {
+        window.location.href = url.href;
+      }
+    } catch (e) {}
+  });
+}
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
 <title>Billing App</title>
