@@ -7954,10 +7954,12 @@ async function init(){
         showScreen('auth');
         return;
       }
-      if (event === 'SIGNED_IN' && session && !normalAuthResolved) {
+      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
         currentSession = session;
-        normalAuthResolved = true;
-        afterAuthResolved().catch(console.error);
+        if (event === 'SIGNED_IN' && !normalAuthResolved) {
+          normalAuthResolved = true;
+          afterAuthResolved().catch(console.error);
+        }
       }
     });
     return;
@@ -8003,9 +8005,9 @@ async function init(){
       showScreen('auth');
       return;
     }
-    if (event === 'SIGNED_IN' && session) {
+    if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
       currentSession = session;
-      if (!normalAuthResolved) {
+      if (event === 'SIGNED_IN' && !normalAuthResolved) {
         normalAuthResolved = true;
         afterAuthResolved().catch(console.error);
       }
@@ -8034,37 +8036,11 @@ async function init(){
       showScreen('auth');
     }
   }
-  document.addEventListener('visibilitychange', async () => {
-    if (!document.hidden && supabaseClient && !currentSession) {
-      try {
-        let visibleSession = null;
-        ({ data: { session: visibleSession } = {} } = await supabaseClient.auth.getSession());
-        // When the current client is the persistent client and it has no session,
-        // also check the tab session so Remember me OFF still restores correctly.
-        // If the active client has no session after the tab becomes visible,
-        // check the other isolated normal storage as well. Use the persistent
-        // references created during startup rather than a block-scoped client.
-        const otherClient = supabaseClient === persistentNormalClient
-          ? sessionNormalClient
-          : persistentNormalClient;
-        if (!visibleSession && otherClient) {
-          const { data: { session: otherSession } = {} } = await otherClient.auth.getSession();
-          if (otherSession) {
-            supabaseClient = otherClient;
-            activeNormalClient = otherClient;
-            currentRememberMe = otherClient === persistentNormalClient;
-            visibleSession = otherSession;
-          }
-        }
-        if (visibleSession) {
-          currentSession = visibleSession;
-          await afterAuthResolved();
-        }
-      } catch (err) {
-        console.error('Auth visibility refresh failed', err);
-      }
-    }
-  });
+  // Do not perform auth.getSession() on visibility changes.
+  // Supabase Auth already manages browser auto-refresh/resume internally.
+  // Calling getSession() here can wake a second refresh path at the exact
+  // moment the page becomes visible and can compete with token rotation.
+  // Keep this handler limited to the non-auth verification timer above.
 }
 window.addEventListener('offline', handleOffline);
 window.addEventListener('online', handleOnline);
