@@ -3526,6 +3526,22 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
     </div>
   </div>
 </div>
+<div class="modal-overlay modal--confirm hide" id="expiredRecoveryModalOverlay">
+  <div class="modal">
+    <div class="modal__header">
+      <div class="confirm-icon confirm-icon--danger">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+      </div>
+      <h3>Password Reset Link Expired</h3>
+    </div>
+    <div class="modal__body">
+      <p>The password reset link has expired or has already been used. Please request a new reset link from Forgot Password.</p>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--primary" id="btnCloseExpiredRecovery">Close</button>
+    </div>
+  </div>
+</div>
 <div class="toast-stack" id="toastStack"></div>
 <div id="pdfRenderWrap">
   <div id="pdfWrapper" class="pdf-wrapper-container">
@@ -3799,6 +3815,8 @@ function cacheElements(){
   el.btnConfirmLogout = document.getElementById('btnConfirmLogout');
   el.logoutModalMessage = document.getElementById('logoutModalMessage');
   el.logoutModalEmail = document.getElementById('logoutModalEmail');
+  el.expiredRecoveryModalOverlay = document.getElementById('expiredRecoveryModalOverlay');
+  el.btnCloseExpiredRecovery = document.getElementById('btnCloseExpiredRecovery');
   el.appBarUser = document.getElementById('appBarUser');
   el.userMenuWrap = document.getElementById('userMenuWrap');
   el.appDrawer = document.getElementById('appDrawer');
@@ -6864,6 +6882,10 @@ function openChangePwForgotLogoutConfirm(){
   el.btnConfirmLogout.innerHTML = 'Log Out & Reset';
   showOverlay(el.logoutModalOverlay);
 }
+function showExpiredRecoveryModal(){
+  if (!el.expiredRecoveryModalOverlay) return;
+  showOverlay(el.expiredRecoveryModalOverlay);
+}
 function openRecoveryConflictConfirm(conflict){
   // The boot loader is normally dismissed inside showScreen(), but this path
   // shows a confirmation modal instead of a screen, so it must be hidden
@@ -7654,6 +7676,9 @@ function bindEvents(){
     }
   });
   updateAdminUserSearchButton();
+  el.btnCloseExpiredRecovery?.addEventListener('click', () => {
+    hideOverlay(el.expiredRecoveryModalOverlay);
+  });
   el.btnCancelLogout.addEventListener('click', () => {
     if (pendingRecoveryConflict) {
       cancelRecoveryConflict();
@@ -7870,9 +7895,17 @@ async function init(){
       showScreen('reset-password');
       return;
     }
-    // No recovery session could be established. Do not fall back to the old
-    // local account on a reset-link load. The reset link is invalid/expired.
+    // The reset link is invalid/expired. If a normal account is already
+    // logged in, keep that account active and show only a warning modal.
     clearPasswordRecoveryPending();
+    if (existingNormalSession) {
+      supabaseClient = existingNormalClient;
+      currentSession = existingNormalSession;
+      window.history.replaceState({}, document.title, window.location.pathname);
+      await afterAuthResolved();
+      showExpiredRecoveryModal();
+      return;
+    }
     showScreen('auth');
     setAuthTab('forgot');
     showAuthMsg(
