@@ -3590,6 +3590,7 @@ let currentAuthTab = 'login';
 // App data follows the same Remember me choice as the login session.
 // Theme is intentionally excluded and remains persistent in localStorage.
 let currentRememberMe = true;
+let sameAccountRecovery = false;
 function getAppStorage(){
   return currentRememberMe ? window.localStorage : window.sessionStorage;
 }
@@ -7861,6 +7862,8 @@ async function init(){
       const localUserId = existingNormalSession?.user?.id || null;
       const resetUserId = resetSession.user?.id || null;
       if (localUserId && resetUserId && localUserId === resetUserId) {
+        sameAccountRecovery = true;
+        el.btnCancelReset.textContent = 'Back to App';
         // Same account is already logged in. There's nothing to protect
         // against here (it's their own account), so no confirmation modal
         // is needed. But the person may genuinely have forgotten their
@@ -7876,6 +7879,8 @@ async function init(){
         return;
       }
       if (existingNormalSession) {
+        sameAccountRecovery = false;
+        el.btnCancelReset.textContent = 'Back to Login';
         // A different account is already logged in. Do NOT log it out silently.
         // Ask first. Cancel keeps the existing account; Log Out & Reset
         // explicitly signs it out and then opens the reset screen.
@@ -7888,6 +7893,8 @@ async function init(){
         return;
       }
       // No existing account: this is a genuine password recovery flow.
+      sameAccountRecovery = false;
+      el.btnCancelReset.textContent = 'Back to Login';
       setPasswordRecoveryPending();
       currentSession = resetSession;
       el.resetPasswordCompanyName.textContent =
