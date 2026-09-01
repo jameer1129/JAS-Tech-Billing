@@ -3603,6 +3603,11 @@ let pendingDeleteBillId = null;
 let supabaseClient = null;
 let currentSession = null;
 let currentProfile = null;   // { id, name, email, role, status }
+// Set right before a deliberate supabaseClient.auth.signOut() call (e.g. the
+// Logout button). Lets the SIGNED_OUT handler tell an intentional logout
+// apart from an unexpected one (a failed background token refresh) so it
+// only shows a "session expired" message for the latter.
+let intentionalSignOut = false;
 let currentAuthTab = 'login';
 // App data follows the same Remember me choice as the login session.
 // Theme is intentionally excluded and remains persistent in localStorage.
@@ -5280,6 +5285,7 @@ async function handleLogout(){
     // Reset the current invoice first
     resetInvoice(true);
     const savedTheme = localStorage.getItem('jas_theme');
+    intentionalSignOut = true;
     await supabaseClient.auth.signOut();
     // Clear all local data
     localStorage.clear();
@@ -6992,6 +6998,7 @@ async function confirmRecoveryConflictLogout(){
   // recovery client so the reset link remains attached to the target account.
   showActionLoader('Logging out…');
   try {
+    intentionalSignOut = true;
     try { await conflict.localClient.auth.signOut(); } catch (err) { console.error(err); }
     // This is a real sign-out of the local account (same as handleLogout()),
     // just via a different path. Its autosaved draft must not survive into
@@ -8055,6 +8062,10 @@ async function init(){
       if (event === 'SIGNED_OUT') {
         currentSession = null;
         currentProfile = null;
+        if (!intentionalSignOut) {
+          showToast('Your session expired. Please log in again.', 'info');
+        }
+        intentionalSignOut = false;
         showScreen('auth');
         return;
       }
@@ -8079,10 +8090,18 @@ async function init(){
   }
   activeNormalClient = persistentClient;
   const { data: { session: localSession } = {} } = await persistentClient.auth.getSession();
+  // Reused below instead of calling getSession() a second time on the same
+  // client — a redundant call here raced with the client's own near-expiry
+  // auto-refresh and produced two concurrent /token requests: one rotated
+  // the refresh token and succeeded, the other reused the now-stale token
+  // and was rejected, which fired a spurious SIGNED_OUT and logged the
+  // user out.
+  let resolvedSession = null;
   if (localSession) {
     currentRememberMe = true;
     activeNormalClient = persistentClient;
     supabaseClient = persistentClient;
+    resolvedSession = localSession;
     try { window.sessionStorage.removeItem(SESSION_AUTH_STORAGE_KEY); window.sessionStorage.removeItem(AUTH_STORAGE_KEY); } catch (err) {}
   } else {
     const sessionClient = createSupabaseClient(window.sessionStorage, false);
@@ -8096,6 +8115,7 @@ async function init(){
       currentRememberMe = false;
       activeNormalClient = sessionClient;
       supabaseClient = sessionClient;
+      resolvedSession = tabSession;
       try { window.localStorage.removeItem(LOCAL_AUTH_STORAGE_KEY); window.localStorage.removeItem(AUTH_STORAGE_KEY); } catch (err) {}
     } else {
       // Default to Remember me ON for the next login.
@@ -8106,6 +8126,10 @@ async function init(){
     if (event === 'SIGNED_OUT') {
       currentSession = null;
       currentProfile = null;
+      if (!intentionalSignOut) {
+        showToast('Your session expired. Please log in again.', 'info');
+      }
+      intentionalSignOut = false;
       showScreen('auth');
       return;
     }
@@ -8117,7 +8141,7 @@ async function init(){
       }
     }
   });
-  const { data: { session } = {} } = await activeNormalClient.auth.getSession();
+  const session = resolvedSession;
   if (session) {
     currentSession = session;
     clearPendingSignup();
