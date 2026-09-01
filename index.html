@@ -3551,7 +3551,7 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
       <h3>Password Reset Link Expired</h3>
     </div>
     <div class="modal__body">
-      <p id="expiredRecoveryMessage" class="confirm-target"></p>
+      <p id="expiredRecoveryMessage"></p>
     </div>
     <div class="modal__footer">
       <button class="btn btn--ghost" id="btnCancelExpiredRecovery">Cancel</button>
@@ -5510,7 +5510,7 @@ function requestDeleteProduct(id){
   if(!product) return;
   closeProductModal();
   pendingDeleteId = id;
-  el.deleteTargetName.textContent = product.name;
+  el.deleteTargetName.textContent ="\"" + product.name + "\"";
   showOverlay(el.deleteModalOverlay);
 }
 function closeDeleteModal(){
@@ -6539,7 +6539,7 @@ function requestDeleteBill(invoiceNo){
   const bill = billsCache.find(b => b.invoice_no === invoiceNo);
   if (!bill) return;
   pendingDeleteBillId = invoiceNo;
-  el.deleteBillTargetName.textContent = bill.invoice_no;
+  el.deleteBillTargetName.textContent ="\""+ bill.invoice_no +"\"";
   setDeleteBillButtonState(false);
   showOverlay(el.deleteBillModalOverlay);
 }
@@ -6909,8 +6909,8 @@ function showExpiredRecoveryModal(mode, email = ''){
   if (mode === 'logged-in') {
     el.expiredRecoveryMessage.innerHTML =
       'This password reset link has expired or has already been used.<br><br>' +
-      '<strong>' + (email || 'Current account') + '</strong> is currently logged in. ' +
-      'Log out and request a new reset link?';
+      '<span class="confirm-target">"' + (email || 'Current account') + '"</span> is currently logged in. ' +
+      'Log out and request a new link?';
     el.btnActionExpiredRecovery.innerHTML = 'Log Out &amp; Resend';
   } else {
     el.expiredRecoveryMessage.textContent =
