@@ -5251,7 +5251,7 @@ async function handleResetPassword(){
   if (!newPw || !confirmPw) return showToast('Enter both passwords.', 'error');
   const pwErr = validateNewPassword(newPw, confirmPw);
   if (pwErr) return showToast(pwErr, 'error');
-  await withGuardedSubmit(el.btnUpdateResetPassword, null, async () => {
+  await withGuardedSubmit(el.btnUpdateResetPassword, 'Updating password…', async () => {
     const { error } = await supabaseClient.auth.updateUser({ password: newPw });
     if (error) {
       showToast(error.message || 'Failed to update password. Please try again.', 'error');
@@ -6531,7 +6531,6 @@ async function reprintBill(invoiceNo){
 function setDeleteBillButtonState(isDeleting){
   if (!el.btnConfirmDeleteBill) return;
   el.btnConfirmDeleteBill.disabled = isDeleting;
-  el.btnConfirmDeleteBill.textContent = isDeleting ? 'Deleting...' : 'Delete';
   el.btnConfirmDeleteBill.setAttribute('aria-busy', isDeleting ? 'true' : 'false');
   if (el.btnCancelDeleteBill) el.btnCancelDeleteBill.disabled = isDeleting;
 }
@@ -6551,6 +6550,7 @@ function closeDeleteBillModal(){
 async function deleteBill(){
   if (pendingDeleteBillId === null) return;
   setDeleteBillButtonState(true);
+  showActionLoader('Deleting bill…');
   try {
     const { error } = await supabaseClient.from('bills').delete().eq('invoice_no', pendingDeleteBillId);
     if (error) {
@@ -6561,6 +6561,7 @@ async function deleteBill(){
     showToast('Bill deleted', 'success');
     loadBills();
   } finally {
+    hideActionLoader();
     closeDeleteBillModal();
   }
 }
@@ -6862,7 +6863,7 @@ async function handleChangePassword(){
   if (!currentPw) return showToast('Enter your current password.', 'error');
   const pwErr = validateNewPassword(newPw, confirmPw, 'New password');
   if (pwErr) return showToast(pwErr, 'error');
-  await withGuardedSubmit(el.btnConfirmChangePw, null, async () => {
+  await withGuardedSubmit(el.btnConfirmChangePw, 'Updating password…', async () => {
     // Verify current password by re-signing in
     const { error: verifyErr } = await supabaseClient.auth.signInWithPassword({
       email: currentProfile.email,
@@ -6966,13 +6967,18 @@ async function cancelRecoveryConflict(){
   if (!conflict) return;
   // Cancel means: keep the currently logged-in account and abandon the
   // password-reset attempt. Remove only the temporary recovery session.
-  try { await conflict.recoveryClient.auth.signOut(); } catch (err) { console.error(err); }
-  clearPasswordRecoveryPending();
-  supabaseClient = conflict.localClient;
-  currentSession = conflict.localSession;
-  window.history.replaceState({}, document.title, window.location.pathname);
-  showActionLoader('Loading Data…');
-  await afterAuthResolved();
+  showActionLoader('Please wait…');
+  try {
+    try { await conflict.recoveryClient.auth.signOut(); } catch (err) { console.error(err); }
+    clearPasswordRecoveryPending();
+    supabaseClient = conflict.localClient;
+    currentSession = conflict.localSession;
+    window.history.replaceState({}, document.title, window.location.pathname);
+    showActionLoader('Loading Data…');
+    await afterAuthResolved();
+  } finally {
+    hideActionLoader();
+  }
 }
 async function confirmRecoveryConflictLogout(){
   const conflict = pendingRecoveryConflict;
@@ -6984,21 +6990,26 @@ async function confirmRecoveryConflictLogout(){
   }
   // Log out the existing account, then continue using the temporary
   // recovery client so the reset link remains attached to the target account.
-  try { await conflict.localClient.auth.signOut(); } catch (err) { console.error(err); }
-  // This is a real sign-out of the local account (same as handleLogout()),
-  // just via a different path. Its autosaved draft must not survive into
-  // whatever account ends up using this browser/device next. currentSession
-  // is NOT yet the local account at this point in the boot flow, so the
-  // account being logged out must be targeted explicitly.
-  clearSavedBillState(conflict.localSession?.user?.id);
-  loadedBillForPrint = null;
-  isPreviousBillMode = false;
-  setPasswordRecoveryPending();
-  supabaseClient = conflict.recoveryClient;
-  currentSession = conflict.resetSession;
-  el.resetPasswordCompanyName.textContent =
-    (CONFIG.company.name + ' Billing').toUpperCase();
-  showScreen('reset-password');
+  showActionLoader('Logging out…');
+  try {
+    try { await conflict.localClient.auth.signOut(); } catch (err) { console.error(err); }
+    // This is a real sign-out of the local account (same as handleLogout()),
+    // just via a different path. Its autosaved draft must not survive into
+    // whatever account ends up using this browser/device next. currentSession
+    // is NOT yet the local account at this point in the boot flow, so the
+    // account being logged out must be targeted explicitly.
+    clearSavedBillState(conflict.localSession?.user?.id);
+    loadedBillForPrint = null;
+    isPreviousBillMode = false;
+    setPasswordRecoveryPending();
+    supabaseClient = conflict.recoveryClient;
+    currentSession = conflict.resetSession;
+    el.resetPasswordCompanyName.textContent =
+      (CONFIG.company.name + ' Billing').toUpperCase();
+    showScreen('reset-password');
+  } finally {
+    hideActionLoader();
+  }
 }
 function handleAllUsersClick(e){
   const kebab = e.target.closest('.kebab-btn');
@@ -7275,6 +7286,7 @@ function bindEvents(){
     // a valid, auto-refreshing access token is left sitting around
     // indefinitely (a real risk on shared/public computers).
     clearPasswordRecoveryPending();
+    showActionLoader('Please wait…');
     try { await supabaseClient.auth.signOut(); } catch (err) { console.error(err); }
     window.location.href = window.location.origin + window.location.pathname;
   });
