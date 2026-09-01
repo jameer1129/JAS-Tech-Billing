@@ -1,0 +1,19 @@
+name: Supabase Heartbeat
+
+on:
+  schedule:
+    - cron: "0 */12 * * *"
+  workflow_dispatch:
+
+jobs:
+  heartbeat:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Update Supabase heartbeat
+        run: |
+          curl --fail --silent --show-error \
+            --request POST \
+            --url "https://tdytfzqtaxijlbmfnxee.supabase.co/functions/v1/supabase-heartbeat" \
+            --header "apikey: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}" \
+            --header "Content-Type: application/json"
