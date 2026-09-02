@@ -106,12 +106,16 @@ html.dark-theme{scrollbar-color:var(--primary-text) #000;}
 .modal ,.date-picker__panel{animation:riseIn .35s ease-out both;}
 .modal-overlay.closing .modal,
 .date-picker__overlay.closing .date-picker__panel {
-  animation: riseOut .35s ease-out both;
+  animation: riseOut .35s ease-in both;
 }
 .modal-overlay.closing,
 .date-picker__overlay.closing {
   animation: fadeOut .35s ease both;
 }
+}
+.modal-overlay.closing,
+.date-picker__overlay.closing{
+  pointer-events:none;
 }/* ==========================================================
    BASE RESET
    ========================================================== */
@@ -4091,10 +4095,13 @@ function closePanel(){
   if (!overlay) return;
   const closingOverlay = overlay;
   closingOverlay.classList.add('closing');
-  setTimeout(() => {
-    if (closingOverlay.parentNode) {
-      closingOverlay.remove();
-    }
+  let settled = false;
+  const finish = () => {
+    if (settled) return;
+    settled = true;
+    closingOverlay.removeEventListener('animationend', onAnimEnd);
+    clearTimeout(fallbackTimer);
+    if (closingOverlay.parentNode) closingOverlay.remove();
     if (overlay === closingOverlay) {
       overlay = null;
       panel = null;
@@ -4102,7 +4109,10 @@ function closePanel(){
     }
     document.documentElement.classList.remove('pop-open');
     document.body.classList.remove('pop-open');
-  }, 350);
+  };
+  const onAnimEnd = (e) => { if (e.target === closingOverlay) finish(); };
+  closingOverlay.addEventListener('animationend', onAnimEnd);
+  const fallbackTimer = setTimeout(finish, 500);
 }
   function selectAndClose(iso){
     setValue(iso);
@@ -4355,13 +4365,24 @@ function showOverlay(overlay){
   document.body.classList.add('pop-open');
 }
 function hideOverlay(overlay){
-  overlay.classList.add('closing');
-  setTimeout(() => {
-    overlay.classList.add('hide');
-    overlay.classList.remove('closing');
-    document.documentElement.classList.remove('pop-open');
-    document.body.classList.remove('pop-open');
-  }, 350);
+  return new Promise(resolve => {
+    overlay.classList.add('closing');
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      overlay.removeEventListener('animationend', onAnimEnd);
+      clearTimeout(fallbackTimer);
+      overlay.classList.add('hide');
+      overlay.classList.remove('closing');
+      document.documentElement.classList.remove('pop-open');
+      document.body.classList.remove('pop-open');
+      resolve();
+    };
+    const onAnimEnd = (e) => { if (e.target === overlay) finish(); };
+    overlay.addEventListener('animationend', onAnimEnd);
+    const fallbackTimer = setTimeout(finish, 500);
+  });
 }
 const TOAST_ICONS = { success: 'fa-check', info: 'fa-info', error: 'fa-xmark' };
 function showToast(message, type, duration = TOAST_DURATION_MS){
@@ -6115,11 +6136,17 @@ function openPreviewModal(){
   handlePreviewLayoutScaling();
   el.previewModalBody.scrollTop = 0;
 }
+// Clears the preview content only once the modal's close animation has
+// actually finished (via hideOverlay's Promise) instead of a hardcoded
+// delay, so the invoice content fades out with the modal rather than
+// vanishing instantly and leaving an empty gray panel mid-animation.
+function clearPreviewScaleContainer(){
+  const scaleContainer = document.getElementById('previewScaleContainer');
+  if (scaleContainer) scaleContainer.innerHTML = '';
+}
 function closePreviewModal(){
   const wasPreviousBill = loadedBillForPrint !== null || isPreviousBillMode;
-  hideOverlay(el.previewModalOverlay);
-  const scaleContainer = document.getElementById('previewScaleContainer');
-  if(scaleContainer) scaleContainer.innerHTML = '';
+  const closed = hideOverlay(el.previewModalOverlay).then(clearPreviewScaleContainer);
   // Previous bills are strictly read-only preview/print data.
   // Closing the preview must immediately return the New Bill form to whatever
   // draft the user was actually working on (or a clean state if there wasn't one).
@@ -6127,13 +6154,12 @@ function closePreviewModal(){
     isPreviousBillMode = false;
     restoreDraftAfterPreviousBill();
   }
+  return closed; // resolves once the close animation is fully done
 }
 function restoreDraftAfterPreviousBill(){
   // Undo the temporary in-memory overwrite that happens while previewing a
   // previous bill, bringing back the New Bill draft the user was working on.
-  hideOverlay(el.previewModalOverlay);
-  const scaleContainer = document.getElementById('previewScaleContainer');
-  if (scaleContainer) scaleContainer.innerHTML = '';
+  hideOverlay(el.previewModalOverlay).then(clearPreviewScaleContainer);
   loadedBillForPrint = null;
   if (!draftBillSnapshot) {
     // Nothing was in progress before the preview - just clear to a fresh invoice.
@@ -6235,7 +6261,15 @@ async function openSaveChoiceModal(){
     return;
   }
   if(!state.products.length){ showToast('Add at least one product before downloading.', 'error'); return; }
-  if(!el.previewModalOverlay.classList.contains('hide')) closePreviewModal();
+  if(!el.previewModalOverlay.classList.contains('hide')){
+    // The preview modal sits above the save-choice confirm modal (z-index
+    // 150 vs 110). Opening the confirm modal immediately meant it appeared
+    // hidden behind the still-fading preview overlay for the length of the
+    // close animation. Await the real close instead of guessing a delay.
+    await closePreviewModal();
+    showOverlay(el.saveChoiceModalOverlay);
+    return;
+  }
   showOverlay(el.saveChoiceModalOverlay);
 }
 function closeSaveChoiceModal(){
@@ -6249,9 +6283,7 @@ async function handlePreviewDownload(){
     // the previous bill's data — restoring the draft first (as
     // closePreviewModal() would) swaps `state` out from under the PDF
     // generator and produces a PDF of the wrong invoice.
-    hideOverlay(el.previewModalOverlay);
-    const scaleContainer = document.getElementById('previewScaleContainer');
-    if (scaleContainer) scaleContainer.innerHTML = '';
+    hideOverlay(el.previewModalOverlay).then(clearPreviewScaleContainer);
     _pdfForPreviousBill = true;
     await handleSaveChoice(false);
     return;
