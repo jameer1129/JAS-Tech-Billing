@@ -957,6 +957,17 @@ html.drawer-open,body.drawer-open{overflow:hidden!important;}
     0 10px 24px rgba(22, 34, 112, 0.2),          /* Deep blue blend drop-shadow */
     0 4px 6px rgba(0, 0, 0, 0.15);               /* Neutral ambient shadow grounding */
 }
+.drawer__user-avatar img{
+  position:relative;
+  z-index:1;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  border-radius:50%;
+}
+.drawer__user-avatar img + *{position:relative;z-index:1;}
+.drawer__user-avatar i{position:relative;z-index:1;}
+
 .drawer__user-avatar::before {
   content: '';
   position: absolute;
@@ -2297,25 +2308,26 @@ body.dark-theme .admin-empty__icon::before{background:rgba(23,105,255,.14);}
   justify-content:center;
 }
 .user-row__info::before{
-  content:attr(data-initials);
+  content:attr(data-initial);
   position:absolute;
   left:0;
   top:50%;
   transform:translateY(-50%);
   width:46px;
   height:46px;
-  border-radius:13px;
+  border-radius:50%;
   display:flex;
   align-items:center;
   justify-content:center;
-  background:#E7EEFF;
-  color:#1D4ED8;
-  font-size:16px;
+  background:var(--user-avatar-bg,#3F51B5);
+  color:#fff;
+  font-size:20px;
   font-weight:750;
+  text-transform:uppercase;
 }
 .user-row__info b{font-size:14px;line-height:1.25;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .user-row__info > span{font-size:12px;line-height:1.3;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-body.dark-theme .user-row__info::before{background:rgba(91,156,255,.18);color:#78B2FF;}
+body.dark-theme .user-row__info::before{color:#fff;}
 .admin-user-list .user-row__actions{align-self:center;display:flex;align-items:center;flex:0 0 auto;}
 .pending-users-list .user-row{flex-direction:column;align-items:stretch;gap:8px;}
 .pending-users-list .user-row__actions{width:100%;display:flex;justify-content:flex-end;align-items:center;gap:8px;flex-wrap:wrap;}
@@ -3454,7 +3466,7 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
 <div class="drawer" id="appDrawer" role="dialog" aria-modal="true" aria-label="Menu">
   <button class="drawer__close" id="btnDrawerClose" aria-label="Close menu"><i class="fa-solid fa-xmark"></i></button>
   <div class="drawer__profile">
-    <div class="drawer__user-avatar"><i class="fa-solid fa-user"></i></div>
+    <div class="drawer__user-avatar" id="drawerUserAvatar"><i class="fa-solid fa-user"></i></div>
     <div class="drawer__user-info">
       <div class="drawer__user-name" id="drawerUserName"></div>
       <div class="drawer__user-role" id="drawerUserRole"></div>
@@ -3608,6 +3620,43 @@ let currentProfile = null;   // { id, name, email, role, status }
 // apart from an unexpected one (a failed background token refresh) so it
 // only shows a "session expired" message for the latter.
 let intentionalSignOut = false;
+let signOutVerificationTimer = null;
+// supabase-js can fire a spurious SIGNED_OUT: when a tab wakes up after
+// being backgrounded/idle, it runs two internal refresh attempts almost
+// back-to-back (its visibility-change handler and its auto-refresh ticker).
+// If the losing attempt's failure is processed before the winning attempt's
+// successful refresh has finished persisting the new session, supabase-js
+// wipes storage and fires SIGNED_OUT even though a valid, just-refreshed
+// session exists moments later (confirmed via captured call-stack traces —
+// two /token requests landing in the same server-side second, one 200 one
+// 400). Rather than bouncing to the login screen the instant SIGNED_OUT
+// fires, give the sibling attempt a brief window to land, then re-check for
+// a real session before deciding.
+async function handlePossiblySpuriousSignOut(client){
+  if (signOutVerificationTimer) clearTimeout(signOutVerificationTimer);
+  signOutVerificationTimer = setTimeout(async () => {
+    signOutVerificationTimer = null;
+    try {
+      const { data: { session } = {} } = await client.auth.getSession();
+      if (session) {
+        // The sibling refresh attempt succeeded after all — this SIGNED_OUT
+        // was spurious. Recover silently, no visible interruption.
+        currentSession = session;
+        return;
+      }
+    } catch (err) {
+      console.error(err);
+    }
+    // Confirmed: no valid session exists. This is a real sign-out.
+    currentSession = null;
+    currentProfile = null;
+    if (!intentionalSignOut) {
+      showToast('Your session expired. Please log in again.', 'info');
+    }
+    intentionalSignOut = false;
+    showScreen('auth');
+  }, 900);
+}
 let currentAuthTab = 'login';
 // App data follows the same Remember me choice as the login session.
 // Theme is intentionally excluded and remains persistent in localStorage.
@@ -3850,6 +3899,7 @@ function cacheElements(){
   el.btnDrawerClose = document.getElementById('btnDrawerClose');
   el.drawerUserName = document.getElementById('drawerUserName');
   el.drawerUserRole = document.getElementById('drawerUserRole');
+  el.drawerUserAvatar = document.getElementById('drawerUserAvatar');
   el.drawerThemeLabel = document.getElementById('drawerThemeLabel');
   el.drawerThemeSubtitle = document.getElementById('drawerThemeSubtitle');
   el.drawerLogout = document.getElementById('drawerLogout');
@@ -6655,6 +6705,64 @@ function handleBillsTableClick(e){
 /* ===================================================================
    SUPABASE: ADMIN — USER APPROVAL
    =================================================================== */
+function getUserAvatarLetter(user){
+  const source = String(user?.name || user?.email || '?').trim();
+  return (source.charAt(0) || '?').toUpperCase();
+}
+
+function getUserAvatarColor(user){
+  const colors = [
+    '#3F51B5', // indigo
+    '#AB47BC', // purple
+    '#0288D1', // blue
+    '#0097A7', // teal
+    '#388E3C', // green
+    '#D81B60', // pink
+    '#F57C00', // orange
+    '#795548', // brown
+    '#00897B', // dark teal
+    '#5E35B1'  // deep purple
+  ];
+  const key = String(user?.id || user?.email || user?.name || '?');
+  let hash = 0;
+  for (let i = 0; i < key.length; i++) hash = ((hash << 5) - hash + key.charCodeAt(i)) | 0;
+  return colors[Math.abs(hash) % colors.length];
+}
+
+// One shared user-row renderer is used by both Pending Users and All Users.
+// User avatars intentionally never use profile pictures here: every user gets
+// one letter with a stable color derived from that user's id.
+function renderUserRow(user, { isSelf = false, showActions = false } = {}){
+  const letter = getUserAvatarLetter(user);
+  const avatarColor = getUserAvatarColor(user);
+  const name = user?.name || user?.email || '';
+  const role = user?.role || '';
+  const status = user?.status || '';
+
+  return `
+    <div class="user-row" data-id="${escapeHtml(user.id || '')}" data-role="${escapeHtml(role)}" data-status="${escapeHtml(status)}">
+      <div class="user-row__info" data-initial="${escapeHtml(letter)}" style="--user-avatar-bg:${avatarColor};">
+        <b>${escapeHtml(name)} ${isSelf ? '<span style="color:var(--muted);font-weight:500;">(you)</span>' : ''}</b>
+        <span>${escapeHtml(user?.email || '')}</span>
+        <div class="admin-user-badges">
+          <span class="badge badge--${escapeHtml(role)}">${escapeHtml(role)}</span>
+          <span class="badge badge--${escapeHtml(status)}">${escapeHtml(status)}</span>
+        </div>
+      </div>
+      <div class="user-row__actions">
+        ${showActions ? `
+          <button class="btn btn--success btn--sm" data-action="approve" data-id="${escapeHtml(user.id || '')}" aria-label="Approve user"><i class="fa-solid fa-check"></i><span>Approve</span></button>
+          <button class="btn btn--danger btn--sm" data-action="reject" data-id="${escapeHtml(user.id || '')}" aria-label="Reject user"><i class="fa-solid fa-xmark"></i><span>Reject</span></button>
+        ` : (!isSelf && role !== 'super_admin' ? `
+          <div class="user-actions-menu-wrap">
+            <button class="kebab-btn" data-id="${escapeHtml(user.id || '')}" data-role="${escapeHtml(role)}" data-status="${escapeHtml(status)}" data-name="${escapeHtml(name)}" aria-label="User actions"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+          </div>
+        ` : '')}
+      </div>
+    </div>
+  `;
+}
+
 async function loadPendingUsers(){
   const requestId = ++pendingUsersRequestSeq;
   el.pendingUsersLoading.classList.remove('hide');
@@ -6674,25 +6782,7 @@ async function loadPendingUsers(){
   }
   el.pendingUsersEmpty.classList.toggle('hide', data.length > 0);
   if (!data.length) return;
-  el.pendingUsersList.innerHTML = data.map(u => {
-    const initials = (u.name || u.email || '?').split(/\s+/).filter(Boolean).slice(0, 2).map(part => part.charAt(0)).join('').toUpperCase();
-    return `
-    <div class="user-row" data-id="${u.id}" data-role="${escapeHtml(u.role || '')}" data-status="${escapeHtml(u.status || '')}">
-      <div class="user-row__info" data-initials="${escapeHtml(initials)}">
-        <b>${escapeHtml(u.name || u.email)}</b>
-        <span>${escapeHtml(u.email)}</span>
-        <div class="admin-user-badges">
-          <span class="badge badge--${u.role}">${escapeHtml(u.role)}</span>
-          <span class="badge badge--pending">pending</span>
-        </div>
-      </div>
-      <div class="user-row__actions">
-        <button class="btn btn--success btn--sm" data-action="approve" data-id="${u.id}" aria-label="Approve user"><i class="fa-solid fa-check"></i><span>Approve</span></button>
-        <button class="btn btn--danger btn--sm" data-action="reject" data-id="${u.id}" aria-label="Reject user"><i class="fa-solid fa-xmark"></i><span>Reject</span></button>
-      </div>
-    </div>
-  `;
-  }).join('');
+  el.pendingUsersList.innerHTML = data.map(u => renderUserRow(u, { showActions: true })).join('');
 }
 async function loadAllUsers(resetToFirstPage = false){
   if (resetToFirstPage) usersPage = 1;
@@ -6735,29 +6825,10 @@ async function loadAllUsers(resetToFirstPage = false){
   renderAllUsersPagination();
 }
 function renderAllUsers(users){
-  el.allUsersList.innerHTML = users.map(u => {
-    const isSelf = u.id === currentProfile.id;
-    const initials = (u.name || u.email || '?').split(/\s+/).filter(Boolean).slice(0, 2).map(part => part.charAt(0)).join('').toUpperCase();
-    return `
-    <div class="user-row" data-id="${u.id}" data-role="${escapeHtml(u.role || '')}" data-status="${escapeHtml(u.status || '')}">
-      <div class="user-row__info" data-initials="${escapeHtml(initials)}">
-        <b>${escapeHtml(u.name || u.email)} ${isSelf ? '<span style="color:var(--muted);font-weight:500;">(you)</span>' : ''}</b>
-        <span>${escapeHtml(u.email)}</span>
-        <div class="admin-user-badges">
-          <span class="badge badge--${u.role}">${escapeHtml(u.role)}</span>
-          <span class="badge badge--${u.status}">${escapeHtml(u.status)}</span>
-        </div>
-      </div>
-      <div class="user-row__actions">
-        ${!isSelf && u.role !== 'super_admin' ? `
-          <div class="user-actions-menu-wrap">
-            <button class="kebab-btn" data-id="${u.id}" data-role="${u.role}" data-status="${u.status}" data-name="${escapeHtml(u.name || u.email)}" aria-label="User actions"><i class="fa-solid fa-ellipsis-vertical"></i></button>
-          </div>
-        ` : ''}
-      </div>
-    </div>
-  `;
-  }).join('');
+  el.allUsersList.innerHTML = users.map(u => renderUserRow(u, {
+    isSelf: u.id === currentProfile.id,
+    showActions: false
+  })).join('');
 }
 function reloadAllUsersFromFilters(){
   clearTimeout(usersSearchDebounceTimer);
@@ -7078,6 +7149,27 @@ function handleTableClick(e){
 function openDrawer(){
   el.drawerUserName.textContent = currentProfile ? (currentProfile.name || currentProfile.email) : '';
   el.drawerUserRole.textContent = currentProfile ? currentProfile.role : '';
+
+  // Use the avatar supplied by Supabase Auth in the current session token.
+  // Google OAuth normally provides both avatar_url and picture; prefer avatar_url.
+  const avatarUrl = currentSession?.user?.user_metadata?.avatar_url
+    || currentSession?.user?.user_metadata?.picture
+    || '';
+  if (el.drawerUserAvatar) {
+    el.drawerUserAvatar.innerHTML = '';
+    if (avatarUrl) {
+      const img = document.createElement('img');
+      img.src = avatarUrl;
+      img.alt = '';
+      img.referrerPolicy = 'no-referrer';
+      img.addEventListener('error', () => {
+        el.drawerUserAvatar.innerHTML = '<i class=\"fa-solid fa-user\"></i>';
+      }, { once: true });
+      el.drawerUserAvatar.appendChild(img);
+    } else {
+      el.drawerUserAvatar.innerHTML = '<i class=\"fa-solid fa-user\"></i>';
+    }
+  }
   el.appDrawer.classList.add('open');
   el.drawerBackdrop.classList.add('open');
   document.documentElement.classList.add('drawer-open');
@@ -8060,13 +8152,7 @@ async function init(){
     }
     activeNormalClient.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') {
-        currentSession = null;
-        currentProfile = null;
-        if (!intentionalSignOut) {
-          showToast('Your session expired. Please log in again.', 'info');
-        }
-        intentionalSignOut = false;
-        showScreen('auth');
+        handlePossiblySpuriousSignOut(activeNormalClient);
         return;
       }
       if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
@@ -8124,13 +8210,7 @@ async function init(){
   }
   activeNormalClient.auth.onAuthStateChange((event, session) => {
     if (event === 'SIGNED_OUT') {
-      currentSession = null;
-      currentProfile = null;
-      if (!intentionalSignOut) {
-        showToast('Your session expired. Please log in again.', 'info');
-      }
-      intentionalSignOut = false;
-      showScreen('auth');
+      handlePossiblySpuriousSignOut(activeNormalClient);
       return;
     }
     if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
