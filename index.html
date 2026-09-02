@@ -88,16 +88,30 @@ html,body,button,input,textarea,select{
 
 /* ---------- motion + scrollbars ---------- */
 @keyframes riseIn{from{opacity:0;transform:translateY(16px);}
-to{opacity:1;transform:none;}
+to{opacity:1;transform:none;}}
 
-}*{scrollbar-width:thin;scrollbar-color:var(--primary-text) var(--bg);}
+@keyframes riseOut {from {opacity:1;transform:none}
+to {opacity:0;transform:translateY(16px);}}
+
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+
+@keyframes fadeOut{from{opacity:1;}to{opacity:0;}}
+
+*{scrollbar-width:thin;scrollbar-color:var(--primary-text) var(--bg);}
 html.dark-theme{scrollbar-color:var(--primary-text) #000;}
 
 @media(prefers-reduced-motion:no-preference){.auth-shell{animation:riseIn .45s ease-out both;}
 .app-shell>.card{animation:riseIn .35s ease-out both;}
 .admin-stat{animation:riseIn .35s ease-out both;}
 .modal ,.date-picker__panel{animation:riseIn .35s ease-out both;}
-
+.modal-overlay.closing .modal,
+.date-picker__overlay.closing .date-picker__panel {
+  animation: riseOut .35s ease-out both;
+}
+.modal-overlay.closing,
+.date-picker__overlay.closing {
+  animation: fadeOut .35s ease both;
+}
 }/* ==========================================================
    BASE RESET
    ========================================================== */
@@ -459,7 +473,7 @@ body.dark-theme .prod-stat--amt{background:rgba(23,105,255,.14);}
   z-index:9999;
   min-width:220px;
   overflow:hidden;
-  animation:fadeIn .12s ease;
+  animation:fadeIn .15s ease;
 }
 .actions-popup-adminmenu{position:absolute;right:0;top:calc(100% + 6px);z-index:200;min-width:170px;}
 .admin-user-list .user-row:last-child .actions-popup-adminmenu{top:auto;bottom:calc(100% + 6px);z-index:99999;}
@@ -518,7 +532,7 @@ body.dark-theme .prod-stat--amt{background:rgba(23,105,255,.14);}
   padding:20px 16px;
   z-index:200;
   backdrop-filter: blur(6px);
-  animation:fadeIn .15s ease;
+  animation:fadeIn .35s ease;
 }
 .date-picker__panel{
   position:relative;
@@ -727,10 +741,8 @@ body.dark-theme .toast-card--error{--toast-accent:#E13B34;background:#2A1113;bor
   justify-content:center;
   padding:20px 16px;
   z-index:100;
-  animation:fadeIn .15s ease;
+  animation:fadeIn .35s ease;
 }
-
-@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
 
 .modal{
   background:var(--bg);
@@ -883,7 +895,7 @@ body.dark-theme .confirm-icon--info{background:rgba(1,37,135,.5);}
 .app-bar__user .caret{font-size:10px;opacity:.7;margin-left:2px;}
 /* ---------- Account drawer (shared desktop + mobile) ---------- */
 .app-bar__hamburger{display:none;}
-html.drawer-open,body.drawer-open{overflow:hidden!important;}
+html.pop-open,body.pop-open{overflow:hidden!important;}
 .drawer-backdrop{
   position:fixed;
   inset:0;
@@ -1954,7 +1966,7 @@ body.dark-theme .pdf-option__switch-track{background:#3A3A40;}
   transition:color .15s ease,background .15s ease;
 }
 .bills-search-clear:hover{color:var(--text);background:var(--bg);}
-.bills-filter-row{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;}
+.bills-filter-row{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;animation:fadeIn .35s ease;}
 .date-filter-btn{
   width:100%;
   display:flex;
@@ -1992,7 +2004,7 @@ body.dark-theme .btn--reset-filter{background:var(--surface);}
   box-shadow:var(--shadow-sm);
   z-index:60;
   overflow:hidden;
-  animation:fadeIn .12s ease;
+  animation:fadeIn .15s ease;
 }
 body.dark-theme .date-dropdown{background:var(--surface);border-color:var(--line);}
 .date-dropdown__item{
@@ -2270,7 +2282,7 @@ body.dark-theme .admin-empty__icon::before{background:rgba(23,105,255,.14);}
   align-items:center;
   justify-content:center;
 }
-.admin-user-filters{display:flex;gap:10px;padding:0 18px 10px;}
+.admin-user-filters{display:flex;gap:10px;padding:0 18px 10px;animation:fadeIn .35s ease;}
 .admin-user-filter-wrap{position:relative;flex:1;min-width:0;}
 .admin-user-filter-wrap .date-dropdown{top:calc(100% + 6px);}
 .admin-user-filter-wrap .date-dropdown__item{padding:10px 14px;}
@@ -4075,15 +4087,23 @@ function createDatePicker(hiddenInput, triggerBtn, textEl, options = {}){
     updateText();
     if (fireEvent) hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
   }
-  function closePanel(){
-    if (!overlay) return;
-    overlay.remove();
-    overlay = null;
-    panel = null;
-    triggerBtn.classList.remove('open');
-    triggerBtn.setAttribute('aria-expanded', 'false');
-    if (_openDatePickerClose === closePanel) _openDatePickerClose = null;
-  }
+function closePanel(){
+  if (!overlay) return;
+  const closingOverlay = overlay;
+  closingOverlay.classList.add('closing');
+  setTimeout(() => {
+    if (closingOverlay.parentNode) {
+      closingOverlay.remove();
+    }
+    if (overlay === closingOverlay) {
+      overlay = null;
+      panel = null;
+      triggerBtn.classList.remove('open');
+    }
+    document.documentElement.classList.remove('pop-open');
+    document.body.classList.remove('pop-open');
+  }, 350);
+}
   function selectAndClose(iso){
     setValue(iso);
     closePanel();
@@ -4184,6 +4204,8 @@ function createDatePicker(hiddenInput, triggerBtn, textEl, options = {}){
     panelView = 'days';
     overlay = document.createElement('div');
     overlay.className = 'date-picker__overlay';
+    document.documentElement.classList.add('pop-open');
+    document.body.classList.add('pop-open');
     overlay.addEventListener('click', (e) => { if (e.target === overlay) closePanel(); });
     panel = document.createElement('div');
     panel.className = 'date-picker__panel';
@@ -4328,9 +4350,18 @@ function measureTableParts(products){
 }
 function showOverlay(overlay){
   overlay.classList.remove('hide');
+  overlay.classList.remove('closing');
+  document.documentElement.classList.add('pop-open');
+  document.body.classList.add('pop-open');
 }
 function hideOverlay(overlay){
-  overlay.classList.add('hide');
+  overlay.classList.add('closing');
+  setTimeout(() => {
+    overlay.classList.add('hide');
+    overlay.classList.remove('closing');
+    document.documentElement.classList.remove('pop-open');
+    document.body.classList.remove('pop-open');
+  }, 350);
 }
 const TOAST_ICONS = { success: 'fa-check', info: 'fa-info', error: 'fa-xmark' };
 function showToast(message, type, duration = TOAST_DURATION_MS){
@@ -7181,15 +7212,15 @@ function openDrawer(){
   }
   el.appDrawer.classList.add('open');
   el.drawerBackdrop.classList.add('open');
-  document.documentElement.classList.add('drawer-open');
-  document.body.classList.add('drawer-open');
+  document.documentElement.classList.add('pop-open');
+  document.body.classList.add('pop-open');
   if (el.appBarUser) el.appBarUser.setAttribute('aria-expanded','true');
 }
 function closeDrawer(){
   el.appDrawer.classList.remove('open');
   el.drawerBackdrop.classList.remove('open');
-  document.documentElement.classList.remove('drawer-open');
-  document.body.classList.remove('drawer-open');
+  document.documentElement.classList.remove('pop-open');
+  document.body.classList.remove('pop-open');
   if (el.appBarUser) el.appBarUser.setAttribute('aria-expanded','false');
 }
 function applyTheme(isDark){
