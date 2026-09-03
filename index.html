@@ -4358,31 +4358,83 @@ function measureTableParts(products){
   document.body.removeChild(temp);
   return { theadHeight, rowHeights };
 }
+// Track pending overlay closes so an old close animation/timer can never
+// hide a modal that has just been opened again. This is especially important
+// during startup, where all overlays are initially closed and the recovery
+// flow may immediately open the expired-link confirmation modal.
+const overlayHideStates = new WeakMap();
+
 function showOverlay(overlay){
-  overlay.classList.remove('hide');
+  if (!overlay) return;
+
+  // Cancel any previous hide operation for this exact overlay.
+  const pendingHide = overlayHideStates.get(overlay);
+  if (pendingHide) {
+    pendingHide.cancelled = true;
+    clearTimeout(pendingHide.fallbackTimer);
+    overlay.removeEventListener('animationend', pendingHide.onAnimEnd);
+    overlayHideStates.delete(overlay);
+    if (pendingHide.resolve) pendingHide.resolve(false);
+  }
+
+  // Remove the closing state before making the overlay visible.
+  // This prevents a stale animationend/timer from hiding the newly-opened modal.
   overlay.classList.remove('closing');
+  overlay.classList.remove('hide');
   document.documentElement.classList.add('pop-open');
   document.body.classList.add('pop-open');
 }
+
 function hideOverlay(overlay){
-  return new Promise(resolve => {
-    overlay.classList.add('closing');
-    let settled = false;
-    const finish = () => {
-      if (settled) return;
-      settled = true;
-      overlay.removeEventListener('animationend', onAnimEnd);
-      clearTimeout(fallbackTimer);
-      overlay.classList.add('hide');
-      overlay.classList.remove('closing');
-      document.documentElement.classList.remove('pop-open');
-      document.body.classList.remove('pop-open');
-      resolve();
-    };
-    const onAnimEnd = (e) => { if (e.target === overlay) finish(); };
-    overlay.addEventListener('animationend', onAnimEnd);
-    const fallbackTimer = setTimeout(finish, 500);
-  });
+  if (!overlay) return Promise.resolve();
+
+  // If another hide is already pending, reuse it instead of creating
+  // competing animation/timer handlers for the same overlay.
+  const existingHide = overlayHideStates.get(overlay);
+  if (existingHide) return existingHide.promise;
+
+  let resolvePromise;
+  const promise = new Promise(resolve => { resolvePromise = resolve; });
+
+  const state = {
+    promise,
+    resolve: resolvePromise,
+    cancelled: false,
+    fallbackTimer: null,
+    onAnimEnd: null
+  };
+  overlayHideStates.set(overlay, state);
+
+  overlay.classList.add('closing');
+
+  let settled = false;
+  const finish = () => {
+    // A newer showOverlay() may have cancelled this close.
+    if (state.cancelled || overlayHideStates.get(overlay) !== state) return;
+    if (settled) return;
+    settled = true;
+
+    overlay.removeEventListener('animationend', state.onAnimEnd);
+    clearTimeout(state.fallbackTimer);
+    overlayHideStates.delete(overlay);
+
+    overlay.classList.add('hide');
+    overlay.classList.remove('closing');
+
+    document.documentElement.classList.remove('pop-open');
+    document.body.classList.remove('pop-open');
+
+    state.resolve(true);
+  };
+
+  state.onAnimEnd = (e) => {
+    if (e.target === overlay) finish();
+  };
+
+  overlay.addEventListener('animationend', state.onAnimEnd);
+  state.fallbackTimer = setTimeout(finish, 500);
+
+  return promise;
 }
 const TOAST_ICONS = { success: 'fa-check', info: 'fa-info', error: 'fa-xmark' };
 function showToast(message, type, duration = TOAST_DURATION_MS){
@@ -4992,7 +5044,7 @@ function askToSendOtp(email, options = {}) {
     const finish = (confirmed) => {
       if (settled) return;
       settled = true;
-      el.otpSendConfirmOverlay.classList.add('hide');
+      hideOverlay(el.otpSendConfirmOverlay);
       cleanup();
       resolve(confirmed);
     };
@@ -5005,7 +5057,7 @@ function askToSendOtp(email, options = {}) {
     el.btnConfirmOtpSend.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Send Code';
     el.btnConfirmOtpSend.addEventListener('click', onConfirm);
     el.btnCancelOtpSendConfirm.addEventListener('click', onCancel);
-    el.otpSendConfirmOverlay.classList.remove('hide');
+    showOverlay(el.otpSendConfirmOverlay);
   });
 }
 /**
@@ -5285,7 +5337,7 @@ function askToSendResetLink(email) {
     const finish = (confirmed) => {
       if (settled) return;
       settled = true;
-      el.otpSendConfirmOverlay.classList.add('hide');
+      hideOverlay(el.otpSendConfirmOverlay);
       cleanup();
       resolve(confirmed);
     };
@@ -5300,7 +5352,7 @@ function askToSendResetLink(email) {
     el.btnConfirmOtpSend.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Send Link';
     el.btnConfirmOtpSend.addEventListener('click', onConfirm);
     el.btnCancelOtpSendConfirm.addEventListener('click', onCancel);
-    el.otpSendConfirmOverlay.classList.remove('hide');
+    showOverlay(el.otpSendConfirmOverlay);
   });
 }
 
