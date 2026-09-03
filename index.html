@@ -7065,16 +7065,12 @@ async function handleChangePassword(){
   const pwErr = validateNewPassword(newPw, confirmPw, 'New password');
   if (pwErr) return showToast(pwErr, 'error');
   await withGuardedSubmit(el.btnConfirmChangePw, 'Updating password…', async () => {
-    // Verify current password by re-signing in
-    const { error: verifyErr } = await supabaseClient.auth.signInWithPassword({
-      email: currentProfile.email,
-      password: currentPw
+    // Pass the current password directly to Supabase because password-change
+    // protection requires current_password when setting a new password.
+    const { error } = await supabaseClient.auth.updateUser({
+      password: newPw,
+      current_password: currentPw
     });
-    if (verifyErr) {
-      showToast('Current password is incorrect.', 'error');
-      return;
-    }
-    const { error } = await supabaseClient.auth.updateUser({ password: newPw });
     if (error) {
       showToast(error.message || 'Could not update password.', 'error');
       return;
