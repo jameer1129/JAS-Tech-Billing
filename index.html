@@ -3994,7 +3994,7 @@ function applyConfig(){
   if(CONFIG.invoice.defaultNotes) state.notes = CONFIG.invoice.defaultNotes;
   syncDisplayToggleState();
   if (el.drawerFooterVersion) {
-    const version = 'v1.0.0';
+    const version = 'v1.0';
     el.drawerFooterVersion.textContent = `${CONFIG.company.name} Billing ${version}`;
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.addEventListener('message', (e) => {
@@ -8303,8 +8303,44 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./service-worker.js");
+    navigator.serviceWorker.register("./service-worker.js").then((reg) => {
+      // A worker can already be sitting in "waiting" if it installed while
+      // this tab wasn't the one that triggered the registration check.
+      if (reg.waiting) promptUpdate(reg.waiting);
+
+      // Fires when THIS registration finds a new worker (e.g. you deployed
+      // a new service-worker.js and the browser did its periodic check).
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        if (!newWorker) return;
+        newWorker.addEventListener('statechange', () => {
+          // "installed" + an existing controller means this is an UPDATE,
+          // not the very first install (first install has no controller
+          // yet, so there's nothing to "update" from — don't prompt then).
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            promptUpdate(newWorker);
+          }
+        });
+      });
+    });
   });
+
+  // Reload exactly once, right after the new worker actually takes over —
+  // guarded so a stray extra controllerchange event can't reload twice.
+  let hasReloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (hasReloaded) return;
+    hasReloaded = true;
+    window.location.reload();
+  });
+}
+
+// Shows a simple confirm prompt; swap this for your own toast/banner UI if
+// you want something less intrusive than a browser confirm() dialog.
+function promptUpdate(waitingWorker) {
+  if (confirm('A new version of this app is available. Update now?')) {
+    waitingWorker.postMessage({ type: 'SKIP_WAITING' });
+  }
 }
 </script>
 </body>

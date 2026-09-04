@@ -32,6 +32,14 @@ self.addEventListener("message", (event) => {
   if (event.data?.type === "GET_VERSION") event.source.postMessage(CACHE_NAME);
 });
 
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "GET_VERSION") event.source.postMessage(CACHE_NAME);
+  // Only called when the user clicks "Update" in the page's prompt —
+  // lets this waiting worker become active on demand instead of
+  // automatically, so updates don't happen without the user's OK.
+  if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
+});
+
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) =>
@@ -49,8 +57,9 @@ self.addEventListener("install", (event) => {
       ),
     ),
   );
-
-  self.skipWaiting();
+  // skipWaiting() removed on purpose: a newly installed worker now stays
+  // in the "waiting" state until the page explicitly approves it via the
+  // SKIP_WAITING message above (see the update-prompt flow in index.html).
 });
 
 self.addEventListener("activate", (event) => {
