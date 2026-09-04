@@ -4,7 +4,7 @@ Fresh-First With Timeout Fallback + Stale-While-Revalidate
 Safe Activation Handoff (avoids interrupting in-flight requests)
 ========================================================= */
 
-const CACHE_NAME = "v2.1.7";
+const CACHE_NAME = "v2.1.8";
 
 // How long we wait for the network before falling back to whatever's cached.
 // Without this, a slow/flaky connection makes fetch() hang indefinitely on
@@ -32,14 +32,6 @@ self.addEventListener("message", (event) => {
   if (event.data?.type === "GET_VERSION") event.source.postMessage(CACHE_NAME);
 });
 
-self.addEventListener("message", (event) => {
-  if (event.data?.type === "GET_VERSION") event.source.postMessage(CACHE_NAME);
-  // Only called when the user clicks "Update" in the page's prompt —
-  // lets this waiting worker become active on demand instead of
-  // automatically, so updates don't happen without the user's OK.
-  if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
-});
-
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) =>
@@ -57,9 +49,8 @@ self.addEventListener("install", (event) => {
       ),
     ),
   );
-  // skipWaiting() removed on purpose: a newly installed worker now stays
-  // in the "waiting" state until the page explicitly approves it via the
-  // SKIP_WAITING message above (see the update-prompt flow in index.html).
+
+  self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
