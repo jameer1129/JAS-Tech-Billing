@@ -4,7 +4,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;750;800&display=swap" rel="stylesheet">
-<style>html.theme-preload{background:#000!important;}
+<style>
+html.theme-preload{background:#000!important;}
 html.theme-preload,html.theme-preload body{background:#000;color:#F3F4F6;}
 html.theme-preload,html.theme-preload body{transition:none;}
 html.theme-preload .boot-loader{background: rgba(15,23,42,.42)}
@@ -99,8 +100,7 @@ to {opacity:0;transform:translateY(6px);}}
 
 @keyframes fadeOut{from{opacity:1;}to{opacity:0;}}
 
-*{scrollbar-width:thin;scrollbar-color:var(--primary-text) var(--bg);}
-html.dark-theme{scrollbar-color:var(--primary-text) #000;}
+html,body{scrollbar-width:thin;}
 
 @media(prefers-reduced-motion:no-preference){.auth-shell{animation:riseIn .45s ease-out both;}
 .app-shell>.card{animation:riseIn .35s ease-out both;}
@@ -477,11 +477,11 @@ body.dark-theme .prod-stat--amt{background:rgba(23,105,255,.14);}
   border-radius:var(--radius-sm);
   box-shadow:var(--shadow-sm);
   z-index:9999;
-  min-width:220px;
+  min-width:170px;
   overflow:hidden;
   animation:fadeIn .15s ease;
 }
-.actions-popup-adminmenu{position:absolute;right:0;top:calc(100% + 6px);z-index:200;min-width:170px;}
+.actions-popup-adminmenu{position:absolute;right:0;top:calc(100% + 6px)}
 .admin-user-list .user-row:last-child .actions-popup-adminmenu{top:auto;bottom:calc(100% + 6px);z-index:99999;}
 .actions-popup-previousmenu{position:absolute;z-index:9999;}
 .actions-popup__item{
@@ -4723,10 +4723,14 @@ function showScreen(name){
 function showActionLoader(message = 'Please wait…'){
   el.bootLoader.querySelector('.boot-loader__label').textContent = message;
   el.bootLoader.classList.remove('hide');
+  document.documentElement.classList.add('pop-open');
+  document.body.classList.add('pop-open');
 }
 function hideActionLoader(){
   el.bootLoader.classList.add('hide');
   el.bootLoader.querySelector('.boot-loader__label').textContent = 'Loading Data…';
+  document.documentElement.classList.remove('pop-open');
+  document.body.classList.remove('pop-open');
 }
 const SIGNUP_OTP_RESEND_COOLDOWN_SECONDS = 60;
 const SIGNUP_OTP_EXPIRY_SECONDS = 3600;
