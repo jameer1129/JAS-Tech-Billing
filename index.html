@@ -4185,12 +4185,12 @@ function closePanel(){
     panelView = 'days';
     overlay = document.createElement('div');
     overlay.className = 'date-picker__overlay';
-    syncPopOpenState();
     overlay.addEventListener('click', (e) => { if (e.target === overlay) closePanel(); });
     panel = document.createElement('div');
     panel.className = 'date-picker__panel';
     overlay.appendChild(panel);
     document.body.appendChild(overlay);
+    syncPopOpenState();
     triggerBtn.classList.add('open');
     triggerBtn.setAttribute('aria-expanded', 'true');
     renderPanel();
@@ -4337,8 +4337,8 @@ function syncPopOpenState(){
   const datePickerOpen = !!document.querySelector('.date-picker__overlay');
   const drawerOpen = !!el.appDrawer?.classList.contains('open')
     || !!el.drawerBackdrop?.classList.contains('open');
-
-  const shouldLock = modalOpen || datePickerOpen || drawerOpen;
+  const loaderOpen = !!el.bootLoader && !el.bootLoader.classList.contains('hide');
+  const shouldLock = modalOpen || datePickerOpen || drawerOpen || loaderOpen;
   document.documentElement.classList.toggle('pop-open', shouldLock);
   document.body.classList.toggle('pop-open', shouldLock);
 }
@@ -4712,6 +4712,7 @@ function showScreen(name){
   // call returns and strip 'pop-open' out from under any modal opened in
   // the meantime, silently breaking the background-scroll lock for it.
   el.bootLoader.classList.add('hide');
+  syncPopOpenState();
   document.documentElement.classList.remove('theme-preload');
   el.authScreen.classList.toggle('hide', name !== 'auth');
   el.emailVerificationScreen.classList.toggle('hide', name !== 'verify-email');
@@ -4723,14 +4724,12 @@ function showScreen(name){
 function showActionLoader(message = 'Please wait…'){
   el.bootLoader.querySelector('.boot-loader__label').textContent = message;
   el.bootLoader.classList.remove('hide');
-  document.documentElement.classList.add('pop-open');
-  document.body.classList.add('pop-open');
+  syncPopOpenState();
 }
 function hideActionLoader(){
   el.bootLoader.classList.add('hide');
   el.bootLoader.querySelector('.boot-loader__label').textContent = 'Loading Data…';
-  document.documentElement.classList.remove('pop-open');
-  document.body.classList.remove('pop-open');
+  syncPopOpenState();
 }
 const SIGNUP_OTP_RESEND_COOLDOWN_SECONDS = 60;
 const SIGNUP_OTP_EXPIRY_SECONDS = 3600;
