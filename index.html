@@ -3994,8 +3994,16 @@ function applyConfig(){
   if(CONFIG.invoice.defaultNotes) state.notes = CONFIG.invoice.defaultNotes;
   syncDisplayToggleState();
   if (el.drawerFooterVersion) {
-    const version = CONFIG.footer && CONFIG.footer.appVersion ? CONFIG.footer.appVersion : 'v1.0';
+    const version = 'v1.0.0';
     el.drawerFooterVersion.textContent = `${CONFIG.company.name} Billing ${version}`;
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', (e) => {
+        if (typeof e.data === 'string') el.drawerFooterVersion.textContent = `${CONFIG.company.name} Billing ${e.data}`;
+      });
+      navigator.serviceWorker.ready.then((reg) => {
+        reg.active?.postMessage({ type: 'GET_VERSION' });
+      });
+    }
   }
 }
 function pad(n){ return n.toString().padStart(2,'0'); }

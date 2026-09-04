@@ -4,7 +4,7 @@ Fresh-First With Timeout Fallback + Stale-While-Revalidate
 Safe Activation Handoff (avoids interrupting in-flight requests)
 ========================================================= */
 
-const CACHE_NAME = "jas-tech-assets-v2.1.6";
+const CACHE_NAME = "v2.1.7";
 
 // How long we wait for the network before falling back to whatever's cached.
 // Without this, a slow/flaky connection makes fetch() hang indefinitely on
@@ -18,6 +18,7 @@ const CLAIM_DELAY_MS = 2000;
 
 const STATIC_ASSETS = [
   "./index.html",
+  "./config.json",
   "./manifest.json",
   "./assets/logo/logo.png",
   "./assets/logo/main-logo.png",
@@ -26,6 +27,10 @@ const STATIC_ASSETS = [
   "./assets/icons/app-icon.png",
   "./assets/icons/whatsapp-qr.jpeg",
 ];
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "GET_VERSION") event.source.postMessage(CACHE_NAME);
+});
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -170,22 +175,22 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // HTML and config.json: try the network first (so users get the latest
-  // app/config), but fall back to cache if the network is slow or down
-  // instead of hanging indefinitely.
+  // HTML and config.json: serve instantly from cache when available,
+  // refreshing in the background (same as everything else) — prioritizes
+  // fast startup over always-latest.
   if (
     event.request.mode === "navigate" ||
     url.pathname.endsWith(".html") ||
     url.pathname.endsWith("config.json")
   ) {
     event.respondWith(
-      networkFirstWithTimeout(event.request).catch(async () => {
+      staleWhileRevalidate(event.request).then(async (response) => {
+        if (response && response.ok) return response;
         const isNavigationOrHtml =
           event.request.mode === "navigate" || url.pathname.endsWith(".html");
-        if (!isNavigationOrHtml) return Response.error();
-
+        if (!isNavigationOrHtml) return response;
         const cache = await caches.open(CACHE_NAME);
-        return (await cache.match("./index.html")) || Response.error();
+        return (await cache.match("./index.html")) || response;
       })
     );
     return;
