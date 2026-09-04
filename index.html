@@ -4355,8 +4355,18 @@ function hideOverlay(overlay){
       overlay._hideCancel = null;
       overlay.classList.add('hide');
       overlay.classList.remove('closing');
-      document.documentElement.classList.remove('pop-open');
-      document.body.classList.remove('pop-open');
+
+      // Keep the global popup scroll-lock while another popup is still open.
+      // This matters when the expired-link modal is opened during/after
+      // another modal's close animation. The closing modal must not remove
+      // pop-open from <html>/<body> underneath the still-visible modal.
+      const anotherPopupIsOpen = !!document.querySelector(
+        '.modal-overlay:not(.hide):not(.closing), .date-picker__overlay:not(.closing), .drawer.open, .drawer-backdrop.open'
+      );
+      if (!anotherPopupIsOpen) {
+        document.documentElement.classList.remove('pop-open');
+        document.body.classList.remove('pop-open');
+      }
       resolve();
     };
     const fallbackTimer = setTimeout(finish, 500);
@@ -4489,6 +4499,17 @@ function createSupabaseClient(authStorage, detectSessionInUrl, storageKey = null
   supabaseClientCache.set(cacheKey, client);
   return client;
 }
+function startManualSessionRefresh(client){
+  if (!client || client._manualRefreshStarted) return;
+  client._manualRefreshStarted = true;
+  const check = () => {
+    client.auth.getSession().catch(err => console.error('Session refresh check failed:', err));
+  };
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') check();
+  });
+  setInterval(check, 5 * 60 * 1000);
+}
 function initSupabase(recoveryContext){
   // Password recovery lives in memory only for the current page lifetime —
   // nothing is written to any browser storage (persistSession: false), and
@@ -4500,8 +4521,10 @@ function initSupabase(recoveryContext){
     supabaseClient = createSupabaseClient(window.sessionStorage, true, RECOVERY_AUTH_STORAGE_KEY, false, false);
     return supabaseClient;
   }
-  // Normal logins always persist in localStorage.
-  supabaseClient = createSupabaseClient(window.localStorage);
+  // Normal logins always persist in localStorage. autoRefreshToken is off
+  // deliberately — see startManualSessionRefresh() for why and what
+  // replaces it.
+  supabaseClient = createSupabaseClient(window.localStorage, undefined, null, true, false);
   return supabaseClient;
 }
 // Marks (in sessionStorage, so it survives the OAuth redirect round-trip but
@@ -4676,7 +4699,13 @@ function handleOnline(){
 }
 function showScreen(name){
   bootDeadline = null;
-  hideOverlay(el.bootLoader); el.bootLoader.classList.add('hide');
+  // Only the direct classList.add('hide') — not hideOverlay() — because
+  // hideOverlay() removes 'pop-open' from html/body asynchronously (on
+  // animationend or a ~500ms fallback timer). showScreen() runs on every
+  // screen transition, so that delayed removal could land well after this
+  // call returns and strip 'pop-open' out from under any modal opened in
+  // the meantime, silently breaking the background-scroll lock for it.
+  el.bootLoader.classList.add('hide');
   document.documentElement.classList.remove('theme-preload');
   el.authScreen.classList.toggle('hide', name !== 'auth');
   el.emailVerificationScreen.classList.toggle('hide', name !== 'verify-email');
@@ -7027,10 +7056,6 @@ async function actionExpiredRecovery(){
   setAuthTab('forgot');
 }
 function openRecoveryConflictConfirm(conflict){
-  // The boot loader is normally dismissed inside showScreen(), but this path
-  // shows a confirmation modal instead of a screen, so it must be hidden
-  // here explicitly. Otherwise it stays on top of the modal forever.
-  hideOverlay(el.bootLoader);
   el.bootLoader.classList.add('hide');
   pendingRecoveryConflict = conflict;
   const email = conflict?.localSession?.user?.email || 'this account';
@@ -7399,15 +7424,35 @@ function bindEvents(){
   el.btnPendingLogout.addEventListener('click', openLogoutConfirm);
   el.btnPendingRefresh.addEventListener('click', handlePendingRefresh);
   el.appBarUser.addEventListener('click', (e) => { e.stopPropagation(); openDrawer(); });
-  // Allow Enter key to submit the change-password modal
+  // Change-password modal keyboard flow:
+  // Enter on Current -> New, Enter on New -> Confirm, Enter on Confirm -> Update.
   if (el.changePwCurrent) {
-    el.changePwCurrent.addEventListener('keydown', (event) => { if (event.key === 'Enter') handleChangePassword(); });
+    el.changePwCurrent.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      el.changePwNew?.focus();
+    });
   }
   if (el.changePwNew) {
-    el.changePwNew.addEventListener('keydown', (event) => { if (event.key === 'Enter') handleChangePassword(); });
+    el.changePwNew.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      el.changePwConfirm?.focus();
+    });
   }
   if (el.changePwConfirm) {
-    el.changePwConfirm.addEventListener('keydown', (event) => { if (event.key === 'Enter') handleChangePassword(); });
+    el.changePwConfirm.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      el.btnConfirmChangePw?.focus();
+    });
+  }
+  if (el.btnConfirmChangePw) {
+    el.btnConfirmChangePw.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      handleChangePassword();
+    });
   }
   el.drawerChangePw.addEventListener('click', () => { closeDrawer(); openChangePasswordModal(); });
   el.btnCancelChangePw.addEventListener('click', closeChangePasswordModal);
@@ -8001,7 +8046,7 @@ async function init(){
     // Recovery gets its own storage key so it can coexist safely with a
     // normal session in localStorage. The normal storage is inspected
     // without parsing the recovery URL.
-    localClient = createSupabaseClient(window.localStorage, false);
+    localClient = createSupabaseClient(window.localStorage, false, null, true, false);
     supabaseClient = createSupabaseClient(window.sessionStorage, true, RECOVERY_AUTH_STORAGE_KEY, false, false);
     if (!supabaseClient || !localClient) {
       showScreen('auth');
@@ -8114,7 +8159,7 @@ async function init(){
   let activeNormalClient = null;
   let persistentNormalClient = null;
   if (oauthCallbackContext) {
-    const oauthClient = createSupabaseClient(window.localStorage, true);
+    const oauthClient = createSupabaseClient(window.localStorage, true, null, true, false);
     const clearOAuthPending = () => {
       try { window.sessionStorage.removeItem(OAUTH_PENDING_KEY); }
       catch (err) { /* ignore storage errors */ }
@@ -8126,6 +8171,7 @@ async function init(){
     }
     activeNormalClient = oauthClient;
     supabaseClient = oauthClient;
+    startManualSessionRefresh(activeNormalClient);
     // Google/Supabase report a failed OAuth attempt (consent denied, the
     // provider being unavailable, a misconfigured redirect URI, etc.) as an
     // error param appended to the callback URL, not as a thrown exception.
@@ -8184,7 +8230,7 @@ async function init(){
     return;
   }
   // Normal application load: inspect localStorage without parsing the URL.
-  const persistentClient = createSupabaseClient(window.localStorage, false);
+  const persistentClient = createSupabaseClient(window.localStorage, false, null, true, false);
   persistentNormalClient = persistentClient;
   if (!persistentClient) {
     showScreen('auth');
@@ -8192,6 +8238,7 @@ async function init(){
   }
   activeNormalClient = persistentClient;
   supabaseClient = persistentClient;
+  startManualSessionRefresh(activeNormalClient);
   const { data: { session: resolvedSession } = {} } = await persistentClient.auth.getSession();
   activeNormalClient.auth.onAuthStateChange((event, session) => {
     if (event === 'SIGNED_OUT') {
