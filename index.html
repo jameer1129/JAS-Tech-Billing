@@ -4079,8 +4079,7 @@ function closePanel(){
       panel = null;
       triggerBtn.classList.remove('open');
     }
-    document.documentElement.classList.remove('pop-open');
-    document.body.classList.remove('pop-open');
+    syncPopOpenState();
   };
   const onAnimEnd = (e) => { if (e.target === closingOverlay) finish(); };
   closingOverlay.addEventListener('animationend', onAnimEnd);
@@ -4186,8 +4185,7 @@ function closePanel(){
     panelView = 'days';
     overlay = document.createElement('div');
     overlay.className = 'date-picker__overlay';
-    document.documentElement.classList.add('pop-open');
-    document.body.classList.add('pop-open');
+    syncPopOpenState();
     overlay.addEventListener('click', (e) => { if (e.target === overlay) closePanel(); });
     panel = document.createElement('div');
     panel.className = 'date-picker__panel';
@@ -4330,7 +4328,23 @@ function measureTableParts(products){
   document.body.removeChild(temp);
   return { theadHeight, rowHeights };
 }
+function syncPopOpenState(){
+  // One central source of truth for the global popup scroll lock.
+  // A closing popup must not remove the lock while another popup has already
+  // opened (for example, an expired-link modal appearing during a close animation).
+  const modalOpen = Array.from(document.querySelectorAll('.modal-overlay'))
+    .some(overlay => !overlay.classList.contains('hide'));
+  const datePickerOpen = !!document.querySelector('.date-picker__overlay');
+  const drawerOpen = !!el.appDrawer?.classList.contains('open')
+    || !!el.drawerBackdrop?.classList.contains('open');
+
+  const shouldLock = modalOpen || datePickerOpen || drawerOpen;
+  document.documentElement.classList.toggle('pop-open', shouldLock);
+  document.body.classList.toggle('pop-open', shouldLock);
+}
+
 function showOverlay(overlay){
+  if (!overlay) return;
   // Cancel any close animation that was started before this overlay was shown
   // again. This is important during boot: init() initially closes every
   // dismissible overlay, while recovery may need to show the expired-link
@@ -4338,8 +4352,7 @@ function showOverlay(overlay){
   if (overlay._hideCancel) overlay._hideCancel();
   overlay.classList.remove('hide');
   overlay.classList.remove('closing');
-  document.documentElement.classList.add('pop-open');
-  document.body.classList.add('pop-open');
+  syncPopOpenState();
 }
 function hideOverlay(overlay){
   if (!overlay) return Promise.resolve();
@@ -4356,17 +4369,10 @@ function hideOverlay(overlay){
       overlay.classList.add('hide');
       overlay.classList.remove('closing');
 
-      // Keep the global popup scroll-lock while another popup is still open.
-      // This matters when the expired-link modal is opened during/after
-      // another modal's close animation. The closing modal must not remove
-      // pop-open from <html>/<body> underneath the still-visible modal.
-      const anotherPopupIsOpen = !!document.querySelector(
-        '.modal-overlay:not(.hide):not(.closing), .date-picker__overlay:not(.closing), .drawer.open, .drawer-backdrop.open'
-      );
-      if (!anotherPopupIsOpen) {
-        document.documentElement.classList.remove('pop-open');
-        document.body.classList.remove('pop-open');
-      }
+      // Recalculate the lock after this modal has fully closed. This prevents
+      // an older close animation/timer from unlocking the page underneath a
+      // different popup that is still visible.
+      syncPopOpenState();
       resolve();
     };
     const fallbackTimer = setTimeout(finish, 500);
@@ -7204,15 +7210,13 @@ function openDrawer(){
   }
   el.appDrawer.classList.add('open');
   el.drawerBackdrop.classList.add('open');
-  document.documentElement.classList.add('pop-open');
-  document.body.classList.add('pop-open');
+  syncPopOpenState();
   if (el.appBarUser) el.appBarUser.setAttribute('aria-expanded','true');
 }
 function closeDrawer(){
   el.appDrawer.classList.remove('open');
   el.drawerBackdrop.classList.remove('open');
-  document.documentElement.classList.remove('pop-open');
-  document.body.classList.remove('pop-open');
+  syncPopOpenState();
   if (el.appBarUser) el.appBarUser.setAttribute('aria-expanded','false');
 }
 function applyTheme(isDark){
@@ -7444,14 +7448,7 @@ function bindEvents(){
     el.changePwConfirm.addEventListener('keydown', (event) => {
       if (event.key !== 'Enter') return;
       event.preventDefault();
-      el.btnConfirmChangePw?.focus();
-    });
-  }
-  if (el.btnConfirmChangePw) {
-    el.btnConfirmChangePw.addEventListener('keydown', (event) => {
-      if (event.key !== 'Enter') return;
-      event.preventDefault();
-      handleChangePassword();
+      el.btnConfirmChangePw?.click();
     });
   }
   el.drawerChangePw.addEventListener('click', () => { closeDrawer(); openChangePasswordModal(); });
