@@ -4913,7 +4913,6 @@ async function handleLogin(){
     currentSession = data.session;
     clearPendingSignup();
     showActionLoader('Loading your account…');
-    if (!await ensureProfileAfterVerification()) return;
     await afterAuthResolved();
   });
 }
@@ -5114,7 +5113,6 @@ async function handleRegister() {
     if (data?.session) {
       currentSession = data.session;
       clearPendingSignup();
-      if (!await ensureProfileAfterVerification()) return;
       await afterAuthResolved();
       return;
     }
@@ -5181,8 +5179,6 @@ async function handleVerifyEmail(){
     clearPendingSignup();
     setVerificationOtp('');
     if (currentSession) {
-      const profileReady = await ensureProfileAfterVerification();
-      if (!profileReady) return;
       showVerificationMsg(
         'Email verified successfully. Loading your account...',
         'info'
@@ -5398,16 +5394,6 @@ async function handleLogout(){
     showToast('Could not log out. Please try again.', 'error');
   }
 }
-async function ensureProfileAfterVerification(){
-  if (!currentSession?.user?.id) return false;
-  const { error } = await supabaseClient.rpc('ensure_profile');
-  if (error) {
-    console.error('ensure_profile failed:', error);
-    showVerificationMsg('Your email was verified, but your account could not be prepared. Please try again.');
-    return false;
-  }
-  return true;
-}
 async function fetchOwnProfile(){
   const { data, error } = await supabaseClient
     .from('profiles')
@@ -5421,6 +5407,15 @@ async function fetchOwnProfile(){
   return data;
 }
 async function afterAuthResolved(){
+  const { error: profileEnsureError } = await supabaseClient.rpc('ensure_profile');
+  if (profileEnsureError) {
+    console.error('ensure_profile failed:', profileEnsureError);
+    showAuthMsg('Could not prepare your account. Please try again in a moment.');
+    showScreen('auth');
+    return;
+  }
+
+
   currentProfile = await fetchOwnProfile();
   if (!currentProfile) {
     if (offlineStartup || !navigator.onLine) { showOfflineScreen(); return; }
