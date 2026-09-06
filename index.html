@@ -1472,10 +1472,8 @@ body:has(.auth-shell:not(.hide)){overflow:hidden;}
   display:flex;
   align-items:center;
   justify-content:center;
-  background:#EAF1FF;
   color:var(--primary-text);
-  font-size:36px;
-  margin-bottom:18px;
+  font-size:60px;
 }
 .verify-hero__icon i:last-child{
   font-size:15px;
@@ -1563,13 +1561,12 @@ body:has(.auth-shell:not(.hide)){overflow:hidden;}
 }
 .verify-resend:hover:not(:disabled){background:transparent;text-decoration:underline;}
 .verify-resend[disabled]{color:var(--text);cursor:default;opacity:1;}
-body.dark-theme .verify-hero__icon{background:#0E1F3D;color:#71AEFF;}
 body.dark-theme .verify-info{background:#0D1C33;border-color:#1B355C;color:#B9C7DC;}
 body.dark-theme .verify-info strong{color:#F3F4F6;}
 
 @media(max-width:360px){.otp-boxes{gap:7px;}
 .otp-box{height:52px;font-size:22px;}
-.verify-hero__icon{width:72px;height:72px;margin-bottom:14px;}
+.verify-hero__icon{width:72px;height:72px;margin-bottom:8px;}
 .verify-hero h1{font-size:22px;}
 
 }/* ---------- Pending account approval ---------- */
@@ -1621,26 +1618,13 @@ body.dark-theme .verify-info strong{color:#F3F4F6;}
 .auth-hero-icon__ring--two{width:154px;height:154px;border:1px solid rgba(1,37,135,.2);}
 body.dark-theme .auth-hero-icon__ring--one{border:1px solid rgba(23, 105, 255, .3);}
 body.dark-theme .auth-hero-icon__ring--two{border:1px solid rgba(23, 105, 255, .2);}
-#forgotPasswordForm .auth-card-heading{text-align:center;}
-#forgotPasswordForm .auth-field{margin-top:2px;}
-/* ---------- Verification / reset screens ---------- */
-#emailVerificationScreen .auth-card,#resetPasswordScreen .auth-card{max-width:430px;}
-#emailVerificationScreen .verify-hero,#resetPasswordScreen .auth-card-heading{text-align:center;}
-#emailVerificationScreen .verify-hero__icon{width:92px;height:92px;margin-bottom:18px;color:var(--primary-text);font-size:60px;background:transparent;}
-#emailVerificationScreen .verify-hero h1{font-size:22px;font-weight:760;}
-#emailVerificationScreen .verify-info,#emailVerificationScreen .verify-timer{background:var(--surface);border:1px solid var(--line);color:var(--text);border-radius:13px;}
-#resetPasswordScreen .auth-logo{margin-bottom:24px;}
-#resetPasswordScreen .auth-card-heading{text-align:center;}
+.change-pw-help{margin:3px 0 6px;font-size:11.5px;line-height:1.45;color:var(--muted);text-align:left;overflow-wrap:anywhere;}
+.change-pw-help .auth-link{font-size:11.5px;white-space:nowrap;}
 /* ---------- Auth action buttons spacing ---------- */
 #loginForm #btnLogin,
 #registerForm #btnRegister,
 #forgotPasswordForm #btnSendReset,
 #resetPasswordForm #btnUpdateResetPassword{margin-top:8px;}
-/* ---------- Responsive ---------- */
-/* ---------- Change Password ---------- */
-.change-pw-help{margin:3px 0 6px;font-size:11.5px;line-height:1.45;color:var(--muted);text-align:left;overflow-wrap:anywhere;}
-.change-pw-help .auth-link{font-size:11.5px;white-space:nowrap;}
-
 @media (max-width:640px){.auth-shell{min-height:100dvh;align-items:center;}
 .auth-card{
   height:auto;
@@ -2900,7 +2884,12 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
         <i class="fa-solid fa-shield-halved"></i> Verify Code
       </button>
       <div class="verify-divider">or</div>
-      <div class="verify-info"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><div><strong>Didn't receive the code?</strong>Check your spam folder or resend the code.</div></div>
+      <div class="verify-info"><i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+        <div><strong>Didn't receive the code?</strong>
+          Check your spam folder or resend the code.<br>
+          Please verify your email within 7 days. If your email is not verified within 7 days, this account will be automatically deleted.
+        </div>
+      </div>
       <div class="verify-timer" id="verifyTimerWrap">
         <i class="fa-regular fa-clock" aria-hidden="true"></i>
         <span id="verifyResendTimerText">Resend code in <strong id="verifyResendTimer">00:60</strong></span>
@@ -2908,7 +2897,7 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
       </div>
       <div style="margin-top:12px;display:flex;justify-content:center;">
         <a class="auth-link" id="btnBackFromVerification">
-          <i class="fa-solid fa-arrow-left"></i> Back to Login
+          <i class="fa-solid fa-arrow-left"></i>Back to Login
         </a>
       </div>
     </div>
@@ -2973,7 +2962,7 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
         Reset Password
       </button>
       <p class="auth-bottom-text">
-        <a href="#" class="auth-link" id="btnCancelReset">Back to Login</a>
+        <a href="#" class="auth-link" id="btnCancelReset"><i class="fa-solid fa-arrow-left"></i>Back to Login</a>
       </p>
     </div>
   </div>
@@ -8099,7 +8088,7 @@ async function init(){
       const resetUserId = resetSession.user?.id || null;
       if (localUserId && resetUserId && localUserId === resetUserId) {
         sameAccountRecovery = true;
-        el.btnCancelReset.textContent = 'Back to App';
+        el.btnCancelReset.innerHTML = '<i class="fa-solid fa-arrow-left"></i>Back to App';
         // Same account is already logged in. There's nothing to protect
         // against here (it's their own account), so no confirmation modal
         // is needed. But the person may genuinely have forgotten their
@@ -8116,7 +8105,7 @@ async function init(){
       }
       if (existingNormalSession) {
         sameAccountRecovery = false;
-        el.btnCancelReset.textContent = 'Back to Login';
+        el.btnCancelReset.innerHTML = '<i class="fa-solid fa-arrow-left"></i>Back to Login';
         // A different account is already logged in. Do NOT log it out silently.
         // Ask first. Cancel keeps the existing account; Log Out & Reset
         // explicitly signs it out and then opens the reset screen.
@@ -8130,7 +8119,7 @@ async function init(){
       }
       // No existing account: this is a genuine password recovery flow.
       sameAccountRecovery = false;
-      el.btnCancelReset.textContent = 'Back to Login';
+      el.btnCancelReset.innerHTML = '<i class="fa-solid fa-arrow-left"></i>Back to Login';
       setPasswordRecoveryPending();
       currentSession = resetSession;
       el.resetPasswordCompanyName.textContent =
