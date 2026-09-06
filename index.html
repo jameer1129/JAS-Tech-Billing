@@ -4470,7 +4470,7 @@ function migrateLegacyAuthStorage(authStorage, targetKey){
   }
 }
 const supabaseClientCache = new Map();
-function createSupabaseClient(authStorage, detectSessionInUrl, storageKey = null, persistSession = true, autoRefreshToken = true){
+function createSupabaseClient(authStorage, detectSessionInUrl, storageKey = null, persistSession = true, autoRefreshToken = false){
   if (!CONFIG.supabase || !CONFIG.supabase.url || !CONFIG.supabase.anonKey) {
     console.error('Supabase config missing in config.json');
     showToast('Supabase is not configured. Check config.json', 'error');
@@ -4504,13 +4504,26 @@ function createSupabaseClient(authStorage, detectSessionInUrl, storageKey = null
 function startManualSessionRefresh(client){
   if (!client || client._manualRefreshStarted) return;
   client._manualRefreshStarted = true;
+  let timerId = null;
   const check = () => {
+    if (document.visibilityState !== 'visible') return;
     client.auth.getSession().catch(err => console.error('Session refresh check failed:', err));
   };
+  const startTimer = () => {
+    if (timerId !== null) return;
+    check();
+    timerId = window.setInterval(check, 5 * 60 * 1000);
+  };
+  const stopTimer = () => {
+    if (timerId === null) return;
+    window.clearInterval(timerId);
+    timerId = null;
+  };
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') check();
+    if (document.visibilityState === 'visible') startTimer();
+    else stopTimer();
   });
-  setInterval(check, 5 * 60 * 1000);
+  if (document.visibilityState === 'visible') startTimer();
 }
 function initSupabase(recoveryContext){
   // Password recovery lives in memory only for the current page lifetime —
@@ -5339,16 +5352,33 @@ async function handleResetPassword(){
     el.resetNewPassword.value = '';
     el.resetConfirmPassword.value = '';
     clearPasswordRecoveryPending();
-    showToast('Password updated successfully! Redirecting to login...', 'success');
+    if (sameAccountRecovery) {
+      showToast('Password updated successfully. Other devices have been signed out.', 'success');
+    } else {
+      showToast('Password updated successfully! Redirecting to login...', 'success');
+    }
     setTimeout(async () => {
-      await supabaseClient.auth.signOut();
-      // Reload for real (not just an in-app screen switch): this page load's
-      // Supabase client was deliberately created with sessionStorage because
-      // the URL said ?mode=update-password. If we just swapped screens, any
-      // normal login typed into this same tab afterwards would also end up
-      // in sessionStorage instead of persisting like a regular login should.
-      // A real reload drops the URL param and reinitializes the client with
-      // localStorage, so normal login behaves normally again.
+      if (sameAccountRecovery) {
+        // This device already has a trusted persistent session for the same
+        // account. Keep that session and revoke every other session instead.
+        const localClient = createSupabaseClient(window.localStorage, false, null, true, false);
+        if (localClient) {
+          const { error: otherSessionsError } = await localClient.auth.signOut({ scope: 'others' });
+          if (otherSessionsError) {
+            console.error('Could not sign out other sessions after recovery password reset:', otherSessionsError);
+            showToast('Password updated, but other devices could not be signed out.', 'error');
+          }
+        }
+        // Discard only the temporary recovery session on this page. The
+        // persistent localStorage session above survives the reload.
+        try { await supabaseClient.auth.signOut({ scope: 'local' }); } catch (err) { console.error(err); }
+      } else {
+        // No prior session existed on this device: use the stronger recovery
+        // policy and revoke every session everywhere.
+        await supabaseClient.auth.signOut({ scope: 'global' });
+      }
+      // Reload so the temporary recovery context disappears. Same-account
+      // recovery returns directly to the already-authenticated app.
       window.location.href = window.location.origin + window.location.pathname;
     }, 1500);
   }, () => showToast('Failed to update password. Please try again.', 'error'));
@@ -5360,7 +5390,7 @@ async function handleLogout(){
     resetInvoice(true);
     const savedTheme = localStorage.getItem('jas_theme');
     intentionalSignOut = true;
-    await supabaseClient.auth.signOut();
+    await supabaseClient.auth.signOut({ scope: 'local' });
     // Clear all local data
     localStorage.clear();
     sessionStorage.clear();
@@ -6991,8 +7021,17 @@ async function handleChangePassword(){
       }
       return;
     }
+    // The password itself is already saved at this point — everything below
+    // is a best-effort security follow-up, not something that should leave
+    // the modal open looking like the change failed.
     closeChangePasswordModal();
-    showToast('Password updated successfully', 'success');
+    const { error: otherSessionsError } = await supabaseClient.auth.signOut({ scope: 'others' });
+    if (otherSessionsError) {
+      console.error('Could not sign out other sessions after password change:', otherSessionsError);
+      showToast('Password updated, but other devices could not be signed out.', 'error');
+      return;
+    }
+    showToast('Password updated successfully. Other devices have been signed out.', 'success');
   }, () => showToast('Could not update password. Please try again.', 'error'));
 }
 let pendingRecoveryConflict = null;
@@ -7078,7 +7117,7 @@ async function cancelRecoveryConflict(){
   // password-reset attempt. Remove only the temporary recovery session.
   showActionLoader('Please wait…');
   try {
-    try { await conflict.recoveryClient.auth.signOut(); } catch (err) { console.error(err); }
+    try { await conflict.recoveryClient.auth.signOut({ scope: 'local' }); } catch (err) { console.error(err); }
     clearPasswordRecoveryPending();
     supabaseClient = conflict.localClient;
     currentSession = conflict.localSession;
@@ -7102,7 +7141,7 @@ async function confirmRecoveryConflictLogout(){
   showActionLoader('Logging out…');
   try {
     intentionalSignOut = true;
-    try { await conflict.localClient.auth.signOut(); } catch (err) { console.error(err); }
+    try { await conflict.localClient.auth.signOut({ scope: 'local' }); } catch (err) { console.error(err); }
     // This is a real sign-out of the local account (same as handleLogout()),
     // just via a different path. Its autosaved draft must not survive into
     // whatever account ends up using this browser/device next. currentSession
@@ -7407,8 +7446,16 @@ function bindEvents(){
   });
   el.btnSendReset.addEventListener('click', handleForgotPassword);
   el.btnUpdateResetPassword.addEventListener('click', handleResetPassword);
-  el.resetNewPassword.addEventListener('keydown', (event) => { if (event.key === 'Enter') handleResetPassword(); });
-  el.resetConfirmPassword.addEventListener('keydown', (event) => { if (event.key === 'Enter') handleResetPassword(); });
+  el.resetNewPassword.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    el.resetConfirmPassword?.focus();
+  });
+  el.resetConfirmPassword.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    el.btnUpdateResetPassword?.click();
+  });
   if (el.btnGoogleLogin) el.btnGoogleLogin.addEventListener('click', handleGoogleLogin);
   el.btnCancelReset.addEventListener('click', async () => {
     // Cancelling must actually end the live recovery session — otherwise
@@ -7416,7 +7463,7 @@ function bindEvents(){
     // indefinitely (a real risk on shared/public computers).
     clearPasswordRecoveryPending();
     showActionLoader('Please wait…');
-    try { await supabaseClient.auth.signOut(); } catch (err) { console.error(err); }
+    try { await supabaseClient.auth.signOut({ scope: 'local' }); } catch (err) { console.error(err); }
     window.location.href = window.location.origin + window.location.pathname;
   });
   el.btnPendingLogout.addEventListener('click', openLogoutConfirm);
