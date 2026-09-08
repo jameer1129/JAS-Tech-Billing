@@ -7031,34 +7031,99 @@ async function handleChangePassword(){
   if (!currentPw) return showToast('Enter your current password.', 'error');
   const pwErr = validateNewPassword(newPw, confirmPw, 'New password');
   if (pwErr) return showToast(pwErr, 'error');
+
   await withGuardedSubmit(el.btnConfirmChangePw, 'Updating password…', async () => {
-    // Supabase's "Require current password when changing password" setting
-    // expects the current password to be supplied with updateUser().
-    // Do not re-sign-in here: that can replace/refresh the active session.
-    const { error } = await supabaseClient.auth.updateUser({
-      password: newPw,
-      current_password: currentPw
-    });
-    if (error) {
-      const text = `${error?.message || ''} ${error?.code || ''}`.toLowerCase();
-      if (text.includes('current password') || text.includes('password')) {
-        showToast(error.message || 'Current password is incorrect.', 'error');
-      } else {
-        showToast(error.message || 'Could not update password.', 'error');
+    const email = (currentSession?.user?.email || currentProfile?.email || '').trim().toLowerCase();
+    if (!email) {
+      showToast('Could not determine the account email. Please log in again.', 'error');
+      return;
+    }
+
+    // Use a fresh, non-persistent auth client for the password change. This
+    // avoids relying on the existing browser session when the project has
+    // "Require current password when changing password" enabled.
+    let passwordClient = null;
+    try {
+      passwordClient = window.supabase.createClient(CONFIG.supabase.url, CONFIG.supabase.anonKey, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false
+        }
+      });
+
+      // First verify the password supplied by the user with a fresh session.
+      const { error: verifyError } = await passwordClient.auth.signInWithPassword({
+        email,
+        password: currentPw
+      });
+      if (verifyError) {
+        showToast('Current password is incorrect.', 'error');
+        return;
       }
-      return;
+
+      // Change the password using that freshly authenticated session.
+      let updateError = null;
+      ({ error: updateError } = await passwordClient.auth.updateUser({
+        password: newPw,
+        current_password: currentPw
+      }));
+
+      if (updateError) {
+        // A password update can occasionally be committed server-side even
+        // when the client receives a secondary auth error. Verify the result
+        // with a brand-new sign-in before telling the user it failed.
+        const verifyNewClient = window.supabase.createClient(CONFIG.supabase.url, CONFIG.supabase.anonKey, {
+          auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+            detectSessionInUrl: false
+          }
+        });
+        const { error: newPasswordCheckError } = await verifyNewClient.auth.signInWithPassword({
+          email,
+          password: newPw
+        });
+        if (newPasswordCheckError) {
+          console.error('Password update failed:', updateError);
+          const text = `${updateError?.message || ''} ${updateError?.code || ''}`.toLowerCase();
+          if (text.includes('current password') || text.includes('password')) {
+            showToast(updateError.message || 'Current password is incorrect.', 'error');
+          } else {
+            showToast(updateError.message || 'Could not update password.', 'error');
+          }
+          return;
+        }
+        console.warn('Password update returned an error, but the new password is valid. Treating the update as successful.', updateError);
+      }
+
+      // Always establish a fresh persistent session on this device with the
+      // new password. This is the session that should survive the change.
+      const { error: localSignInError } = await supabaseClient.auth.signInWithPassword({
+        email,
+        password: newPw
+      });
+      if (localSignInError) {
+        console.error('Password changed but this device could not be re-authenticated:', localSignInError);
+        showToast('Password updated, but this device could not stay signed in. Please log in again.', 'error');
+        return;
+      }
+
+      // Now the new persistent session is the trusted session for this device.
+      // Revoke every other session, while preserving this one.
+      const { error: otherSessionsError } = await supabaseClient.auth.signOut({ scope: 'others' });
+      closeChangePasswordModal();
+
+      if (otherSessionsError) {
+        console.error('Could not sign out other sessions after password change:', otherSessionsError);
+        showToast('Password updated, but other devices could not be signed out.', 'error');
+        return;
+      }
+
+      showToast('Password updated successfully. Other devices have been signed out.', 'success');
+    } finally {
+      try { await passwordClient?.auth.signOut({ scope: 'local' }); } catch (err) { console.error(err); }
     }
-    // The password itself is already saved at this point — everything below
-    // is a best-effort security follow-up, not something that should leave
-    // the modal open looking like the change failed.
-    closeChangePasswordModal();
-    const { error: otherSessionsError } = await supabaseClient.auth.signOut({ scope: 'others' });
-    if (otherSessionsError) {
-      console.error('Could not sign out other sessions after password change:', otherSessionsError);
-      showToast('Password updated, but other devices could not be signed out.', 'error');
-      return;
-    }
-    showToast('Password updated successfully. Other devices have been signed out.', 'success');
   }, () => showToast('Could not update password. Please try again.', 'error'));
 }
 let pendingRecoveryConflict = null;
