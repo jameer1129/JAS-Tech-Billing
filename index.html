@@ -2434,7 +2434,6 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
   font-weight: 600;
   font-size: 16px;
   letter-spacing: 1px;
-  line-height: 1.2;
   margin:0 8px 4px;
 }
 .inv-header__ribbon-text{display: inline-block;transform: skewX(25deg);}
@@ -3312,7 +3311,7 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
       </div>
       <div class="field field--icon">
         <i class="fa-solid fa-align-left" aria-hidden="true"></i>
-        <input type="text" id="prodDesc" autocomplete="off" placeholder="Description (optional)" aria-label="Description" maxlength="250">
+        <input type="text" id="prodDesc" autocomplete="off" placeholder="Description (optional)" aria-label="Description" maxlength="500">
       </div>
       <div class="field field--icon">
         <i class="fa-solid fa-barcode" aria-hidden="true"></i>
@@ -3568,7 +3567,7 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
     <div id="invoiceRoot" class="invoice-render"></div>
   </div>
 </div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.14.0/html2pdf.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script>
 const MAX_NETWORK_WAIT_MS = 20000;
 let bootDeadline = null;
@@ -3645,6 +3644,9 @@ async function handlePossiblySpuriousSignOut(client){
       showToast('Your session expired. Please log in again.', 'info');
     }
     intentionalSignOut = false;
+    // A real session loss must also close any account drawer that was left
+    // open while the user was idle. Otherwise the login screen appears
+    // underneath a stale drawer/backdrop UI state.
     if (typeof closeDrawer === 'function') closeDrawer();
     showScreen('auth');
   }, 900);
@@ -3931,6 +3933,31 @@ function setupAutoSaveListeners(){
     }
   });
 }
+const CONFIG_CACHE_KEY = 'jas_config_cache_v1';
+const STARTUP_NETWORK_TIMEOUT_MS = 5000;
+async function checkStartupNetwork(){
+  if (!CONFIG?.supabase?.url || !CONFIG?.supabase?.anonKey) return false;
+  if (!navigator.onLine) return false;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), STARTUP_NETWORK_TIMEOUT_MS);
+  try {
+    const response = await nativeFetch(`${CONFIG.supabase.url}/auth/v1/settings`, {
+      method: 'GET',
+      cache: 'no-store',
+      credentials: 'omit',
+      signal: controller.signal,
+      headers: { apikey: CONFIG.supabase.anonKey }
+    });
+    // Any HTTP response means the network path to Supabase is alive. We only
+    // care whether the request completed; auth/API status is handled later.
+    return !!response;
+  } catch (error) {
+    console.warn('Startup network check failed:', error);
+    return false;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
 async function loadConfig(){
   try {
     const controller = new AbortController();
@@ -3943,9 +3970,36 @@ async function loadConfig(){
     }
     if (!response.ok) throw new Error(`Failed to load config.json: ${response.status}`);
     CONFIG = await response.json();
+    // Keep a local copy as a second offline fallback in case the service
+    // worker cache is unavailable during an update or first startup.
+    try {
+      localStorage.setItem(CONFIG_CACHE_KEY, JSON.stringify(CONFIG));
+    } catch (cacheError) {
+      console.warn('Could not save config fallback:', cacheError);
+    }
   } catch (error) {
-    console.warn("Falling back to default config.", error);
-    CONFIG = DEFAULT_CONFIG;
+    let cachedConfig = null;
+    try {
+      const raw = localStorage.getItem(CONFIG_CACHE_KEY);
+      if (raw) cachedConfig = JSON.parse(raw);
+    } catch (cacheError) {
+      console.warn('Could not read cached config fallback:', cacheError);
+    }
+
+    if (cachedConfig && typeof cachedConfig === 'object') {
+      console.warn('Using locally cached config after network/config failure.', error);
+      CONFIG = cachedConfig;
+    } else {
+      // Do not silently fall through to DEFAULT_CONFIG here. That can make a
+      // disconnected startup look like a normal login screen because the
+      // Supabase credentials are missing from DEFAULT_CONFIG. Show the
+      // dedicated connection screen instead.
+      console.warn('Config could not be loaded and no cached copy exists.', error);
+      CONFIG = DEFAULT_CONFIG;
+      applyConfig();
+      showOfflineScreen(navigator.onLine ? 'server' : 'offline');
+      return;
+    }
   }
   applyConfig();
 }
@@ -5457,13 +5511,6 @@ async function afterAuthResolved(){
   const { error: profileEnsureError } = await supabaseClient.rpc('ensure_profile');
   if (profileEnsureError) {
     console.error('ensure_profile failed:', profileEnsureError);
-    // This is normally the very first Supabase call made at startup, so
-    // it's usually the one that fails/times out when there's no internet,
-    // the server is unreachable, or the connection is too slow. The
-    // window.fetch wrapper will have already called showOfflineScreen()
-    // in that case -- don't stomp on it by falling through to the auth
-    // screen with a generic error toast instead.
-    if (offlineStartup || !navigator.onLine) { showOfflineScreen(navigator.onLine ? 'server' : 'offline'); return; }
     showAuthMsg('Could not prepare your account. Please try again in a moment.');
     showScreen('auth');
     return;
@@ -5472,7 +5519,7 @@ async function afterAuthResolved(){
 
   currentProfile = await fetchOwnProfile();
   if (!currentProfile) {
-    if (offlineStartup || !navigator.onLine) { showOfflineScreen(navigator.onLine ? 'server' : 'offline'); return; }
+    if (offlineStartup || !navigator.onLine) { showOfflineScreen(); return; }
     showAuthMsg('Could not load your profile. Please try again in a moment.');
     showScreen('auth');
     return;
@@ -8160,6 +8207,20 @@ async function init(){
   setupAutoSaveListeners();
   getDismissibleOverlays().forEach(([overlay]) => hideOverlay(overlay));
   await loadConfig();
+  if (offlineStartup) return;
+
+  // Cache-first startup means index.html/config.json can load instantly even
+  // when the browser has lost real internet access. navigator.onLine alone is
+  // not reliable for Wi-Fi with no upstream connection, so verify the actual
+  // Supabase path before continuing into the authenticated app.
+  if (CONFIG?.supabase?.url && CONFIG?.supabase?.anonKey) {
+    const networkReady = await checkStartupNetwork();
+    if (!networkReady) {
+      showOfflineScreen(navigator.onLine ? 'server' : 'offline');
+      return;
+    }
+  }
+
   bindEvents();
   pendingSignupEmail = getPendingSignup().email;
   const urlParams = new URLSearchParams(window.location.search);
@@ -8426,7 +8487,10 @@ document.addEventListener('DOMContentLoaded', () => {
   cacheElements();
   if (el.btnOfflineRetry) {
     el.btnOfflineRetry.addEventListener('click', () => {
-      if (navigator.onLine) window.location.reload();
+      // navigator.onLine can remain true on Wi-Fi without working internet.
+      // Always retry the real startup/network check instead of blocking the
+      // retry button behind the browser's coarse online flag.
+      window.location.reload();
     });
   }
   init();
