@@ -176,6 +176,10 @@ body.dark-theme input[type="checkbox"]:checked{background:var(--primary);border-
 input[type="number"]{-moz-appearance:textfield;appearance:textfield;}
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+textarea {
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary) transparent;
+}
 .hide{display: none !important;}
 /* ==========================================================
    SHARED / BASE UI — buttons, fields, cards, tables, badges,
@@ -361,7 +365,7 @@ body.dark-theme .bills-table thead th{background: #1A202C;color: var(--primary-t
 .bills-table tbody td:not(.col-actions):not(:nth-child(2)){white-space:nowrap;}
 .col-actions{text-align:right;width:1px;}
 .prod-meta,.inv-table .prod-meta{margin-top:4px;line-height:1.45;}
-.prod-desc-line{color:var(--muted);font-size:12px;margin-top:2px;white-space:normal;word-break:break-word;overflow-wrap:anywhere;}
+.prod-desc-line{color:var(--muted);font-size:12px;margin-top:2px;white-space:pre-line;word-break:break-word;overflow-wrap:anywhere;}
 .prod-sn-line{font-size:12px;margin-top:2px;color:var(--text)!important;white-space:normal;word-break:break-word;overflow-wrap:anywhere;}
 .prod-sn-line .sn-label{color:var(--primary);font-weight:700;}
 .prod-sn-line .sn-value{color:var(--muted);font-weight:500;}
@@ -3310,7 +3314,7 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
       </div>
       <div class="field field--icon">
         <i class="fa-solid fa-align-left" aria-hidden="true"></i>
-        <input type="text" id="prodDesc" autocomplete="off" placeholder="Description (optional)" aria-label="Description" maxlength="500">
+        <textarea id="prodDesc" autocomplete="off" placeholder="Description (optional)" aria-label="Description" maxlength="500"></textarea>
       </div>
       <div class="field field--icon">
         <i class="fa-solid fa-barcode" aria-hidden="true"></i>
@@ -7525,10 +7529,17 @@ function getDismissibleOverlays(){
 }
 function formatTitleCaseValue(value) {
   if (value == null) return '';
+  // Preserve textarea line breaks. The old formatter used /\s+/g,
+  // which also matched \n and collapsed multi-line address/description text
+  // into a single line before it was saved to localStorage/restored.
   return String(value)
-    .replace(/\s+/g, ' ')
-    .replace(/^\s+|\s+$/g, '')
-    .replace(/\b\w/g, char => char.toUpperCase());
+    .split(/\r?\n/)
+    .map(line => line
+      .replace(/[ \t\f\v]+/g, ' ')
+      .replace(/^ +| +$/g, '')
+      .replace(/\b\w/g, char => char.toUpperCase())
+    )
+    .join('\n');
 }
 function applyTitleCaseToField(inputEl) {
   if (!inputEl) return '';
@@ -8159,26 +8170,40 @@ function bindEvents(){
           el.customerAddress.focus();
         }
       }
+      else if(active.id === 'customerAddress') {
+        // Customer address is a textarea, so Enter should create a new line.
+        // Use Ctrl/Cmd+Enter to continue to the mobile field instead.
+        if (e.ctrlKey || e.metaKey) {
+          e.preventDefault();
+          el.customerMobile.focus();
+        }
+      }
       else if(active.id === 'customerMobile') {
         e.preventDefault();
         el.btnAddProduct.click();
       }
       else if(['prodName', 'prodDesc', 'prodSerial', 'prodQty', 'prodRate'].includes(active.id)) {
-        e.preventDefault();
-        if(active.id === 'prodName') {
-          if (markError(active, validateField(active))) el.prodDesc.focus();
-        }
-        else if(active.id === 'prodDesc') {
-          el.prodSerial.focus();
-        }
-        else if(active.id === 'prodSerial') {
-          el.prodQty.focus();
-        }
-        else if(active.id === 'prodQty') {
-          if (markError(active, validateField(active, 'qty'))) el.prodRate.focus();
-        }
-        else if(active.id === 'prodRate') {
-          if (markError(active, validateField(active, 'rate'))) saveProduct();
+        // Product description is a textarea, so Enter should create a new line.
+        // Use Ctrl/Cmd+Enter to continue to the next product field instead.
+        if (active.id === 'prodDesc') {
+          if (e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            el.prodSerial.focus();
+          }
+        } else {
+          e.preventDefault();
+          if(active.id === 'prodName') {
+            if (markError(active, validateField(active))) el.prodDesc.focus();
+          }
+          else if(active.id === 'prodSerial') {
+            el.prodQty.focus();
+          }
+          else if(active.id === 'prodQty') {
+            if (markError(active, validateField(active, 'qty'))) el.prodRate.focus();
+          }
+          else if(active.id === 'prodRate') {
+            if (markError(active, validateField(active, 'rate'))) saveProduct();
+          }
         }
       }
     }
