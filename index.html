@@ -3645,6 +3645,7 @@ async function handlePossiblySpuriousSignOut(client){
       showToast('Your session expired. Please log in again.', 'info');
     }
     intentionalSignOut = false;
+    if (typeof closeDrawer === 'function') closeDrawer();
     showScreen('auth');
   }, 900);
 }
@@ -5456,6 +5457,13 @@ async function afterAuthResolved(){
   const { error: profileEnsureError } = await supabaseClient.rpc('ensure_profile');
   if (profileEnsureError) {
     console.error('ensure_profile failed:', profileEnsureError);
+    // This is normally the very first Supabase call made at startup, so
+    // it's usually the one that fails/times out when there's no internet,
+    // the server is unreachable, or the connection is too slow. The
+    // window.fetch wrapper will have already called showOfflineScreen()
+    // in that case -- don't stomp on it by falling through to the auth
+    // screen with a generic error toast instead.
+    if (offlineStartup || !navigator.onLine) { showOfflineScreen(navigator.onLine ? 'server' : 'offline'); return; }
     showAuthMsg('Could not prepare your account. Please try again in a moment.');
     showScreen('auth');
     return;
@@ -5464,7 +5472,7 @@ async function afterAuthResolved(){
 
   currentProfile = await fetchOwnProfile();
   if (!currentProfile) {
-    if (offlineStartup || !navigator.onLine) { showOfflineScreen(); return; }
+    if (offlineStartup || !navigator.onLine) { showOfflineScreen(navigator.onLine ? 'server' : 'offline'); return; }
     showAuthMsg('Could not load your profile. Please try again in a moment.');
     showScreen('auth');
     return;
