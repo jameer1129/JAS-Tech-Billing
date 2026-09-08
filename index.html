@@ -5359,18 +5359,45 @@ async function handleResetPassword(){
     }
     setTimeout(async () => {
       if (sameAccountRecovery) {
-        // This device already has a trusted persistent session for the same
-        // account. Keep that session and revoke every other session instead.
+        // IMPORTANT: changing the password through the recovery client can
+        // invalidate the old localStorage refresh token. Do not rely on that
+        // old session surviving. Re-authenticate this device with the NEW
+        // password first, which creates a fresh persistent session for this
+        // device. Then revoke every OTHER session from that fresh session.
+        const recoveryEmail = currentSession?.user?.email || '';
         const localClient = createSupabaseClient(window.localStorage, false, null, true, false);
-        if (localClient) {
+
+        let localReauthError = null;
+        if (localClient && recoveryEmail) {
+          try {
+            const { error: signInError } = await localClient.auth.signInWithPassword({
+              email: recoveryEmail,
+              password: newPw
+            });
+            localReauthError = signInError || null;
+          } catch (err) {
+            localReauthError = err;
+          }
+        } else {
+          localReauthError = new Error('Could not restore the local account session.');
+        }
+
+        if (localReauthError) {
+          console.error('Could not restore same-account local session after recovery password reset:', localReauthError);
+          // The password change itself succeeded. Do not falsely report the
+          // operation as failed, but do not pretend this device is still
+          // authenticated either. The next load will go through normal login.
+          showToast('Password updated, but this device could not stay signed in. Please log in again.', 'error');
+        } else if (localClient) {
           const { error: otherSessionsError } = await localClient.auth.signOut({ scope: 'others' });
           if (otherSessionsError) {
             console.error('Could not sign out other sessions after recovery password reset:', otherSessionsError);
             showToast('Password updated, but other devices could not be signed out.', 'error');
           }
         }
-        // Discard only the temporary recovery session on this page. The
-        // persistent localStorage session above survives the reload.
+
+        // Discard only the temporary recovery session on this page. The fresh
+        // localStorage session created above is the session this device keeps.
         try { await supabaseClient.auth.signOut({ scope: 'local' }); } catch (err) { console.error(err); }
       } else {
         // No prior session existed on this device: use the stronger recovery
