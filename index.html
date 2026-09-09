@@ -3936,31 +3936,6 @@ function setupAutoSaveListeners(){
     }
   });
 }
-const CONFIG_CACHE_KEY = 'jas_config_cache_v1';
-const STARTUP_NETWORK_TIMEOUT_MS = 5000;
-async function checkStartupNetwork(){
-  if (!CONFIG?.supabase?.url || !CONFIG?.supabase?.anonKey) return false;
-  if (!navigator.onLine) return false;
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), STARTUP_NETWORK_TIMEOUT_MS);
-  try {
-    const response = await nativeFetch(`${CONFIG.supabase.url}/auth/v1/settings`, {
-      method: 'GET',
-      cache: 'no-store',
-      credentials: 'omit',
-      signal: controller.signal,
-      headers: { apikey: CONFIG.supabase.anonKey }
-    });
-    // Any HTTP response means the network path to Supabase is alive. We only
-    // care whether the request completed; auth/API status is handled later.
-    return !!response;
-  } catch (error) {
-    console.warn('Startup network check failed:', error);
-    return false;
-  } finally {
-    clearTimeout(timeoutId);
-  }
-}
 async function loadConfig(){
   try {
     const controller = new AbortController();
@@ -3973,36 +3948,9 @@ async function loadConfig(){
     }
     if (!response.ok) throw new Error(`Failed to load config.json: ${response.status}`);
     CONFIG = await response.json();
-    // Keep a local copy as a second offline fallback in case the service
-    // worker cache is unavailable during an update or first startup.
-    try {
-      localStorage.setItem(CONFIG_CACHE_KEY, JSON.stringify(CONFIG));
-    } catch (cacheError) {
-      console.warn('Could not save config fallback:', cacheError);
-    }
   } catch (error) {
-    let cachedConfig = null;
-    try {
-      const raw = localStorage.getItem(CONFIG_CACHE_KEY);
-      if (raw) cachedConfig = JSON.parse(raw);
-    } catch (cacheError) {
-      console.warn('Could not read cached config fallback:', cacheError);
-    }
-
-    if (cachedConfig && typeof cachedConfig === 'object') {
-      console.warn('Using locally cached config after network/config failure.', error);
-      CONFIG = cachedConfig;
-    } else {
-      // Do not silently fall through to DEFAULT_CONFIG here. That can make a
-      // disconnected startup look like a normal login screen because the
-      // Supabase credentials are missing from DEFAULT_CONFIG. Show the
-      // dedicated connection screen instead.
-      console.warn('Config could not be loaded and no cached copy exists.', error);
-      CONFIG = DEFAULT_CONFIG;
-      applyConfig();
-      showOfflineScreen(navigator.onLine ? 'server' : 'offline');
-      return;
-    }
+    console.warn("Falling back to default config.", error);
+    CONFIG = DEFAULT_CONFIG;
   }
   applyConfig();
 }
@@ -5514,6 +5462,13 @@ async function afterAuthResolved(){
   const { error: profileEnsureError } = await supabaseClient.rpc('ensure_profile');
   if (profileEnsureError) {
     console.error('ensure_profile failed:', profileEnsureError);
+    // This is normally the very first Supabase call made at startup, so
+    // it's usually the one that fails/times out when there's no internet,
+    // the server is unreachable, or the connection is too slow. The
+    // window.fetch wrapper will have already called showOfflineScreen()
+    // in that case -- don't stomp on it by falling through to the auth
+    // screen with a generic error toast instead.
+    if (offlineStartup || !navigator.onLine) { showOfflineScreen(navigator.onLine ? 'server' : 'offline'); return; }
     showAuthMsg('Could not prepare your account. Please try again in a moment.');
     showScreen('auth');
     return;
@@ -5522,7 +5477,7 @@ async function afterAuthResolved(){
 
   currentProfile = await fetchOwnProfile();
   if (!currentProfile) {
-    if (offlineStartup || !navigator.onLine) { showOfflineScreen(); return; }
+    if (offlineStartup || !navigator.onLine) { showOfflineScreen(navigator.onLine ? 'server' : 'offline'); return; }
     showAuthMsg('Could not load your profile. Please try again in a moment.');
     showScreen('auth');
     return;
@@ -7529,9 +7484,6 @@ function getDismissibleOverlays(){
 }
 function formatTitleCaseValue(value) {
   if (value == null) return '';
-  // Preserve textarea line breaks. The old formatter used /\s+/g,
-  // which also matched \n and collapsed multi-line address/description text
-  // into a single line before it was saved to localStorage/restored.
   return String(value)
     .split(/\r?\n/)
     .map(line => line
@@ -8191,18 +8143,18 @@ function bindEvents(){
             el.prodSerial.focus();
           }
         } else {
-          e.preventDefault();
-          if(active.id === 'prodName') {
-            if (markError(active, validateField(active))) el.prodDesc.focus();
-          }
-          else if(active.id === 'prodSerial') {
-            el.prodQty.focus();
-          }
-          else if(active.id === 'prodQty') {
-            if (markError(active, validateField(active, 'qty'))) el.prodRate.focus();
-          }
-          else if(active.id === 'prodRate') {
-            if (markError(active, validateField(active, 'rate'))) saveProduct();
+        e.preventDefault();
+        if(active.id === 'prodName') {
+          if (markError(active, validateField(active))) el.prodDesc.focus();
+        }
+        else if(active.id === 'prodSerial') {
+          el.prodQty.focus();
+        }
+        else if(active.id === 'prodQty') {
+          if (markError(active, validateField(active, 'qty'))) el.prodRate.focus();
+        }
+        else if(active.id === 'prodRate') {
+          if (markError(active, validateField(active, 'rate'))) saveProduct();
           }
         }
       }
@@ -8231,20 +8183,6 @@ async function init(){
   setupAutoSaveListeners();
   getDismissibleOverlays().forEach(([overlay]) => hideOverlay(overlay));
   await loadConfig();
-  if (offlineStartup) return;
-
-  // Cache-first startup means index.html/config.json can load instantly even
-  // when the browser has lost real internet access. navigator.onLine alone is
-  // not reliable for Wi-Fi with no upstream connection, so verify the actual
-  // Supabase path before continuing into the authenticated app.
-  if (CONFIG?.supabase?.url && CONFIG?.supabase?.anonKey) {
-    const networkReady = await checkStartupNetwork();
-    if (!networkReady) {
-      showOfflineScreen(navigator.onLine ? 'server' : 'offline');
-      return;
-    }
-  }
-
   bindEvents();
   pendingSignupEmail = getPendingSignup().email;
   const urlParams = new URLSearchParams(window.location.search);
@@ -8511,10 +8449,7 @@ document.addEventListener('DOMContentLoaded', () => {
   cacheElements();
   if (el.btnOfflineRetry) {
     el.btnOfflineRetry.addEventListener('click', () => {
-      // navigator.onLine can remain true on Wi-Fi without working internet.
-      // Always retry the real startup/network check instead of blocking the
-      // retry button behind the browser's coarse online flag.
-      window.location.reload();
+      if (navigator.onLine) window.location.reload();
     });
   }
   init();

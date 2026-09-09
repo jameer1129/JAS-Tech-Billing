@@ -4,7 +4,7 @@ Fresh-First With Timeout Fallback + Stale-While-Revalidate
 Safe Activation Handoff (avoids interrupting in-flight requests)
 ========================================================= */
 
-const CACHE_NAME = "v2.1.8";
+const CACHE_NAME = "v2.1.7";
 
 // How long we wait for the network before falling back to whatever's cached.
 // Without this, a slow/flaky connection makes fetch() hang indefinitely on
