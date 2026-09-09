@@ -5481,7 +5481,55 @@ async function fetchOwnProfile(){
   }
   return data;
 }
+// Lets a returning user's app screen paint instantly from their last
+// confirmed profile, while ensure_profile/fetchOwnProfile reverify with the
+// server in the background -- instead of staring at the boot loader for a
+// full round trip on every single open. Only ever used as a starting point;
+// the fresh server response is always what's trusted and saved back.
+const CACHED_PROFILE_KEY_PREFIX = 'jas_cached_profile_';
+function loadCachedProfile(userId){
+  if (!userId) return null;
+  try {
+    const raw = localStorage.getItem(CACHED_PROFILE_KEY_PREFIX + userId);
+    return raw ? JSON.parse(raw) : null;
+  } catch (err) {
+    return null;
+  }
+}
+function saveCachedProfile(profile){
+  if (!profile || !profile.id) return;
+  try {
+    localStorage.setItem(CACHED_PROFILE_KEY_PREFIX + profile.id, JSON.stringify(profile));
+  } catch (err) { /* storage full/unavailable -- optimistic boot just won't apply next time */ }
+}
+function clearCachedProfile(userId){
+  if (!userId) return;
+  try { localStorage.removeItem(CACHED_PROFILE_KEY_PREFIX + userId); } catch (err) {}
+}
+// Updates only the profile-derived chrome (name, admin tab visibility) --
+// unlike enterApp(), it never touches the current view/draft, so it's safe
+// to call after a background reverify without disturbing anything the user
+// is already doing on the optimistically-rendered screen.
+function refreshAppChromeFromProfile(){
+  const fullName = currentProfile.name || currentProfile.email || '';
+  el.appBarUserName.textContent = truncateText(fullName, 20);
+  el.appBarUserName.setAttribute('title', fullName);
+  el.navAdminTab.classList.toggle('hide', !['admin','super_admin'].includes(currentProfile.role));
+}
 async function afterAuthResolved(){
+  const userId = currentSession?.user?.id;
+  const cachedProfile = loadCachedProfile(userId);
+  let optimisticallyEntered = false;
+
+  // Only an already-approved snapshot is used optimistically. Pending/
+  // rejected states always wait for a fresh check, since there's no
+  // "downgrade after the fact" UX needed for those gated screens anyway.
+  if (cachedProfile && cachedProfile.status === 'approved') {
+    currentProfile = cachedProfile;
+    enterApp();
+    optimisticallyEntered = true;
+  }
+
   const { error: profileEnsureError } = await supabaseClient.rpc('ensure_profile');
   if (profileEnsureError) {
     console.error('ensure_profile failed:', profileEnsureError);
@@ -5491,21 +5539,44 @@ async function afterAuthResolved(){
     // window.fetch wrapper will have already called showOfflineScreen()
     // in that case -- don't stomp on it by falling through to the auth
     // screen with a generic error toast instead.
+    if (optimisticallyEntered) {
+      // Already showing the app from the cached snapshot -- a failed
+      // reverify here is almost always a transient network/server hiccup,
+      // not an actual access change, so leave the cached screen up rather
+      // than yanking the user back to a loading/auth screen over a blip.
+      return;
+    }
     if (offlineStartup || !navigator.onLine) { showOfflineScreen(navigator.onLine ? 'server' : 'offline'); return; }
     showAuthMsg('Could not prepare your account. Please try again in a moment.');
     showScreen('auth');
     return;
   }
 
-
-  currentProfile = await fetchOwnProfile();
-  if (!currentProfile) {
+  const freshProfile = await fetchOwnProfile();
+  if (!freshProfile) {
+    if (optimisticallyEntered) return; // same reasoning as above
     if (offlineStartup || !navigator.onLine) { showOfflineScreen(navigator.onLine ? 'server' : 'offline'); return; }
     showAuthMsg('Could not load your profile. Please try again in a moment.');
     showScreen('auth');
     return;
   }
-  if (currentProfile.status === 'rejected') {
+  currentProfile = freshProfile;
+
+  if (freshProfile.status === 'approved') {
+    saveCachedProfile(freshProfile);
+    if (optimisticallyEntered) {
+      refreshAppChromeFromProfile();
+    } else {
+      enterApp();
+    }
+    return;
+  }
+
+  // A fresh pending/rejected/other status always overrides an optimistic
+  // cached screen, and the stale cache is cleared so a future boot doesn't
+  // repeat the same wrong guess.
+  clearCachedProfile(userId);
+  if (freshProfile.status === 'rejected') {
     el.pendingCard.classList.add('rejected');
     el.pendingIcon.className = 'fa-solid fa-circle-xmark';
     el.pendingTitle.textContent = 'Access denied';
@@ -5513,7 +5584,7 @@ async function afterAuthResolved(){
     showScreen('pending');
     return;
   }
-  if (currentProfile.status === 'pending') {
+  if (freshProfile.status === 'pending') {
     el.pendingCard.classList.remove('rejected');
     el.pendingIcon.className = 'fa-regular fa-clock';
     el.pendingTitle.textContent = 'Waiting for approval';
@@ -5521,8 +5592,7 @@ async function afterAuthResolved(){
     showScreen('pending');
     return;
   }
-  // approved
-  enterApp();
+  showScreen('auth');
 }
 let pendingRefreshInProgress = false;
 async function handlePendingRefresh(){
