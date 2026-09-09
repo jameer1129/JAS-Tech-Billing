@@ -3,6 +3,9 @@
 <head>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preload" href="./config.json" as="fetch" crossorigin="anonymous">
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;750;800&display=swap" rel="stylesheet">
 <style>
 html.theme-preload{background:#000!important;}
@@ -52,7 +55,7 @@ if ('launchQueue' in window) {
 <link rel="icon" href="assets/icons/app-icon.png">
 <link rel="apple-touch-icon" href="assets/icons/app-icon.png">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 <style>
 :root{
   --primary: #012587;
@@ -3570,8 +3573,28 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
     <div id="invoiceRoot" class="invoice-render"></div>
   </div>
 </div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script>
+// html2pdf.js (~700KB) is only needed when a user actually exports/prints an
+// invoice, so it's loaded on demand here rather than blocking every startup
+// with a synchronous <script> tag. loadHtml2Pdf() caches the in-flight
+// promise so concurrent/repeated calls (or a slow/failed first attempt)
+// don't inject the tag more than once.
+let _html2pdfLoadPromise = null;
+function loadHtml2Pdf(){
+  if (window.html2pdf) return Promise.resolve(window.html2pdf);
+  if (_html2pdfLoadPromise) return _html2pdfLoadPromise;
+  _html2pdfLoadPromise = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+    script.onload = () => resolve(window.html2pdf);
+    script.onerror = (err) => {
+      _html2pdfLoadPromise = null; // allow retrying on a later click
+      reject(err);
+    };
+    document.head.appendChild(script);
+  });
+  return _html2pdfLoadPromise;
+}
 const MAX_NETWORK_WAIT_MS = 20000;
 let bootDeadline = null;
 const MIN_NETWORK_WAIT_MS = 3000;
@@ -6278,7 +6301,14 @@ async function generatePdfBlob(){
       jsPDF: { unit: 'px', format: [794, 1123], orientation: 'portrait' },
       pagebreak: { mode: ['css', 'legacy'] }
     };
-    const blob = await window.html2pdf().set(opt).from(wrapper).outputPdf('blob');
+    let html2pdfFn;
+    try {
+      html2pdfFn = await loadHtml2Pdf();
+    } catch (err) {
+      showToast('Could not load the PDF engine. Check your connection and try again.', 'error');
+      throw err;
+    }
+    const blob = await html2pdfFn().set(opt).from(wrapper).outputPdf('blob');
     return { blob, filename: opt.filename };
   } finally {
     hideActionLoader();
