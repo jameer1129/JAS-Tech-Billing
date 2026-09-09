@@ -3594,6 +3594,24 @@ function loadHtml2Pdf(){
   });
   return _html2pdfLoadPromise;
 }
+// Kicks off the html2pdf download during browser idle time once the app is
+// up, so it's usually already in memory by the time someone actually clicks
+// Download/Print -- instead of every first PDF paying for the ~700KB
+// download at that moment. Only fires once (loadHtml2Pdf() is itself
+// idempotent), and backs off on data-saver mode or a very slow connection
+// so it doesn't cost anything for someone who can't spare the bandwidth.
+function scheduleHtml2PdfWarmup(){
+  if (window.html2pdf || _html2pdfLoadPromise) return;
+  const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  if (connection) {
+    if (connection.saveData) return;
+    if (connection.effectiveType && ['slow-2g', '2g'].includes(connection.effectiveType)) return;
+  }
+  const schedule = typeof window.requestIdleCallback === 'function'
+    ? (cb) => window.requestIdleCallback(cb, { timeout: 4000 })
+    : (cb) => window.setTimeout(cb, 2000);
+  schedule(() => { loadHtml2Pdf().catch(() => {}); });
+}
 const MAX_NETWORK_WAIT_MS = 20000;
 let bootDeadline = null;
 const MIN_NETWORK_WAIT_MS = 3000;
@@ -5621,6 +5639,7 @@ function enterApp(){
   el.appBarUserName.setAttribute('title', fullName);
   el.navAdminTab.classList.toggle('hide', !['admin','super_admin'].includes(currentProfile.role));
   showScreen('app');
+  scheduleHtml2PdfWarmup();
   const savedView = getAppStorage().getItem(prefKeyFor('jas_last_view'));
   const initialView = savedView || 'newBill';
   switchView(initialView);
@@ -6361,12 +6380,17 @@ async function generatePdfBlob(){
     }));
     await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
     fitInvoiceToSinglePage();
-    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    // .compact/.compact-2 (toggled above) have no CSS transition on them, so
+    // their layout is already final the instant the classes are applied.
+    // Reading offsetHeight forces the browser to flush that layout
+    // synchronously, which is enough for html2canvas to see the final
+    // state -- no need to wait out another two paint frames (~32ms) for it.
+    void wrapper.offsetHeight;
     const opt = {
       margin: 0,
       filename: `${CONFIG.invoice.filePrefix}${state.invoiceNumber}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 4, useCORS: true, allowTaint: true, backgroundColor: '#FFFFFF', logging: false, width: 794, windowWidth: 794, scrollX: 0, scrollY: 0, x: 0, y: 0 },
+      image: { type: 'jpeg', quality: 0.95 },
+      html2canvas: { scale: 3, useCORS: true, allowTaint: true, backgroundColor: '#FFFFFF', logging: false, width: 794, windowWidth: 794, scrollX: 0, scrollY: 0, x: 0, y: 0 },
       jsPDF: { unit: 'px', format: [794, 1123], orientation: 'portrait' },
       pagebreak: { mode: ['css', 'legacy'] }
     };
