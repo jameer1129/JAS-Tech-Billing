@@ -1754,6 +1754,7 @@ body.dark-theme #viewNewBill .card__heading i{background:rgba(23,105,255,.16);}
   backdrop-filter:blur(18px);
   box-shadow:var(--shadow-sm);
   overscroll-behavior:contain;
+  touch-action:pan-y;
 }
 .customer-suggestion{
   position:relative;
@@ -4611,8 +4612,9 @@ function renderCustomerSuggestions(customers){
   el.customerSuggestions.classList.remove('hide');
 
   el.customerSuggestions.querySelectorAll('.customer-suggestion').forEach((button) => {
-    button.addEventListener('pointerdown', (event) => {
-      event.preventDefault();
+    // Select only after a real click/tap. This allows mobile finger swipes
+    // to scroll the suggestion list without selecting the touched item.
+    button.addEventListener('click', () => {
       const index = Number(button.dataset.customerIndex);
       selectCustomerSuggestion(index);
     });
