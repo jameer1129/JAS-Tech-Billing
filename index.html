@@ -3108,18 +3108,18 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
         <div class="field field--icon">
           <label class="visually-hidden" for="customerName">Customer Name</label>
           <i class="fa-solid fa-user"></i>
-          <input type="text" id="customerName" name="cf-txt-1a2b" autocomplete="nope" autocorrect="off" spellcheck="false" data-lpignore="true" data-form-type="other" required maxlength="60" placeholder="Customer name *">
+          <input type="text" id="customerName" autocomplete="off" autocorrect="off" spellcheck="false" required maxlength="60" placeholder="Customer name *">
           <div id="customerSuggestions" class="customer-suggestions hide" role="listbox" aria-label="Existing customers"></div>
         </div>
         <div class="field field--icon">
           <label class="visually-hidden" for="customerAddress">Address</label>
           <i class="fa-solid fa-location-dot"></i>
-          <textarea id="customerAddress" name="cf-txt-3c4d" autocomplete="nope" autocorrect="off" spellcheck="false" data-lpignore="true" data-form-type="other" maxlength="150" rows="2" placeholder="Address (optional)"></textarea>
+          <textarea id="customerAddress" autocomplete="off" autocorrect="off" spellcheck="false" maxlength="150" rows="2" placeholder="Address (optional)"></textarea>
         </div>
         <div class="field field--icon">
           <label class="visually-hidden" for="customerMobile">Mobile Number</label>
           <i class="fa-solid fa-phone"></i>
-          <input type="tel" id="customerMobile" name="cf-txt-5e6f" autocomplete="nope" autocorrect="off" spellcheck="false" data-lpignore="true" data-form-type="other" inputmode="numeric" pattern="[0-9]*" maxlength="10" placeholder="Mobile number (optional)">
+          <input type="tel" id="customerMobile" autocomplete="off" autocorrect="off" spellcheck="false" inputmode="numeric" pattern="[0-9]*" maxlength="10" placeholder="Mobile number (optional)">
         </div>
       </div>
     </section>
@@ -3239,7 +3239,7 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
         <div class="bills-search-bar">
           <div class="bills-search-input-wrap field--icon">
             <i class="fa-solid fa-magnifying-glass search-icon"></i>
-            <input type="text" id="billSearchInput" name="cf-txt-7g8h" placeholder="Search invoice, customer, phone, product name..." autocomplete="nope" autocorrect="off" spellcheck="false" data-lpignore="true" data-form-type="other" readonly maxlength="80">
+            <input type="text" id="billSearchInput" name="invoice-search" placeholder="Search invoice, customer, phone, product name..." autocomplete="off" autocorrect="off" spellcheck="false" readonly maxlength="80">
             <button class="bills-search-clear hide" id="btnClearSearch" aria-label="Clear search"><i class="fa-solid fa-xmark"></i></button>
           </div>
           <button class="bills-filter-toggle" id="btnBillsFilterToggle" type="button" aria-label="Show bill filters" title="Show bill filters"><i class="fa-solid fa-arrow-down-wide-short"></i></button>
@@ -3348,7 +3348,7 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
       <div class="admin-users-toolbar">
         <div class="bills-search-input-wrap field--icon">
           <i class="fa-solid fa-magnifying-glass search-icon"></i>
-          <input type="text" id="adminUserSearch" name="cf-txt-9i0j" placeholder="Search users..." autocomplete="nope" autocorrect="off" spellcheck="false" data-lpignore="true" data-form-type="other" readonly maxlength="80" aria-label="Search users">
+          <input type="text" id="adminUserSearch" name="user-search" placeholder="Search users..." autocomplete="off" autocorrect="off" spellcheck="false" readonly maxlength="80" aria-label="Search users">
         </div>
         <button class="admin-filter-btn" id="btnAdminUserFilter" type="button" aria-label="Show all users" title="Show all users"><i class="fa-solid fa-filter"></i></button>
       </div>
@@ -3400,24 +3400,24 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
     <div class="modal__body">
       <div class="field field--icon">
         <i class="fa-solid fa-box" aria-hidden="true"></i>
-        <input type="text" id="prodName" name="cf-txt-p1n2" autocomplete="nope" autocorrect="off" spellcheck="false" data-lpignore="true" data-form-type="other" placeholder="Product name *" aria-label="Product name" maxlength="100">
+        <input type="text" id="prodName" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Product name *" aria-label="Product name" maxlength="100">
       </div>
       <div class="field field--icon">
         <i class="fa-solid fa-align-left" aria-hidden="true"></i>
-        <textarea id="prodDesc" name="cf-txt-p3n4" autocomplete="nope" autocorrect="off" spellcheck="false" data-lpignore="true" data-form-type="other" placeholder="Description (optional)" aria-label="Description" maxlength="500"></textarea>
+        <textarea id="prodDesc" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Description (optional)" aria-label="Description" maxlength="500"></textarea>
       </div>
       <div class="field field--icon">
         <i class="fa-solid fa-barcode" aria-hidden="true"></i>
-        <input type="text" id="prodSerial" name="cf-txt-p5n6" autocomplete="nope" autocorrect="off" spellcheck="false" data-lpignore="true" data-form-type="other" placeholder="Serial number (optional)" aria-label="Serial number" maxlength="50">
+        <input type="text" id="prodSerial" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Serial number (optional)" aria-label="Serial number" maxlength="50">
       </div>
       <div class="field-group field-group--pair">
         <div class="field field--icon">
           <i class="fa-solid fa-boxes-stacked"></i>
-          <input type="number" id="prodQty" name="cf-txt-p7n8" autocomplete="nope" autocorrect="off" spellcheck="false" data-lpignore="true" data-form-type="other" min="1" max="99999999" step="1" value="1" placeholder="Quantity *" aria-label="Quantity" inputmode="numeric">
+          <input type="number" id="prodQty" autocomplete="off" autocorrect="off" spellcheck="false" min="1" max="99999999" step="1" value="1" placeholder="Quantity *" aria-label="Quantity" inputmode="numeric">
         </div>
         <div class="field field--icon">
           <i class="fa-solid fa-indian-rupee-sign" aria-hidden="true"></i>
-          <input type="number" id="prodRate" name="cf-txt-p9n0" autocomplete="nope" autocorrect="off" spellcheck="false" data-lpignore="true" data-form-type="other" min="0" step="0.01" placeholder="Rate *" aria-label="Rate" inputmode="decimal">
+          <input type="number" id="prodRate" autocomplete="off" autocorrect="off" spellcheck="false" min="0" step="0.01" placeholder="Rate *" aria-label="Rate" inputmode="decimal">
         </div>
       </div>
     </div>
