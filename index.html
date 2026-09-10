@@ -732,10 +732,10 @@ body.dark-theme .toast-card{border-color:#17344E;background:#081A2A;box-shadow:0
 body.dark-theme .toast-card__msg{color:#F5F7FB;}
 body.dark-theme .toast-card__close{color:#E7EDF7;}
 body.dark-theme .toast-card__close:hover{background:rgba(255,255,255,.08);color:#FFFFFF;}
-body.dark-theme .toast-card--success{--toast-accent:#16C978;background:#09291C;border-color: #0d7447;}
-body.dark-theme .toast-card--info{--toast-accent:#1769FF;background:#081F36;border-color: #1a3a6e;}
-body.dark-theme .toast-card--warning{--toast-accent:#FFC122;background:#2A2110;border-color:#8F7015;}
-body.dark-theme .toast-card--error{--toast-accent:#E13B34;background:#2A1113;border-color: #8e292d;}
+body.dark-theme .toast-card--success{--toast-accent:#4FDD6B;background:#0D2417;border-color:#3ED866;}
+body.dark-theme .toast-card--info{--toast-accent:#3189EF;background:#0E2036;border-color:#2D7AC9;}
+body.dark-theme .toast-card--warning{--toast-accent:#FFC122;background:#2A210C;border-color:#F3BD35;}
+body.dark-theme .toast-card--error{--toast-accent:#FC5859;background:#2B1514;border-color:#E54A52;}
 
 @keyframes toastIn{
   0%{opacity:0;transform:translateY(-14px) scale(.98);}
@@ -3787,7 +3787,7 @@ async function handlePossiblySpuriousSignOut(client){
     currentSession = null;
     currentProfile = null;
     if (!intentionalSignOut) {
-      showToast('Your session expired. Please log in again.', 'info');
+      showToast('Your session expired. Please log in again.', 'warning');
     }
     intentionalSignOut = false;
     // A real session loss must also close any account drawer that was left
@@ -4535,7 +4535,7 @@ function hideOverlay(overlay){
     overlay.addEventListener('animationend', onAnimEnd);
   });
 }
-const TOAST_ICONS = { success: 'fa-check', info: 'fa-info', warning: 'fa-exclamation', error: 'fa-xmark' };
+const TOAST_ICONS = { success: 'fa-check', info: 'fa-info', warning: 'fa-triangle-exclamation', error: 'fa-xmark' };
 const toastQueue = [];
 let toastQueueRunning = false;
 
@@ -4609,7 +4609,7 @@ async function processToastQueue(){
 }
 
 function showToast(message, type, duration = TOAST_DURATION_MS){
-  const kind = (type === 'success' || type === 'error') ? type : 'info';
+  const kind = ['success', 'info', 'warning', 'error'].includes(type) ? type : 'info';
   toastQueue.push({ message, kind, duration });
   processToastQueue();
 }
@@ -5250,8 +5250,8 @@ async function resendSignupOtp(email, options = {}){
 async function handleLogin(){
   const email = el.loginEmail.value.trim().toLowerCase();
   const password = el.loginPassword.value;
-  if (!email || !password) return showAuthMsg('Enter email and password.');
-  if (!isValidPassword(password)) return showAuthMsg(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+  if (!email || !password) return showAuthMsg('Enter email and password.', 'warning');
+  if (!isValidPassword(password)) return showAuthMsg(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`, 'warning');
   hideAuthMsg();
   await withGuardedSubmit(el.btnLogin, 'Signing in...', async () => {
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
@@ -5269,11 +5269,11 @@ async function handleLogin(){
         showActionLoader('Checking your account…');
         const emailCheck = await emailExists(email);
         if (emailCheck.ok && !emailCheck.exists) {
-          showAuthMsg('No account found with this email. Please register to continue.');
+          showAuthMsg('No account found with this email. Please register to continue.', 'warning');
           return;
         }
         if (emailCheck.ok && emailCheck.exists) {
-          showAuthMsg('Incorrect password. Please try again.');
+          showAuthMsg('Incorrect password. Please try again.', 'warning');
           return;
         }
         // Could not verify email existence (edge function unreachable, etc.)
@@ -5409,11 +5409,11 @@ async function handleRegister() {
   const email = el.regEmail.value.trim().toLowerCase();
   const password = el.regPassword.value;
   const confirmPassword = el.regConfirmPassword.value;
-  if (!name || !email || !password || !confirmPassword) return showAuthMsg('Fill in all fields.');
-  if (el.regAgreeTerms && !el.regAgreeTerms.checked) return showAuthMsg('Please agree to the Terms & Privacy Policy.');
+  if (!name || !email || !password || !confirmPassword) return showAuthMsg('Fill in all fields.', 'warning');
+  if (el.regAgreeTerms && !el.regAgreeTerms.checked) return showAuthMsg('Please agree to the Terms & Privacy Policy.', 'warning');
   const pwErr = validateNewPassword(password, confirmPassword);
   if (pwErr) {
-    showAuthMsg(pwErr);
+    showAuthMsg(pwErr, 'warning');
     if (pwErr === 'Passwords do not match.' || pwErr.startsWith('Confirm ')) el.regConfirmPassword.focus();
     return;
   }
@@ -5433,13 +5433,13 @@ async function handleRegister() {
     }
     hideActionLoader();
     if (!emailCheck.ok) {
-      showAuthMsg('We could not safely verify this email right now. Please try again.');
+      showAuthMsg('We could not safely verify this email right now. Please try again.', 'error');
       return;
     }
     if (emailCheck.exists) {
       // A verified account must never be routed to the registration OTP screen.
       if (emailCheck.confirmed) {
-        showAuthMsg('An account with this email is already verified. Please log in or use Forgot Password.');
+        showAuthMsg('An account with this email is already verified. Please log in or use Forgot Password.', 'warning');
         return;
       }
       // Existing but unverified account: OTP recovery is allowed, via the
@@ -5476,7 +5476,7 @@ async function handleRegister() {
       if (text.includes('already registered') || text.includes('user already registered')) {
         setAuthTab('login');
         el.loginEmail.value = email;
-        showAuthMsg('That email is already registered. Please log in or use Forgot Password.');
+        showAuthMsg('That email is already registered. Please log in or use Forgot Password.', 'warning');
         return;
       }
       showAuthMsg(error.message || 'Registration failed.');
@@ -5506,19 +5506,19 @@ async function handleVerifyEmail(){
   const token = el.verifyOtp.value.replace(/\D/g, '').slice(0, 6);
   if (!email) {
     showVerificationMsg(
-      'Your verification session is missing. Please register again or log in.'
+      'Your verification session is missing. Please register again or log in.', 'warning'
     );
     return;
   }
   if (!/^\d{6}$/.test(token)) {
-    showVerificationMsg('Enter the 6-digit verification code.');
+    showVerificationMsg('Enter the 6-digit verification code.', 'warning');
     focusActiveOtpBox();
     return;
   }
   const { sentAt } = getPendingSignup();
   if (sentAt && getSignupExpiryRemaining(sentAt) <= 0) {
     showVerificationMsg(
-      'This verification code has expired. Please request a new code.'
+      'This verification code has expired. Please request a new code.', 'warning'
     );
     updateVerificationTimers();
     return;
@@ -5538,11 +5538,11 @@ async function handleVerifyEmail(){
       const text = `${error.message || ''} ${error.code || ''}`.toLowerCase();
       if (text.includes('expired') || text.includes('invalid')) {
         showVerificationMsg(
-          'That code is invalid or expired. Request a new code and try again.'
+          'That code is invalid or expired. Request a new code and try again.', 'warning'
         );
       } else {
         showVerificationMsg(
-          error.message || 'Verification failed. Please try again.'
+          error.message || 'Verification failed. Please try again.', 'error'
         );
       }
       return;
@@ -5573,13 +5573,13 @@ async function handleResendVerification(){
   const pending = getPendingSignup();
   const email = pendingSignupEmail || pending.email;
   if (!email) {
-    showVerificationMsg('Your verification session is missing. Please register again or log in.');
+    showVerificationMsg('Your verification session is missing. Please register again or log in.', 'warning');
     return;
   }
   const remaining = getSignupCooldownRemaining(pending.sentAt);
   if (remaining > 0) {
     updateVerificationTimers();
-    showVerificationMsg(`Please wait ${remaining} seconds before requesting another code.`);
+    showVerificationMsg(`Please wait ${remaining} seconds before requesting another code.`, 'warning');
     return;
   }
   const sendOtp = await askToSendOtp(email, {
@@ -5597,7 +5597,7 @@ async function handleResendVerification(){
     const resend = await resendSignupOtp(email);
     if (resend.error) {
       el.btnResendVerification.disabled = false;
-      showVerificationMsg(resend.error.message || 'Could not resend the verification code.');
+      showVerificationMsg(resend.error.message || 'Could not resend the verification code.', 'error');
       updateVerificationTimers();
       return;
     }
@@ -5656,7 +5656,7 @@ function askToSendResetLink(email) {
 
 async function handleForgotPassword(){
   const email = el.forgotEmail.value.trim().toLowerCase();
-  if (!email) return showAuthMsg('Enter your email address.');
+  if (!email) return showAuthMsg('Enter your email address.', 'warning');
   hideAuthMsg();
 
   await withGuardedSubmit(el.btnSendReset, null, async () => {
@@ -5673,12 +5673,12 @@ async function handleForgotPassword(){
     hideActionLoader();
 
     if (!emailCheck.ok) {
-      showAuthMsg('We could not safely verify this email right now. Please try again.');
+      showAuthMsg('We could not safely verify this email right now. Please try again.', 'error');
       return;
     }
 
     if (!emailCheck.exists) {
-      showAuthMsg('No account found with this email. Please register to continue.');
+      showAuthMsg('No account found with this email. Please register to continue.', 'warning');
       return;
     }
 
@@ -5710,9 +5710,9 @@ async function handleForgotPassword(){
 async function handleResetPassword(){
   const newPw = el.resetNewPassword.value;
   const confirmPw = el.resetConfirmPassword.value;
-  if (!newPw || !confirmPw) return showToast('Enter both passwords.', 'error');
+  if (!newPw || !confirmPw) return showToast('Enter both passwords.', 'warning');
   const pwErr = validateNewPassword(newPw, confirmPw);
-  if (pwErr) return showToast(pwErr, 'error');
+  if (pwErr) return showToast(pwErr, 'warning');
   await withGuardedSubmit(el.btnUpdateResetPassword, 'Updating password…', async () => {
     const { error } = await supabaseClient.auth.updateUser({ password: newPw });
     if (error) {
@@ -5757,12 +5757,12 @@ async function handleResetPassword(){
           // The password change itself succeeded. Do not falsely report the
           // operation as failed, but do not pretend this device is still
           // authenticated either. The next load will go through normal login.
-          showToast('Password updated, but this device could not stay signed in. Please log in again.', 'error');
+          showToast('Password updated, but this device could not stay signed in. Please log in again.', 'warning');
         } else if (localClient) {
           const { error: otherSessionsError } = await localClient.auth.signOut({ scope: 'others' });
           if (otherSessionsError) {
             console.error('Could not sign out other sessions after recovery password reset:', otherSessionsError);
-            showToast('Password updated, but other devices could not be signed out.', 'error');
+            showToast('Password updated, but other devices could not be signed out.', 'warning');
           }
         }
 
@@ -5898,7 +5898,7 @@ async function afterAuthResolved(){
         return;
       }
       if (offlineStartup || !navigator.onLine) { showOfflineScreen(navigator.onLine ? 'server' : 'offline'); return; }
-      showAuthMsg('Could not prepare your account. Please try again in a moment.');
+      showAuthMsg('Could not prepare your account. Please try again in a moment.', 'error');
       showScreen('auth');
       return;
     }
@@ -5908,7 +5908,7 @@ async function afterAuthResolved(){
   if (!freshProfile) {
     if (optimisticallyEntered) return; // same reasoning as above
     if (offlineStartup || !navigator.onLine) { showOfflineScreen(navigator.onLine ? 'server' : 'offline'); return; }
-    showAuthMsg('Could not load your profile. Please try again in a moment.');
+    showAuthMsg('Could not load your profile. Please try again in a moment.', 'error');
     showScreen('auth');
     return;
   }
@@ -6074,7 +6074,7 @@ function saveProduct(){
   if (!markError(el.prodQty, !isNaN(input.qty) && input.qty > 0)) isValid = false;
   if (!markError(el.prodRate, !isNaN(input.rate) && input.rate >= 0 && el.prodRate.value.trim() !== '')) isValid = false;
   if (!isValid) {
-    showToast('Please fix the highlighted fields.', 'error');
+    showToast('Please fix the highlighted fields.', 'warning');
     return;
   }
   if(editingProductId){
@@ -6113,7 +6113,7 @@ function deleteProduct(){
   state.products = state.products.filter(p => p.id !== pendingDeleteId);
   renderProducts();
   updateSummary();
-  showToast('Product removed');
+  showToast('Product removed', 'success');
   closeDeleteModal();
   if (currentSession) saveBillStateToLocalStorage();
 }
@@ -6599,13 +6599,13 @@ function handlePreviewLayoutScaling() {
 }
 function openPreviewModal(){
   if(!validateField(el.customerName)){
-    showToast('Enter customer name before generating preview.', 'error');
+    showToast('Enter customer name before generating preview.', 'warning');
     markError(el.customerName, false);
     el.customerName.focus();
     return;
   }
   if(!state.products.length){
-    showToast('Add at least one product to generate preview.', 'error');
+    showToast('Add at least one product to generate preview.', 'warning');
     return;
   }
   showOverlay(el.previewModalOverlay);
@@ -6745,12 +6745,12 @@ async function generatePdfBlob(){
 }
 async function openSaveChoiceModal(){
   if(!validateField(el.customerName)){
-    showToast('Enter customer name before downloading invoice.', 'error');
+    showToast('Enter customer name before downloading invoice.', 'warning');
     markError(el.customerName, false);
     el.customerName.focus();
     return;
   }
-  if(!state.products.length){ showToast('Add at least one product before downloading.', 'error'); return; }
+  if(!state.products.length){ showToast('Add at least one product before downloading.', 'warning'); return; }
   if(!el.previewModalOverlay.classList.contains('hide')){
     // The preview modal sits above the save-choice confirm modal (z-index
     // 150 vs 110). Opening the confirm modal immediately meant it appeared
@@ -6767,7 +6767,7 @@ function closeSaveChoiceModal(){
 }
 async function handlePreviewDownload(){
   if (loadedBillForPrint !== null) {
-    if(!state.products.length){ showToast('Add at least one product before downloading.', 'error'); return; }
+    if(!state.products.length){ showToast('Add at least one product before downloading.', 'warning'); return; }
     // Hide the preview visually, but do NOT restore the New Bill draft yet.
     // generatePdfBlob() reads directly from `state`, which right now holds
     // the previous bill's data — restoring the draft first (as
@@ -6816,7 +6816,7 @@ async function handleSaveChoice(saveToDb){
     if (saveToDb) {
       const { grandTotal } = calculateTotals(state.products);
       if (Math.abs(grandTotal) > MAX_BILL_TOTAL) {
-        showToast(`Total exceeds ${formatCurrency(MAX_BILL_TOTAL)} and can't be saved. Downloading without saving instead.`, 'error');
+        showToast(`Total exceeds ${formatCurrency(MAX_BILL_TOTAL)} and can't be saved. Downloading without saving instead.`, 'warning');
       } else {
         showActionLoader('Saving invoice…');
         try {
@@ -6826,10 +6826,10 @@ async function handleSaveChoice(saveToDb){
         } catch (saveErr) {
           if (saveErr && saveErr.code === '22003') {
             console.warn('Bill total too large to save:', saveErr);
-            showToast('Total is too large to save. Downloading without saving instead.', 'error');
+            showToast('Total is too large to save. Downloading without saving instead.', 'warning');
             saveToDb = false;
           } else if (saveErr && saveErr.message && saveErr.message.includes('Daily invoice limit reached')) {
-            showToast('Daily invoice limit reached. No more official invoices can be created today.', 'error');
+            showToast('Daily invoice limit reached. No more official invoices can be created today.', 'warning');
             throw saveErr;
           } else {
             throw saveErr;
@@ -6851,9 +6851,9 @@ async function handleSaveChoice(saveToDb){
     hideActionLoader();
     console.error(err);
     if (didSave) {
-      showToast('The invoice was saved successfully, but PDF generation failed.', 'error');
+      showToast('The invoice was saved successfully, but PDF generation failed.', 'warning');
     } else if (err && err.message && err.message.includes('Daily invoice limit reached')) {
-      showToast('Daily invoice limit reached. No more official invoices can be created today.', 'error');
+      showToast('Daily invoice limit reached. No more official invoices can be created today.', 'warning');
     } else if (saveToDb) {
       showToast('Could not save invoice. Please try again.', 'error');
     } else {
@@ -6879,10 +6879,11 @@ function downloadPdfBlob(){
 }
 async function sharePdfBlob(){
   if (!_pendingPdfBlob) return;
-  if (!navigator.share) { showToast('Sharing not supported on this browser.', 'error'); return; }
+  if (!navigator.share) { showToast('Sharing not supported on this browser.', 'warning'); return; }
   try {
     const file = new File([_pendingPdfBlob], _pendingPdfFilename, { type: 'application/pdf' });
     await navigator.share({ files: [file], title: _pendingPdfFilename });
+    showToast('Invoice shared', 'success');
     const wasSaved = _pdfActionDidSave;
     const wasPreviousBill = _pdfForPreviousBill;
     closePdfActionModal();
@@ -7122,7 +7123,7 @@ async function reprintBill(invoiceNo){
     // draft rather than leaving it lost or the flags stuck.
     if (!state.customer.name.trim() || !state.products.length) {
       hideActionLoader();
-      showToast('This invoice has incomplete data and cannot be previewed.', 'error');
+      showToast('This invoice has incomplete data and cannot be previewed.', 'warning');
       isPreviousBillMode = false;
       restoreDraftAfterPreviousBill();
       return;
@@ -7408,6 +7409,7 @@ async function loadAdminStats(){
     const results = await Promise.all(queries);
     if (results.some(result => result.error)) {
       console.error('Could not load admin account stats.', results.find(result => result.error)?.error);
+      showToast('Could not load admin account statistics.', 'error');
       return;
     }
     const [total, approved, pending, rejected] = results.map(result => result.count || 0);
@@ -7428,7 +7430,7 @@ function handleAllUsersPaginationClick(e){
 async function setUserStatus(userId, status){
   const target = document.querySelector(`.user-row[data-id="${CSS.escape(String(userId))}"]`);
   if (target?.dataset.role?.toLowerCase() === 'super_admin') {
-    showToast('Super Admin cannot be changed.', 'error');
+    showToast('Super Admin cannot be changed.', 'warning');
     return;
   }
   showActionLoader(status === 'approved' ? 'Approving User' : 'Rejecting User');
@@ -7452,7 +7454,7 @@ async function setUserStatus(userId, status){
 async function setUserRole(userId, role){
   const target = document.querySelector(`.user-row[data-id="${CSS.escape(String(userId))}"]`);
   if (target?.dataset.role?.toLowerCase() === 'super_admin') {
-    showToast('Super Admin cannot be changed.', 'error');
+    showToast('Super Admin cannot be changed.', 'warning');
     return;
   }
   showActionLoader(role === 'admin' ? 'Making Admin' : 'Making Employee');
@@ -7499,9 +7501,9 @@ async function handleChangePassword(){
   const currentPw = el.changePwCurrent.value;
   const newPw = el.changePwNew.value;
   const confirmPw = el.changePwConfirm.value;
-  if (!currentPw) return showToast('Enter your current password.', 'error');
+  if (!currentPw) return showToast('Enter your current password.', 'warning');
   const pwErr = validateNewPassword(newPw, confirmPw, 'New password');
-  if (pwErr) return showToast(pwErr, 'error');
+  if (pwErr) return showToast(pwErr, 'warning');
 
   await withGuardedSubmit(el.btnConfirmChangePw, 'Updating password…', async () => {
     const email = (currentSession?.user?.email || currentProfile?.email || '').trim().toLowerCase();
@@ -7529,7 +7531,7 @@ async function handleChangePassword(){
         password: currentPw
       });
       if (verifyError) {
-        showToast('Current password is incorrect.', 'error');
+        showToast('Current password is incorrect.', 'warning');
         return;
       }
 
@@ -7576,7 +7578,7 @@ async function handleChangePassword(){
       });
       if (localSignInError) {
         console.error('Password changed but this device could not be re-authenticated:', localSignInError);
-        showToast('Password updated, but this device could not stay signed in. Please log in again.', 'error');
+        showToast('Password updated, but this device could not stay signed in. Please log in again.', 'warning');
         return;
       }
 
@@ -7587,7 +7589,7 @@ async function handleChangePassword(){
 
       if (otherSessionsError) {
         console.error('Could not sign out other sessions after password change:', otherSessionsError);
-        showToast('Password updated, but other devices could not be signed out.', 'error');
+        showToast('Password updated, but other devices could not be signed out.', 'warning');
         return;
       }
 
