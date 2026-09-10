@@ -682,10 +682,9 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{color:#63B3ED;}
   padding:12px;
   border: 1px solid var(--line);
   border-radius:14px;
-  animation:toastIn .28s cubic-bezier(.21,1.02,.73,1) both;
-  will-change:transform,opacity;
+  animation:toastIn .22s ease-out forwards;
 }
-.toast-card.toast-card--out{animation:toastOut .2s cubic-bezier(.4,0,1,1) both;pointer-events:none;}
+.toast-card.toast-card--out{animation:toastOut .18s ease-in forwards;}
 .toast-card__icon{
   width:32px;
   height:32px;
@@ -738,9 +737,22 @@ body.dark-theme .toast-card--info{--toast-accent:#1769FF;background:#081F36;bord
 body.dark-theme .toast-card--warning{--toast-accent:#FFC122;background:#2A2110;border-color:#8F7015;}
 body.dark-theme .toast-card--error{--toast-accent:#E13B34;background:#2A1113;border-color: #8e292d;}
 
-@keyframes toastIn{from{opacity:0;transform:translateY(-10px) scale(.96);} to{opacity:1;transform:translateY(0) scale(1);}}
+@keyframes toastIn{
+  0%{opacity:0;transform:translateY(-14px) scale(.98);}
+  70%{opacity:1;transform:translateY(2px) scale(1.002);}
+  100%{opacity:1;transform:translateY(0) scale(1);}
+}
 
-@keyframes toastOut{from{opacity:1;transform:translateY(0) scale(1);} to{opacity:0;transform:translateY(-6px) scale(.98);}}
+@keyframes toastOut{
+  0%{opacity:1;transform:translateY(0) scale(1);max-height:160px;margin-bottom:0;}
+  55%{opacity:.35;transform:translateY(-5px) scale(.985);max-height:160px;margin-bottom:0;}
+  100%{opacity:0;transform:translateY(-10px) scale(.97);max-height:0;margin-bottom:-12px;padding-top:0;padding-bottom:0;border-width:0;}
+}
+
+@keyframes toastReplaceOut{
+  0%{opacity:1;transform:translateY(0) scale(1);max-height:160px;}
+  100%{opacity:0;transform:translateY(-10px) scale(.965);max-height:0;}
+}
 
 @media(max-width:480px){.toast-stack{top:max(12px, env(safe-area-inset-top));left:12px;right:12px;transform:none;width:auto;gap:10px;}
 
@@ -4524,40 +4536,10 @@ function hideOverlay(overlay){
   });
 }
 const TOAST_ICONS = { success: 'fa-check', info: 'fa-info', warning: 'fa-exclamation', error: 'fa-xmark' };
-// Tracks toasts that currently "count" toward the visible cap. This is kept
-// as its own array (rather than reading el.toastStack.children live) so the
-// cap is enforced the instant a new toast is requested, even if an older
-// toast's close animation/listener hasn't resolved yet — that's what let a
-// 4th toast slip through and stay on screen when toasts came in quickly.
-let toastQueue = [];
-function hardRemoveToastCard(card){
-  if (!card || card._removed) return;
-  card._removed = true;
-  clearTimeout(card._timer);
-  clearTimeout(card._falloutTimer);
-  card.remove();
-}
-function dismissToastCard(card){
-  if (!card || card._dismissing) return;
-  card._dismissing = true;
-  clearTimeout(card._timer);
-  // Drop it from the queue immediately so a toast that's mid-exit never
-  // still counts as one of the MAX_VISIBLE_TOASTS slots.
-  toastQueue = toastQueue.filter(c => c !== card);
-  card.classList.add('toast-card--out');
-  card.addEventListener('animationend', () => hardRemoveToastCard(card), { once: true });
-  // Safety net: if animationend never fires for any reason (some
-  // browsers/webviews can drop it when styles change again mid-animation),
-  // don't let the card get stuck in the DOM forever.
-  card._falloutTimer = setTimeout(() => hardRemoveToastCard(card), 250);
-}
-function showToast(message, type, duration = TOAST_DURATION_MS){
-  const kind = ['success', 'info', 'warning', 'error'].includes(type) ? type : 'info';
-  // Keep the toast stack compact: never show more than MAX_VISIBLE_TOASTS at
-  // once, even if several toasts are triggered back-to-back very quickly.
-  while (toastQueue.length >= MAX_VISIBLE_TOASTS) {
-    hardRemoveToastCard(toastQueue.shift());
-  }
+const toastQueue = [];
+let toastQueueRunning = false;
+
+function createToastCard(message, kind, duration){
   const card = document.createElement('div');
   card.className = `toast-card toast-card--${kind}`;
   card.innerHTML = `
@@ -4568,11 +4550,70 @@ function showToast(message, type, duration = TOAST_DURATION_MS){
     <button type="button" class="toast-card__close" aria-label="Dismiss"><i class="fa-solid fa-xmark"></i></button>
   `;
   card.querySelector('.toast-card__msg').textContent = message;
-  card.querySelector('.toast-card__close').addEventListener('click', () => dismissToastCard(card));
-  card._timer = setTimeout(() => dismissToastCard(card), duration);
-  toastQueue.push(card);
-  el.toastStack.appendChild(card);
+
+  let removeTimer = null;
+  let removed = false;
+  const removeCard = () => {
+    if (removed || !card.isConnected) return;
+    removed = true;
+    clearTimeout(card._timer);
+    clearTimeout(removeTimer);
+    card.classList.add('toast-card--out');
+    removeTimer = setTimeout(() => {
+      if (card.isConnected) card.remove();
+    }, 220);
+  };
+
+  card._timer = setTimeout(removeCard, duration);
+  card._dismiss = removeCard;
+  card.querySelector('.toast-card__close').addEventListener('click', removeCard);
+  return card;
 }
+
+async function processToastQueue(){
+  if (toastQueueRunning) return;
+  toastQueueRunning = true;
+
+  try {
+    while (toastQueue.length) {
+      const { message, kind, duration } = toastQueue.shift();
+
+      // Never let a replacement create a temporary 4th visible toast.
+      if (el.toastStack.children.length >= MAX_VISIBLE_TOASTS) {
+        const oldest = el.toastStack.firstElementChild;
+        if (oldest) {
+          clearTimeout(oldest._timer);
+          oldest.classList.add('toast-card--out');
+          await new Promise(resolve => {
+            let done = false;
+            const finish = () => {
+              if (done) return;
+              done = true;
+              oldest.removeEventListener('animationend', finish);
+              if (oldest.isConnected) oldest.remove();
+              resolve();
+            };
+            oldest.addEventListener('animationend', finish, { once: true });
+            setTimeout(finish, 230);
+          });
+        }
+      }
+
+      const card = createToastCard(message, kind, duration);
+      el.toastStack.appendChild(card);
+    }
+  } finally {
+    toastQueueRunning = false;
+    if (toastQueue.length) processToastQueue();
+  }
+}
+
+function showToast(message, type, duration = TOAST_DURATION_MS){
+  const kind = (type === 'success' || type === 'error') ? type : 'info';
+  toastQueue.push({ message, kind, duration });
+  processToastQueue();
+}
+
 function validateField(elInput, type = 'text') {
   const val = elInput.value.trim();
   if (type === 'text' && val === '') return false;
