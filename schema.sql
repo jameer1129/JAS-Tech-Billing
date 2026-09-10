@@ -1027,3 +1027,73 @@ to supabase_auth_admin;
 
 revoke execute on function public.hook_block_new_google_users(jsonb)
 from anon, authenticated, public;
+
+create or replace function public.search_customers(
+  search_text text,
+  result_limit integer default 8
+)
+returns table (
+  customer_name text,
+  customer_phone text,
+  customer_address text,
+  latest_bill_at timestamptz
+)
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  with normalized as (
+    select
+      b.customer_name,
+      b.customer_phone,
+      b.customer_address,
+      b.created_at,
+      lower(trim(b.customer_name)) as name_key,
+      nullif(
+        regexp_replace(trim(coalesce(b.customer_phone, '')), '\D', '', 'g'),
+        ''
+      ) as phone_key
+    from public.bills b
+    where nullif(trim(b.customer_name), '') is not null
+      and exists (
+        select 1
+        from regexp_split_to_table(
+          lower(trim(b.customer_name)),
+          '\s+'
+        ) as word
+        where word like lower(trim(search_text)) || '%'
+      )
+  ),
+
+  unique_customers as (
+    select distinct on (name_key, coalesce(phone_key, ''))
+      customer_name,
+      customer_phone,
+      customer_address,
+      created_at
+    from normalized
+    order by
+      name_key,
+      coalesce(phone_key, ''),
+      created_at desc
+  )
+
+  select
+    customer_name,
+    customer_phone,
+    customer_address,
+    created_at as latest_bill_at
+  from unique_customers
+  order by
+    created_at desc,
+    lower(trim(customer_name)) asc
+  limit greatest(
+    1,
+    least(coalesce(result_limit, 8), 8)
+  );
+
+$$;
+
+grant execute on function public.search_customers(text, integer)
+to authenticated;

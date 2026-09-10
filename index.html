@@ -178,7 +178,7 @@ body.dark-theme input[type="checkbox"]:checked{background:var(--primary);border-
 input[type="number"]{-moz-appearance:textfield;appearance:textfield;}
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
-textarea {
+textarea,.customer-suggestions {
   scrollbar-width: thin;
   scrollbar-color: var(--primary) transparent;
 }
@@ -1740,6 +1740,94 @@ body.dark-theme #viewNewBill .card__heading i{background:rgba(23,105,255,.16);}
   box-shadow:none !important;
   outline:none !important;
 }
+.customer-suggestions{
+  position:absolute;
+  left:0;
+  right:0;
+  z-index:100;
+  max-height:282px;
+  overflow-y:auto;
+  padding:4px;
+  border:1px solid var(--line);
+  border-radius:0 0 12px 12px;
+  background:var(--bg);
+  backdrop-filter:blur(18px);
+  box-shadow:var(--shadow-sm);
+  overscroll-behavior:contain;
+}
+.customer-suggestion{
+  position:relative;
+  width:100%;
+  min-height:52px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  border:0;
+  background:transparent;
+  color:var(--text);
+  text-align:left;
+  padding:8px 9px;
+  border-radius:9px;
+  cursor:pointer;
+  transition:background .15s ease,transform .1s ease;
+}
+.customer-suggestion::before{
+  content:"\f007";
+  width:30px;
+  height:30px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:8px;
+  background:rgba(1,37,135,.08);
+  color:var(--primary-text);
+  font-family:"Font Awesome 6 Free";
+  font-weight:900;
+  font-size:12px;
+}
+.customer-suggestion:hover,.customer-suggestion.active{
+  background:rgba(1,37,135,.07);
+}
+.customer-suggestion:active{transform:scale(.995);}
+.customer-suggestion + .customer-suggestion{margin-top:2px;padding-top:10px;}
+.customer-suggestion + .customer-suggestion::after{
+  content:"";
+  position:absolute;
+  top:0;
+  left:0;
+  right:0;
+  height:1px;
+  background:var(--line);
+}
+body.dark-theme .customer-suggestion::before{background:rgba(23,105,255,.14);}
+body.dark-theme .customer-suggestion:hover,
+body.dark-theme .customer-suggestion.active{
+  background:rgba(23,105,255,.14);
+}
+.customer-suggestion__content{
+  min-width:0;
+  flex:1;
+}
+.customer-suggestion__name{
+  display:block;
+  font-size:14px;
+  font-weight:700;
+  line-height:1.3;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.customer-suggestion__meta{
+  display:block;
+  margin-top:3px;
+  color:var(--muted);
+  font-size:11.5px;
+  line-height:1.3;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
 #viewNewBill .customer-fields .field--icon textarea{min-height:72px;padding-top:15px;resize:vertical;border-radius:0 !important;}
 #viewNewBill .customer-fields .field:focus-within::after,
 #viewNewBill .customer-fields .field:has(.input-error)::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:5;border-radius:inherit;}
@@ -3022,6 +3110,7 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
           <label class="visually-hidden" for="customerName">Customer Name</label>
           <i class="fa-solid fa-user"></i>
           <input type="text" id="customerName" autocomplete="off" required maxlength="60" placeholder="Customer name *">
+          <div id="customerSuggestions" class="customer-suggestions hide" role="listbox" aria-label="Existing customers"></div>
         </div>
         <div class="field field--icon">
           <label class="visually-hidden" for="customerAddress">Address</label>
@@ -3721,7 +3810,7 @@ const A4_PAGE_HEIGHT_PX = 1123; // A4 height in px at 96dpi, used for PDF pagina
 const TOAST_DURATION_MS = 2500;
 const AUTH_TOAST_DURATION_MS = 5000;
 const MAX_VISIBLE_TOASTS = 3;
-const SEARCH_DEBOUNCE_MS = 350;
+const SEARCH_DEBOUNCE_MS = 500;
 const MAX_BILL_TOTAL = 9999999999.99; // matches bills.total numeric(12,2) in schema.sql
 let _openDatePickerClose = null;
 let billsPage = 1;
@@ -3820,6 +3909,7 @@ function cacheElements(){
   el.viewPreviousBills = document.getElementById('viewPreviousBills');
   el.viewAdmin = document.getElementById('viewAdmin');
   el.customerName = document.getElementById('customerName');
+  el.customerSuggestions = document.getElementById('customerSuggestions');
   el.customerAddress = document.getElementById('customerAddress');
   el.customerMobile = document.getElementById('customerMobile');
   el.invoiceDate = document.getElementById('invoiceDate');
@@ -4475,7 +4565,176 @@ function markError(elInput, isValid) {
   }
   return isValid;
 }
+/* ===================================================================
+   CUSTOMER AUTOCOMPLETE
+   =================================================================== */
+let customerSearchDebounceTimer = null;
+let customerSearchRequestSeq = 0;
+let customerSuggestionItems = [];
+let customerSuggestionActiveIndex = -1;
+
+function hideCustomerSuggestions(){
+  if (!el.customerSuggestions) return;
+  el.customerSuggestions.classList.add('hide');
+  el.customerSuggestions.innerHTML = '';
+  customerSuggestionItems = [];
+  customerSuggestionActiveIndex = -1;
+}
+
+function escapeCustomerHtml(value){
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function renderCustomerSuggestions(customers){
+  if (!el.customerSuggestions) return;
+  customerSuggestionItems = Array.isArray(customers) ? customers : [];
+  customerSuggestionActiveIndex = -1;
+
+  if (!customerSuggestionItems.length){
+    hideCustomerSuggestions();
+    return;
+  }
+
+  el.customerSuggestions.innerHTML = customerSuggestionItems.map((customer, index) => {
+    const name = escapeCustomerHtml(customer.customer_name || '');
+    const phone = String(customer.customer_phone || '').trim();
+    const address = String(customer.customer_address || '').trim().replace(/\s+/g, ' ');
+    const meta = [phone, address].filter(Boolean).join(' • ');
+    return `<button type="button" class="customer-suggestion" data-customer-index="${index}" role="option" aria-selected="false">\n      <span class="customer-suggestion__content">\n        <span class="customer-suggestion__name">${name}</span>\n        ${meta ? `<span class="customer-suggestion__meta">${escapeCustomerHtml(meta)}</span>` : ''}\n      </span>\n    </button>`;
+  }).join('');
+
+  el.customerSuggestions.classList.remove('hide');
+
+  el.customerSuggestions.querySelectorAll('.customer-suggestion').forEach((button) => {
+    button.addEventListener('pointerdown', (event) => {
+      event.preventDefault();
+      const index = Number(button.dataset.customerIndex);
+      selectCustomerSuggestion(index);
+    });
+  });
+}
+
+function setCustomerSuggestionActive(index){
+  if (!customerSuggestionItems.length) return;
+  const count = customerSuggestionItems.length;
+  customerSuggestionActiveIndex = (index + count) % count;
+  el.customerSuggestions.querySelectorAll('.customer-suggestion').forEach((button, i) => {
+    const active = i === customerSuggestionActiveIndex;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-selected', active ? 'true' : 'false');
+    if (active) button.scrollIntoView({ block: 'nearest' });
+  });
+}
+
+function selectCustomerSuggestion(index){
+  const customer = customerSuggestionItems[index];
+  if (!customer) return;
+
+  // Selecting a suggestion "finalizes" the field — cancel any debounced
+  // search still queued from the keystrokes typed before the pick, so it
+  // can't land afterward and silently reopen the dropdown.
+  clearTimeout(customerSearchDebounceTimer);
+
+  state.customer.name = String(customer.customer_name || '').trim();
+  state.customer.mobile = String(customer.customer_phone || '').replace(/\D/g, '').trim();
+  state.customer.address = String(customer.customer_address || '').trim();
+  syncCustomerFieldsFromState();
+  hideCustomerSuggestions();
+  if (currentSession) saveBillStateToLocalStorage();
+  el.customerName.focus();
+  el.customerName.setSelectionRange(el.customerName.value.length, el.customerName.value.length);
+}
+
+async function searchCustomerSuggestions(searchText){
+  const term = String(searchText || '').trim();
+  if (term.length < 2 || !currentSession || isPreviousBillMode || loadedBillForPrint !== null) {
+    // Bump the sequence here too (not just on the request path below) so
+    // any still-in-flight request from a longer/older term gets invalidated
+    // and can't render stale suggestions after the field was cleared or
+    // shortened below the 2-character threshold.
+    ++customerSearchRequestSeq;
+    hideCustomerSuggestions();
+    return;
+  }
+
+  const requestId = ++customerSearchRequestSeq;
+  try {
+    const { data, error } = await supabaseClient.rpc('search_customers', {
+      search_text: term,
+      result_limit: 8
+    });
+    if (requestId !== customerSearchRequestSeq) return;
+    if (error) throw error;
+    renderCustomerSuggestions(data || []);
+  } catch (error) {
+    if (requestId !== customerSearchRequestSeq) return;
+    console.error('Customer autocomplete search failed:', error);
+    hideCustomerSuggestions();
+  }
+}
+
+function scheduleCustomerSuggestionSearch(value){
+  clearTimeout(customerSearchDebounceTimer);
+  customerSearchDebounceTimer = setTimeout(() => {
+    searchCustomerSuggestions(value);
+  }, SEARCH_DEBOUNCE_MS);
+}
+
+function setupCustomerAutocomplete(){
+  if (!el.customerName || !el.customerSuggestions) return;
+
+  el.customerName.addEventListener('keydown', (event) => {
+    if (el.customerSuggestions.classList.contains('hide') || !customerSuggestionItems.length) return;
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      event.stopPropagation();
+      setCustomerSuggestionActive(customerSuggestionActiveIndex + 1);
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      event.stopPropagation();
+      setCustomerSuggestionActive(customerSuggestionActiveIndex - 1);
+    } else if (event.key === 'Enter' && customerSuggestionActiveIndex >= 0) {
+      // Selecting a suggestion is a complete action on its own — stop this
+      // Enter keypress from also reaching the document-level handler that
+      // normally moves focus from customerName to customerAddress, or the
+      // picked customer's field gets immediately re-focused away from.
+      event.preventDefault();
+      event.stopPropagation();
+      selectCustomerSuggestion(customerSuggestionActiveIndex);
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      hideCustomerSuggestions();
+    }
+  });
+
+  document.addEventListener('pointerdown', (event) => {
+    if (event.target !== el.customerName && !el.customerSuggestions.contains(event.target)) {
+      hideCustomerSuggestions();
+    }
+  });
+
+  // Keyboard-only exits (e.g. Tab to the next field) never trigger the
+  // pointerdown listener above, so the dropdown was previously left open
+  // and overlapping the next field. Hide it on blur too. A short delay
+  // lets a pointerdown on a suggestion button (which calls
+  // preventDefault() to keep focus) run first, so clicking a suggestion
+  // still works.
+  el.customerName.addEventListener('blur', () => {
+    setTimeout(() => {
+      if (document.activeElement !== el.customerName) hideCustomerSuggestions();
+    }, 150);
+  });
+}
+
 function syncCustomerFieldsFromState() {
+  hideCustomerSuggestions();
   el.customerName.value = state.customer.name || '';
   el.customerAddress.value = state.customer.address || '';
   el.customerMobile.value = state.customer.mobile || '';
@@ -7841,6 +8100,7 @@ function bindEvents(){
     field.addEventListener('input', (e) => {
       if (fieldId === 'customerName') {
         state.customer.name = e.target.value;
+        scheduleCustomerSuggestionSearch(e.target.value);
       } else if (fieldId === 'customerAddress') {
         state.customer.address = e.target.value;
       }
@@ -7869,6 +8129,7 @@ function bindEvents(){
       saveBillStateToLocalStorage();
     }
   });
+  setupCustomerAutocomplete();
   invoiceDatePicker = createDatePicker(el.invoiceDate, el.invoiceDateInput, el.invoiceDateText, { placeholder: 'Select date' });
   el.invoiceDate.addEventListener('change', (e) => {
     state.dateStr = formatDateForDisplay(e.target.value);
