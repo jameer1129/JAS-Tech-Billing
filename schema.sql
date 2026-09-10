@@ -720,6 +720,8 @@ on function public.create_bill(
   text,
   boolean,
   boolean,
+  boolean,
+  boolean,
   text,
   jsonb
 )

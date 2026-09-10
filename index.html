@@ -5494,9 +5494,13 @@ async function fetchOwnProfile(){
     .single();
   if (error) {
     console.error(error);
-    return null;
+    // PGRST116 = PostgREST's "no rows returned" -- the one case where the
+    // profile genuinely doesn't exist yet (first-ever login) and calling
+    // ensure_profile is actually necessary. Any other error (network,
+    // permissions, server hiccup) shouldn't trigger that extra round-trip.
+    return { profile: null, notFound: error.code === 'PGRST116' };
   }
-  return data;
+  return { profile: data, notFound: false };
 }
 // Lets a returning user's app screen paint instantly from their last
 // confirmed profile, while ensure_profile/fetchOwnProfile reverify with the
@@ -5547,29 +5551,36 @@ async function afterAuthResolved(){
     optimisticallyEntered = true;
   }
 
-  const { error: profileEnsureError } = await supabaseClient.rpc('ensure_profile');
-  if (profileEnsureError) {
-    console.error('ensure_profile failed:', profileEnsureError);
-    // This is normally the very first Supabase call made at startup, so
-    // it's usually the one that fails/times out when there's no internet,
-    // the server is unreachable, or the connection is too slow. The
-    // window.fetch wrapper will have already called showOfflineScreen()
-    // in that case -- don't stomp on it by falling through to the auth
-    // screen with a generic error toast instead.
-    if (optimisticallyEntered) {
-      // Already showing the app from the cached snapshot -- a failed
-      // reverify here is almost always a transient network/server hiccup,
-      // not an actual access change, so leave the cached screen up rather
-      // than yanking the user back to a loading/auth screen over a blip.
+  let { profile: freshProfile, notFound } = await fetchOwnProfile();
+
+  if (notFound) {
+    // First-ever login for this account (or the profile row genuinely
+    // doesn't exist yet) -- this is the one case that actually needs
+    // ensure_profile, so pay for that extra round-trip only here.
+    const { error: profileEnsureError } = await supabaseClient.rpc('ensure_profile');
+    if (profileEnsureError) {
+      console.error('ensure_profile failed:', profileEnsureError);
+      // This is normally the very first Supabase call made at startup, so
+      // it's usually the one that fails/times out when there's no internet,
+      // the server is unreachable, or the connection is too slow. The
+      // window.fetch wrapper will have already called showOfflineScreen()
+      // in that case -- don't stomp on it by falling through to the auth
+      // screen with a generic error toast instead.
+      if (optimisticallyEntered) {
+        // Already showing the app from the cached snapshot -- a failed
+        // reverify here is almost always a transient network/server hiccup,
+        // not an actual access change, so leave the cached screen up rather
+        // than yanking the user back to a loading/auth screen over a blip.
+        return;
+      }
+      if (offlineStartup || !navigator.onLine) { showOfflineScreen(navigator.onLine ? 'server' : 'offline'); return; }
+      showAuthMsg('Could not prepare your account. Please try again in a moment.');
+      showScreen('auth');
       return;
     }
-    if (offlineStartup || !navigator.onLine) { showOfflineScreen(navigator.onLine ? 'server' : 'offline'); return; }
-    showAuthMsg('Could not prepare your account. Please try again in a moment.');
-    showScreen('auth');
-    return;
+    ({ profile: freshProfile, notFound } = await fetchOwnProfile());
   }
 
-  const freshProfile = await fetchOwnProfile();
   if (!freshProfile) {
     if (optimisticallyEntered) return; // same reasoning as above
     if (offlineStartup || !navigator.onLine) { showOfflineScreen(navigator.onLine ? 'server' : 'offline'); return; }
