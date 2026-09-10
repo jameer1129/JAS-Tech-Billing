@@ -683,8 +683,6 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{color:#63B3ED;}
   border: 1px solid var(--line);
   border-radius:14px;
   animation:toastIn .22s ease-out forwards;
-  touch-action:pan-y;
-  will-change:transform;
 }
 .toast-card.toast-card--out{animation:toastOut .18s ease-in forwards;}
 .toast-card__icon{
@@ -4523,125 +4521,15 @@ function hideOverlay(overlay){
   });
 }
 const TOAST_ICONS = { success: 'fa-check', info: 'fa-info', error: 'fa-xmark' };
-// Toasts beyond the visible cap wait here until a slot frees up, so the
-// oldest toast can finish its exit animation before a new one enters
-// (no sudden/jumping swap).
-const toastQueue = [];
-
 function showToast(message, type, duration = TOAST_DURATION_MS){
   const kind = (type === 'success' || type === 'error') ? type : 'info';
-  toastQueue.push({ message, kind, duration });
-  processToastQueue();
-}
-
-function processToastQueue(){
-  if (!toastQueue.length) return;
-  if (el.toastStack.children.length >= MAX_VISIBLE_TOASTS) {
+  // Keep the toast stack compact: never show more than 3 at once.
+  while (el.toastStack.children.length >= MAX_VISIBLE_TOASTS) {
     const oldest = el.toastStack.firstElementChild;
-    if (!oldest) return;
-    // If the oldest is already animating out (e.g. from a previous call),
-    // do nothing further here — finalizeToastRemoval() will re-run the
-    // queue once it's actually removed.
-    if (!oldest._dismissed) dismissToastCard(oldest);
-    return;
+    if (!oldest) break;
+    clearTimeout(oldest._timer);
+    oldest.remove();
   }
-  const next = toastQueue.shift();
-  renderToastCard(next.message, next.kind, next.duration);
-  processToastQueue();
-}
-
-// Final DOM cleanup shared by every dismissal path (close button, timeout,
-// swipe, or eviction to make room for a new toast).
-function finalizeToastRemoval(card){
-  if (card._removed) return;
-  card._removed = true;
-  clearTimeout(card._timer);
-  card.remove();
-  processToastQueue();
-}
-
-// Standard dismissal: plays the CSS fade/rise-out animation, then removes.
-function dismissToastCard(card){
-  if (card._dismissed) return;
-  card._dismissed = true;
-  clearTimeout(card._timer);
-  card.classList.add('toast-card--out');
-  let settled = false;
-  const settle = () => { if (settled) return; settled = true; finalizeToastRemoval(card); };
-  card.addEventListener('animationend', settle, { once: true });
-  // Safety net in case the animation never fires (e.g. tab backgrounded).
-  setTimeout(settle, 300);
-}
-
-// Swipe dismissal: the card has already been dragged offscreen by the
-// touch handler, so just fade it the rest of the way out and remove it.
-function dismissToastCardBySwipe(card, direction){
-  if (card._dismissed) return;
-  card._dismissed = true;
-  clearTimeout(card._timer);
-  card.style.transition = 'transform .18s ease-in, opacity .18s ease-in';
-  card.style.transform = `translateX(${direction * 400}px)`;
-  card.style.opacity = '0';
-  setTimeout(() => finalizeToastRemoval(card), 180);
-}
-
-const TOAST_SWIPE_DISMISS_PX = 60;
-const TOAST_SWIPE_INTENT_PX = 8;
-
-// Touch-only swipe-to-dismiss. Mouse dragging is intentionally not
-// supported. A predominantly vertical gesture is treated as page scroll
-// and released back to the browser; a short/incomplete horizontal swipe
-// snaps the card back to its resting position.
-function attachToastSwipe(card){
-  let startX = 0, startY = 0, dx = 0, axis = null, tracking = false;
-
-  card.addEventListener('touchstart', (e) => {
-    if (e.touches.length !== 1 || card._dismissed) return;
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
-    dx = 0;
-    axis = null;
-    tracking = true;
-    card.style.transition = 'none';
-  }, { passive: true });
-
-  card.addEventListener('touchmove', (e) => {
-    if (!tracking) return;
-    const t = e.touches[0];
-    const moveX = t.clientX - startX;
-    const moveY = t.clientY - startY;
-    if (axis === null) {
-      if (Math.abs(moveX) < TOAST_SWIPE_INTENT_PX && Math.abs(moveY) < TOAST_SWIPE_INTENT_PX) return;
-      axis = Math.abs(moveX) > Math.abs(moveY) ? 'x' : 'y';
-      if (axis === 'y') { tracking = false; return; }
-    }
-    // Horizontal swipe in progress: drag the card and stop the page from
-    // scrolling underneath it.
-    e.preventDefault();
-    dx = moveX;
-    card.style.transform = `translateX(${dx}px)`;
-    card.style.opacity = String(Math.max(1 - Math.abs(dx) / 200, 0.25));
-  }, { passive: false });
-
-  const endGesture = () => {
-    if (!tracking) return;
-    tracking = false;
-    card.style.transition = '';
-    if (Math.abs(dx) > TOAST_SWIPE_DISMISS_PX) {
-      dismissToastCardBySwipe(card, dx > 0 ? 1 : -1);
-    } else {
-      // Short/incomplete swipe: snap back to the original position.
-      card.style.transform = '';
-      card.style.opacity = '';
-    }
-    dx = 0;
-  };
-
-  card.addEventListener('touchend', endGesture);
-  card.addEventListener('touchcancel', endGesture);
-}
-
-function renderToastCard(message, kind, duration){
   const card = document.createElement('div');
   card.className = `toast-card toast-card--${kind}`;
   card.innerHTML = `
@@ -4652,9 +4540,13 @@ function renderToastCard(message, kind, duration){
     <button type="button" class="toast-card__close" aria-label="Dismiss"><i class="fa-solid fa-xmark"></i></button>
   `;
   card.querySelector('.toast-card__msg').textContent = message;
-  card.querySelector('.toast-card__close').addEventListener('click', () => dismissToastCard(card));
-  card._timer = setTimeout(() => dismissToastCard(card), duration);
-  attachToastSwipe(card);
+  const dismiss = () => {
+    clearTimeout(card._timer);
+    card.classList.add('toast-card--out');
+    card.addEventListener('animationend', () => card.remove(), { once: true });
+  };
+  card.querySelector('.toast-card__close').addEventListener('click', dismiss);
+  card._timer = setTimeout(dismiss, duration);
   el.toastStack.appendChild(card);
 }
 function validateField(elInput, type = 'text') {
