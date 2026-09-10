@@ -2,7 +2,6 @@
   "name": "JAS Tech Billing",
   "short_name": "JAS Billing",
   "description": "Generate professional JAS Tech invoices in seconds with our easy-to-use billing app. Create, customize, and send invoices effortlessly.",
-  "version": "2.1.6",
   "start_url": "./index.html",
   "scope": "./",
   "id": "./",
