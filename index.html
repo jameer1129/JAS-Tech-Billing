@@ -684,7 +684,7 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{color:#63B3ED;}
   gap:12px;
   min-width:0;
   overflow:hidden;
-  padding:10px;
+  padding:12px 10px 10px;
   border:1px solid var(--line);
   border-radius:12px;
   animation:toastIn .22s ease-out forwards;
@@ -710,7 +710,7 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{color:#63B3ED;}
   display:flex;
   align-items:center;
   justify-content:center;
-  font-size:16px;
+  font-size:14px;
   color:#FFFFFF;
   background:var(--toast-accent);
 }
@@ -745,7 +745,7 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{color:#63B3ED;}
 .toast-card--warning{--toast-accent:#FBBF24;background:#FFFBEB;border-color:#FBBF24aa;}
 .toast-card--error{--toast-accent:#EF233C;background:#FFF1F2;border-color:#EF233Caa;}
 /* Warning uses a black symbol, while success/info/error symbols stay white. */
-.toast-card--warning .toast-card__icon{color:#FFC122;background:black;font-size:24px;width:6px;height:14px;margin:0 12px; }
+.toast-card--warning .toast-card__icon{color:#FFC122;background:black;font-size:24px;width:6px;height:14px;margin:9px 12px; }
 /* ---------- Dark Theme ---------- */
 body.dark-theme .toast-card{border-color:#17344E;background:#081A2A;box-shadow:0 6px 18px rgba(0,0,0,.28);}
 body.dark-theme .toast-card__close:hover{background:rgba(255,255,255,.08);color:#FFFFFF;}
@@ -3849,7 +3849,7 @@ const USERS_PAGE_SIZE = 10;
 const A4_PAGE_HEIGHT_PX = 1123; // A4 height in px at 96dpi, used for PDF pagination
 const TOAST_DURATION_MS = 2500;
 const AUTH_TOAST_DURATION_MS = 5000;
-const MAX_VISIBLE_TOASTS = 3;
+const MAX_VISIBLE_TOASTS = 4;
 const SEARCH_DEBOUNCE_MS = 500;
 const MAX_BILL_TOTAL = 9999999999.99; // matches bills.total numeric(12,2) in schema.sql
 let _openDatePickerClose = null;
