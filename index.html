@@ -5180,7 +5180,7 @@ function getSignupExpiryRemaining(sentAt){
   if (!sentAt) return 0;
   return Math.max(0, SIGNUP_OTP_EXPIRY_SECONDS - Math.floor((Date.now() - sentAt) / 1000));
 }
-function showVerificationMsg(message, kind = 'error'){ showToast(message, kind); }
+function showVerificationMsg(message, kind = 'error'){ showToast(message, kind, AUTH_TOAST_DURATION_MS); }
 function hideVerificationMsg(){ /* Toasts are independently dismissible. */ }
 function updateVerificationTimers(){
   const { sentAt } = getPendingSignup();
@@ -5740,22 +5740,22 @@ async function handleForgotPassword(){
 async function handleResetPassword(){
   const newPw = el.resetNewPassword.value;
   const confirmPw = el.resetConfirmPassword.value;
-  if (!newPw || !confirmPw) return showToast('Enter both passwords.', 'warning');
+  if (!newPw || !confirmPw) return showToast('Enter both passwords.', 'warning', AUTH_TOAST_DURATION_MS);
   const pwErr = validateNewPassword(newPw, confirmPw);
-  if (pwErr) return showToast(pwErr, 'warning');
+  if (pwErr) return showToast(pwErr, 'warning', AUTH_TOAST_DURATION_MS);
   await withGuardedSubmit(el.btnUpdateResetPassword, 'Updating password…', async () => {
     const { error } = await supabaseClient.auth.updateUser({ password: newPw });
     if (error) {
-      showToast(error.message || 'Failed to update password. Please try again.', 'error');
+      showToast(error.message || 'Failed to update password. Please try again.', 'error', AUTH_TOAST_DURATION_MS);
       return;
     }
     el.resetNewPassword.value = '';
     el.resetConfirmPassword.value = '';
     clearPasswordRecoveryPending();
     if (sameAccountRecovery) {
-      showToast('Password updated successfully. Other devices have been signed out.', 'success');
+      showToast('Password updated successfully. Other devices have been signed out.', 'success', AUTH_TOAST_DURATION_MS);
     } else {
-      showToast('Password updated successfully! Redirecting to login...', 'success');
+      showToast('Password updated successfully! Redirecting to login...', 'success', AUTH_TOAST_DURATION_MS);
     }
     setTimeout(async () => {
       if (sameAccountRecovery) {
@@ -5787,12 +5787,12 @@ async function handleResetPassword(){
           // The password change itself succeeded. Do not falsely report the
           // operation as failed, but do not pretend this device is still
           // authenticated either. The next load will go through normal login.
-          showToast('Password updated, but this device could not stay signed in. Please log in again.', 'warning');
+          showToast('Password updated, but this device could not stay signed in. Please log in again.', 'warning', AUTH_TOAST_DURATION_MS);
         } else if (localClient) {
           const { error: otherSessionsError } = await localClient.auth.signOut({ scope: 'others' });
           if (otherSessionsError) {
             console.error('Could not sign out other sessions after recovery password reset:', otherSessionsError);
-            showToast('Password updated, but other devices could not be signed out.', 'warning');
+            showToast('Password updated, but other devices could not be signed out.', 'warning', AUTH_TOAST_DURATION_MS);
           }
         }
 
@@ -5808,7 +5808,7 @@ async function handleResetPassword(){
       // recovery returns directly to the already-authenticated app.
       window.location.href = window.location.origin + window.location.pathname;
     }, 1500);
-  }, () => showToast('Failed to update password. Please try again.', 'error'));
+  }, () => showToast('Failed to update password. Please try again.', 'error', AUTH_TOAST_DURATION_MS));
 }
 async function handleLogout(){
   showActionLoader('Logging Out…');
@@ -7520,7 +7520,7 @@ async function handleChangePassword(){
   const confirmPw = el.changePwConfirm.value;
   if (!currentPw) return showToast('Enter your current password.', 'warning');
   const pwErr = validateNewPassword(newPw, confirmPw, 'New password');
-  if (pwErr) return showToast(pwErr, 'warning');
+  if (pwErr) return showToast(pwErr, 'warning', AUTH_TOAST_DURATION_MS);
 
   await withGuardedSubmit(el.btnConfirmChangePw, 'Updating password…', async () => {
     const email = (currentSession?.user?.email || currentProfile?.email || '').trim().toLowerCase();
@@ -7595,7 +7595,7 @@ async function handleChangePassword(){
       });
       if (localSignInError) {
         console.error('Password changed but this device could not be re-authenticated:', localSignInError);
-        showToast('Password updated, but this device could not stay signed in. Please log in again.', 'warning');
+        showToast('Password updated, but this device could not stay signed in. Please log in again.', 'warning', AUTH_TOAST_DURATION_MS);
         return;
       }
 
@@ -7606,11 +7606,11 @@ async function handleChangePassword(){
 
       if (otherSessionsError) {
         console.error('Could not sign out other sessions after password change:', otherSessionsError);
-        showToast('Password updated, but other devices could not be signed out.', 'warning');
+        showToast('Password updated, but other devices could not be signed out.', 'warning', AUTH_TOAST_DURATION_MS);
         return;
       }
 
-      showToast('Password updated successfully. Other devices have been signed out.', 'success');
+      showToast('Password updated successfully. Other devices have been signed out.', 'success', AUTH_TOAST_DURATION_MS);
     } finally {
       try { await passwordClient?.auth.signOut({ scope: 'local' }); } catch (err) { console.error(err); }
     }
