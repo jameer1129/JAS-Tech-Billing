@@ -5043,7 +5043,7 @@ async function handleGoogleLogin(){
     }
   }
 }
-function showAuthMsg(msg, kind = 'error'){ showToast(msg, kind, AUTH_TOAST_DURATION_MS); }
+function showAuthMsg(msg, kind = 'error'){ hideActionLoader(); showToast(msg, kind, AUTH_TOAST_DURATION_MS); }
 function hideAuthMsg(){ /* Toasts are independently dismissible. */ }
 let offlineStartup = false;
 let offlineScreenReason = null;
@@ -5180,7 +5180,7 @@ function getSignupExpiryRemaining(sentAt){
   if (!sentAt) return 0;
   return Math.max(0, SIGNUP_OTP_EXPIRY_SECONDS - Math.floor((Date.now() - sentAt) / 1000));
 }
-function showVerificationMsg(message, kind = 'error'){ showToast(message, kind, AUTH_TOAST_DURATION_MS); }
+function showVerificationMsg(message, kind = 'error'){ hideActionLoader(); showToast(message, kind, AUTH_TOAST_DURATION_MS); }
 function hideVerificationMsg(){ /* Toasts are independently dismissible. */ }
 function updateVerificationTimers(){
   const { sentAt } = getPendingSignup();
@@ -5740,22 +5740,22 @@ async function handleForgotPassword(){
 async function handleResetPassword(){
   const newPw = el.resetNewPassword.value;
   const confirmPw = el.resetConfirmPassword.value;
-  if (!newPw || !confirmPw) return showToast('Enter both passwords.', 'warning', AUTH_TOAST_DURATION_MS);
+  if (!newPw || !confirmPw) return (hideActionLoader(), showToast('Enter both passwords.', 'warning', AUTH_TOAST_DURATION_MS));
   const pwErr = validateNewPassword(newPw, confirmPw);
-  if (pwErr) return showToast(pwErr, 'warning', AUTH_TOAST_DURATION_MS);
+  if (pwErr) return (hideActionLoader(), showToast(pwErr, 'warning', AUTH_TOAST_DURATION_MS));
   await withGuardedSubmit(el.btnUpdateResetPassword, 'Updating password…', async () => {
     const { error } = await supabaseClient.auth.updateUser({ password: newPw });
     if (error) {
-      showToast(error.message || 'Failed to update password. Please try again.', 'error', AUTH_TOAST_DURATION_MS);
+      hideActionLoader(); showToast(error.message || 'Failed to update password. Please try again.', 'error', AUTH_TOAST_DURATION_MS);
       return;
     }
     el.resetNewPassword.value = '';
     el.resetConfirmPassword.value = '';
     clearPasswordRecoveryPending();
     if (sameAccountRecovery) {
-      showToast('Password updated successfully. Other devices have been signed out.', 'success', AUTH_TOAST_DURATION_MS);
+      hideActionLoader(); showToast('Password updated successfully. Other devices have been signed out.', 'success', AUTH_TOAST_DURATION_MS);
     } else {
-      showToast('Password updated successfully! Redirecting to login...', 'success', AUTH_TOAST_DURATION_MS);
+      hideActionLoader(); showToast('Password updated successfully! Redirecting to login...', 'success', AUTH_TOAST_DURATION_MS);
     }
     setTimeout(async () => {
       if (sameAccountRecovery) {
@@ -5787,12 +5787,12 @@ async function handleResetPassword(){
           // The password change itself succeeded. Do not falsely report the
           // operation as failed, but do not pretend this device is still
           // authenticated either. The next load will go through normal login.
-          showToast('Password updated, but this device could not stay signed in. Please log in again.', 'warning', AUTH_TOAST_DURATION_MS);
+          hideActionLoader(); showToast('Password updated, but this device could not stay signed in. Please log in again.', 'warning', AUTH_TOAST_DURATION_MS);
         } else if (localClient) {
           const { error: otherSessionsError } = await localClient.auth.signOut({ scope: 'others' });
           if (otherSessionsError) {
             console.error('Could not sign out other sessions after recovery password reset:', otherSessionsError);
-            showToast('Password updated, but other devices could not be signed out.', 'warning', AUTH_TOAST_DURATION_MS);
+            hideActionLoader(); showToast('Password updated, but other devices could not be signed out.', 'warning', AUTH_TOAST_DURATION_MS);
           }
         }
 
@@ -6753,6 +6753,7 @@ async function generatePdfBlob(){
     try {
       html2pdfFn = await loadHtml2Pdf();
     } catch (err) {
+      hideActionLoader();
       showToast('Could not load the PDF engine. Check your connection and try again.', 'error');
       throw err;
     }
@@ -6844,9 +6845,11 @@ async function handleSaveChoice(saveToDb){
         } catch (saveErr) {
           if (saveErr && saveErr.code === '22003') {
             console.warn('Bill total too large to save:', saveErr);
+            hideActionLoader();
             showToast('Total is too large to save. Downloading without saving instead.', 'warning');
             saveToDb = false;
           } else if (saveErr && saveErr.message && saveErr.message.includes('Daily invoice limit reached')) {
+            hideActionLoader();
             showToast('Daily invoice limit reached. No more official invoices can be created today.', 'warning');
             throw saveErr;
           } else {
@@ -7187,9 +7190,11 @@ async function deleteBill(){
     const { error } = await supabaseClient.from('bills').delete().eq('invoice_no', pendingDeleteBillId);
     if (error) {
       console.error(error);
+      hideActionLoader();
       showToast('Could not delete bill.', 'error');
       return;
     }
+    hideActionLoader();
     showToast('Bill deleted', 'success');
     loadBills();
   } finally {
@@ -7457,12 +7462,14 @@ async function setUserStatus(userId, status){
       .update({ status })
       .eq('id', userId);
     if (error) throw error;
+    hideActionLoader();
     showToast(status === 'approved' ? 'User approved' : 'User rejected', 'success');
     loadAdminStats();
     loadPendingUsers();
     loadAllUsers();
   } catch (error) {
     console.error(error);
+    hideActionLoader();
     showToast('Action failed.', 'error');
   } finally {
     hideActionLoader();
@@ -7481,10 +7488,12 @@ async function setUserRole(userId, role){
       .update({ role })
       .eq('id', userId);
     if (error) throw error;
+    hideActionLoader();
     showToast('Role updated', 'success');
     loadAllUsers();
   } catch (error) {
     console.error(error);
+    hideActionLoader();
     showToast('Could not change role.', 'error');
     loadAllUsers();
   } finally {
@@ -7518,14 +7527,14 @@ async function handleChangePassword(){
   const currentPw = el.changePwCurrent.value;
   const newPw = el.changePwNew.value;
   const confirmPw = el.changePwConfirm.value;
-  if (!currentPw) return showToast('Enter your current password.', 'warning');
+  if (!currentPw) return (hideActionLoader(), showToast('Enter your current password.', 'warning', AUTH_TOAST_DURATION_MS));
   const pwErr = validateNewPassword(newPw, confirmPw, 'New password');
-  if (pwErr) return showToast(pwErr, 'warning', AUTH_TOAST_DURATION_MS);
+  if (pwErr) return (hideActionLoader(), showToast(pwErr, 'warning', AUTH_TOAST_DURATION_MS));
 
   await withGuardedSubmit(el.btnConfirmChangePw, 'Updating password…', async () => {
     const email = (currentSession?.user?.email || currentProfile?.email || '').trim().toLowerCase();
     if (!email) {
-      showToast('Could not determine the account email. Please log in again.', 'error');
+      hideActionLoader(); showToast('Could not determine the account email. Please log in again.', 'error', AUTH_TOAST_DURATION_MS);
       return;
     }
 
@@ -7548,7 +7557,7 @@ async function handleChangePassword(){
         password: currentPw
       });
       if (verifyError) {
-        showToast('Current password is incorrect.', 'warning');
+        hideActionLoader(); showToast('Current password is incorrect.', 'warning', AUTH_TOAST_DURATION_MS);
         return;
       }
 
@@ -7578,9 +7587,9 @@ async function handleChangePassword(){
           console.error('Password update failed:', updateError);
           const text = `${updateError?.message || ''} ${updateError?.code || ''}`.toLowerCase();
           if (text.includes('current password') || text.includes('password')) {
-            showToast(updateError.message || 'Current password is incorrect.', 'error');
+            hideActionLoader(); showToast(updateError.message || 'Current password is incorrect.', 'error', AUTH_TOAST_DURATION_MS);
           } else {
-            showToast(updateError.message || 'Could not update password.', 'error');
+            hideActionLoader(); showToast(updateError.message || 'Could not update password.', 'error', AUTH_TOAST_DURATION_MS);
           }
           return;
         }
@@ -7595,7 +7604,7 @@ async function handleChangePassword(){
       });
       if (localSignInError) {
         console.error('Password changed but this device could not be re-authenticated:', localSignInError);
-        showToast('Password updated, but this device could not stay signed in. Please log in again.', 'warning', AUTH_TOAST_DURATION_MS);
+        hideActionLoader(); showToast('Password updated, but this device could not stay signed in. Please log in again.', 'warning', AUTH_TOAST_DURATION_MS);
         return;
       }
 
@@ -7606,15 +7615,15 @@ async function handleChangePassword(){
 
       if (otherSessionsError) {
         console.error('Could not sign out other sessions after password change:', otherSessionsError);
-        showToast('Password updated, but other devices could not be signed out.', 'warning', AUTH_TOAST_DURATION_MS);
+        hideActionLoader(); showToast('Password updated, but other devices could not be signed out.', 'warning', AUTH_TOAST_DURATION_MS);
         return;
       }
 
-      showToast('Password updated successfully. Other devices have been signed out.', 'success', AUTH_TOAST_DURATION_MS);
+      hideActionLoader(); showToast('Password updated successfully. Other devices have been signed out.', 'success', AUTH_TOAST_DURATION_MS);
     } finally {
       try { await passwordClient?.auth.signOut({ scope: 'local' }); } catch (err) { console.error(err); }
     }
-  }, () => showToast('Could not update password. Please try again.', 'error'));
+  }, () => { hideActionLoader(); showToast('Could not update password. Please try again.', 'error', AUTH_TOAST_DURATION_MS); });
 }
 let pendingRecoveryConflict = null;
 let pendingChangePwForgotLogout = false;
