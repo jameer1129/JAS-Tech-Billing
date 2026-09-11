@@ -710,7 +710,7 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{color:#63B3ED;}
   display:flex;
   align-items:center;
   justify-content:center;
-  font-size:18px;
+  font-size:16px;
   color:#FFFFFF;
   background:var(--toast-accent);
 }
@@ -718,7 +718,8 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{color:#63B3ED;}
 .toast-card__msg{
   margin: 0;
   color: var(--text);
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: 600;
   word-break: break-word;
   overflow-wrap: anywhere;
 }
@@ -739,10 +740,10 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{color:#63B3ED;}
   transition:background .15s ease,color .15s ease;
 }
 .toast-card__close:hover{background:rgba(17,27,58,.06);color:#111B3A;}
-.toast-card--success{--toast-accent:#16A34A;background:#F0FDF4;border-color:#16A34A;}
-.toast-card--info{--toast-accent:#1677FF;background:#EFF6FF;border-color:#1677FF;}
-.toast-card--warning{--toast-accent:#FBBF24;background:#FFFBEB;border-color:#FBBF24;}
-.toast-card--error{--toast-accent:#EF233C;background:#FFF1F2;border-color:#EF233C;}
+.toast-card--success{--toast-accent:#16A34A;background:#F0FDF4;border-color:#16a34aaa;}
+.toast-card--info{--toast-accent:#1677FF;background:#EFF6FF;border-color:#1677FFaa;}
+.toast-card--warning{--toast-accent:#FBBF24;background:#FFFBEB;border-color:#FBBF24aa;}
+.toast-card--error{--toast-accent:#EF233C;background:#FFF1F2;border-color:#EF233Caa;}
 /* Warning uses a black symbol, while success/info/error symbols stay white. */
 .toast-card--warning .toast-card__icon{color:#FFC122;background:black;font-size:24px;width:6px;height:14px;margin:0 12px; }
 /* ---------- Dark Theme ---------- */
@@ -6053,13 +6054,10 @@ function switchView(view){
   }
   let restoredDraft = false;
   if (view === 'newBill' && (loadedBillForPrint !== null || isPreviousBillMode)) {
-    // A previous bill was loaded only for viewing/printing. It must NEVER
-    // become the new bill or be offered by the autosave restore flow.
-    // Whatever the user was actually working on before opening the preview
-    // is brought back instead of being wiped.
-    isPreviousBillMode = false;
-    loadedBillForPrint = null;
-    restoredDraft = restoreDraftAfterPreviousBill();
+    // A previous bill was loaded only for viewing/printing. Close the preview
+    // through the same path as its X button, then restore the New Bill draft.
+    closePreviewModal();
+    restoredDraft = true;
   }
   // Check for restore every time switching to newBill tab, but never after
   // viewing a previous bill (and never if we just restored the draft above).
@@ -6314,21 +6312,14 @@ function openResetModal(){
 }
 function closeResetModal(){
   hideOverlay(el.resetModalOverlay);
-  // A previous bill is only a temporary preview. Never allow that preview
-  // to remain underneath/reappear after the reset dialog is closed.
-  if (loadedBillForPrint !== null) {
-    hideOverlay(el.previewModalOverlay);
-    const scaleContainer = document.getElementById('previewScaleContainer');
-    if (scaleContainer) scaleContainer.innerHTML = '';
-    loadedBillForPrint = null;
-  }
 }
-function resetInvoice(showeToast=true){
-  // Reset must also terminate any previous-bill preview state first.
+function resetInvoice(showeToast=true, clearAutosave=true){
+  // Reset is the single source of truth for starting a fresh New Bill.
   hideOverlay(el.previewModalOverlay);
   const scaleContainer = document.getElementById('previewScaleContainer');
   if (scaleContainer) scaleContainer.innerHTML = '';
   loadedBillForPrint = null;
+  isPreviousBillMode = false;
   state.customer = { name: '', address: '', mobile: '' };
   state.products = [];
   state.nextId = 1;
@@ -6341,11 +6332,9 @@ function resetInvoice(showeToast=true){
   renderProducts();
   updateSummary();
   closeResetModal();
-  // Every call to resetInvoice() represents a deliberate "start fresh"
-  // moment (explicit reset, nothing-to-restore fallback, or post-download/
-  // post-save cleanup) — the stale autosave must go with it, or the restore
-  // prompt will keep re-offering a bill the user already finished with.
-  clearSavedBillState();
+  // Normal Reset clears the autosaved draft. Previous-bill restoration can
+  // reset the visible form without destroying an unrelated autosave.
+  if (clearAutosave) clearSavedBillState();
   if(showeToast) showToast('Invoice reset', 'success');
 }
 function renderProducts(){
@@ -6657,39 +6646,42 @@ function closePreviewModal(){
   // Closing the preview must immediately return the New Bill form to whatever
   // draft the user was actually working on (or a clean state if there wasn't one).
   if (wasPreviousBill) {
-    isPreviousBillMode = false;
     restoreDraftAfterPreviousBill();
   }
   return closed; // resolves once the close animation is fully done
 }
 function restoreDraftAfterPreviousBill(){
-  // Undo the temporary in-memory overwrite that happens while previewing a
-  // previous bill, bringing back the New Bill draft the user was working on.
-  hideOverlay(el.previewModalOverlay).then(clearPreviewScaleContainer);
+  // Previous Bills temporarily use `state` for read-only preview/printing.
+  // Restore the New Bill snapshot without touching its autosave.
   loadedBillForPrint = null;
+  isPreviousBillMode = false;
+
   if (!draftBillSnapshot) {
-    // Nothing was in progress before the preview - just clear to a fresh invoice.
-    clearSavedBillState();
-    resetInvoice(false);
+    // No in-memory New Bill was active. Start with a clean visible form, but
+    // keep any separate autosaved draft so New Bill can still offer Restore.
+    resetInvoice(false, false);
     return false;
   }
-  state.customer = draftBillSnapshot.customer;
-  state.invoiceNumber = draftBillSnapshot.invoiceNumber;
-  state.notes = draftBillSnapshot.notes;
-  state.products = draftBillSnapshot.products;
-  state.nextId = draftBillSnapshot.nextId;
-  state.showWatermark = draftBillSnapshot.showWatermark;
-  state.showQr = draftBillSnapshot.showQr;
-  state.showSignature = draftBillSnapshot.showSignature;
-  state.includeNotesOnPdf = draftBillSnapshot.includeNotesOnPdf;
+
+  const draft = draftBillSnapshot;
+  draftBillSnapshot = null;
+  state.customer = JSON.parse(JSON.stringify(draft.customer));
+  state.invoiceNumber = draft.invoiceNumber;
+  state.dateStr = draft.dateStr;
+  state.notes = draft.notes;
+  state.products = JSON.parse(JSON.stringify(draft.products));
+  state.nextId = draft.nextId;
+  state.showWatermark = draft.showWatermark;
+  state.showQr = draft.showQr;
+  state.showSignature = draft.showSignature;
+  state.includeNotesOnPdf = draft.includeNotesOnPdf;
   syncCustomerFieldsFromState();
   el.customerName.classList.remove('input-error');
   syncDisplayToggleState();
   el.invoiceNotes.value = state.notes || '';
-  applyRestoredInvoiceDate(draftBillSnapshot.invoiceDateValue);
+  applyRestoredInvoiceDate(draft.invoiceDateValue);
   renderProducts();
   updateSummary();
-  draftBillSnapshot = null;
   return true;
 }
 /* ===================================================================
@@ -6830,8 +6822,6 @@ function closePdfActionModal(){
     // Previous bills are read-only: never reset the form here (that would
     // wipe the user's real draft). Restore whatever New Bill draft the user
     // was actually working on before they opened this previous bill.
-    isPreviousBillMode = false;
-    loadedBillForPrint = null;
     restoreDraftAfterPreviousBill();
   } else if (wasSaved) {
     resetInvoice(false);
