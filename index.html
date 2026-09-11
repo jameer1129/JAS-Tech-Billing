@@ -671,7 +671,7 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{color:#63B3ED;}
   pointer-events:none;
 }
 .toast-card{
-  --toast-accent:#1769FF;
+  --toast-accent:var(--primary-text);
   pointer-events:auto;
   position:relative;
   display:flex;
@@ -679,20 +679,33 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{color:#63B3ED;}
   gap:12px;
   min-width:0;
   overflow:hidden;
-  padding:12px;
-  border: 1px solid var(--line);
-  border-radius:14px;
+  padding:10px;
+  border:1px solid var(--line);
+  border-radius:12px;
   animation:toastIn .22s ease-out forwards;
+  box-shadow:var(--shadow-sm);
 }
 .toast-card.toast-card--out{animation:toastOut .18s ease-in forwards;}
+.toast-card__timeout{
+  position:absolute;
+  top:0;
+  left:0;
+  width:100%;
+  height:4px;
+  border-radius:999px;
+  background:var(--toast-accent);
+  transform-origin:left center;
+  animation:toastTimeout linear forwards;
+  pointer-events:none;
+}
 .toast-card__icon{
-  width:32px;
-  height:32px;
+  width:30px;
+  height:30px;
   border-radius:50%;
   display:flex;
   align-items:center;
   justify-content:center;
-  font-size:15px;
+  font-size:18px;
   color:#FFFFFF;
   background:var(--toast-accent);
 }
@@ -700,9 +713,7 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{color:#63B3ED;}
 .toast-card__msg{
   margin: 0;
   color: var(--text);
-  font-size: 14px;
-  font-weight: 650;
-  line-height: 1.4;
+  font-size: 13px;
   word-break: break-word;
   overflow-wrap: anywhere;
 }
@@ -723,19 +734,24 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{color:#63B3ED;}
   transition:background .15s ease,color .15s ease;
 }
 .toast-card__close:hover{background:rgba(17,27,58,.06);color:#111B3A;}
-.toast-card--success{--toast-accent:#4FDD6B;background:#F1F9F4;border-color:#4FDC6A;}
-.toast-card--info{--toast-accent:#3189EF;background:#E7EEFA;border-color:#2D7AC9;}
-.toast-card--warning{--toast-accent:#FFC122;background:#FEF7EA;border-color:#F3BD35;}
-.toast-card--error{--toast-accent:#FC5859;background:#FCEFEA;border-color:#E54A52;}
+.toast-card--success{--toast-accent:#16A34A;background:#F0FDF4;border-color:#86EFAC;}
+.toast-card--info{--toast-accent:#1677FF;background:#EFF6FF;border-color:#93C5FD;}
+.toast-card--warning{--toast-accent:#FBBF24;background:#FFFBEB;border-color:#FBBF24;}
+.toast-card--error{--toast-accent:#EF233C;background:#FFF1F2;border-color:#FDA4AF;}
+/* Warning uses a black symbol, while success/info/error symbols stay white. */
+.toast-card--warning .toast-card__icon{color:#FFC122;background:black;font-size:24px;width:6px;height:14px;margin:0 12px; }
 /* ---------- Dark Theme ---------- */
 body.dark-theme .toast-card{border-color:#17344E;background:#081A2A;box-shadow:0 6px 18px rgba(0,0,0,.28);}
-body.dark-theme .toast-card__msg{color:#F5F7FB;}
-body.dark-theme .toast-card__close{color:#E7EDF7;}
 body.dark-theme .toast-card__close:hover{background:rgba(255,255,255,.08);color:#FFFFFF;}
-body.dark-theme .toast-card--success{--toast-accent:#4FDD6B;background:#0D2417;border-color:#3ED866;}
-body.dark-theme .toast-card--info{--toast-accent:#3189EF;background:#0E2036;border-color:#2D7AC9;}
-body.dark-theme .toast-card--warning{--toast-accent:#FFC122;background:#2A210C;border-color:#F3BD35;}
-body.dark-theme .toast-card--error{--toast-accent:#FC5859;background:#2B1514;border-color:#E54A52;}
+body.dark-theme .toast-card--success{background:#0D2417;border-color:#16A34A;}
+body.dark-theme .toast-card--info{background:#0E2036;border-color:#1677FF;}
+body.dark-theme .toast-card--warning{background:#2A210C;border-color:#FBBF24;}
+body.dark-theme .toast-card--error{background:#2B1514;border-color:#EF233C;}
+
+@keyframes toastTimeout{
+  from{transform:scaleX(1);}
+  to{transform:scaleX(0);}
+}
 
 @keyframes toastIn{
   0%{opacity:0;transform:translateY(-14px) scale(.98);}
@@ -2810,7 +2826,7 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
     </p>
     <button class="btn btn--primary" id="btnOfflineRetry" type="button">
       <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
-      Try Again
+      Retry
     </button>
     <div class="offline-screen__divider" aria-hidden="true">
       <span>or</span>
@@ -3296,6 +3312,10 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
       </div>
       <div id="billsLoading" class="bills-loading-skeleton hide" aria-hidden="true">
   <div class="bills-loading-skeleton__grid">
+    <div class="bill-card bill-card--skeleton"></div>
+    <div class="bill-card bill-card--skeleton"></div>
+    <div class="bill-card bill-card--skeleton"></div>
+    <div class="bill-card bill-card--skeleton"></div>
     <div class="bill-card bill-card--skeleton"></div>
     <div class="bill-card bill-card--skeleton"></div>
     <div class="bill-card bill-card--skeleton"></div>
@@ -4535,7 +4555,7 @@ function hideOverlay(overlay){
     overlay.addEventListener('animationend', onAnimEnd);
   });
 }
-const TOAST_ICONS = { success: 'fa-check', info: 'fa-info', warning: 'fa-triangle-exclamation', error: 'fa-xmark' };
+const TOAST_ICONS = { success: 'fa-check', info: 'fa-info', warning: 'fa-triangle-exclamation', error: 'fa-exclamation' };
 const toastQueue = [];
 let toastQueueRunning = false;
 
@@ -4543,6 +4563,7 @@ function createToastCard(message, kind, duration){
   const card = document.createElement('div');
   card.className = `toast-card toast-card--${kind}`;
   card.innerHTML = `
+    <div class="toast-card__timeout"></div>
     <div class="toast-card__icon"><i class="fa-solid ${TOAST_ICONS[kind]}"></i></div>
     <div class="toast-card__body">
       <div class="toast-card__msg"></div>
@@ -4563,6 +4584,9 @@ function createToastCard(message, kind, duration){
       if (card.isConnected) card.remove();
     }, 220);
   };
+
+  const timeoutBar = card.querySelector('.toast-card__timeout');
+  if (timeoutBar) timeoutBar.style.animationDuration = `${duration}ms`;
 
   card._timer = setTimeout(removeCard, duration);
   card._dismiss = removeCard;
@@ -5784,7 +5808,7 @@ async function handleLogout(){
   showActionLoader('Logging Out…');
   try {
     // Reset the current invoice first
-    resetInvoice(true);
+    resetInvoice();
     const savedTheme = localStorage.getItem('jas_theme');
     intentionalSignOut = true;
     await supabaseClient.auth.signOut({ scope: 'local' });
@@ -6213,8 +6237,7 @@ function closeRestoreBillModal(){
 // step, and must not have this reset logic re-triggered on top of that.
 function dismissRestoreBillModalAsStartFresh(){
   closeRestoreBillModal();
-  resetInvoice(true); // also clears the saved autosave internally
-  showToast('Invoice reset', 'success');
+  resetInvoice(); // also clears the saved autosave internally
 }
 function normalizeBillForComparison(bill) {
   if (!bill) {
@@ -6295,7 +6318,7 @@ function closeResetModal(){
     loadedBillForPrint = null;
   }
 }
-function resetInvoice(silent = false){
+function resetInvoice(){
   // Reset must also terminate any previous-bill preview state first.
   hideOverlay(el.previewModalOverlay);
   const scaleContainer = document.getElementById('previewScaleContainer');
@@ -6318,7 +6341,7 @@ function resetInvoice(silent = false){
   // post-save cleanup) — the stale autosave must go with it, or the restore
   // prompt will keep re-offering a bill the user already finished with.
   clearSavedBillState();
-  if (!silent) showToast('Invoice reset', 'success');
+  showToast('Invoice reset', 'success');
 }
 function renderProducts(){
   const products = state.products;
@@ -6642,7 +6665,7 @@ function restoreDraftAfterPreviousBill(){
   if (!draftBillSnapshot) {
     // Nothing was in progress before the preview - just clear to a fresh invoice.
     clearSavedBillState();
-    resetInvoice(true);
+    resetInvoice();
     return false;
   }
   state.customer = draftBillSnapshot.customer;
@@ -6806,7 +6829,7 @@ function closePdfActionModal(){
     loadedBillForPrint = null;
     restoreDraftAfterPreviousBill();
   } else if (wasSaved) {
-    resetInvoice(true);
+    resetInvoice();
   }
 }
 async function handleSaveChoice(saveToDb){
@@ -6875,7 +6898,7 @@ function downloadPdfBlob(){
   closePdfActionModal();
   // closePdfActionModal() already restores the draft for a previous bill —
   // resetting here too would wipe that just-restored draft.
-  if (!wasSaved && !wasPreviousBill) resetInvoice(true);
+  if (!wasSaved && !wasPreviousBill) resetInvoice();
 }
 async function sharePdfBlob(){
   if (!_pendingPdfBlob) return;
@@ -6883,13 +6906,12 @@ async function sharePdfBlob(){
   try {
     const file = new File([_pendingPdfBlob], _pendingPdfFilename, { type: 'application/pdf' });
     await navigator.share({ files: [file], title: _pendingPdfFilename });
-    showToast('Invoice shared', 'success');
     const wasSaved = _pdfActionDidSave;
     const wasPreviousBill = _pdfForPreviousBill;
     closePdfActionModal();
     // closePdfActionModal() already restores the draft for a previous bill —
     // resetting here too would wipe that just-restored draft.
-    if (!wasSaved && !wasPreviousBill) resetInvoice(true);
+    if (!wasSaved && !wasPreviousBill) resetInvoice();
   } catch(err){
     if (err.name !== 'AbortError') showToast('Could not share. Try downloading instead.', 'error');
   }
@@ -8281,8 +8303,7 @@ function bindEvents(){
   el.btnRestoreBillReset.addEventListener('click', () => {
     clearSavedBillState();
     closeRestoreBillModal();
-    resetInvoice(true);
-    showToast('Invoice reset', 'success');
+    resetInvoice();
   });
   el.btnRestoreBillRestore.addEventListener('click', () => {
     const restored = restoreBillStateFromLocalStorage();
