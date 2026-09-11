@@ -67,7 +67,7 @@ if ('launchQueue' in window) {
   --focus-ring: rgba(1,37,135,.16);
   --danger: #D64545;
   --success: #1F9254;
-  --warning: #B7791F;
+  --warning: #ff9700;
   --radius: 12px;
   --radius-sm: 8px;
   --shadow-sm:2px 2px 4px rgba(82,120,216,.1);
@@ -748,10 +748,10 @@ body.dark-theme .bills-table thead th.sort-active .sort-arrow{color:#63B3ED;}
 /* ---------- Dark Theme ---------- */
 body.dark-theme .toast-card{border-color:#17344E;background:#081A2A;box-shadow:0 6px 18px rgba(0,0,0,.28);}
 body.dark-theme .toast-card__close:hover{background:rgba(255,255,255,.08);color:#FFFFFF;}
-body.dark-theme .toast-card--success{background:#0D2417;border-color:#16A34A;}
-body.dark-theme .toast-card--info{background:#0E2036;border-color:#1677FF;}
-body.dark-theme .toast-card--warning{background:#2A210C;border-color:#FBBF24;}
-body.dark-theme .toast-card--error{background:#2B1514;border-color:#EF233C;}
+body.dark-theme .toast-card--success{background:#0D2417;border-color:#16a34aaa;}
+body.dark-theme .toast-card--info{background:#0E2036;border-color:#1677FFaa;}
+body.dark-theme .toast-card--warning{background:#2A210C;border-color:#FBBF24aa;}
+body.dark-theme .toast-card--error{background:#2B1514;border-color:#EF233Caa;}
 
 @keyframes toastTimeout{
   from{transform:scaleX(1);}
@@ -5813,7 +5813,7 @@ async function handleLogout(){
   showActionLoader('Logging Out…');
   try {
     // Reset the current invoice first
-    resetInvoice();
+    resetInvoice(false);
     const savedTheme = localStorage.getItem('jas_theme');
     intentionalSignOut = true;
     await supabaseClient.auth.signOut({ scope: 'local' });
@@ -6323,7 +6323,7 @@ function closeResetModal(){
     loadedBillForPrint = null;
   }
 }
-function resetInvoice(){
+function resetInvoice(showeToast=true){
   // Reset must also terminate any previous-bill preview state first.
   hideOverlay(el.previewModalOverlay);
   const scaleContainer = document.getElementById('previewScaleContainer');
@@ -6346,7 +6346,7 @@ function resetInvoice(){
   // post-save cleanup) — the stale autosave must go with it, or the restore
   // prompt will keep re-offering a bill the user already finished with.
   clearSavedBillState();
-  showToast('Invoice reset', 'success');
+  if(showeToast) showToast('Invoice reset', 'success');
 }
 function renderProducts(){
   const products = state.products;
@@ -6670,7 +6670,7 @@ function restoreDraftAfterPreviousBill(){
   if (!draftBillSnapshot) {
     // Nothing was in progress before the preview - just clear to a fresh invoice.
     clearSavedBillState();
-    resetInvoice();
+    resetInvoice(false);
     return false;
   }
   state.customer = draftBillSnapshot.customer;
@@ -6834,7 +6834,7 @@ function closePdfActionModal(){
     loadedBillForPrint = null;
     restoreDraftAfterPreviousBill();
   } else if (wasSaved) {
-    resetInvoice();
+    resetInvoice(false);
   }
 }
 async function handleSaveChoice(saveToDb){
@@ -6903,7 +6903,7 @@ function downloadPdfBlob(){
   closePdfActionModal();
   // closePdfActionModal() already restores the draft for a previous bill —
   // resetting here too would wipe that just-restored draft.
-  if (!wasSaved && !wasPreviousBill) resetInvoice();
+  if (!wasSaved && !wasPreviousBill) resetInvoice(false);
 }
 async function sharePdfBlob(){
   if (!_pendingPdfBlob) return;
@@ -6916,7 +6916,7 @@ async function sharePdfBlob(){
     closePdfActionModal();
     // closePdfActionModal() already restores the draft for a previous bill —
     // resetting here too would wipe that just-restored draft.
-    if (!wasSaved && !wasPreviousBill) resetInvoice();
+    if (!wasSaved && !wasPreviousBill) resetInvoice(false);
   } catch(err){
     if (err.name !== 'AbortError') showToast('Could not share. Try downloading instead.', 'error');
   }
