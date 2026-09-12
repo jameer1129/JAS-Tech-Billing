@@ -1478,7 +1478,7 @@ body:has(.auth-shell:not(.hide)){overflow:hidden;}
 .auth-checkbox-line a{color:var(--primary-text);font-weight:600;text-decoration:none;}
 .auth-checkbox-line a:hover{text-decoration:underline;}
 .auth-bottom-text{text-align:center;font-size:12px;color:var(--muted);margin:20px 0;}
-.auth-link{color:var(--primary-text);font-size:12px;font-weight:600;cursor:pointer;text-decoration:none;transition:text-decoration 0.2s ease;}
+.auth-link{color:var(--primary-text);font-size:12px;font-weight:600;cursor:pointer;text-decoration:none;transition:text-decoration 0.2s ease;display:inline-flex;align-items:center;gap:6px;}
 .auth-link:hover{text-decoration:underline;color:var(--primary-text);}
 /* ---------- Divider ("or") ---------- */
 .auth-divider{
@@ -3025,7 +3025,7 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
       </div>
       <div style="margin-top:12px;display:flex;justify-content:center;">
         <a class="auth-link" id="btnBackFromVerification">
-          <i class="fa-solid fa-arrow-left"></i>Back to Login
+          <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>Back to Login
         </a>
       </div>
     </div>
@@ -3087,10 +3087,11 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
         </button>
       </div>
       <button class="btn btn--primary btn--full" id="btnUpdateResetPassword">
+        <i class="fa-solid fa-key" aria-hidden="true"></i>
         Reset Password
       </button>
       <p class="auth-bottom-text">
-        <a href="#" class="auth-link" id="btnCancelReset"><i class="fa-solid fa-arrow-left"></i>Back to Login</a>
+        <a href="#" class="auth-link" id="btnCancelReset"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i>Back to Login</a>
       </p>
     </div>
   </div>
@@ -3262,7 +3263,7 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
         <i class="fa-regular fa-eye"></i> Preview
       </button>
       <button class="btn btn--primary btn--download" id="btnDownload">
-        <i class="fa-solid fa-download"></i> Download PDF
+        <i class="fa-solid fa-file-arrow-down"></i>Generate PDF
       </button>
       <button class="btn btn--ghost btn--reset" id="btnResetPage">
         <i class="fa-solid fa-rotate-left"></i> Reset Invoice
@@ -3519,7 +3520,7 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
     </div>
     <div class="modal__footer">
       <button class="btn btn--ghost" id="btnClosePreviewModal">Close</button>
-      <button class="btn btn--primary" id="btnDownloadFromPreview"><i class="fa-solid fa-download"></i>Download</button>
+      <button class="btn btn--primary" id="btnDownloadFromPreview"><i class="fa-solid fa-file-pdf"></i>Generate</button>
     </div>
   </div>
 </div>
@@ -8745,7 +8746,7 @@ async function init(){
       const resetUserId = resetSession.user?.id || null;
       if (localUserId && resetUserId && localUserId === resetUserId) {
         sameAccountRecovery = true;
-        el.btnCancelReset.innerHTML = '<i class="fa-solid fa-arrow-left"></i>Back to App';
+        el.btnCancelReset.innerHTML = '<i class="fa-solid fa-arrow-left" aria-hidden="true"></i>Back to App';
         // Same account is already logged in. There's nothing to protect
         // against here (it's their own account), so no confirmation modal
         // is needed. But the person may genuinely have forgotten their
@@ -8762,7 +8763,7 @@ async function init(){
       }
       if (existingNormalSession) {
         sameAccountRecovery = false;
-        el.btnCancelReset.innerHTML = '<i class="fa-solid fa-arrow-left"></i>Back to Login';
+        el.btnCancelReset.innerHTML = '<i class="fa-solid fa-arrow-left" aria-hidden="true"></i>Back to Login';
         // A different account is already logged in. Do NOT log it out silently.
         // Ask first. Cancel keeps the existing account; Log Out & Reset
         // explicitly signs it out and then opens the reset screen.
@@ -8776,7 +8777,7 @@ async function init(){
       }
       // No existing account: this is a genuine password recovery flow.
       sameAccountRecovery = false;
-      el.btnCancelReset.innerHTML = '<i class="fa-solid fa-arrow-left"></i>Back to Login';
+      el.btnCancelReset.innerHTML = '<i class="fa-solid fa-arrow-left" aria-hidden="true"></i>Back to Login';
       setPasswordRecoveryPending();
       currentSession = resetSession;
       el.resetPasswordCompanyName.textContent =
