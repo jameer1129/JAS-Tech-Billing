@@ -102,8 +102,6 @@ to {opacity:0;transform:translateY(6px);}}
 
 @keyframes fadeOut{from{opacity:1;}to{opacity:0;}}
 
-html,body{scrollbar-width:thin;}
-
 @media(prefers-reduced-motion:no-preference){.auth-shell{animation:riseIn .45s ease-out both;}
 .app-shell>.card{animation:riseIn .35s ease-out both;}
 .admin-stat{animation:riseIn .35s ease-out both;}
@@ -131,6 +129,8 @@ html,body{
   color:var(--text);
   -webkit-tap-highlight-color:transparent;
   overflow-x:hidden;
+  scrollbar-width:thin;
+  scrollbar-color:#9F9F9F #2C2C2C;
 }
 
 /* ---------- theme switch: simple crossfade ---------- */
@@ -179,7 +179,6 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield;}
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
 textarea,.customer-suggestions {
-  scrollbar-width: thin;
   scrollbar-color: var(--primary) transparent;
 }
 .hide{display: none !important;}
@@ -857,8 +856,8 @@ body.dark-theme .confirm-icon--info{background:rgba(1,37,135,.5);}
   flex-direction: column;
   background: #525659 !important;
 }
-.modal--preview .modal__header{background: var(--surface);border-radius: var(--radius) var(--radius) 0 0;}
-.modal--preview .modal__footer{background: var(--surface);border-radius: 0 0 var(--radius) var(--radius);}
+.modal--preview .modal__header{background: var(--surface);border-radius: var(--radius) var(--radius) 0 0; padding: 16px 20px 12px; border-bottom: 1.5px solid var(--line);}
+.modal--preview .modal__footer{background: var(--surface);border-radius: 0 0 var(--radius) var(--radius); padding: 12px 20px 16px; border-top: 1.5px solid var(--line);}
 .modal--preview .modal__body{
   padding: 20px 0;
   overflow-y: auto;
@@ -869,6 +868,7 @@ body.dark-theme .confirm-icon--info{background:rgba(1,37,135,.5);}
   gap: 20px;
   min-height: 400px;
   width: 100%;
+  scrollbar-width:thin;
 }
 #previewScaleContainer{display: flex;flex-direction: column;gap: 24px;transform-origin: top center;width: 794px;}
 /* ==========================================================
@@ -2729,7 +2729,7 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
 .qr-block span{
   background:var(--primary);
   color:#FFFFFF;
-  padding:3px 10px 5px 10px;
+  padding:3px 10px 4px;
   border-radius:10px;
   font-size:10px;
   font-weight:600;
