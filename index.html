@@ -846,6 +846,11 @@ body.dark-theme .toast-card--error{background:#2B1514;border-color:#EF233Caa;}
 body.dark-theme .confirm-icon--info{background:rgba(1,37,135,.5);}
 .modal--confirm p{margin:0;color:var(--muted);font-size:13.5px;line-height:1.5;}
 .modal--confirm .confirm-target{color:var(--primary-text);font-weight:700;overflow-wrap:anywhere;word-break:break-word;}
+
+/* ---------- PWA update modal ---------- */
+.pwa-update-modal .modal{max-width:400px;}
+.pwa-update-modal .modal__header{position:relative;padding-top:24px;}
+.pwa-update-modal .modal__footer{gap:10px;}
 .modal--preview{z-index: 150 !important;align-items: center !important;}
 .modal--preview .modal{
   max-width: 840px;
@@ -3696,6 +3701,21 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
     </div>
   </div>
 </div>
+<div class="modal-overlay modal--confirm pwa-update-modal hide" id="pwaUpdateModalOverlay" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pwaUpdateModalTitle">
+    <div class="modal__header">
+      <div class="confirm-icon confirm-icon--info"><i class="fa-solid fa-rotate"></i></div>
+      <h3 id="pwaUpdateModalTitle">Update Available</h3>
+    </div>
+    <div class="modal__body">
+      <p>A new version of JAS Billing is available. Update now to use the latest version.</p>
+    </div>
+    <div class="modal__footer">
+      <button type="button" class="btn btn--ghost" id="btnPwaUpdateLater">Later</button>
+      <button type="button" class="btn btn--primary" id="btnPwaUpdateNow"><i class="fa-solid fa-download" aria-hidden="true"></i> Update</button>
+    </div>
+  </div>
+</div>
 <div class="toast-stack" id="toastStack"></div>
 <div id="pdfRenderWrap">
   <div id="pdfWrapper" class="pdf-wrapper-container">
@@ -4039,6 +4059,9 @@ function cacheElements(){
   el.logoutModalMessage = document.getElementById('logoutModalMessage');
   el.logoutModalEmail = document.getElementById('logoutModalEmail');
   el.expiredRecoveryModalOverlay = document.getElementById('expiredRecoveryModalOverlay');
+  el.pwaUpdateModalOverlay = document.getElementById('pwaUpdateModalOverlay');
+  el.btnPwaUpdateLater = document.getElementById('btnPwaUpdateLater');
+  el.btnPwaUpdateNow = document.getElementById('btnPwaUpdateNow');
   el.expiredRecoveryMessage = document.getElementById('expiredRecoveryMessage');
   el.btnCancelExpiredRecovery = document.getElementById('btnCancelExpiredRecovery');
   el.btnActionExpiredRecovery = document.getElementById('btnActionExpiredRecovery');
@@ -7952,6 +7975,94 @@ function syncDisplayToggleState(){
   if (toggleWraps.signature) toggleWraps.signature.style.display = signatureEnabledByConfig ? '' : 'none';
   updateNotesInputState();
 }
+let pwaUpdateRegistration = null;
+let pwaUpdateModalVisible = false;
+let pwaUpdateReloading = false;
+
+async function dismissPwaUpdateAsLater(){
+  if (!el.pwaUpdateModalOverlay) return;
+  pwaUpdateModalVisible = false;
+  el.pwaUpdateModalOverlay.setAttribute('aria-hidden', 'true');
+  await hideOverlay(el.pwaUpdateModalOverlay);
+}
+
+function showPwaUpdateModal(registration){
+  if (!registration || pwaUpdateReloading || pwaUpdateModalVisible) return;
+  pwaUpdateRegistration = registration;
+  pwaUpdateModalVisible = true;
+  el.pwaUpdateModalOverlay.setAttribute('aria-hidden', 'false');
+  showOverlay(el.pwaUpdateModalOverlay);
+}
+
+function reloadAfterPwaUpdate(registration){
+  if (pwaUpdateReloading) return;
+  pwaUpdateReloading = true;
+  let finished = false;
+  const reload = () => {
+    if (finished) return;
+    finished = true;
+    navigator.serviceWorker.removeEventListener('controllerchange', reload);
+    window.location.reload();
+  };
+  navigator.serviceWorker.addEventListener('controllerchange', reload, { once: true });
+
+  // If the new worker is already active and controlling this page, a reload
+  // is safe immediately. Otherwise clients.claim() will trigger controllerchange.
+  const active = registration?.active;
+  if (active && navigator.serviceWorker.controller === active) {
+    reload();
+    return;
+  }
+
+  // Safety fallback for browsers where controllerchange is not observed.
+  setTimeout(reload, 4500);
+}
+
+async function applyPwaUpdate(){
+  const registration = pwaUpdateRegistration;
+  if (!registration || pwaUpdateReloading) return;
+  pwaUpdateModalVisible = false;
+  el.btnPwaUpdateNow.disabled = true;
+  el.btnPwaUpdateLater.disabled = true;
+  if (document.activeElement instanceof HTMLElement) {
+    document.activeElement.blur();
+  }
+  el.pwaUpdateModalOverlay.setAttribute('aria-hidden', 'true');
+  await hideOverlay(el.pwaUpdateModalOverlay);
+  sessionStorage.setItem('jas_pwa_updated', '1');
+  reloadAfterPwaUpdate(registration);
+}
+
+function setupPwaUpdateHandling(registration){
+  if (!registration) return;
+  pwaUpdateRegistration = registration;
+
+  registration.addEventListener('updatefound', () => {
+    const installing = registration.installing;
+    if (!installing) return;
+
+    installing.addEventListener('statechange', () => {
+      // A controller means this is an update to an already-running app, not
+      // the first service-worker installation.
+      if (installing.state === 'installed' && navigator.serviceWorker.controller) {
+        showPwaUpdateModal(registration);
+      }
+    });
+  });
+
+  // If an update was already installed before our listener was attached.
+  if (registration.waiting && navigator.serviceWorker.controller) {
+    showPwaUpdateModal(registration);
+  }
+}
+
+function registerPwaServiceWorker(){
+  if (!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.register('./service-worker.js')
+    .then(setupPwaUpdateHandling)
+    .catch(() => {});
+}
+
 function getDismissibleOverlays(){
   return [
     [el.productModalOverlay, closeProductModal],
@@ -7962,6 +8073,7 @@ function getDismissibleOverlays(){
     [el.billDetailsModalOverlay, closeBillDetailsModal],
     [el.logoutModalOverlay, () => pendingRecoveryConflict ? cancelRecoveryConflict() : closeLogoutConfirm()],
     [el.expiredRecoveryModalOverlay, cancelExpiredRecovery],
+    [el.pwaUpdateModalOverlay, dismissPwaUpdateAsLater],
     [el.changePasswordModalOverlay, closeChangePasswordModal],
     [el.saveChoiceModalOverlay, closeSaveChoiceModal],
     [el.pdfActionModalOverlay, closePdfActionModal],
@@ -7989,6 +8101,8 @@ function applyTitleCaseToField(inputEl) {
   return formattedValue;
 }
 function bindEvents(){
+  if (el.btnPwaUpdateNow) el.btnPwaUpdateNow.addEventListener('click', applyPwaUpdate);
+  if (el.btnPwaUpdateLater) el.btnPwaUpdateLater.addEventListener('click', dismissPwaUpdateAsLater);
   el.authTabLogin?.addEventListener('click', () => setAuthTab('login'));
   el.authTabRegister?.addEventListener('click', () => setAuthTab('register'));
   el.btnLogin.addEventListener('click', handleLogin);
@@ -8672,6 +8786,14 @@ async function init(){
   getDismissibleOverlays().forEach(([overlay]) => hideOverlay(overlay));
   await loadConfig();
   bindEvents();
+
+  if (sessionStorage.getItem('jas_pwa_updated') === '1') {
+    sessionStorage.removeItem('jas_pwa_updated');
+    setTimeout(() => {
+      showToast('App updated successfully', 'success', AUTH_TOAST_DURATION_MS);
+    }, 300);
+  }
+
   pendingSignupEmail = getPendingSignup().email;
   const urlParams = new URLSearchParams(window.location.search);
   const isPasswordResetLink = urlParams.get('mode') === 'update-password';
@@ -8943,9 +9065,7 @@ document.addEventListener('DOMContentLoaded', () => {
   init();
 });
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./service-worker.js");
-  });
+  window.addEventListener("load", registerPwaServiceWorker);
 }
 </script>
 </body>
