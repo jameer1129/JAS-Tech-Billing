@@ -8063,12 +8063,6 @@ window.addEventListener('appinstalled', () => {
   deferredPwaInstallPrompt = null;
   pwaInstallInProgress = false;
   closePwaInstallModal();
-
-  // Best-effort handoff to the installed PWA. Chromium may route the same
-  // start URL into the installed app when the platform supports that handoff.
-  setTimeout(() => {
-    window.location.href = new URL('./index.html', window.location.href).href;
-  }, 150);
 });
 
 async function dismissPwaUpdateAsLater(){
