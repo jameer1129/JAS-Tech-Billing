@@ -6,6 +6,13 @@
   "scope": "./",
   "id": "./",
   "display": "standalone",
+  "related_applications": [
+    {
+      "platform": "webapp",
+      "url": "./manifest.json",
+      "id": "https://jameer1129.github.io/JAS-Tech-Billing/"
+    }
+  ],
   "orientation": "portrait-primary",
   "theme_color": "#012587",
   "background_color": "#012587",

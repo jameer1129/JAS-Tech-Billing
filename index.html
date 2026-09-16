@@ -851,6 +851,9 @@ body.dark-theme .confirm-icon--info{background:rgba(1,37,135,.5);}
 .pwa-update-modal .modal{max-width:400px;}
 .pwa-update-modal .modal__header{position:relative;padding-top:24px;}
 .pwa-update-modal .modal__footer{gap:10px;}
+.pwa-install-modal{z-index:120 !important;}
+.pwa-install-modal .modal{max-width:400px;}
+.pwa-install-modal .modal__footer{gap:10px;}
 .modal--preview{z-index: 150 !important;align-items: center !important;}
 .modal--preview .modal{
   max-width: 840px;
@@ -3716,6 +3719,21 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
     </div>
   </div>
 </div>
+<div class="modal-overlay modal--confirm pwa-install-modal hide" id="pwaInstallModalOverlay" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pwaInstallModalTitle">
+    <div class="modal__header">
+      <div class="confirm-icon confirm-icon--info"><i class="fa-solid fa-mobile-screen-button"></i></div>
+      <h3 id="pwaInstallModalTitle">Install JAS Billing</h3>
+    </div>
+    <div class="modal__body">
+      <p>Install JAS Billing for quick access and a better app experience.</p>
+    </div>
+    <div class="modal__footer">
+      <button type="button" class="btn btn--ghost" id="btnPwaInstallContinue">Continue Here</button>
+      <button type="button" class="btn btn--primary" id="btnPwaInstallNow"><i class="fa-solid fa-download" aria-hidden="true"></i> Install App</button>
+    </div>
+  </div>
+</div>
 <div class="toast-stack" id="toastStack"></div>
 <div id="pdfRenderWrap">
   <div id="pdfWrapper" class="pdf-wrapper-container">
@@ -4062,6 +4080,9 @@ function cacheElements(){
   el.pwaUpdateModalOverlay = document.getElementById('pwaUpdateModalOverlay');
   el.btnPwaUpdateLater = document.getElementById('btnPwaUpdateLater');
   el.btnPwaUpdateNow = document.getElementById('btnPwaUpdateNow');
+  el.pwaInstallModalOverlay = document.getElementById('pwaInstallModalOverlay');
+  el.btnPwaInstallContinue = document.getElementById('btnPwaInstallContinue');
+  el.btnPwaInstallNow = document.getElementById('btnPwaInstallNow');
   el.expiredRecoveryMessage = document.getElementById('expiredRecoveryMessage');
   el.btnCancelExpiredRecovery = document.getElementById('btnCancelExpiredRecovery');
   el.btnActionExpiredRecovery = document.getElementById('btnActionExpiredRecovery');
@@ -7975,9 +7996,80 @@ function syncDisplayToggleState(){
   if (toggleWraps.signature) toggleWraps.signature.style.display = signatureEnabledByConfig ? '' : 'none';
   updateNotesInputState();
 }
+let deferredPwaInstallPrompt = null;
+let pwaInstallModalVisible = false;
+let pwaInstallInProgress = false;
 let pwaUpdateRegistration = null;
 let pwaUpdateModalVisible = false;
 let pwaUpdateReloading = false;
+
+function isRunningAsPwa(){
+  return window.matchMedia('(display-mode: standalone)').matches ||
+         window.navigator.standalone === true;
+}
+
+async function closePwaInstallModal(){
+  if (!el.pwaInstallModalOverlay || !pwaInstallModalVisible) return;
+  pwaInstallModalVisible = false;
+  el.pwaInstallModalOverlay.setAttribute('aria-hidden', 'true');
+  if (document.activeElement instanceof HTMLElement && el.pwaInstallModalOverlay.contains(document.activeElement)) {
+    document.activeElement.blur();
+  }
+  await hideOverlay(el.pwaInstallModalOverlay);
+}
+
+function showPwaInstallModal(){
+  if (!el.pwaInstallModalOverlay || isRunningAsPwa() || !deferredPwaInstallPrompt || pwaInstallInProgress) return;
+  // Installation has priority over the service-worker update prompt.
+  pwaUpdateModalVisible = false;
+  if (el.pwaUpdateModalOverlay) {
+    el.pwaUpdateModalOverlay.setAttribute('aria-hidden', 'true');
+    hideOverlay(el.pwaUpdateModalOverlay);
+  }
+  pwaInstallModalVisible = true;
+  el.pwaInstallModalOverlay.setAttribute('aria-hidden', 'false');
+  showOverlay(el.pwaInstallModalOverlay);
+}
+
+async function startPwaInstall(){
+  const promptEvent = deferredPwaInstallPrompt;
+  if (!promptEvent || pwaInstallInProgress) return;
+
+  pwaInstallInProgress = true;
+  deferredPwaInstallPrompt = null;
+  await closePwaInstallModal();
+
+  try {
+    await promptEvent.prompt();
+    const choice = await promptEvent.userChoice;
+    // Dismiss/cancel is intentionally treated exactly like Continue Here.
+    if (choice?.outcome === 'dismissed') {
+      pwaInstallInProgress = false;
+      return;
+    }
+  } catch (error) {
+    console.warn('PWA install prompt failed:', error);
+  }
+  pwaInstallInProgress = false;
+}
+
+window.addEventListener('beforeinstallprompt', (event) => {
+  event.preventDefault();
+  deferredPwaInstallPrompt = event;
+  showPwaInstallModal();
+});
+
+window.addEventListener('appinstalled', () => {
+  deferredPwaInstallPrompt = null;
+  pwaInstallInProgress = false;
+  closePwaInstallModal();
+
+  // Best-effort handoff to the installed PWA. Chromium may route the same
+  // start URL into the installed app when the platform supports that handoff.
+  setTimeout(() => {
+    window.location.href = new URL('./index.html', window.location.href).href;
+  }, 150);
+});
 
 async function dismissPwaUpdateAsLater(){
   if (!el.pwaUpdateModalOverlay) return;
@@ -7987,7 +8079,8 @@ async function dismissPwaUpdateAsLater(){
 }
 
 function showPwaUpdateModal(registration){
-  if (!registration || pwaUpdateReloading || pwaUpdateModalVisible) return;
+  // Never compete with the first-install flow.
+  if (!registration || pwaUpdateReloading || pwaUpdateModalVisible || pwaInstallModalVisible || pwaInstallInProgress || deferredPwaInstallPrompt) return;
   pwaUpdateRegistration = registration;
   pwaUpdateModalVisible = true;
   el.pwaUpdateModalOverlay.setAttribute('aria-hidden', 'false');
@@ -8006,15 +8099,12 @@ function reloadAfterPwaUpdate(registration){
   };
   navigator.serviceWorker.addEventListener('controllerchange', reload, { once: true });
 
-  // If the new worker is already active and controlling this page, a reload
-  // is safe immediately. Otherwise clients.claim() will trigger controllerchange.
   const active = registration?.active;
   if (active && navigator.serviceWorker.controller === active) {
     reload();
     return;
   }
 
-  // Safety fallback for browsers where controllerchange is not observed.
   setTimeout(reload, 4500);
 }
 
@@ -8024,9 +8114,7 @@ async function applyPwaUpdate(){
   pwaUpdateModalVisible = false;
   el.btnPwaUpdateNow.disabled = true;
   el.btnPwaUpdateLater.disabled = true;
-  if (document.activeElement instanceof HTMLElement) {
-    document.activeElement.blur();
-  }
+  if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
   el.pwaUpdateModalOverlay.setAttribute('aria-hidden', 'true');
   await hideOverlay(el.pwaUpdateModalOverlay);
   sessionStorage.setItem('jas_pwa_updated', '1');
@@ -8042,15 +8130,12 @@ function setupPwaUpdateHandling(registration){
     if (!installing) return;
 
     installing.addEventListener('statechange', () => {
-      // A controller means this is an update to an already-running app, not
-      // the first service-worker installation.
       if (installing.state === 'installed' && navigator.serviceWorker.controller) {
         showPwaUpdateModal(registration);
       }
     });
   });
 
-  // If an update was already installed before our listener was attached.
   if (registration.waiting && navigator.serviceWorker.controller) {
     showPwaUpdateModal(registration);
   }
@@ -8074,6 +8159,7 @@ function getDismissibleOverlays(){
     [el.logoutModalOverlay, () => pendingRecoveryConflict ? cancelRecoveryConflict() : closeLogoutConfirm()],
     [el.expiredRecoveryModalOverlay, cancelExpiredRecovery],
     [el.pwaUpdateModalOverlay, dismissPwaUpdateAsLater],
+    [el.pwaInstallModalOverlay, closePwaInstallModal],
     [el.changePasswordModalOverlay, closeChangePasswordModal],
     [el.saveChoiceModalOverlay, closeSaveChoiceModal],
     [el.pdfActionModalOverlay, closePdfActionModal],
@@ -9061,6 +9147,12 @@ document.addEventListener('DOMContentLoaded', () => {
     el.btnOfflineRetry.addEventListener('click', () => {
       if (navigator.onLine) window.location.reload();
     });
+  }
+  if (el.btnPwaInstallContinue) {
+    el.btnPwaInstallContinue.addEventListener('click', closePwaInstallModal);
+  }
+  if (el.btnPwaInstallNow) {
+    el.btnPwaInstallNow.addEventListener('click', startPwaInstall);
   }
   init();
 });
