@@ -7742,23 +7742,14 @@ async function cancelExpiredRecovery(){
 async function actionExpiredRecovery(){
   const mode = expiredRecoveryMode;
   expiredRecoveryMode = null;
-
-  // Keep the user informed while the expired-link action is being processed.
-  // Close the modal first, then use the same full-screen loader used elsewhere.
-  await hideOverlay(el.expiredRecoveryModalOverlay);
-  showActionLoader(mode === 'logged-in' ? 'Logging out…' : 'Loading…');
-
-  try {
-    if (mode === 'logged-in') {
-      await handleLogout();
-      setAuthTab('forgot');
-      return;
-    }
-    showScreen('auth');
+  hideOverlay(el.expiredRecoveryModalOverlay);
+  if (mode === 'logged-in') {
+    await handleLogout();
     setAuthTab('forgot');
-  } finally {
-    hideActionLoader();
+    return;
   }
+  showScreen('auth');
+  setAuthTab('forgot');
 }
 function openRecoveryConflictConfirm(conflict){
   el.bootLoader.classList.add('hide');
@@ -8969,12 +8960,6 @@ async function init(){
   const recoveryContext = isPasswordResetLink || hasPendingRecovery;
   const oauthCallbackContext = !recoveryContext && sessionStorage.getItem(OAUTH_PENDING_KEY) !== null;
 
-  // Keep the full-screen loader visible for the entire password-recovery boot
-  // sequence. This prevents the auth screen from briefly appearing for 1–2
-  // seconds before an expired-link modal is shown.
-  if (recoveryContext) {
-    showActionLoader('Loading…');
-  }
   syncDisplayToggleState();
   if (!CONFIG.supabase || !CONFIG.supabase.url || !CONFIG.supabase.anonKey) {
     showScreen('auth');
@@ -9091,18 +9076,10 @@ async function init(){
       currentSession = existingNormalSession;
       await afterAuthResolved();
       showExpiredRecoveryModal('logged-in', existingNormalSession.user?.email || '');
-      // Let the modal paint first, then remove the loader so there is no
-      // visible gap between the loader and the expired-link modal.
-      requestAnimationFrame(() => hideActionLoader());
       return;
     }
-    // Keep the loader up while the expired-link modal is being opened.
-    // showScreen() normally hides it, so restore it immediately before the
-    // modal is shown and remove it on the next paint.
     showScreen('auth');
-    showActionLoader('Loading…');
     showExpiredRecoveryModal('logged-out');
-    requestAnimationFrame(() => hideActionLoader());
     return;
   }
   // OAuth callback load: ONLY the storage selected before the Google redirect
