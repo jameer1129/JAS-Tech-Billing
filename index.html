@@ -841,9 +841,21 @@ body.dark-theme .toast-card--error{background:#2B1514;border-color:#EF233Caa;}
   margin:0 auto 10px;
 }
 .confirm-icon--info{background:color-mix(in srgb, var(--primary) 15%, transparent);color:var(--primary-text);}
+.confirm-icon--devices{
+  position:relative;
+  font-size:initial;
+}
+.confirm-icon--devices .device-mobile{
+  position:absolute;
+  right:10px;
+  bottom:13px;
+  font-size:20px;
+  background:#D3DAEA;
+}
+body.dark-theme .confirm-icon--devices .device-mobile{background:#011344;}
 .confirm-icon--success{background:var(--success);color:white;}
 .confirm-icon--danger{background:color-mix(in srgb, var(--danger) 15%, transparent);color:var(--danger);}
-body.dark-theme .confirm-icon--info{background:rgba(1,37,135,.5);}
+body.dark-theme .confirm-icon--info{background:rgba(1,37,135,.4);}
 .modal--confirm p{margin:0;color:var(--muted);font-size:13.5px;line-height:1.5;}
 .modal--confirm .confirm-target{color:var(--primary-text);font-weight:700;overflow-wrap:anywhere;word-break:break-word;}
 
@@ -3727,7 +3739,10 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
 <div class="modal-overlay modal--confirm pwa-entry-modal hide" id="pwaEntryModalOverlay" aria-hidden="true">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pwaEntryModalTitle">
     <div class="modal__header">
-      <div class="confirm-icon confirm-icon--info"><i class="fa-solid fa-mobile-screen-button"></i></div>
+      <div class="confirm-icon confirm-icon--info confirm-icon--devices" aria-hidden="true">
+        <i class="fa-solid fa-laptop device-laptop"></i>
+        <i class="fa-solid fa-mobile-screen-button device-mobile"></i>
+      </div>
       <h3 id="pwaEntryModalTitle">JAS Tech Billing</h3>
     </div>
     <div class="modal__body">
