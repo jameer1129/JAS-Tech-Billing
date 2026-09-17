@@ -8103,10 +8103,23 @@ async function preparePwaEntry(){
   const urlParams = new URLSearchParams(window.location.search);
   const isPasswordResetLink = urlParams.get('mode') === 'update-password';
 
-  // Password-reset links must never show a PWA entry modal.
-  // This applies whether the PWA is installed or not.
+  // Reset links: never show Open App or Install App.
   if (isPasswordResetLink) return;
 
+  // Normal Chrome visit: if the PWA is already installed, show Open App.
+  if (typeof navigator.getInstalledRelatedApps === 'function') {
+    try {
+      const apps = await navigator.getInstalledRelatedApps();
+      if (Array.isArray(apps) && apps.length > 0) {
+        showPwaEntryModal('open');
+        return;
+      }
+    } catch (error) {
+      console.warn('PWA install check failed:', error);
+    }
+  }
+  
+  // Only offer installation when Chrome actually supplied an install prompt.
   if (deferredPwaInstallPrompt) {
     showPwaEntryModal('install');
   }
