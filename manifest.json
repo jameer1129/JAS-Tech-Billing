@@ -10,7 +10,7 @@
     {
       "platform": "webapp",
       "url": "./manifest.json",
-      "id": "http://127.0.0.1:5500"
+      "id": "https://jameer1129.github.io/JAS-Tech-Billing/"
     }
   ],
   "orientation": "portrait-primary",
@@ -24,7 +24,7 @@
       "purpose": "any maskable"
     }
   ],
-   "launch_handler": {
+  "launch_handler": {
     "client_mode": "focus-existing"
   }
 }
