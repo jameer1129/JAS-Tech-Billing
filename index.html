@@ -39,7 +39,7 @@ if ('launchQueue' in window) {
         url.origin === window.location.origin &&
         url.searchParams.get('mode') === 'update-password'
       ) {
-        window.location.href = url.href;
+        window.location.replace(url.href);
       }
     } catch (e) {}
   });
@@ -5874,7 +5874,7 @@ async function handleResetPassword(){
       }
       // Reload so the temporary recovery context disappears. Same-account
       // recovery returns directly to the already-authenticated app.
-      window.location.href = window.location.origin + window.location.pathname;
+      window.location.replace(window.location.origin + window.location.pathname);
     }, 1500);
   }, () => showToast('Failed to update password. Please try again.', 'error', AUTH_TOAST_DURATION_MS));
 }
@@ -8057,11 +8057,22 @@ function showPwaEntryModal(mode){
   el.btnPwaEntryAction.dataset.mode = isOpenMode ? 'open' : 'install';
 
   if (isOpenMode) {
-    // Keep this as a normal anchor navigation so Chrome can hand the URL
-    // to the installed PWA when supported by the platform.
+    // target="_blank" is required here, not optional: on Android, an
+    // installed PWA is backed by a real WebAPK with its own Android
+    // intent filters. Those only get checked by the OS when a NEW
+    // top-level browsing context/Activity is created (what target=_blank
+    // does). A same-tab navigation stays inside Chrome's existing
+    // process and never reaches the OS intent resolver, so it just
+    // reloads the page instead of handing off to the app.
     el.btnPwaEntryAction.href = window.location.href;
     el.btnPwaEntryAction.target = '_blank';
-    el.btnPwaEntryAction.rel = 'noopener';
+    // No rel="noopener" here on purpose: Chromium ties window.close()
+    // permission on a target=_blank tab to it still having an opener
+    // relationship. noopener severs that link and silently blocks the
+    // self-close later, even though the tab otherwise qualifies (fresh
+    // single-history-entry navigation). This is same-origin, trusted
+    // content, so there's no security reason to strip it here.
+    el.btnPwaEntryAction.removeAttribute('rel');
   } else {
     el.btnPwaEntryAction.href = '#';
     el.btnPwaEntryAction.removeAttribute('target');
@@ -8122,6 +8133,28 @@ async function handlePwaEntryAction(event){
   const mode = el.btnPwaEntryAction?.dataset.mode;
   if (mode === 'open') {
     // Keep normal anchor navigation for the installed-app handoff.
+    // window.close() is only permitted by the browser when this tab
+    let closeAttempted = false;
+    const attemptSelfClose = () => {
+      if (closeAttempted) return;
+      closeAttempted = true;
+      cleanup();
+      if (history.length > 1) {
+        console.info('Tab has navigated (history.length=' + history.length + '); browser will refuse self-close.');
+      }
+      window.close();
+    };
+    const cleanup = () => {
+      window.removeEventListener('blur', attemptSelfClose);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      clearTimeout(fallbackTimer);
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') attemptSelfClose();
+    };
+    window.addEventListener('blur', attemptSelfClose);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    const fallbackTimer = setTimeout(cleanup, 5000);
     return;
   }
 
@@ -8332,7 +8365,7 @@ function bindEvents(){
     clearPasswordRecoveryPending();
     showActionLoader('Please wait…');
     try { await supabaseClient.auth.signOut({ scope: 'local' }); } catch (err) { console.error(err); }
-    window.location.href = window.location.origin + window.location.pathname;
+    window.location.replace(window.location.origin + window.location.pathname);
   });
   el.btnPendingLogout.addEventListener('click', openLogoutConfirm);
   el.btnPendingRefresh.addEventListener('click', handlePendingRefresh);
