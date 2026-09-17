@@ -5178,6 +5178,8 @@ window.fetch = async function(input, init){
 function handleOnline(){
   if (offlineStartup) window.location.reload();
 }
+
+let suppressBootLoaderHide = false;
 function showScreen(name){
   bootDeadline = null;
   // Only the direct classList.add('hide') — not hideOverlay() — because
@@ -5186,7 +5188,7 @@ function showScreen(name){
   // screen transition, so that delayed removal could land well after this
   // call returns and strip 'pop-open' out from under any modal opened in
   // the meantime, silently breaking the background-scroll lock for it.
-  el.bootLoader.classList.add('hide');
+  if (!suppressBootLoaderHide) el.bootLoader.classList.add('hide');
   syncPopOpenState();
   document.documentElement.classList.remove('theme-preload');
   el.authScreen.classList.toggle('hide', name !== 'auth');
@@ -9074,11 +9076,20 @@ async function init(){
     if (existingNormalSession) {
       supabaseClient = existingNormalClient;
       currentSession = existingNormalSession;
+      // Keep the boot loader up through the whole app-screen resolution
+      // (which includes a network round-trip) instead of letting the app
+      // screen flash into view for a moment before the modal covers it.
+      suppressBootLoaderHide = true;
       await afterAuthResolved();
+      suppressBootLoaderHide = false;
+      el.bootLoader.classList.add('hide');
       showExpiredRecoveryModal('logged-in', existingNormalSession.user?.email || '');
       return;
     }
+    suppressBootLoaderHide = true;
     showScreen('auth');
+    suppressBootLoaderHide = false;
+    el.bootLoader.classList.add('hide');
     showExpiredRecoveryModal('logged-out');
     return;
   }
