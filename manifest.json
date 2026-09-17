@@ -10,7 +10,7 @@
     {
       "platform": "webapp",
       "url": "./manifest.json",
-      "id": "http://127.0.0.1:5500/"
+      "id": "https://jameer1129.github.io"
     }
   ],
   "orientation": "portrait-primary",
