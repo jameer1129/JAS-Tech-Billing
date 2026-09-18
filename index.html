@@ -8101,6 +8101,26 @@ async function startPwaInstall(){
   }
 }
 
+function waitForBootLoaderHidden(){
+  return new Promise((resolve) => {
+    if (!el.bootLoader || el.bootLoader.classList.contains('hide')) {
+      resolve();
+      return;
+    }
+    const observer = new MutationObserver(() => {
+      if (el.bootLoader.classList.contains('hide')) {
+        observer.disconnect();
+        clearTimeout(safetyTimer);
+        resolve();
+      }
+    });
+    observer.observe(el.bootLoader, { attributes: true, attributeFilter: ['class'] });
+    // Safety net: don't wait forever if something upstream stalls or the
+    // class never flips for an unrelated reason.
+    const safetyTimer = setTimeout(() => { observer.disconnect(); resolve(); }, 10000);
+  });
+}
+
 async function preparePwaEntry(){
   if (isRunningAsPwa() || pwaInstallInProgress) return;
 
@@ -8109,6 +8129,12 @@ async function preparePwaEntry(){
 
   // Reset links: never show Open App or Install App.
   if (isPasswordResetLink) return;
+
+  // Don't show the Open App / Install App prompt on top of (or right as)
+  // the boot loader disappears -- wait for auth/data resolution to
+  // actually finish first, whether that takes 200ms or several seconds.
+  await waitForBootLoaderHidden();
+  if (isRunningAsPwa() || pwaInstallInProgress) return;
 
   // Normal Chrome visit: if the PWA is already installed, show Open App.
   if (typeof navigator.getInstalledRelatedApps === 'function') {
@@ -9269,7 +9295,11 @@ document.addEventListener('DOMContentLoaded', () => {
   init();
 });
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", registerPwaServiceWorker);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', registerPwaServiceWorker);
+  } else {
+    registerPwaServiceWorker();
+  }
 }
 </script>
 </body>
