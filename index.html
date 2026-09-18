@@ -8139,10 +8139,10 @@ async function handlePwaEntryAction(event){
       if (closeAttempted) return;
       closeAttempted = true;
       cleanup();
-      if (history.length > 1) {
-        console.info('Tab has navigated (history.length=' + history.length + '); browser will refuse self-close.');
-      }
       window.close();
+      if (history.length > 1) {
+        history.go(-(history.length - 1));
+      }
     };
     const cleanup = () => {
       window.removeEventListener('blur', attemptSelfClose);
