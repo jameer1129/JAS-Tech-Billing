@@ -3815,9 +3815,8 @@ function nextNetworkTimeoutMs(){
 const DEFAULT_CONFIG = {
   company: { name: 'XYZ Company' },
   theme: {
-    radius: '12px',
-    light: { primary: '#012587', background: '#F8F9FC', surface: '#FFFFFF', text: '#212121', border: '#E5E7EB' },
-    dark:  { primary: '#1769FF', background: '#000000', surface: '#000000', text: '#F3F4F6', border: '#2D3748AA' }
+    light: { primary: '', primaryText:'', background: '', surface: '', text: '', border: '' },
+    dark:  { primary: '', primaryText:'', background: '', surface: '', text: '', border: '' }
   },
   assets: { mainLogo: '' },
   invoice: {
@@ -3826,7 +3825,6 @@ const DEFAULT_CONFIG = {
     numberFormat: 'MMDDHHmmss',
     currencySymbol: '₹'
   },
-  footer: { appVersion: 'v1.0' },
   supabase: { url: '', anonKey: '' }
 };
 let CONFIG = null;
