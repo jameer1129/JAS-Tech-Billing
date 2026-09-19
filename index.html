@@ -1320,7 +1320,7 @@ body.dark-theme .nav-tabs::before{
 }
 .offline-screen h2{margin:70px 0 10px;font-size:27px;line-height:1.15;font-weight:750;color:var(--text);letter-spacing:-.45px;}
 .offline-screen p{margin:0 0 20px;max-width:350px;color:var(--muted);font-size:15px;line-height:1.55;}
-.offline-screen .btn{width:min(100%,300px);min-height:54px;border-radius:14px;font-size:15px;box-shadow:0 8px 22px rgba(1,37,135,.22);}
+.offline-screen .btn{width:min(100%,300px);min-height:54px;border-radius:14px;font-size:15px;}
 .offline-screen .btn i{font-size:17px;}
 .offline-screen__divider{
   width:min(100%,300px);
@@ -3285,7 +3285,7 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
     </section>
     <div class="action-bar-grid">
       <button class="btn btn--outline btn--preview" id="btnPreview">
-        <i class="fa-regular fa-eye"></i> Preview
+        <i class="fa-regular fa-eye"></i> Preview PDF
       </button>
       <button class="btn btn--primary btn--download" id="btnDownload">
         <i class="fa-solid fa-wand-magic-sparkles"></i>Generate PDF
@@ -6684,13 +6684,13 @@ function handlePreviewLayoutScaling() {
 }
 function openPreviewModal(){
   if(!validateField(el.customerName)){
-    showToast('Enter customer name before generating preview.', 'warning');
+    showToast('Enter customer name before generating preview PDF.', 'warning');
     markError(el.customerName, false);
     el.customerName.focus();
     return;
   }
   if(!state.products.length){
-    showToast('Add at least one product to generate preview.', 'warning');
+    showToast('Add at least one product to generate preview PDF.', 'warning');
     return;
   }
   showOverlay(el.previewModalOverlay);
