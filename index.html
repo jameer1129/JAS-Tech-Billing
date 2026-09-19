@@ -6,13 +6,6 @@
 <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;750;800&display=swap" rel="stylesheet">
-<style>
-html.theme-preload{background:#000!important;}
-html.theme-preload,html.theme-preload body{background:#000;color:#F3F4F6;}
-html.theme-preload,html.theme-preload body{transition:none;}
-html.theme-preload .boot-loader{background: rgba(15,23,42,.42)}
-html.theme-preload .boot-loader__card{background:#000;}
-html.theme-preload .boot-loader__bar-track{background:#1B1F27;}</style>
 <script>window.addEventListener('pageshow', (event) => {
   if (!event.persisted) return;
   // Restoring from bfcache (e.g. the user hit Back after starting a Google
@@ -26,7 +19,7 @@ html.theme-preload .boot-loader__bar-track{background:#1B1F27;}</style>
 (function(){
   try{
     if(localStorage.getItem('jas_theme')==='dark'){
-      document.documentElement.classList.add('theme-preload');
+      document.documentElement.classList.add('dark-theme');
     }
   }catch(e){}
 })();
@@ -1251,7 +1244,7 @@ body.dark-theme .nav-tabs::before{
   min-width:220px;
   box-sizing:border-box;
   box-shadow:var(--shadow-sm);
-  filter: drop-shadow(0 10px 26px rgba(1, 37, 135, .24));
+  filter: drop-shadow(0 10px 50px rgba(1, 37, 135, .24));
 }
 .boot-loader__logo{width:50px;height:50px;display:block;object-fit:contain;}
 .boot-loader__bar-track{width:180px;height:5px;background:var(--line);border-radius:999px;overflow:hidden;}
