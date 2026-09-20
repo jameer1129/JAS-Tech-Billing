@@ -8108,8 +8108,8 @@ function waitForBootLoaderHidden(){
     });
     observer.observe(el.bootLoader, { attributes: true, attributeFilter: ['class'] });
     // Safety net: don't wait forever if something upstream stalls or the
-    // class never flips for an unrelated reason.
-    const safetyTimer = setTimeout(() => { observer.disconnect(); resolve(); }, 10000);
+    // class never flips for an unrelated reason. This must stay longer than
+    const safetyTimer = setTimeout(() => { observer.disconnect(); resolve(); }, MAX_NETWORK_WAIT_MS + 5000);
   });
 }
 
