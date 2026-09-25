@@ -46,7 +46,7 @@ if ('launchQueue' in window) {
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="assets/icons/app-icon.png">
 <link rel="apple-touch-icon" href="assets/icons/app-icon.png">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js" defer></script>
 <style>
@@ -6349,6 +6349,7 @@ async function openInvoiceQr(invoiceNo){
     el.invoiceQrSkeleton?.classList.add('hide');
     el.invoiceQrCanvas.classList.remove('hide');
     el.invoiceQrStatus.textContent='Could not prepare the invoice QR. Please try again.';
+    showToast('Could not prepare the invoice QR. Please try again.','error');
   }
 }
 function closeInvoiceQr(){ hideOverlay(el.invoiceQrModalOverlay); }
@@ -8116,9 +8117,9 @@ function bindEvents(){
   el.btnSaveChoiceYes.addEventListener('click', () => handleSaveChoice(true));
   el.btnPdfDownload.addEventListener('click', downloadPdfBlob);
   el.btnPdfShare.addEventListener('click', sharePdfBlob);
-
   el.btnPdfQr.addEventListener('click', () => openInvoiceQr(state.invoiceNumber));
-  el.btnInvoiceQrClose.addEventListener('click', closeInvoiceQr);  el.btnPdfActionCancel.addEventListener('click', closePdfActionModal);
+  el.btnInvoiceQrClose.addEventListener('click', () =>{closeInvoiceQr();closePdfActionModal();});
+  el.btnPdfActionCancel.addEventListener('click', closePdfActionModal);
   el.btnDownloadFromPreview.addEventListener('click', handlePreviewDownload);
   el.btnClosePreviewModal.addEventListener('click', closePreviewModal);
   el.btnPreview.addEventListener('click', openPreviewModal);
