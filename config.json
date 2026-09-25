@@ -1,11 +1,13 @@
 {
   "company": {
     "name": "JAS Tech",
-    "addressLines": ["Hafeezpet, Hyderabad", "Telangana - 500049"],
+    "addressLines": [
+      "Hafeezpet, Hyderabad",
+      "Telangana - 500049"
+    ],
     "phone": "9700322231",
     "email": "jastechhyd@gmail.com"
   },
-
   "theme": {
     "light": {
       "primary": "#012587",
@@ -24,7 +26,6 @@
       "border": "#2D3748AA"
     }
   },
-
   "assets": {
     "horizontalLogo": "assets/logo/horizontal-logo.png",
     "mainLogo": "assets/logo/logo.png",
@@ -32,12 +33,10 @@
     "signature": "assets/signature/signature.png",
     "scannerQr": "assets/icons/whatsapp-qr.jpeg"
   },
-
   "supabase": {
     "url": "https://tdytfzqtaxijlbmfnxee.supabase.co",
     "anonKey": "sb_publishable_n2QoEQ5WiIzdC2RTGZMmQA_yrpAvGvI"
   },
-
   "display": {
     "showWatermark": true,
     "showQr": true,
@@ -46,23 +45,19 @@
     "showTotalItems": true,
     "showTotalQuantity": true
   },
-
   "invoice": {
     "currencySymbol": "₹",
     "filePrefix": "JAS_Invoice_",
     "numberFormat": "MMDDHHmmss",
     "defaultNotes": "Thank you for choosing JAS Tech.\nFor any support, feel free to contact us."
   },
-
   "signatureBlock": {
     "forLine": "For JAS Tech",
     "authLine": "Authorized Signature"
   },
-
   "scanner": {
     "scannerCaption": "Scan to Connect"
   },
-
   "services": [
     {
       "icon": "fa-shield-halved",
@@ -85,9 +80,9 @@
       "label": "Customer Satisfaction"
     }
   ],
-
   "footer": {
     "thankYouMessage": "Thank you for choosing JAS Tech!",
     "copyrightLine": "© 2026 JAS Tech | Laptop Sales • Service • Accessories"
-  }
+  },
+  "public_invoice_url": "./invoice.html"
 }

@@ -48,6 +48,7 @@ if ('launchQueue' in window) {
 <link rel="apple-touch-icon" href="assets/icons/app-icon.png">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js" defer></script>
 <style>
 :root{
   --primary: #012587;
@@ -2525,309 +2526,13 @@ body.dark-theme .admin-stat.is-loading .admin-stat__label{background:#151515 !im
 }
 body.dark-theme .admin-skeleton-row::before{background:#151515;}
 body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 0 -1px #151515;}
-/* ==========================================================
-   INVOICE / PDF — printable invoice layout used for preview,
-   PDF generation and the download flow
-   ========================================================== */
-/* ---------- Off-screen render wrapper ---------- */
-#pdfRenderWrap{
-  position:fixed;
-  top:0;
-  left:-9999px;
-  width:794px;
-  overflow:hidden;
-  z-index:-9999;
-}
-.pdf-wrapper-container,.invoice-render{width:794px;margin:0;padding:0;background:#FFFFFF;}
-/* ---------- Invoice page ---------- */
-.invoice-page{
-  position:relative;
-  width:794px;
-  min-height:1122px;
-  background:#FFFFFF !important;
-  color:#212121 !important;
-  padding:40px 45px 30px;
-  overflow:visible;
-  display:flex;
-  flex-direction:column;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
-  margin:0;
-  border: 1px solid #E4E8EE;
-  page-break-after: always;
-  left:0;
-  top:0;
-}
-.invoice-page:last-child{page-break-after: auto;}
-.inv-bottom-row, .inv-footer{page-break-inside: avoid;break-inside: avoid;}
-.inv-watermark{
-  position:absolute;
-  top:50%;
-  left:50%;
-  transform:translate(-50%,-50%) rotate(-30deg);
-  width:550px;
-  opacity:0.05;
-  pointer-events:none;
-  z-index:999 !important;
-}
-.inv-header{display:flex;justify-content:space-between;align-items:center;width:100%;position:relative;z-index:5;}
-.inv-header__logo{width:auto;max-width:475px;object-fit:contain;margin:0;}
-.inv-header__right{text-align:right;display:flex;flex-direction:column;align-items:flex-end;}
-.inv-header__ribbon{
-  display: inline-block;
-  position: relative;
-  background: var(--primary);
-  transform: skewX(-25deg);
-  padding: 6px 35px 6px 25px;
-  color: #ffffff;
-  font-weight: 600;
-  font-size: 16px;
-  letter-spacing: 1px;
-  margin:0 8px 4px;
-}
-.inv-header__ribbon-text{display: inline-block;transform: skewX(25deg);}
-.inv-header__ribbon-stripe{position: absolute;top: 0;bottom: 0;right: 15px;width: 2.5px;background: #ffffff;}
-.inv-header__ribbon-stripe:nth-child(1){right: 6px;}
-.inv-header__ribbon-stripe:nth-child(2){right: 7px;}
-.inv-header__meta{font-size:14px;color:#212121;}
-.inv-header__meta .row{display:flex;justify-content:flex-end;align-items:center;margin:6px 0;}
-.inv-header__meta .row .k{width:85px;text-align:left;color:#000000;font-weight:700;}
-.inv-header__meta .row .sep{font-weight:700;color:#000000;margin-right:8px;}
-.inv-header__meta .row .v{font-weight:700;color:var(--primary);min-width:85px;text-align:left;}
-.inv-divider{border:none;border-top:2px solid var(--primary);width:100%;position:relative;z-index:5;}
-.inv-customer{display:flex;gap:14px;align-items:flex-start;position:relative;z-index:5;}
-.inv-customer__icon{
-  width:34px;
-  height:34px;
-  border-radius:50%;
-  background:var(--primary);
-  color:#FFFFFF;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:16px;
-  margin-top:2px;
-  flex-shrink:0;
-}
-.inv-customer__details{display:flex;flex-direction:column;gap:4px;}
-.inv-customer__label{
-  font-size:13px;
-  font-weight:750;
-  letter-spacing:0.8px;
-  color:var(--primary);
-  text-transform:uppercase;
-  line-height:1;
-  margin-bottom:2px;
-  margin-top:12px;
-}
-.inv-customer__name{font-size:18px;font-weight:700;color:#000000;white-space:nowrap;}
-.inv-customer__line{font-size:14px;color:#000000;font-weight:600;white-space:nowrap;}
-.inv-customer__address{font-size:14px;color:#000000;font-weight:600;white-space:pre-line;word-break:break-word;overflow-wrap:break-word;}
-.invoice-page.page-continuation{padding-top: 40px;}
-.page-continuation-header{
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  padding-bottom: 12px;
-  border-bottom: 2px solid var(--primary);
-  position: relative;
-  z-index: 5;
-}
-.cont-left{display: flex;align-items: center;gap: 110px;}
-.cont-logo{height: 34px;width: auto;margin-right: 12px;object-fit: contain;}
-.cont-page-count{font-weight: 600;color: #6B7280;font-size: 12px;margin-left: 8px;}
-.cont-inv-no{font-weight: 700;color: var(--primary);font-size: 13.5px;}
-.inv-table-wrap{width:100%;flex:1;display:flex;flex-direction:column;position:relative;z-index:5;}
-.inv-table{
-  width:100%;
-  border-collapse:separate;
-  border-spacing: 0;
-  margin-top:12px;
-  font-size:13.5px;
-  table-layout:fixed;
-  border:1px solid #CBD5E1;
-  border-radius: 8px;
-  overflow: hidden;
-}
-.inv-table thead th{
-  background:var(--primary) !important;
-  color:#FFFFFF !important;
-  padding:12px 14px;
-  font-size:12px;
-  text-transform:uppercase;
-  font-weight:700;
-  border:none;
-  text-align:center;
-  border-right:1px solid #FFFFFF;
-  letter-spacing:0.8px;
-}
-.inv-table thead th:nth-child(2),.inv-table tbody td:nth-child(2){text-align:left;}
-.inv-table thead th.idx{width:45px;}
-.inv-table thead th.col-qty{width:70px;}
-.inv-table thead th.col-rate{width:115px;}
-.inv-table thead th.col-amt{width:125px;}
-.inv-table tbody td{
-  padding:6px;
-  border:none;
-  border-top:1px solid #CBD5E1;
-  border-right:1px solid #CBD5E1;
-  vertical-align:middle;
-  text-align:center;
-  color:#000000;
-  font-size:13.5px;
-  word-break:break-word;
-  overflow-wrap:anywhere;
-  white-space:normal;
-}
-.inv-table tbody tr:nth-child(odd) td{background-color: #FFFFFF !important;}
-.inv-table tbody tr:nth-child(even) td{background-color: #F8FAFC !important;}
-.inv-table td.num{white-space:normal;word-break:break-word;overflow-wrap:break-word;font-weight:600;}
-.inv-table td.idx{font-weight:700;}
-.inv-table .prod-name{
-  font-weight:700;
-  color:#000000;
-  font-size:14px;
-  margin-bottom:4px;
-  white-space:normal;
-  word-break:break-word;
-  overflow-wrap:anywhere;
-}
-.inv-bottom-row{
-  display:flex;
-  justify-content:right;
-  gap:30px;
-  margin-top:12px;
-  align-items:flex-start;
-  width:100%;
-  position:relative;
-  z-index:5;
-}
-.inv-notes{flex:1;min-width:0;padding-top:4px;display:flex;flex-direction:column;gap:8px;}
-.inv-notes__label{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  font-size:14px;
-  font-weight:700;
-  letter-spacing:0.8px;
-  color:var(--primary);
-  text-transform:uppercase;
-}
-.inv-notes__text{font-size:13px;color:#000000;line-height:1.55;white-space:pre-line;}
-.inv-summary{width:370px;flex-shrink:0;border:1px solid #CBD5E1;border-radius:6px;overflow:hidden;background:#FFFFFF;}
-.inv-summary__row{
-  display:flex;
-  justify-content:space-between;
-  gap:10px;
-  font-size:13px;
-  color:#000000;
-  padding:10px 16px;
-  border-bottom:1px solid #CBD5E1;
-  font-weight:700;
-  text-transform:uppercase;
-}
-.inv-summary__row span, .inv-summary__row b{word-break:break-word;overflow-wrap:break-word;}
-.inv-summary__total{
-  background:var(--primary);
-  color:#FFFFFF;
-  padding:12px 16px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:10px;
-}
-.inv-summary__total .label{font-size:16px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;}
-.inv-summary__total .value{font-size:24px;font-weight:600;word-break:break-word;overflow-wrap:break-word;text-align:right;}
-.inv-footer{margin-top:auto;width:100%;padding-top:16px;position:relative;z-index:5;}
-.inv-footer-details{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
-.contact-block{display:flex;flex-direction:column;gap:10px;}
-.contact-block div{display:flex;align-items:center;gap:12px;font-size:13px;color:#000000;font-weight:500;}
-.contact-block i{color:var(--primary);font-size:16px;width:18px;text-align:center;}
-.qr-block{display:flex;flex-direction:column;align-items:center;gap:4px;transform:translateY(-5px);}
-.qr-block img{width:88px;height:88px;border:2px solid #000000;border-radius:6px;padding:4px;}
-.qr-block span{
-  background:var(--primary);
-  color:#FFFFFF;
-  padding:3px 10px 4px;
-  border-radius:10px;
-  font-size:10px;
-  font-weight:600;
-  letter-spacing:0.5px;
-}
-.sign-block{display:flex;flex-direction:column;align-items:center;gap:4px;}
-.sign-block .for-line{color:var(--primary);font-weight:700;font-size:14px;margin-bottom:2px;}
-.sign-block img{height:55px;object-fit:contain;}
-.sign-block .auth-line{
-  color:var(--primary);
-  font-weight:700;
-  font-size:12px;
-  border-top:1.5px dashed var(--primary);
-  padding-top:6px;
-  min-width:190px;
-  text-align:center;
-}
-.inv-services{
-  background:var(--primary);
-  color:#FFFFFF;
-  padding:12px 18px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  border-radius:4px;
-  width:100%;
-}
-.inv-services__item{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  font-size:10.5px;
-  font-weight:500;
-  letter-spacing:0.4px;
-  text-transform:uppercase;
-  line-height:1.2;
-  text-align:left;
-}
-.inv-services__item i{font-family:"Font Awesome 6 Free", "Font Awesome 5 Free", sans-serif !important;font-weight:900 !important;font-size:18px;}
-.inv-services__sep{width:1px;height:26px;background:rgba(255,255,255,0.4);}
-.inv-thanks-container{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:12px;width:100%;}
-.inv-thanks-line{flex:1;height:2px;background:var(--primary);position:relative;opacity:0.8;}
-.inv-thanks-line.left::after{
-  content:"";
-  position:absolute;
-  right:-2px;
-  top:-2px;
-  width:6px;
-  height:6px;
-  background:var(--primary);
-  border-radius:50%;
-}
-.inv-thanks-line.right::after{
-  content:"";
-  position:absolute;
-  left:-2px;
-  top:-2px;
-  width:6px;
-  height:6px;
-  background:var(--primary);
-  border-radius:50%;
-}
-.inv-thanks{font-size:16px;font-weight:700;color:var(--primary);letter-spacing:0.2px;white-space:nowrap;}
-.inv-copy{text-align:center;font-size:11px;color:#212121;font-weight:600;margin-top:6px;}
-.invoice-page.compact .inv-table thead th{padding:8px 12px;}
-.invoice-page.compact .inv-table tbody td{padding:8px 12px;}
-.invoice-page.compact .inv-customer{margin-top:10px;}
-.invoice-page.compact .inv-table{margin-top:10px;}
-.invoice-page.compact .inv-bottom-row{margin-top:10px;}
-.invoice-page.compact-2 .inv-table thead th{padding:6px 10px;}
-.invoice-page.compact-2 .inv-table tbody td{padding:6px 10px;}
-.invoice-page.compact-2 .inv-customer{margin-top:6px;}
-.invoice-page.compact-2 .inv-table{margin-top:6px;}
-.invoice-page.compact-2 .inv-bottom-row{margin-top:6px;}
 #btnAdminUserFilter.is-clear,#btnBillsFilterToggle.is-clear{color:#ef4444;border-color:#ef4444;}
 #btnAdminUserFilter.is-clear:hover,#btnBillsFilterToggle.is-clear:hover{background:rgba(239,68,68,.08);}
 .date-custom-wrap,.date-picker,.date-picker__input{min-width:0;box-sizing:border-box;}
 .date-custom-wrap .date-picker,.date-custom-wrap .date-picker__input{width:100%;}
 </style>
+<link rel="stylesheet" href="./invoice-engine.css">
+<script src="./invoice-engine.js"></script>
 </head>
 <body>
 <!-- ================= OFFLINE UI ================= -->
@@ -3603,6 +3308,23 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
         <button class="btn btn--ghost btn--full" id="btnPdfActionCancel">Cancel</button>
         <button class="btn btn--outline" id="btnPdfShare" style="flex:1;"><i class="fa-solid fa-share-nodes"></i> Share PDF</button>
       </div>
+      <button class="btn btn--outline btn--full" id="btnPdfQr"><i class="fa-solid fa-qrcode"></i> QR Download</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay modal--confirm hide" id="invoiceQrModalOverlay">
+  <div class="modal invoice-qr-modal" role="dialog" aria-modal="true" aria-labelledby="invoiceQrModalTitle">
+    <div class="modal__header">
+      <div class="confirm-icon confirm-icon--info"><i class="fa-solid fa-qrcode"></i></div>
+      <h3 id="invoiceQrModalTitle">Invoice QR</h3>
+    </div>
+    <div class="modal__body invoice-qr-body">
+      <p id="invoiceQrNumber">Invoice</p>
+      <div class="invoice-qr-canvas-wrap"><canvas id="invoiceQrCanvas" width="280" height="280"></canvas></div>
+      <p class="invoice-qr-caption" id="invoiceQrStatus">Scan this QR code to download the invoice.</p>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--ghost" id="btnInvoiceQrClose">Close</button>
     </div>
   </div>
 </div>
@@ -4031,7 +3753,13 @@ function cacheElements(){
   el.pdfActionMsg = document.getElementById('pdfActionMsg');
   el.btnPdfDownload = document.getElementById('btnPdfDownload');
   el.btnPdfShare = document.getElementById('btnPdfShare');
+  el.btnPdfQr = document.getElementById('btnPdfQr');
   el.btnPdfActionCancel = document.getElementById('btnPdfActionCancel');
+  el.invoiceQrModalOverlay = document.getElementById('invoiceQrModalOverlay');
+  el.invoiceQrCanvas = document.getElementById('invoiceQrCanvas');
+  el.invoiceQrNumber = document.getElementById('invoiceQrNumber');
+  el.invoiceQrStatus = document.getElementById('invoiceQrStatus');
+  el.btnInvoiceQrClose = document.getElementById('btnInvoiceQrClose');
   el.productModalOverlay = document.getElementById('productModalOverlay');
   el.modalTitle = document.getElementById('modalTitle');
   el.btnCancelProduct = document.getElementById('btnCancelProduct');
@@ -4509,54 +4237,6 @@ function buildProductMetaHtml(p){
     metaBits.push(`<div class="prod-sn-line"><span class="sn-label">S/N:</span> <span class="sn-value">${escapeHtml(p.serial)}</span></div>`);
   }
   return metaBits.length ? `<div class="prod-meta">${metaBits.join('')}</div>` : '';
-}
-function buildInvRowHtml(p, idx){
-  const metaHtml = buildProductMetaHtml(p);
-  return `
-    <tr>
-      <td class="idx">${idx}.</td>
-      <td><div class="prod-name">${escapeHtml(p.name)}</div>${metaHtml}</td>
-      <td class="num" style="text-align: center; font-weight: 500;">${p.qty}</td>
-      <td class="num">${formatCurrency(p.rate, false)}</td>
-      <td class="num">${formatCurrency(roundMoney(p.qty * p.rate), false)}</td>
-    </tr>`;
-}
-function measureBlocks(blocksObj){
-  const temp = document.createElement('div');
-  temp.style.cssText = 'position:absolute;left:-9999px;top:0;width:704px;visibility:hidden;';
-  document.body.appendChild(temp);
-  const wrappers = {};
-  for (const key in blocksObj) {
-    const w = document.createElement('div');
-    w.innerHTML = blocksObj[key];
-    temp.appendChild(w);
-    wrappers[key] = w;
-  }
-  const heights = {};
-  for (const key in wrappers) {
-    heights[key] = wrappers[key].getBoundingClientRect().height;
-  }
-  document.body.removeChild(temp);
-  return heights;
-}
-function measureTableParts(products){
-  const temp = document.createElement('div');
-  temp.style.cssText = 'position:absolute;left:-9999px;top:0;width:704px;visibility:hidden;';
-  document.body.appendChild(temp);
-  temp.innerHTML = `
-    <table class="inv-table">
-      <thead>
-        <tr>
-          <th class="idx">#</th><th>PRODUCT / DESCRIPTION</th>
-          <th class="col-qty">QTY</th><th class="col-rate num">RATE (₹)</th><th class="col-amt num">AMOUNT (₹)</th>
-        </tr>
-      </thead>
-      <tbody>${products.map((p,i) => buildInvRowHtml(p, i+1)).join('')}</tbody>
-    </table>`;
-  const theadHeight = temp.querySelector('thead').getBoundingClientRect().height;
-  const rowHeights = Array.from(temp.querySelectorAll('tbody tr')).map(r => r.getBoundingClientRect().height);
-  document.body.removeChild(temp);
-  return { theadHeight, rowHeights };
 }
 function syncPopOpenState(){
   // One central source of truth for the global popup scroll lock.
@@ -6445,218 +6125,31 @@ function formatServiceLabel(text) {
 /* ===================================================================
    INVOICE RENDER + PDF (unchanged logic from original app)
    =================================================================== */
+function getCurrentInvoiceEngineData(){
+  return {
+    invoiceNumber: state.invoiceNumber || 'AUTO',
+    dateStr: state.dateStr || '',
+    customer: {
+      name: state.customer?.name || '',
+      address: state.customer?.address || '',
+      mobile: state.customer?.mobile || ''
+    },
+    products: (state.products || []).map(p => ({
+      name: p.name || '', description: p.description || '', serial: p.serial || '', qty: p.qty, rate: p.rate
+    })),
+    notes: state.notes,
+    includeNotesOnPdf: state.includeNotesOnPdf,
+    showWatermark: state.showWatermark,
+    showQr: state.showQr,
+    showSignature: state.showSignature
+  };
+}
 function renderInvoiceTemplate(targetContainerId = 'invoiceRoot'){
-  const root = document.getElementById(targetContainerId);
-  const c = CONFIG;
-  const { totalItems, totalQty, grandTotal } = calculateTotals(state.products);
-  const page1HeaderHtml = `
-    <div class="inv-header">
-      <img src="${c.assets.horizontalLogo}" class="inv-header__logo" crossOrigin="anonymous" alt="${escapeHtml(c.company.name)}">
-      <div class="inv-header__right">
-        <div class="inv-header__ribbon">
-          <span class="inv-header__ribbon-text">INVOICE</span>
-          <span class="inv-header__ribbon-stripe"></span>
-          <span class="inv-header__ribbon-stripe"></span>
-        </div>
-        <div class="inv-header__meta">
-          <div class="row"><span class="k">Invoice No.</span><span class="sep">:</span><span class="v">${escapeHtml(state.invoiceNumber || 'AUTO')}</span></div>
-          <div class="row"><span class="k">Date</span><span class="sep">:</span><span class="v">${escapeHtml(state.dateStr)}</span></div>
-        </div>
-      </div>
-    </div>
-    <hr class="inv-divider">
-    <div class="inv-customer">
-      <div class="inv-customer__icon"><i class="fa-solid fa-user"></i></div>
-      <div class="inv-customer__details">
-        <div class="inv-customer__label">BILL TO</div>
-        <div class="inv-customer__name">${escapeHtml(state.customer.name)}</div>
-        ${state.customer.address ? `<div class="inv-customer__address">${escapeHtml(state.customer.address)}</div>` : ''}
-        ${state.customer.mobile ? `<div class="inv-customer__line">Mobile: ${escapeHtml(state.customer.mobile)}</div>` : ''}
-      </div>
-    </div>
-  `;
-  const qrVisible = c.display.showQr !== false && state.showQr;
-  const signatureVisible = c.display.showSignature !== false && state.showSignature;
-  const footerHtml = `
-    <div class="inv-footer">
-      <div class="inv-footer-details">
-        <div class="contact-block">
-          <div><i class="fa-solid fa-location-dot"></i> <span>${(c.company.addressLines || []).map(escapeHtml).join('<br>')}</span></div>
-          <div><i class="fa-solid fa-phone"></i> <span>${escapeHtml(c.company.phone)}</span></div>
-          <div><i class="fa-solid fa-envelope"></i> <span>${escapeHtml(c.company.email)}</span></div>
-        </div>
-        ${qrVisible ? `<div class="qr-block"><img src="${c.assets.scannerQr}" crossOrigin="anonymous" alt="QR Code"><span>${escapeHtml(c.scanner.scannerCaption)}</span></div>` : ''}
-        ${signatureVisible ? `<div class="sign-block"><div class="for-line">${escapeHtml(c.signatureBlock.forLine)}</div><img src="${c.assets.signature}" crossOrigin="anonymous" alt="Signature"><div class="auth-line">${escapeHtml(c.signatureBlock.authLine)}</div></div>` : ''}
-      </div>
-      <div class="inv-services">${(c.services || []).map((s, i) => `
-        ${i > 0 ? '<span class="inv-services__sep"></span>' : ''}
-        <div class="inv-services__item"><i class="fa-solid ${s.icon}"></i> <div>${formatServiceLabel(s.label)}</div></div>
-      `).join('')}</div>
-      <div class="inv-thanks-container"><div class="inv-thanks-line left"></div><div class="inv-thanks">${escapeHtml(c.footer.thankYouMessage)}</div><div class="inv-thanks-line right"></div></div>
-      <div class="inv-copy">${escapeHtml(c.footer.copyrightLine || '')}</div>
-    </div>
-  `;
-  const notesText = state.notes === null ? (c.invoice.defaultNotes || '') : state.notes.trim();
-  const showNotes = c.display.showNotes !== false && notesText && state.includeNotesOnPdf;
-  const notesHtml = showNotes ? `
-    <div class="inv-notes">
-      <div class="inv-notes__label"><i class="fa-solid fa-clipboard-list" style="font-size:16px"></i> NOTES</div>
-      <div class="inv-notes__text">${escapeHtml(notesText)}</div>
-    </div>` : '';
-  const summaryHtml = `
-    <div class="inv-summary">
-      ${c.display.showTotalItems ? `<div class="inv-summary__row"><span>TOTAL ITEMS</span><b>${totalItems}</b></div>` : ''}
-      ${c.display.showTotalQuantity ? `<div class="inv-summary__row"><span>TOTAL QUANTITY</span><b>${totalQty}</b></div>` : ''}
-      <div class="inv-summary__total">
-        <span class="label" style="font-size: 16px;">GRAND TOTAL</span>
-        <span class="value">${formatCurrency(grandTotal, true)}</span>
-      </div>
-    </div>
-  `;
-  const watermarkHtml = state.showWatermark && c.display.showWatermark !== false ? `<img src="${c.assets.watermark}" class="inv-watermark" crossOrigin="anonymous" alt="Watermark Background">` : '';
-  const PAGE_HEIGHT = A4_PAGE_HEIGHT_PX;
-  const PAGE_PAD_TOP = 40;
-  const PAGE_PAD_BOTTOM = 30;
-  const TABLE_MARGIN_TOP = 12;
-  const TABLE_BORDER = 2;
-  const SAFETY_MARGIN = 10;
-  const products = state.products;
-  const chunks = [];
-  if (products.length === 0) {
-    chunks.push({ isLast: true, products: [], rowsHeight: 0 });
-  } else {
-    const contPageHeaderSample = `
-      <div class="page-continuation-header">
-        <div class="cont-left">
-          <img src="${c.assets.horizontalLogo}" class="cont-logo" alt="">
-          <div class="inv-header__ribbon" style="margin-bottom:0; padding: 3px 45px 3px 25px; font-size:14px;">
-            <span class="inv-header__ribbon-text">INVOICE</span>
-          </div>
-          <span class="cont-page-count">(Page 1 of 1)</span>
-        </div>
-        <div class="cont-inv-no">No. ${escapeHtml(state.invoiceNumber)}</div>
-      </div>`;
-    const bottomRowHtml = `<div class="inv-bottom-row">${showNotes ? notesHtml : ''}${summaryHtml}</div>`;
-    const blockHeights = measureBlocks({
-      page1Header: page1HeaderHtml,
-      contHeader: contPageHeaderSample,
-      bottomRow: bottomRowHtml,
-      footer: footerHtml
-    });
-    const page1HeaderHeight = blockHeights.page1Header;
-    const contHeaderHeight  = blockHeights.contHeader;
-    const bottomExtra       = blockHeights.bottomRow + blockHeights.footer + TABLE_MARGIN_TOP;
-    const { theadHeight, rowHeights } = measureTableParts(products);
-    const page1Budget = PAGE_HEIGHT - PAGE_PAD_TOP - PAGE_PAD_BOTTOM - page1HeaderHeight
-                       - TABLE_MARGIN_TOP - theadHeight - TABLE_BORDER - SAFETY_MARGIN;
-    const contBudget   = PAGE_HEIGHT - PAGE_PAD_TOP - PAGE_PAD_BOTTOM - contHeaderHeight
-                       - TABLE_MARGIN_TOP - theadHeight - TABLE_BORDER - SAFETY_MARGIN;
-    let i = 0;
-    const n = products.length;
-    while (i < n) {
-      const isFirstPage = chunks.length === 0;
-      const budget = isFirstPage ? page1Budget : contBudget;
-      let sum = 0;
-      let j = i;
-      while (j < n) {
-        if (sum + rowHeights[j] > budget && j > i) {
-          break;
-        }
-        sum += rowHeights[j];
-        j++;
-      }
-      chunks.push({
-        isLast: false,
-        products: products.slice(i, j),
-        rowsHeight: sum
-      });
-      i = j;
-    }
-    if (chunks.length === 0) {
-      chunks.push({
-        isLast: false,
-        products: [],
-        rowsHeight: 0
-      });
-    }
-    const lastChunk = chunks[chunks.length - 1];
-    const budgetForLast = chunks.length === 1 ? page1Budget : contBudget;
-    if (lastChunk.rowsHeight + bottomExtra <= budgetForLast) {
-      lastChunk.isLast = true;
-    } else {
-      chunks.push({
-        isLast: true,
-        products: [],
-        rowsHeight: 0
-      });
-    }
-  }
-  const totalPages = chunks.length;
-  let pagesHtml = '';
-  let globalIdx = 1;
-  chunks.forEach((chunk, pageIndex) => {
-    const isFirstPage = pageIndex === 0;
-    const isLastPage = chunk.isLast;
-    const pageNum = pageIndex + 1;
-    let rowsHtml = chunk.products.map(p => buildInvRowHtml(p, globalIdx++)).join('');
-    const contPageHeaderHtml = `
-      <div class="page-continuation-header">
-        <div class="cont-left">
-          <img src="${c.assets.horizontalLogo}" class="cont-logo" crossOrigin="anonymous" alt="${escapeHtml(c.company.name)}">
-          <span class="cont-page-count">(Page ${pageNum} of ${totalPages})</span>
-          </div>
-          <div class="cont-inv-no">
-            <div class="inv-header__ribbon" style="margin-bottom:0; padding: 3px 45px 3px 25px; font-size:14px;">
-               <span class="inv-header__ribbon-text">INVOICE</span>
-               <span class="inv-header__ribbon-stripe"></span>
-               <span class="inv-header__ribbon-stripe"></span>
-            </div>
-            No. ${escapeHtml(state.invoiceNumber || 'AUTO')}
-          </div>
-      </div>
-    `;
-    const tableHtml = chunk.products.length > 0 ? `
-      <table class="inv-table">
-        <thead>
-          <tr>
-            <th class="idx">#</th>
-            <th>PRODUCT / DESCRIPTION</th>
-            <th class="col-qty">QTY</th>
-            <th class="col-rate num">RATE (₹)</th>
-            <th class="col-amt num">AMOUNT (₹)</th>
-          </tr>
-        </thead>
-        <tbody>${rowsHtml}</tbody>
-      </table>
-    ` : '';
-    let pageContent = `
-      <div class="invoice-page ${isFirstPage ? '' : 'page-continuation'}">
-        ${isFirstPage ? page1HeaderHtml : contPageHeaderHtml}
-        <div class="inv-table-wrap">
-          ${tableHtml}
-        </div>
-        ${isLastPage ? `
-          <div class="inv-bottom-row">
-            ${showNotes ? notesHtml : ''}
-            ${summaryHtml}
-          </div>
-          ${footerHtml}
-        ` : ''}
-        ${watermarkHtml}
-      </div>
-    `;
-    pagesHtml += pageContent;
-  });
-  root.innerHTML = pagesHtml;
+  InvoiceEngine.configure(CONFIG);
+  return InvoiceEngine.renderInvoiceTemplate(getCurrentInvoiceEngineData(), targetContainerId);
 }
 function fitInvoiceToSinglePage(){
-  const pages = document.querySelectorAll('.invoice-page');
-  const PAGE_HEIGHT = A4_PAGE_HEIGHT_PX;
-  pages.forEach(page => {
-    page.classList.remove('compact', 'compact-2');
-    if(page.scrollHeight > PAGE_HEIGHT){ page.classList.add('compact'); }
-    if(page.scrollHeight > PAGE_HEIGHT){ page.classList.add('compact-2'); }
-  });
+  return InvoiceEngine.fitInvoiceToSinglePage('invoiceRoot');
 }
 function handlePreviewLayoutScaling() {
   const wrapper = el.previewModalBody;
@@ -6782,69 +6275,14 @@ let _pdfActionDidSave = false;
 let _pdfForPreviousBill = false;
 async function generatePdfBlob(){
   const root = document.getElementById('invoiceRoot');
-  const wrapper = document.getElementById('pdfWrapper');
   showActionLoader('Generating your invoice…');
   try {
-    renderInvoiceTemplate('invoiceRoot');
-    const explicitImages = Array.from(root.querySelectorAll('img'));
-    await Promise.all(explicitImages.map(async (img) => {
-      try {
-        if (!img.complete) await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
-        if (typeof img.decode === 'function') await img.decode();
-      } catch (e) { console.warn('Asset load bypassed:', img.src); }
-    }));
-    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-    fitInvoiceToSinglePage();
-    // .compact/.compact-2 (toggled above) have no CSS transition on them, so
-    // their layout is already final the instant the classes are applied.
-    // Reading offsetHeight forces the browser to flush that layout
-    // synchronously, which is enough for html2canvas to see the final
-    // state -- no need to wait out another two paint frames (~32ms) for it.
-    void wrapper.offsetHeight;
-    const opt = {
-      margin: 0,
-      filename: `${CONFIG.invoice.filePrefix}${state.invoiceNumber}.pdf`,
-      image: { type: 'jpeg', quality: 0.95 },
-      html2canvas: { scale: 3, useCORS: true, allowTaint: true, backgroundColor: '#FFFFFF', logging: false, width: 794, windowWidth: 794, scrollX: 0, scrollY: 0, x: 0, y: 0 },
-      jsPDF: { unit: 'px', format: [794, 1123], orientation: 'portrait' },
-      pagebreak: { mode: ['css', 'legacy'] }
-    };
-    let html2pdfFn;
-    try {
-      html2pdfFn = await loadHtml2Pdf();
-    } catch (err) {
-      hideActionLoader();
-      showToast('Could not load the PDF engine. Check your connection and try again.', 'error');
-      throw err;
-    }
-    const blob = await html2pdfFn().set(opt).from(wrapper).outputPdf('blob');
-    return { blob, filename: opt.filename };
+    InvoiceEngine.configure(CONFIG);
+    return await InvoiceEngine.generatePdfBlob(getCurrentInvoiceEngineData(), 'invoiceRoot', 'pdfWrapper');
   } finally {
     hideActionLoader();
-    root.innerHTML = '';
+    if (root) root.innerHTML = '';
   }
-}
-async function openSaveChoiceModal(){
-  if(!validateField(el.customerName)){
-    showToast('Enter customer name before downloading invoice.', 'warning');
-    markError(el.customerName, false);
-    el.customerName.focus();
-    return;
-  }
-  if(!state.products.length){ showToast('Add at least one product before downloading.', 'warning'); return; }
-  if(!el.previewModalOverlay.classList.contains('hide')){
-    // The preview modal sits above the save-choice confirm modal (z-index
-    // 150 vs 110). Opening the confirm modal immediately meant it appeared
-    // hidden behind the still-fading preview overlay for the length of the
-    // close animation. Await the real close instead of guessing a delay.
-    await closePreviewModal();
-    showOverlay(el.saveChoiceModalOverlay);
-    return;
-  }
-  showOverlay(el.saveChoiceModalOverlay);
-}
-function closeSaveChoiceModal(){
-  hideOverlay(el.saveChoiceModalOverlay);
 }
 async function handlePreviewDownload(){
   if (loadedBillForPrint !== null) {
@@ -6869,8 +6307,34 @@ function openPdfActionModal(saved){
   } else {
     el.pdfActionMsg.textContent = 'Invoice ready (not saved to database).';
   }
+  if (el.btnPdfQr) {
+    const canCreateQr = !!state.invoiceNumber && (_pdfActionDidSave || _pdfForPreviousBill);
+    el.btnPdfQr.classList.toggle('hide', !canCreateQr);
+  }
   showOverlay(el.pdfActionModalOverlay);
 }
+async function openInvoiceQr(invoiceNo){
+  if(!invoiceNo || !window.supabaseClient || !window.CONFIG) return;
+  if(!el.invoiceQrModalOverlay || !el.invoiceQrCanvas) return;
+  el.invoiceQrNumber.textContent = `Invoice #${invoiceNo}`;
+  el.invoiceQrStatus.textContent = 'Preparing QR code…';
+  el.invoiceQrCanvas.getContext('2d')?.clearRect(0,0,el.invoiceQrCanvas.width,el.invoiceQrCanvas.height);
+  showOverlay(el.invoiceQrModalOverlay);
+  try{
+    const {data,error}=await supabaseClient.rpc('get_or_create_invoice_public_token',{p_invoice_no:invoiceNo});
+    if(error) throw error;
+    if(!data) throw new Error('Token unavailable');
+    const base=new URL(CONFIG.public_invoice_url || './invoice.html',location.href);
+    base.searchParams.set('t',data);
+    if(!window.QRCode || !QRCode.toCanvas) throw new Error('QR generator unavailable');
+    await QRCode.toCanvas(el.invoiceQrCanvas,base.toString(),{width:280,margin:1,errorCorrectionLevel:'M'});
+    el.invoiceQrStatus.textContent='Scan this QR code to open the invoice download page.';
+  }catch(err){
+    console.error('Invoice QR error:',err);
+    el.invoiceQrStatus.textContent='Could not prepare the invoice QR. Please try again.';
+  }
+}
+function closeInvoiceQr(){ hideOverlay(el.invoiceQrModalOverlay); }
 function closePdfActionModal(){
   hideOverlay(el.pdfActionModalOverlay);
   const wasSaved = _pdfActionDidSave;
@@ -8284,6 +7748,7 @@ function getDismissibleOverlays(){
     [el.changePasswordModalOverlay, closeChangePasswordModal],
     [el.saveChoiceModalOverlay, closeSaveChoiceModal],
     [el.pdfActionModalOverlay, closePdfActionModal],
+    [el.invoiceQrModalOverlay, closeInvoiceQr],
     [el.restoreBillModalOverlay, dismissRestoreBillModalAsStartFresh],
     [el.otpSendConfirmOverlay, () => el.btnCancelOtpSendConfirm.click()]
   ];
@@ -8618,7 +8083,9 @@ function bindEvents(){
   el.btnSaveChoiceYes.addEventListener('click', () => handleSaveChoice(true));
   el.btnPdfDownload.addEventListener('click', downloadPdfBlob);
   el.btnPdfShare.addEventListener('click', sharePdfBlob);
-  el.btnPdfActionCancel.addEventListener('click', closePdfActionModal);
+
+  el.btnPdfQr.addEventListener('click', () => openInvoiceQr(state.invoiceNumber));
+  el.btnInvoiceQrClose.addEventListener('click', closeInvoiceQr);  el.btnPdfActionCancel.addEventListener('click', closePdfActionModal);
   el.btnDownloadFromPreview.addEventListener('click', handlePreviewDownload);
   el.btnClosePreviewModal.addEventListener('click', closePreviewModal);
   el.btnPreview.addEventListener('click', openPreviewModal);

@@ -1,0 +1,299 @@
+:root{--primary:#012587;}
+/* ==========================================================
+   INVOICE / PDF — printable invoice layout used for preview,
+   PDF generation and the download flow
+   ========================================================== */
+/* ---------- Off-screen render wrapper ---------- */
+#pdfRenderWrap{
+  position:fixed;
+  top:0;
+  left:-9999px;
+  width:794px;
+  overflow:hidden;
+  z-index:-9999;
+}
+.pdf-wrapper-container,.invoice-render{width:794px;margin:0;padding:0;background:#FFFFFF;}
+/* ---------- Invoice page ---------- */
+.invoice-page{
+  position:relative;
+  width:794px;
+  min-height:1122px;
+  background:#FFFFFF !important;
+  color:#212121 !important;
+  padding:40px 45px 30px;
+  overflow:visible;
+  display:flex;
+  flex-direction:column;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+  margin:0;
+  border: 1px solid #E4E8EE;
+  page-break-after: always;
+  left:0;
+  top:0;
+}
+.invoice-page:last-child{page-break-after: auto;}
+.inv-bottom-row, .inv-footer{page-break-inside: avoid;break-inside: avoid;}
+.inv-watermark{
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%) rotate(-30deg);
+  width:550px;
+  opacity:0.05;
+  pointer-events:none;
+  z-index:999 !important;
+}
+.inv-header{display:flex;justify-content:space-between;align-items:center;width:100%;position:relative;z-index:5;}
+.inv-header__logo{width:auto;max-width:475px;object-fit:contain;margin:0;}
+.inv-header__right{text-align:right;display:flex;flex-direction:column;align-items:flex-end;}
+.inv-header__ribbon{
+  display: inline-block;
+  position: relative;
+  background: var(--primary);
+  transform: skewX(-25deg);
+  padding: 6px 35px 6px 25px;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: 1px;
+  margin:0 8px 4px;
+}
+.inv-header__ribbon-text{display: inline-block;transform: skewX(25deg);}
+.inv-header__ribbon-stripe{position: absolute;top: 0;bottom: 0;right: 15px;width: 2.5px;background: #ffffff;}
+.inv-header__ribbon-stripe:nth-child(1){right: 6px;}
+.inv-header__ribbon-stripe:nth-child(2){right: 7px;}
+.inv-header__meta{font-size:14px;color:#212121;}
+.inv-header__meta .row{display:flex;justify-content:flex-end;align-items:center;margin:6px 0;}
+.inv-header__meta .row .k{width:85px;text-align:left;color:#000000;font-weight:700;}
+.inv-header__meta .row .sep{font-weight:700;color:#000000;margin-right:8px;}
+.inv-header__meta .row .v{font-weight:700;color:var(--primary);min-width:85px;text-align:left;}
+.inv-divider{border:none;border-top:2px solid var(--primary);width:100%;position:relative;z-index:5;}
+.inv-customer{display:flex;gap:14px;align-items:flex-start;position:relative;z-index:5;}
+.inv-customer__icon{
+  width:34px;
+  height:34px;
+  border-radius:50%;
+  background:var(--primary);
+  color:#FFFFFF;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:16px;
+  margin-top:2px;
+  flex-shrink:0;
+}
+.inv-customer__details{display:flex;flex-direction:column;gap:4px;}
+.inv-customer__label{
+  font-size:13px;
+  font-weight:750;
+  letter-spacing:0.8px;
+  color:var(--primary);
+  text-transform:uppercase;
+  line-height:1;
+  margin-bottom:2px;
+  margin-top:12px;
+}
+.inv-customer__name{font-size:18px;font-weight:700;color:#000000;white-space:nowrap;}
+.inv-customer__line{font-size:14px;color:#000000;font-weight:600;white-space:nowrap;}
+.inv-customer__address{font-size:14px;color:#000000;font-weight:600;white-space:pre-line;word-break:break-word;overflow-wrap:break-word;}
+.invoice-page.page-continuation{padding-top: 40px;}
+.page-continuation-header{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--primary);
+  position: relative;
+  z-index: 5;
+}
+.cont-left{display: flex;align-items: center;gap: 110px;}
+.cont-logo{height: 34px;width: auto;margin-right: 12px;object-fit: contain;}
+.cont-page-count{font-weight: 600;color: #6B7280;font-size: 12px;margin-left: 8px;}
+.cont-inv-no{font-weight: 700;color: var(--primary);font-size: 13.5px;}
+.inv-table-wrap{width:100%;flex:1;display:flex;flex-direction:column;position:relative;z-index:5;}
+.inv-table{
+  width:100%;
+  border-collapse:separate;
+  border-spacing: 0;
+  margin-top:12px;
+  font-size:13.5px;
+  table-layout:fixed;
+  border:1px solid #CBD5E1;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.inv-table thead th{
+  background:var(--primary) !important;
+  color:#FFFFFF !important;
+  padding:12px 14px;
+  font-size:12px;
+  text-transform:uppercase;
+  font-weight:700;
+  border:none;
+  text-align:center;
+  border-right:1px solid #FFFFFF;
+  letter-spacing:0.8px;
+}
+.inv-table thead th:nth-child(2),.inv-table tbody td:nth-child(2){text-align:left;}
+.inv-table thead th.idx{width:45px;}
+.inv-table thead th.col-qty{width:70px;}
+.inv-table thead th.col-rate{width:115px;}
+.inv-table thead th.col-amt{width:125px;}
+.inv-table tbody td{
+  padding:6px;
+  border:none;
+  border-top:1px solid #CBD5E1;
+  border-right:1px solid #CBD5E1;
+  vertical-align:middle;
+  text-align:center;
+  color:#000000;
+  font-size:13.5px;
+  word-break:break-word;
+  overflow-wrap:anywhere;
+  white-space:normal;
+}
+.inv-table tbody tr:nth-child(odd) td{background-color: #FFFFFF !important;}
+.inv-table tbody tr:nth-child(even) td{background-color: #F8FAFC !important;}
+.inv-table td.num{white-space:normal;word-break:break-word;overflow-wrap:break-word;font-weight:600;}
+.inv-table td.idx{font-weight:700;}
+.inv-table .prod-name{
+  font-weight:700;
+  color:#000000;
+  font-size:14px;
+  margin-bottom:4px;
+  white-space:normal;
+  word-break:break-word;
+  overflow-wrap:anywhere;
+}
+.inv-bottom-row{
+  display:flex;
+  justify-content:right;
+  gap:30px;
+  margin-top:12px;
+  align-items:flex-start;
+  width:100%;
+  position:relative;
+  z-index:5;
+}
+.inv-notes{flex:1;min-width:0;padding-top:4px;display:flex;flex-direction:column;gap:8px;}
+.inv-notes__label{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:14px;
+  font-weight:700;
+  letter-spacing:0.8px;
+  color:var(--primary);
+  text-transform:uppercase;
+}
+.inv-notes__text{font-size:13px;color:#000000;line-height:1.55;white-space:pre-line;}
+.inv-summary{width:370px;flex-shrink:0;border:1px solid #CBD5E1;border-radius:6px;overflow:hidden;background:#FFFFFF;}
+.inv-summary__row{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  font-size:13px;
+  color:#000000;
+  padding:10px 16px;
+  border-bottom:1px solid #CBD5E1;
+  font-weight:700;
+  text-transform:uppercase;
+}
+.inv-summary__row span, .inv-summary__row b{word-break:break-word;overflow-wrap:break-word;}
+.inv-summary__total{
+  background:var(--primary);
+  color:#FFFFFF;
+  padding:12px 16px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+}
+.inv-summary__total .label{font-size:16px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;}
+.inv-summary__total .value{font-size:24px;font-weight:600;word-break:break-word;overflow-wrap:break-word;text-align:right;}
+.inv-footer{margin-top:auto;width:100%;padding-top:16px;position:relative;z-index:5;}
+.inv-footer-details{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
+.contact-block{display:flex;flex-direction:column;gap:10px;}
+.contact-block div{display:flex;align-items:center;gap:12px;font-size:13px;color:#000000;font-weight:500;}
+.contact-block i{color:var(--primary);font-size:16px;width:18px;text-align:center;}
+.qr-block{display:flex;flex-direction:column;align-items:center;gap:4px;transform:translateY(-5px);}
+.qr-block img{width:88px;height:88px;border:2px solid #000000;border-radius:6px;padding:4px;}
+.qr-block span{
+  background:var(--primary);
+  color:#FFFFFF;
+  padding:3px 10px 4px;
+  border-radius:10px;
+  font-size:10px;
+  font-weight:600;
+  letter-spacing:0.5px;
+}
+.sign-block{display:flex;flex-direction:column;align-items:center;gap:4px;}
+.sign-block .for-line{color:var(--primary);font-weight:700;font-size:14px;margin-bottom:2px;}
+.sign-block img{height:55px;object-fit:contain;}
+.sign-block .auth-line{
+  color:var(--primary);
+  font-weight:700;
+  font-size:12px;
+  border-top:1.5px dashed var(--primary);
+  padding-top:6px;
+  min-width:190px;
+  text-align:center;
+}
+.inv-services{
+  background:var(--primary);
+  color:#FFFFFF;
+  padding:12px 18px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  border-radius:4px;
+  width:100%;
+}
+.inv-services__item{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:10.5px;
+  font-weight:500;
+  letter-spacing:0.4px;
+  text-transform:uppercase;
+  line-height:1.2;
+  text-align:left;
+}
+.inv-services__item i{font-family:"Font Awesome 6 Free", "Font Awesome 5 Free", sans-serif !important;font-weight:900 !important;font-size:18px;}
+.inv-services__sep{width:1px;height:26px;background:rgba(255,255,255,0.4);}
+.inv-thanks-container{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:12px;width:100%;}
+.inv-thanks-line{flex:1;height:2px;background:var(--primary);position:relative;opacity:0.8;}
+.inv-thanks-line.left::after{
+  content:"";
+  position:absolute;
+  right:-2px;
+  top:-2px;
+  width:6px;
+  height:6px;
+  background:var(--primary);
+  border-radius:50%;
+}
+.inv-thanks-line.right::after{
+  content:"";
+  position:absolute;
+  left:-2px;
+  top:-2px;
+  width:6px;
+  height:6px;
+  background:var(--primary);
+  border-radius:50%;
+}
+.inv-thanks{font-size:16px;font-weight:700;color:var(--primary);letter-spacing:0.2px;white-space:nowrap;}
+.inv-copy{text-align:center;font-size:11px;color:#212121;font-weight:600;margin-top:6px;}
+.invoice-page.compact .inv-table thead th{padding:8px 12px;}
+.invoice-page.compact .inv-table tbody td{padding:8px 12px;}
+.invoice-page.compact .inv-customer{margin-top:10px;}
+.invoice-page.compact .inv-table{margin-top:10px;}
+.invoice-page.compact .inv-bottom-row{margin-top:10px;}
+.invoice-page.compact-2 .inv-table thead th{padding:6px 10px;}
+.invoice-page.compact-2 .inv-table tbody td{padding:6px 10px;}
+.invoice-page.compact-2 .inv-customer{margin-top:6px;}
+.invoice-page.compact-2 .inv-table{margin-top:6px;}
+.invoice-page.compact-2 .inv-bottom-row{margin-top:6px;}

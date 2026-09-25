@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#012587">
+<title>JAS Tech — Invoice</title>
+<link rel="stylesheet" href="./invoice-engine.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<style>
+:root{--primary:#012587;--bg:#F8F9FC;--text:#212121;}
+*{box-sizing:border-box;}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Roboto,Arial,sans-serif;}
+body{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:18px;}
+.customer-shell{width:min(100%,560px);text-align:center;}
+.state{display:none;align-items:center;justify-content:center;flex-direction:column;min-height:72vh;gap:14px;}
+.state.active{display:flex;}
+.brand-mark{width:64px;height:64px;border-radius:18px;object-fit:contain;margin:0 auto 4px;}
+.state h1{font-size:22px;margin:0;color:#111827;}
+.state p{margin:0;color:#6B7280;font-size:14px;line-height:1.55;max-width:420px;}
+.loader{width:42px;height:42px;border:4px solid #DCE3F3;border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite;}
+.success-icon,.error-icon{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;font-size:26px;color:#fff;background:var(--primary);}
+.error-icon{background:#B42318;}
+.customer-btn{border:0;border-radius:10px;background:var(--primary);color:#fff;font-weight:600;padding:12px 20px;cursor:pointer;min-width:150px;}
+.customer-btn:active{transform:translateY(1px);}
+#pdfRenderWrap{position:fixed;left:-10000px;top:0;width:794px;overflow:hidden;pointer-events:none;}
+.pdf-wrapper-container,.invoice-render{width:794px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+@media(max-width:600px){body{padding:14px}.state{min-height:80vh}.state h1{font-size:20px}.brand-mark{width:58px;height:58px}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./invoice-engine.js"></script>
+</head>
+<body>
+<main class="customer-shell" aria-live="polite">
+  <section class="state active" id="stateLoading"><div class="loader" aria-hidden="true"></div><h1>Loading invoice</h1><p>Please wait…</p></section>
+  <section class="state" id="stateInvoice"><img class="brand-mark" id="brandLogo" src="assets/logo/logo.png" alt="JAS Tech"><h1 id="invoiceTitle">Invoice ready</h1><p>Your invoice is ready to download.</p><button class="customer-btn" id="btnDownload">Download Invoice</button></section>
+  <section class="state" id="stateGenerating"><div class="loader" aria-hidden="true"></div><h1>Generating invoice</h1><p>Please wait while your invoice PDF is prepared.</p></section>
+  <section class="state" id="stateSuccess"><div class="success-icon"><i class="fa-solid fa-check"></i></div><h1>Download started</h1><p>Your invoice download has been started on your device.</p></section>
+  <section class="state" id="stateError"><div class="error-icon"><i class="fa-solid fa-triangle-exclamation"></i></div><h1>Invoice unavailable</h1><p id="errorMessage">This invoice link is invalid or no longer available.</p><button class="customer-btn" id="btnRetry">Try Again</button></section>
+</main>
+<div id="pdfRenderWrap"><div id="pdfWrapper" class="pdf-wrapper-container"><div id="invoiceRoot" class="invoice-render"></div></div></div>
+<script>
+(function(){
+  'use strict';
+  let CONFIG=null, invoiceData=null;
+  const $=id=>document.getElementById(id);
+  const states=['stateLoading','stateInvoice','stateGenerating','stateSuccess','stateError'];
+  function showState(id){states.forEach(s=>$(s)?.classList.toggle('active',s===id));}
+  function getToken(){return new URLSearchParams(location.search).get('t')?.trim()||'';}
+  function formatBillDate(value){
+    if(!value)return '';
+    const d=new Date(value+'T00:00:00');
+    if(Number.isNaN(d.getTime()))return String(value);
+    return d.toLocaleDateString('en-IN',{day:'2-digit',month:'2-digit',year:'numeric'});
+  }
+  async function loadConfig(){
+    const r=await fetch('./config.json',{cache:'no-store'}); if(!r.ok)throw new Error('config'); CONFIG=await r.json(); InvoiceEngine.configure(CONFIG); $('brandLogo').src=CONFIG.assets?.mainLogo||'assets/logo/logo.png';
+  }
+  async function loadInvoice(){
+    const token=getToken(); if(!token)throw new Error('invalid');
+    if(!CONFIG)await loadConfig();
+    const client=supabase.createClient(CONFIG.supabase.url,CONFIG.supabase.anonKey,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
+    const {data,error}=await client.rpc('get_public_invoice',{p_token:token});
+    if(error||!data)throw new Error('invalid');
+    invoiceData={
+      invoiceNumber:data.invoice_no||'AUTO',
+      dateStr:formatBillDate(data.bill_date),
+      customer:{name:data.customer_name||'',address:data.customer_address||'',mobile:data.customer_phone||''},
+      products:(data.items||[]).map(i=>({name:i.item_name||'',description:i.description||'',serial:i.serial||'',qty:i.qty,rate:i.price})),
+      notes:data.notes==null?null:data.notes,
+      includeNotesOnPdf:data.include_notes!==false,
+      showWatermark:data.show_watermark!==false,
+      showQr:data.show_qr!==false,
+      showSignature:data.show_signature!==false
+    };
+    $('invoiceTitle').textContent=`Invoice #${invoiceData.invoiceNumber}`;
+    showState('stateInvoice');
+  }
+  async function downloadInvoice(){
+    if(!invoiceData)return;
+    showState('stateGenerating');
+    try{
+      const result=await InvoiceEngine.generatePdfBlob(invoiceData,'invoiceRoot','pdfWrapper');
+      const url=URL.createObjectURL(result.blob),a=document.createElement('a');
+      a.href=url;a.download=result.filename;document.body.appendChild(a);a.click();a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),1500);
+      showState('stateSuccess');
+    }catch(err){console.error(err);showState('stateError');}
+  }
+  async function start(){showState('stateLoading');try{await loadInvoice();}catch(err){console.error(err);showState('stateError');}}
+  $('btnDownload').addEventListener('click',downloadInvoice);
+  $('btnRetry').addEventListener('click',start);
+  start();
+})();
+</script>
+</body>
+</html>

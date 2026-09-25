@@ -1097,3 +1097,142 @@ $$;
 
 grant execute on function public.search_customers(text, integer)
 to authenticated;
+
+-- JAS Tech — Public Invoice QR
+-- Uses ONE new column on public.bills.
+-- Existing bills.show_qr is NOT changed or reused.
+
+create extension if not exists pgcrypto;
+
+alter table public.bills
+  add column if not exists public_token text;
+
+create unique index if not exists bills_public_token_uidx
+  on public.bills(public_token)
+  where public_token is not null;
+
+-- Return the public token for a saved invoice, creating it only when needed.
+-- Normal clients still have no UPDATE policy on bills; this controlled RPC
+-- performs the token write with SECURITY DEFINER after checking the caller.
+create or replace function public.get_or_create_invoice_public_token(
+  p_invoice_no text
+)
+returns text
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  v_token text;
+begin
+  if auth.uid() is null then
+    raise exception 'Authentication required.';
+  end if;
+
+  if not public.is_approved() then
+    raise exception 'Not authorized.';
+  end if;
+
+  if nullif(trim(p_invoice_no), '') is null then
+    raise exception 'Invoice number is required.';
+  end if;
+
+  -- Lock this invoice row so two QR requests cannot create two tokens.
+  select public_token
+    into v_token
+  from public.bills
+  where invoice_no = trim(p_invoice_no)
+  for update;
+
+  if not found then
+    raise exception 'Invoice not found.';
+  end if;
+
+  if v_token is null or length(v_token) < 32 then
+    v_token := encode(gen_random_bytes(32), 'hex');
+
+    update public.bills
+       set public_token = v_token
+     where invoice_no = trim(p_invoice_no);
+  end if;
+
+  return v_token;
+end;
+$$;
+
+-- Customer-facing RPC.
+-- It intentionally exposes only invoice data required to render/download
+-- the invoice. RLS on bills/bill_items remains enabled and unchanged.
+create or replace function public.get_public_invoice(
+  p_token text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, extensions
+stable
+as $$
+declare
+  v_bill public.bills%rowtype;
+  v_items jsonb;
+begin
+  if nullif(trim(p_token), '') is null then
+    return null;
+  end if;
+
+  select b.*
+    into v_bill
+  from public.bills b
+  where b.public_token = trim(p_token)
+  limit 1;
+
+  if not found then
+    return null;
+  end if;
+
+  select coalesce(
+    jsonb_agg(
+      jsonb_build_object(
+        'item_name', bi.item_name,
+        'description', coalesce(bi.description, ''),
+        'serial', coalesce(bi.serial, ''),
+        'qty', bi.qty,
+        'price', bi.price
+      )
+    ),
+    '[]'::jsonb
+  )
+  into v_items
+  from public.bill_items bi
+  where bi.invoice_no = v_bill.invoice_no;
+
+  return jsonb_build_object(
+    'invoice_no', v_bill.invoice_no,
+    'customer_name', coalesce(v_bill.customer_name, ''),
+    'customer_phone', coalesce(v_bill.customer_phone, ''),
+    'customer_address', coalesce(v_bill.customer_address, ''),
+    'bill_date', v_bill.bill_date,
+    'notes', coalesce(v_bill.notes, ''),
+    'include_notes', v_bill.include_notes,
+    'show_watermark', v_bill.show_watermark,
+    'show_qr', v_bill.show_qr,
+    'show_signature', v_bill.show_signature,
+    'total', v_bill.total,
+    'items', v_items
+  );
+end;
+$$;
+
+-- Public customer page uses the anon key and this RPC only.
+grant execute on function public.get_public_invoice(text) to anon, authenticated;
+grant execute on function public.get_or_create_invoice_public_token(text) to authenticated;
+
+-- Do not grant direct table access to anon.
+revoke all on table public.bills from anon;
+revoke all on table public.bill_items from anon;
+
+-- Keep SECURITY DEFINER functions from being callable through PUBLIC by default.
+revoke all on function public.get_public_invoice(text) from public;
+revoke all on function public.get_or_create_invoice_public_token(text) from public;
+grant execute on function public.get_public_invoice(text) to anon, authenticated;
+grant execute on function public.get_or_create_invoice_public_token(text) to authenticated;

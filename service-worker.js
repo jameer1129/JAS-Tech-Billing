@@ -4,13 +4,16 @@
    Safe Activation Handoff
    ========================================================= */
 
-const CACHE_NAME = "v2.1.8";
+const CACHE_NAME = "v2.2.2";
 
 // Delay before taking control of already-open pages.
 const CLAIM_DELAY_MS = 2000;
 
 const STATIC_ASSETS = [
   "./index.html",
+  "./invoice.html",
+  "./invoice-engine.js",
+  "./invoice-engine.css",
   "./config.json",
   "./manifest.json",
   "./assets/logo/logo.png",
