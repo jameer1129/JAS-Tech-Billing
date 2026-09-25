@@ -845,15 +845,21 @@ body.dark-theme .toast-card--error{background:#2B1514;border-color:#D64545AA;}
   right:10px;
   bottom:13px;
   font-size:20px;
-  background:#D3DAEA;
+  background:var(--surface);
 }
-body.dark-theme .confirm-icon--devices .device-mobile{background:#000F36;}
+body.dark-theme .confirm-icon--devices .device-mobile{background:var(--surface);}
 .confirm-icon--success{background:var(--success);color:white;}
 .confirm-icon--danger{background:color-mix(in srgb, var(--danger) 15%, transparent);color:var(--danger);}
 body.dark-theme .confirm-icon--info{background:rgba(1,37,135,.4);}
 .modal--confirm p{margin:0;color:var(--muted);font-size:13.5px;line-height:1.5;}
 .modal--confirm .confirm-target{color:var(--primary-text);font-weight:700;overflow-wrap:anywhere;word-break:break-word;}
 body.dark-theme #invoiceQrCanvas{filter: invert(1);}
+
+/* ---------- Invoice QR loader ---------- */
+.invoice-qr-skeleton{width:42px;height:42px;border:4px solid rgba(1,37,135,.15);border-top-color:var(--primary-text);border-radius:50%;animation:invoiceQrSpin .8s linear infinite;}
+.invoice-qr-skeleton.hide{display:none;}
+@keyframes invoiceQrSpin{to{transform:rotate(360deg);}}
+.invoice-qr-canvas-wrap{width:280px;height:280px;position:relative;display:flex;align-items:center;justify-content:center;flex:0 0 280px;}
 /* ---------- PWA update modal ---------- */
 .pwa-update-modal .modal{max-width:400px;}
 .pwa-update-modal .modal__header{position:relative;padding-top:24px;}
@@ -3322,7 +3328,10 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
     </div>
     <div class="modal__body invoice-qr-body">
       <p id="invoiceQrNumber">Invoice</p>
-      <div class="invoice-qr-canvas-wrap"><canvas id="invoiceQrCanvas" width="280" height="280"></canvas></div>
+      <div class="invoice-qr-canvas-wrap">
+        <div class="invoice-qr-skeleton" id="invoiceQrSkeleton" aria-hidden="true"></div>
+        <canvas id="invoiceQrCanvas" width="260" height="260" class="hide"></canvas>
+      </div>
       <p class="invoice-qr-caption" id="invoiceQrStatus">Scan this QR code to download the invoice.</p>
     </div>
     <div class="modal__footer">
@@ -3759,6 +3768,7 @@ function cacheElements(){
   el.btnPdfActionCancel = document.getElementById('btnPdfActionCancel');
   el.invoiceQrModalOverlay = document.getElementById('invoiceQrModalOverlay');
   el.invoiceQrCanvas = document.getElementById('invoiceQrCanvas');
+  el.invoiceQrSkeleton = document.getElementById('invoiceQrSkeleton');
   el.invoiceQrNumber = document.getElementById('invoiceQrNumber');
   el.invoiceQrStatus = document.getElementById('invoiceQrStatus');
   el.btnInvoiceQrClose = document.getElementById('btnInvoiceQrClose');
@@ -6320,6 +6330,8 @@ async function openInvoiceQr(invoiceNo){
   el.invoiceQrNumber.textContent = `Invoice #${invoiceNo}`;
   el.invoiceQrStatus.textContent = 'Preparing QR code…';
   el.invoiceQrCanvas.getContext('2d')?.clearRect(0,0,el.invoiceQrCanvas.width,el.invoiceQrCanvas.height);
+  el.invoiceQrCanvas.classList.add('hide');
+  el.invoiceQrSkeleton?.classList.remove('hide');
   showOverlay(el.invoiceQrModalOverlay);
   try{
     const {data,error}=await supabaseClient.rpc('get_or_create_invoice_public_token',{p_invoice_no:invoiceNo});
@@ -6329,9 +6341,13 @@ async function openInvoiceQr(invoiceNo){
     base.searchParams.set('t',data);
     if(!window.QRCode || !QRCode.toCanvas) throw new Error('QR generator unavailable');
     await QRCode.toCanvas(el.invoiceQrCanvas,base.toString(),{width:280,margin:1,errorCorrectionLevel:'M'});
+    el.invoiceQrSkeleton?.classList.add('hide');
+    el.invoiceQrCanvas.classList.remove('hide');
     el.invoiceQrStatus.textContent='Scan this QR code to open the invoice download page.';
   }catch(err){
     console.error('Invoice QR error:',err);
+    el.invoiceQrSkeleton?.classList.add('hide');
+    el.invoiceQrCanvas.classList.remove('hide');
     el.invoiceQrStatus.textContent='Could not prepare the invoice QR. Please try again.';
   }
 }
