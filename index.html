@@ -48,7 +48,7 @@ if ('launchQueue' in window) {
 <link rel="apple-touch-icon" href="assets/icons/app-icon.png">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
 <style>
 :root{
   --primary: #012587;
@@ -6285,14 +6285,13 @@ async function generatePdfBlob(){
   }
 }
 async function handlePreviewDownload(){
+  if(!state.products.length){
+    showToast('Add at least one product before downloading.', 'warning');
+    return;
+  }
+  await hideOverlay(el.previewModalOverlay);
+  clearPreviewScaleContainer();
   if (loadedBillForPrint !== null) {
-    if(!state.products.length){ showToast('Add at least one product before downloading.', 'warning'); return; }
-    // Hide the preview visually, but do NOT restore the New Bill draft yet.
-    // generatePdfBlob() reads directly from `state`, which right now holds
-    // the previous bill's data — restoring the draft first (as
-    // closePreviewModal() would) swaps `state` out from under the PDF
-    // generator and produces a PDF of the wrong invoice.
-    hideOverlay(el.previewModalOverlay).then(clearPreviewScaleContainer);
     _pdfForPreviousBill = true;
     await handleSaveChoice(false);
     return;
