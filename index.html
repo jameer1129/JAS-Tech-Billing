@@ -48,7 +48,7 @@ if ('launchQueue' in window) {
 <link rel="apple-touch-icon" href="assets/icons/app-icon.png">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js" defer></script>
 <style>
 :root{
   --primary: #012587;
@@ -6313,7 +6313,7 @@ function openPdfActionModal(saved){
   showOverlay(el.pdfActionModalOverlay);
 }
 async function openInvoiceQr(invoiceNo){
-  if(!invoiceNo || !window.supabaseClient || !window.CONFIG) return;
+  if(!invoiceNo || !supabaseClient || !CONFIG) return;
   if(!el.invoiceQrModalOverlay || !el.invoiceQrCanvas) return;
   el.invoiceQrNumber.textContent = `Invoice #${invoiceNo}`;
   el.invoiceQrStatus.textContent = 'Preparing QR code…';
