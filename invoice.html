@@ -6,8 +6,12 @@
 <meta name="theme-color" content="#012587">
 <title>JAS Tech — Invoice</title>
 <link rel="stylesheet" href="./invoice-engine.css">
-<link rel="preconnect" href="https://cdn.jsdelivr.net">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;750;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.3.1/css/all.min.css">
 <style>
 :root{--primary:#012587;--bg:#F8F9FC;--text:#212121;}
 *{box-sizing:border-box;}
@@ -16,13 +20,14 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
 .customer-shell{width:min(100%,560px);text-align:center;}
 .state{display:none;align-items:center;justify-content:center;flex-direction:column;min-height:72vh;gap:14px;}
 .state.active{display:flex;}
-.brand-mark{width:64px;height:64px;border-radius:18px;object-fit:contain;margin:0 auto 4px;}
+.brand-mark{width:64px;height:64px;object-fit:contain;margin:0 auto 4px;}
 .state h1{font-size:22px;margin:0;color:#111827;}
 .state p{margin:0;color:#6B7280;font-size:14px;line-height:1.55;max-width:420px;}
 .loader{width:42px;height:42px;border:4px solid #DCE3F3;border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite;}
-.success-icon,.error-icon{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;font-size:26px;color:#fff;background:var(--primary);}
+.success-icon,.error-icon{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;font-size:26px;color:#fff;}
+.success-icon{background:#1F9254;}
 .error-icon{background:#B42318;}
-.customer-btn{border:0;border-radius:10px;background:var(--primary);color:#fff;font-weight:600;padding:12px 20px;cursor:pointer;min-width:150px;}
+.customer-btn{border:0;border-radius:10px;background:var(--primary);color:#fff;font-weight:600;padding:12px 20px;cursor:pointer;min-width:150px;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-size:14px;transition:transform .1s ease-in-out;}
 .customer-btn:active{transform:translateY(1px);}
 #pdfRenderWrap{position:fixed;left:-10000px;top:0;width:794px;overflow:hidden;pointer-events:none;}
 .pdf-wrapper-container,.invoice-render{width:794px;}
@@ -35,10 +40,10 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
 <body>
 <main class="customer-shell" aria-live="polite">
   <section class="state active" id="stateLoading"><div class="loader" aria-hidden="true"></div><h1>Loading invoice</h1><p>Please wait…</p></section>
-  <section class="state" id="stateInvoice"><img class="brand-mark" id="brandLogo" src="assets/logo/logo.png" alt="JAS Tech"><h1 id="invoiceTitle">Invoice ready</h1><p>Your invoice is ready to download.</p><button class="customer-btn" id="btnDownload">Download Invoice</button></section>
+  <section class="state" id="stateInvoice"><img class="brand-mark" id="brandLogo" src="assets/logo/logo.png" alt="JAS Tech"><h1 id="invoiceTitle">Invoice ready</h1><p>Your invoice is ready to download.</p><button class="customer-btn" id="btnDownload"><i class="fa-solid fa-download"></i>Download Invoice</button></section>
   <section class="state" id="stateGenerating"><div class="loader" aria-hidden="true"></div><h1>Generating invoice</h1><p>Please wait while your invoice PDF is prepared.</p></section>
   <section class="state" id="stateSuccess"><div class="success-icon"><i class="fa-solid fa-check"></i></div><h1>Download started</h1><p>Your invoice download has been started on your device.</p></section>
-  <section class="state" id="stateError"><div class="error-icon"><i class="fa-solid fa-triangle-exclamation"></i></div><h1>Invoice unavailable</h1><p id="errorMessage">This invoice link is invalid or no longer available.</p><button class="customer-btn" id="btnRetry">Try Again</button></section>
+  <section class="state" id="stateError"><div class="error-icon"><i class="fa-solid fa-triangle-exclamation"></i></div><h1>Invoice unavailable</h1><p id="errorMessage">This invoice link is invalid or no longer available.</p><button class="customer-btn" id="btnRetry"><i class="fa-solid fa-arrow-rotate-left"></i> Try Again</button></section>
 </main>
 <div id="pdfRenderWrap"><div id="pdfWrapper" class="pdf-wrapper-container"><div id="invoiceRoot" class="invoice-render"></div></div></div>
 <script>
