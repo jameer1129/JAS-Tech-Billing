@@ -4,7 +4,7 @@
    Safe Activation Handoff
    ========================================================= */
 
-const CACHE_NAME = "v2.2.2";
+const CACHE_NAME = "v2.2.3";
 
 // Delay before taking control of already-open pages.
 const CLAIM_DELAY_MS = 2000;
@@ -172,10 +172,13 @@ self.addEventListener("fetch", (event) => {
   // JAVASCRIPT + CSS — CACHE FIRST
   // =========================================================
   if (
-    url.pathname.endsWith(".js") ||
-    url.pathname.endsWith(".css") ||
-    event.request.destination === "script" ||
-    event.request.destination === "style"
+    url.origin === self.location.origin &&
+    (
+      url.pathname.endsWith(".js") ||
+      url.pathname.endsWith(".css") ||
+      event.request.destination === "script" ||
+      event.request.destination === "style"
+    )
   ) {
     event.respondWith(
       cacheFirst(event.request)
@@ -185,11 +188,14 @@ self.addEventListener("fetch", (event) => {
   }
 
   // =========================================================
-  // FONTS — CACHE FIRST
+  // FONTS — CACHE FIRST (same-origin only; see note above)
   // =========================================================
   if (
-    event.request.destination === "font" ||
-    /\.(woff2?|ttf|otf|eot)$/i.test(url.pathname)
+    url.origin === self.location.origin &&
+    (
+      event.request.destination === "font" ||
+      /\.(woff2?|ttf|otf|eot)$/i.test(url.pathname)
+    )
   ) {
     event.respondWith(
       cacheFirst(event.request)
