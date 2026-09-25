@@ -805,7 +805,7 @@ body.dark-theme .toast-card--error{background:#2B1514;border-color:#D64545AA;}
 .modal__body{padding:6px 20px;display:flex;flex-direction:column;gap:12px;}
 .modal--confirm .modal__body{gap:6px;padding:12px 20px;}
 .modal__footer{display:flex;gap:8px;padding:12px 20px 20px;}
-.modal__footer .btn{flex:1;min-height:40px;font-size:13.5px;}
+.modal__footer .btn{flex:1;min-height:40px;}
 .bd-row{display:flex;flex-direction:column;padding:10px 0;border-top:1px solid var(--line);}
 .bd-row:first-child,.user-row:first-child{border-top:none;}
 .user-row:first-child{padding-top:4px;}
@@ -853,7 +853,7 @@ body.dark-theme .confirm-icon--devices .device-mobile{background:#000F36;}
 body.dark-theme .confirm-icon--info{background:rgba(1,37,135,.4);}
 .modal--confirm p{margin:0;color:var(--muted);font-size:13.5px;line-height:1.5;}
 .modal--confirm .confirm-target{color:var(--primary-text);font-weight:700;overflow-wrap:anywhere;word-break:break-word;}
-
+body.dark-theme #invoiceQrCanvas{filter: invert(1);}
 /* ---------- PWA update modal ---------- */
 .pwa-update-modal .modal{max-width:400px;}
 .pwa-update-modal .modal__header{position:relative;padding-top:24px;}
@@ -3303,12 +3303,14 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
       <p id="pdfActionMsg">Invoice is ready.</p>
     </div>
     <div class="modal__footer" style="flex-direction:column;gap:10px;">
-      <button class="btn btn--primary" id="btnPdfDownload" style="flex:1;"><i class="fa-solid fa-download"></i> Download PDF</button>
       <div style="display:flex;gap:8px;width:100%;">
-        <button class="btn btn--ghost btn--full" id="btnPdfActionCancel">Cancel</button>
-        <button class="btn btn--outline" id="btnPdfShare" style="flex:1;"><i class="fa-solid fa-share-nodes"></i> Share PDF</button>
+        <button class="btn btn--outline" id="btnPdfQr"><i class="fa-solid fa-qrcode"></i> QR Download</button>
+        <button class="btn btn--outline" id="btnPdfShare"><i class="fa-solid fa-share-nodes"></i> Share PDF</button>
       </div>
-      <button class="btn btn--outline btn--full" id="btnPdfQr"><i class="fa-solid fa-qrcode"></i> QR Download</button>
+      <div style="display:flex;gap:8px;width:100%;">
+        <button class="btn btn--ghost" id="btnPdfActionCancel">Close</button>
+        <button class="btn btn--primary" id="btnPdfDownload"><i class="fa-solid fa-download"></i> Download PDF</button>
+      </div>
     </div>
   </div>
 </div>
@@ -3324,7 +3326,7 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
       <p class="invoice-qr-caption" id="invoiceQrStatus">Scan this QR code to download the invoice.</p>
     </div>
     <div class="modal__footer">
-      <button class="btn btn--ghost" id="btnInvoiceQrClose">Close</button>
+      <button class="btn btn--primary" id="btnInvoiceQrClose"><i class="fa-regular fa-circle-check"></i> Done</button>
     </div>
   </div>
 </div>
