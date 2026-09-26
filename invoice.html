@@ -57,11 +57,38 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
 .invoice-pill i{font-size:9px;}
 
 .card-badge{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:60px;height:60px;border-radius:50%;background:var(--paper);border:3px solid #fff;display:grid;place-items:center;color:#fff;font-size:24px;z-index:3;}
-.card-badge--ready{background:var(--success);}
+.card-badge--ready{background:var(--primary);}
+.card-badge--success{background:var(--success);}
 .card-badge--error{background:var(--error);}
 .card-badge--percent{width:auto;height:auto;min-width:0;border-radius:14px;border:2px solid var(--primary);color:var(--primary);font-weight:800;font-size:15px;padding:8px 13px;}
-.card-badge--search{background:var(--primary);animation:searchPulse 1.4s ease-in-out infinite;}
-@keyframes searchPulse{0%,100%{transform:translate(-50%,-50%) scale(1);}50%{transform:translate(-50%,-50%) scale(1.12);}}
+.card-badge--search{
+  background:var(--primary);
+  animation:searchFloat 1.8s ease-in-out infinite;
+  overflow:visible;
+}
+.card-badge--search i{animation:searchScan 1.8s ease-in-out infinite;}
+.card-badge--search::after{
+  content:"";
+  position:absolute;
+  inset:-8px;
+  border:2px solid var(--primary);
+  border-radius:50%;
+  opacity:0;
+  animation:searchRipple 1.8s ease-out infinite;
+}
+@keyframes searchFloat{
+  0%,100%{transform:translate(-50%,-50%) translateX(-3px);}
+  50%{transform:translate(-50%,-50%) translateX(3px);}
+}
+@keyframes searchScan{
+  0%,100%{transform:rotate(-12deg);}
+  50%{transform:rotate(12deg);}
+}
+@keyframes searchRipple{
+  0%{transform:scale(.75);opacity:.45;}
+  70%{transform:scale(1.35);opacity:0;}
+  100%{transform:scale(1.35);opacity:0;}
+}
 
 /* ---------- circular progress ring (generating state) ---------- */
 .ring-wrap{position:relative;width:300px;height:300px;display:flex;align-items:center;justify-content:center;}
@@ -69,7 +96,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
 .ring-track{fill:none;stroke:var(--surface);stroke-width:6;}
 .ring-progress{fill:none;stroke:var(--primary);stroke-width:6;stroke-linecap:round;stroke-dasharray:691.15;stroke-dashoffset:691.15;transition:stroke-dashoffset .18s linear;}
 
-.invoice-number{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;max-width:250px;background:#EEF2FC;;border:1px solid #DCE4F7;border-radius:12px;padding:10px 8px 10px 14px;text-align:left;}
+.invoice-number{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;max-width:250px;background:#EEF2FC;border:1px solid #DCE4F7;border-radius:12px;padding:10px 8px 10px 14px;text-align:left;}
 .invoice-number .label{display:block;font-size:11px;color:var(--muted);font-weight:500;margin-bottom:4px;}
 .invoice-number .value{display:block;font-size:15px;color:var(--primary);font-weight:700;}
 .copy-btn{border:1.5px solid var(--line);background:#fff;color:var(--muted);width:32px;height:32px;border-radius:9px;display:grid;place-items:center;cursor:pointer;font-size:13px;flex:0 0 auto;transition:background .15s ease,color .15s ease,border-color .15s ease;}
@@ -81,13 +108,33 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
 .customer-btn:active{transform:translateY(1px) scale(.99);}
 
 /* ---------- info box ---------- */
-.info-box{display:flex;align-items:center;gap:6px;text-align:left;background:#EEF2FC;border:1px solid #DCE4F7;border-radius:12px;padding:12px 14px;font-size:13px;color:var(--muted);max-width:290px;}
-.info-box strong{display:block;color:var(--ink);font-weight:700;font-size:13px;margin-bottom:2px;}
+.info-box{display:flex;align-items:center;gap:6px;text-align:left;background:#EEF2FC;border:1px solid #DCE4F7;border-radius:12px;padding:12px 14px;font-size:12px;color:var(--muted);max-width:290px;}
+.info-box strong{display:block;color:var(--ink);font-weight:700;margin-bottom:2px;}
 .info-box--success{background:#E9F7EF;border-color:#CDEBD9;}
 .info-icon{font-size:24px;color:var(--primary);}
 .info-box--success .info-icon{color:var(--success);}
 
 /* ---------- success + confetti ---------- */
+/* ---------- polished success animation ---------- */
+.card-badge--ready{animation:successBadgeIn .65s cubic-bezier(.16,.84,.44,1) both;}
+.card-badge--ready i{animation:successCheckIn .48s .16s cubic-bezier(.16,.84,.44,1) both;}
+#successStage .invoice-card{animation:successCardIn .7s cubic-bezier(.16,.84,.44,1) both;}
+@keyframes successBadgeIn{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.45);}
+  65%{opacity:1;transform:translate(-50%,-50%) scale(1.08);}
+  100%{opacity:1;transform:translate(-50%,-50%) scale(1);}
+}
+@keyframes successCheckIn{
+  0%{opacity:0;transform:scale(.35) rotate(-18deg);}
+  70%{opacity:1;transform:scale(1.16) rotate(3deg);}
+  100%{opacity:1;transform:scale(1) rotate(0);}
+}
+@keyframes successCardIn{
+  0%{opacity:.4;transform:translateY(8px) scale(.96);}
+  65%{opacity:1;transform:translateY(-2px) scale(1.015);}
+  100%{opacity:1;transform:translateY(0) scale(1);}
+}
+
 .confetti-piece{position:absolute;left:50%;top:50%;pointer-events:none;will-change:transform,opacity;opacity:0;animation-fill-mode:forwards;z-index:1;}
 @keyframes confettiBurst{0%{transform:translate(-50%,-50%) translate(0,0) rotate(0deg);opacity:1;}100%{transform:translate(-50%,-50%) translate(var(--tx),var(--ty)) rotate(var(--rot));opacity:0;}}
 
@@ -101,6 +148,8 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
 @media (prefers-reduced-motion:reduce){
   .state.active{animation:none;}
   .card-badge--search{animation:none;transform:translate(-50%,-50%);}
+  .card-badge--search i,.card-badge--search::after,
+  .card-badge--ready,#successStage .invoice-card{animation:none;}
   .ring-progress{transition:none;}
   .confetti-piece{display:none;}
 }
@@ -150,7 +199,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
           <div class="skel skel--b"></div>
           <div class="skel skel--d"></div>
         </div>
-        <div class="card-badge card-badge--ready"><i class="fa-solid fa-check"></i></div>
+        <div class="card-badge card-badge--ready"><i class="fa-solid fa-file-circle-check"></i></div>
       </div>
     </div>
     <div class="invoice-number">
@@ -161,7 +210,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
       <button class="copy-btn" id="btnCopy" type="button" aria-label="Copy invoice number"><i class="fa-regular fa-copy"></i></button>
     </div>
     <h1>Your invoice is ready</h1>
-    <p>Your invoice is ready to download.</p>
+   <p>Download your invoice below and save your invoice for future reference.</p>
     <button class="customer-btn" id="btnDownload"><i class="fa-solid fa-download"></i>Download Invoice</button>
   </section>
 
@@ -212,7 +261,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
           <div class="skel skel--b"></div>
           <div class="skel skel--d"></div>
           </div>
-          <div class="card-badge card-badge--ready"><i class="fa-solid fa-check"></i></div>
+          <div class="card-badge card-badge--ready card-badge--success"><i class="fa-solid fa-check"></i></div>
         </div>
       </div>
     </div>
@@ -275,11 +324,35 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
     const r=await fetch('./config.json',{cache:'no-store'}); if(!r.ok)throw new Error('config'); CONFIG=await r.json(); InvoiceEngine.configure(CONFIG);
   }
   async function loadInvoice(){
-    const token=getToken(); if(!token)throw new Error('invalid');
-    if(!CONFIG)await loadConfig();
+    const token=getToken();
+    if(!token){
+      const err=new Error('invalid');
+      err.code='INVALID_INVOICE';
+      throw err;
+    }
+
+    try{
+      if(!CONFIG)await loadConfig();
+    }catch(err){
+      err.code='NETWORK_ERROR';
+      throw err;
+    }
+
     const client=supabase.createClient(CONFIG.supabase.url,CONFIG.supabase.anonKey,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
     const {data,error}=await client.rpc('get_public_invoice',{p_token:token});
-    if(error||!data)throw new Error('invalid');
+
+    if(error){
+      const err=new Error(error.message||'Unable to load invoice');
+      err.code='NETWORK_ERROR';
+      throw err;
+    }
+
+    if(!data){
+      const err=new Error('Invoice not found');
+      err.code='INVALID_INVOICE';
+      throw err;
+    }
+
     invoiceData={
       invoiceNumber:data.invoice_no||'AUTO',
       dateStr:formatBillDate(data.bill_date),
@@ -335,18 +408,18 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
     const stage=$('successStage');
     const colors=['#012587','#F5B400','#FF6B57','#1F9254','#6C5CE7','#14919B'];
     const pieces=[];
-    const N=40;
+    const N=52;
     for(let i=0;i<N;i++){
       const el=document.createElement('span');
       el.className='confetti-piece';
       const isStreamer=i%4===0;
       const color=colors[i%colors.length];
-      const angle=(Math.random()*260-130)*(Math.PI/180); // mostly left/right, some up
-      const dist=90+Math.random()*160;
+      const angle=Math.random()*Math.PI*2; // evenly distributed in all directions
+      const dist=90+Math.random()*170;
       const tx=Math.cos(angle)*dist;
-      const ty=(Math.sin(angle)*dist*0.65)-(30+Math.random()*60);
+      const ty=Math.sin(angle)*dist-(40+Math.random()*70);
       const rot=(Math.random()*560-280)+'deg';
-      const dur=(800+Math.random()*2500)+'ms';
+      const dur=(2200+Math.random()*1600)+'ms';
       el.style.setProperty('--tx',tx+'px');
       el.style.setProperty('--ty',ty+'px');
       el.style.setProperty('--rot',rot);
@@ -357,29 +430,42 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
         el.style.width='7px'; el.style.height='11px'; el.style.borderRadius='2px';
       }
       el.style.animation='confettiBurst '+dur+' cubic-bezier(.16,.84,.44,1) forwards';
-      el.style.animationDelay=(Math.random()*100)+'ms';
+      el.style.animationDelay=(Math.random()*220)+'ms';
       stage.appendChild(el);
       pieces.push(el);
     }
-    setTimeout(()=>{pieces.forEach(p=>p.remove());},2500);
+    setTimeout(()=>{pieces.forEach(p=>p.remove());},5000);
   }
 
   async function downloadInvoice(){
     if(!invoiceData)return;
     showState('stateGenerating');
     startFakeProgress();
+
     try{
       const result=await InvoiceEngine.generatePdfBlob(invoiceData,'invoiceRoot','pdfWrapper');
-      const url=URL.createObjectURL(result.blob),a=document.createElement('a');
-      a.href=url;a.download=result.filename;document.body.appendChild(a);a.click();a.remove();
-      setTimeout(()=>URL.revokeObjectURL(url),1500);
+
+      /* Finish the visible progress first, then start the browser download. */
       await finishProgress();
+
+      const url=URL.createObjectURL(result.blob);
+      const a=document.createElement('a');
+      a.href=url;
+      a.download=result.filename;
+      a.style.display='none';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      /* Keep the object URL alive briefly so slower browsers can begin the download. */
+      setTimeout(()=>URL.revokeObjectURL(url),3000);
+
       showState('stateSuccess');
       triggerConfetti();
     }catch(err){
       clearInterval(progressTimer);
       console.error(err);
-      showState('stateError');
+      setErrorState('DOWNLOAD_ERROR');
     }
   }
 
@@ -403,14 +489,46 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
   }
 
   function handleDone(){
-    if(history.length<=1){
-      try{ window.close(); }catch(e){}
+    /* Go back only one step. Jumping through the entire history stack can
+       unexpectedly take the customer away from the page they came from. */
+    if(history.length>1){
+      history.back();
       return;
     }
-    window.history.go(-(history.length-1));
+
+    /* Browsers normally block window.close() for normal tabs, but it is a
+       harmless fallback for invoice windows/tabs opened by script. */
+    try{window.close();}catch(e){}
   }
 
-  async function start(){showState('stateLoading');try{await loadInvoice();}catch(err){console.error(err);showState('stateError');}}
+  function setErrorState(code){
+    const title=$('stateError')?.querySelector('h1');
+    const message=$('errorMessage');
+    const retry=$('btnRetry');
+
+    if(code==='INVALID_INVOICE'){
+      if(title)title.textContent='Invoice unavailable';
+      if(message)message.textContent="We couldn't find the invoice for this link. It may be invalid, expired, or has been removed.";
+      if(retry)retry.innerHTML='<i class="fa-solid fa-arrow-rotate-left"></i>Try Again';
+    }else{
+      if(title)title.textContent='Unable to load invoice';
+      if(message)message.textContent='We couldn’t load this invoice right now. Please check your internet connection and try again.';
+      if(retry)retry.innerHTML='<i class="fa-solid fa-arrow-rotate-left"></i>Try Again';
+    }
+
+    showState('stateError');
+  }
+
+  async function start(){
+    invoiceData=null;
+    showState('stateLoading');
+    try{
+      await loadInvoice();
+    }catch(err){
+      console.error(err);
+      setErrorState(err.code==='INVALID_INVOICE'?'INVALID_INVOICE':'NETWORK_ERROR');
+    }
+  }
 
   $('btnDownload').addEventListener('click',downloadInvoice);
   $('btnCopy').addEventListener('click',copyInvoiceNumber);

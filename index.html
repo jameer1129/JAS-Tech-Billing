@@ -6373,7 +6373,97 @@ async function openInvoiceQr(invoiceNo){
     const base=new URL(CONFIG.public_invoice_url || './invoice.html',location.href);
     base.searchParams.set('t',data);
     if(!window.QRCode || !QRCode.toCanvas) throw new Error('QR generator unavailable');
-    await QRCode.toCanvas(el.invoiceQrCanvas,base.toString(),{width:280,margin:1,errorCorrectionLevel:'M'});
+    await QRCode.toCanvas(el.invoiceQrCanvas,base.toString(),{
+      width:280,
+      margin:1,
+      errorCorrectionLevel:'H'
+    });
+
+    // Add the JAS Tech logo in the center of the QR.
+    // The logo is embedded so the QR keeps working when the app is deployed
+    // without requiring a separate image request.
+    const qrCtx = el.invoiceQrCanvas.getContext('2d');
+    if (!qrCtx) throw new Error('QR canvas context unavailable');
+
+    const qrLogo = new Image();
+    qrLogo.decoding = 'async';
+    qrLogo.src = 'assets/logo/logo-qr.png';    await new Promise((resolve, reject) => {
+      qrLogo.onload = resolve;
+      qrLogo.onerror = () => reject(new Error('QR logo unavailable'));
+    });
+
+    const qrSize = el.invoiceQrCanvas.width;
+
+    const logoSize = Math.round(qrSize * 0.205);
+
+    const logoPadding = 5;   // space: logo → border
+    const qrMargin = 6;      // space: border → QR modules
+    const borderWidth = 2;
+
+    const logoPlateSize =
+      logoSize + (logoPadding * 2);
+
+    const outerPlateSize =
+      logoPlateSize + (qrMargin * 2);
+
+    const logoX = (qrSize - logoSize) / 2;
+    const plateX = (qrSize - logoPlateSize) / 2;
+    const outerX = (qrSize - outerPlateSize) / 2;
+
+    const radius = 50;
+    // Clear a clean white area behind the logo so QR modules do not show
+    // through the logo edges.
+    qrCtx.save();
+
+    // 1. White margin / clearance from QR modules
+    qrCtx.fillStyle = '#fff';
+    qrCtx.beginPath();
+    qrCtx.roundRect(
+      outerX,
+      outerX,
+      outerPlateSize,
+      outerPlateSize,
+      radius + 6
+    );
+    qrCtx.fill();
+
+    // 2. White logo plate
+    qrCtx.fillStyle = '#fff';
+    qrCtx.beginPath();
+    qrCtx.roundRect(
+      plateX,
+      plateX,
+      logoPlateSize,
+      logoPlateSize,
+      radius
+    );
+    qrCtx.fill();
+
+    // 3. Border
+    qrCtx.strokeStyle = '#000';
+    qrCtx.lineWidth = borderWidth;
+    qrCtx.beginPath();
+    qrCtx.roundRect(
+      plateX,
+      plateX,
+      logoPlateSize,
+      logoPlateSize,
+      radius
+    );
+    qrCtx.stroke();
+
+    // 4. Logo
+    qrCtx.imageSmoothingEnabled = true;
+    qrCtx.drawImage(
+      qrLogo,
+      logoX,
+      logoX,
+      logoSize,
+      logoSize
+    );
+
+    qrCtx.restore();
+
     el.invoiceQrSkeleton?.classList.add('hide');
     el.invoiceQrCanvas.classList.remove('hide');
     el.invoiceQrStatus.textContent='Scan this QR code to open the invoice download page.';
