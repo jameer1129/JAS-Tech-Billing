@@ -59,7 +59,7 @@ if ('launchQueue' in window) {
   --muted: #6B7280;
   --line: #d5d5d5;
   --focus-ring: rgba(1,37,135,.16);
-  --danger: #D64545;
+  --danger: #DC2626;
   --success: #1F9254;
   --warning: #ff9700;
   --radius: 12px;
@@ -4652,6 +4652,32 @@ function createSupabaseClient(authStorage, detectSessionInUrl, storageKey = null
   supabaseClientCache.set(cacheKey, client);
   return client;
 }
+// Detects a stale/expired-access-token error coming back from a
+// Supabase/PostgREST query, as opposed to any other kind of failure
+// (network error, RLS rejection, bad filter, etc.). Used to decide
+// whether a failed data load is worth retrying after a session refresh.
+function isAuthError(error){
+  if (!error) return false;
+  const code = String(error.code || '').toUpperCase();
+  const msg = String(error.message || '').toLowerCase();
+  return code === 'PGRST301'
+    || code === '401'
+    || msg.includes('jwt')
+    || msg.includes('expired')
+    || msg.includes('invalid signature')
+    || msg.includes('not authenticated')
+    || msg.includes('unauthorized');
+}
+// Forces the client to check/refresh the current session on demand. Used
+// right before a screen's data loads fire (e.g. switching tabs after the
+// app was backgrounded a while), so those loads don't race the 5-minute
+// background check in startManualSessionRefresh() and fire with a token
+// that already expired while the tab was hidden.
+async function ensureFreshSession(){
+  if (!supabaseClient) return;
+  try { await supabaseClient.auth.getSession(); }
+  catch (err) { console.error('Session refresh check failed:', err); }
+}
 function startManualSessionRefresh(client){
   if (!client || client._manualRefreshStarted) return;
   client._manualRefreshStarted = true;
@@ -5817,8 +5843,14 @@ function switchView(view){
   if (view === 'newBill' && !isPreviousBillMode && !restoredDraft) {
     setTimeout(() => checkAndPromptForRestore(), 50);
   }
-  if (view === 'previousBills') loadBills();
-  if (view === 'admin' && ['admin','super_admin'].includes(currentProfile.role)) { loadAdminStats(); loadPendingUsers(); loadAllUsers(); }
+  // Confirm/refresh the session right before firing these loads. If the
+  // app was backgrounded long enough for the access token to go stale,
+  // this closes the race where the query fires before the periodic
+  // background check (startManualSessionRefresh) gets to it.
+  if (view === 'previousBills') { ensureFreshSession().finally(() => loadBills()); }
+  if (view === 'admin' && ['admin','super_admin'].includes(currentProfile.role)) {
+    ensureFreshSession().finally(() => { loadAdminStats(); loadPendingUsers(); loadAllUsers(); });
+  }
 }
 /* ===================================================================
    PRODUCT MODAL (unchanged from original app)
@@ -6491,58 +6523,77 @@ async function loadBills(resetToFirstPage){
   el.billsTableWrap.classList.add('hide');
   el.billsPagination.classList.add('hide');
   const rawQuery = el.billSearchInput.value.trim();
-  let query = supabaseClient
-    .from('bills')
-    .select('invoice_no,customer_name,customer_phone,customer_address,bill_date,notes,include_notes,show_watermark,show_qr,show_signature,total,created_by,created_by_name,created_at', { count: 'exact' });
-  if (rawQuery) {
-    const term = sanitizeSearchTerm(rawQuery);
-    if (term) {
-      // Search invoice/customer/phone plus product names from bill_items.
-      // Product names live in a separate table, so first find the matching
-      // invoice numbers and include those invoices in the main bill search.
-      let matchingProductInvoices = [];
-      const { data: productMatches, error: productSearchError } = await supabaseClient
-        .from('bill_items')
-        .select('invoice_no')
-        .ilike('item_name', `%${term}%`)
-        .limit(1000);
-      if (!productSearchError && productMatches) {
-        matchingProductInvoices = [...new Set(productMatches.map(row => row.invoice_no).filter(Boolean))];
+  // The whole fetch (product-name lookup + main bills query) is wrapped in
+  // one function so it can be retried as a unit if either leg comes back
+  // with a stale/expired-token error, after refreshing the session once.
+  const runFetch = async () => {
+    let query = supabaseClient
+      .from('bills')
+      .select('invoice_no,customer_name,customer_phone,customer_address,bill_date,notes,include_notes,show_watermark,show_qr,show_signature,total,created_by,created_by_name,created_at', { count: 'exact' });
+    let productSearchAuthError = null;
+    if (rawQuery) {
+      const term = sanitizeSearchTerm(rawQuery);
+      if (term) {
+        // Search invoice/customer/phone plus product names from bill_items.
+        // Product names live in a separate table, so first find the matching
+        // invoice numbers and include those invoices in the main bill search.
+        let matchingProductInvoices = [];
+        const { data: productMatches, error: productSearchError } = await supabaseClient
+          .from('bill_items')
+          .select('invoice_no')
+          .ilike('item_name', `%${term}%`)
+          .limit(1000);
+        if (productSearchError && isAuthError(productSearchError)) {
+          productSearchAuthError = productSearchError;
+        } else if (!productSearchError && productMatches) {
+          matchingProductInvoices = [...new Set(productMatches.map(row => row.invoice_no).filter(Boolean))];
+        }
+        const productFilter = matchingProductInvoices.length
+          ? `,invoice_no.in.(${matchingProductInvoices.map(v => `\"${String(v).replace(/\"/g, '\\\"')}\"`).join(',')})`
+          : '';
+        query = query.or(`invoice_no.ilike.%${term}%,customer_name.ilike.%${term}%,customer_phone.ilike.%${term}%${productFilter}`);
       }
-      const productFilter = matchingProductInvoices.length
-        ? `,invoice_no.in.(${matchingProductInvoices.map(v => `\"${String(v).replace(/\"/g, '\\\"')}\"`).join(',')})`
-        : '';
-      query = query.or(`invoice_no.ilike.%${term}%,customer_name.ilike.%${term}%,customer_phone.ilike.%${term}%${productFilter}`);
     }
+    // Date range filter
+    const today = new Date();
+    const toISO = localDateToIso;
+    if (billsDateRange === 'today') {
+      query = query.eq('bill_date', toISO(today));
+    } else if (billsDateRange === 'yesterday') {
+      const y = new Date(today); y.setDate(y.getDate()-1);
+      query = query.eq('bill_date', toISO(y));
+    } else if (billsDateRange === '7days') {
+      const w = new Date(today); w.setDate(w.getDate()-6);
+      query = query.gte('bill_date', toISO(w)).lte('bill_date', toISO(today));
+    } else if (billsDateRange === 'month') {
+      const first = new Date(today.getFullYear(), today.getMonth(), 1);
+      const last = new Date(today.getFullYear(), today.getMonth()+1, 0);
+      query = query.gte('bill_date', toISO(first)).lte('bill_date', toISO(last));
+    } else if (billsDateRange === 'lastmonth') {
+      const first = new Date(today.getFullYear(), today.getMonth()-1, 1);
+      const last = new Date(today.getFullYear(), today.getMonth(), 0);
+      query = query.gte('bill_date', toISO(first)).lte('bill_date', toISO(last));
+    } else if (billsDateRange === 'custom' && billsCustomDate) {
+      query = query.eq('bill_date', billsCustomDate);
+    }
+    query = query.order(billsSortCol, { ascending: billsSortDir === 'asc' });
+    if (billsSortCol !== 'created_at') query = query.order('created_at', { ascending: false });
+    const from = (billsPage - 1) * BILLS_PAGE_SIZE;
+    const to = from + BILLS_PAGE_SIZE - 1;
+    query = query.range(from, to);
+    const result = await query;
+    // Surface the product-search leg's auth error too, so the retry below
+    // covers a stale token regardless of which of the two queries hit it.
+    if (!result.error && productSearchAuthError) result.error = productSearchAuthError;
+    return result;
+  };
+  let { data, error, count } = await runFetch();
+  if (error && isAuthError(error)) {
+    // Access token had likely gone stale in the background — refresh it
+    // and retry the whole fetch once before giving up.
+    await ensureFreshSession();
+    ({ data, error, count } = await runFetch());
   }
-  // Date range filter
-  const today = new Date();
-  const toISO = localDateToIso;
-  if (billsDateRange === 'today') {
-    query = query.eq('bill_date', toISO(today));
-  } else if (billsDateRange === 'yesterday') {
-    const y = new Date(today); y.setDate(y.getDate()-1);
-    query = query.eq('bill_date', toISO(y));
-  } else if (billsDateRange === '7days') {
-    const w = new Date(today); w.setDate(w.getDate()-6);
-    query = query.gte('bill_date', toISO(w)).lte('bill_date', toISO(today));
-  } else if (billsDateRange === 'month') {
-    const first = new Date(today.getFullYear(), today.getMonth(), 1);
-    const last = new Date(today.getFullYear(), today.getMonth()+1, 0);
-    query = query.gte('bill_date', toISO(first)).lte('bill_date', toISO(last));
-  } else if (billsDateRange === 'lastmonth') {
-    const first = new Date(today.getFullYear(), today.getMonth()-1, 1);
-    const last = new Date(today.getFullYear(), today.getMonth(), 0);
-    query = query.gte('bill_date', toISO(first)).lte('bill_date', toISO(last));
-  } else if (billsDateRange === 'custom' && billsCustomDate) {
-    query = query.eq('bill_date', billsCustomDate);
-  }
-  query = query.order(billsSortCol, { ascending: billsSortDir === 'asc' });
-  if (billsSortCol !== 'created_at') query = query.order('created_at', { ascending: false });
-  const from = (billsPage - 1) * BILLS_PAGE_SIZE;
-  const to = from + BILLS_PAGE_SIZE - 1;
-  query = query.range(from, to);
-  const { data, error, count } = await query;
   // A newer loadBills() call was started while this one was in flight
   // (e.g. the user kept typing/changing filters) — its response is stale,
   // so drop it rather than let it overwrite more recent results.
@@ -6912,11 +6963,18 @@ async function loadPendingUsers(){
   el.pendingUsersLoading.classList.remove('hide');
   el.pendingUsersEmpty.classList.add('hide');
   el.pendingUsersList.innerHTML = '';
-  const { data, error } = await supabaseClient
+  const runQuery = () => supabaseClient
     .from('profiles')
     .select('id,name,email,role,status,created_at')
     .eq('status', 'pending')
     .order('created_at', { ascending: true });
+  let { data, error } = await runQuery();
+  if (error && isAuthError(error)) {
+    // Access token had likely gone stale in the background — refresh it
+    // and retry once before giving up.
+    await ensureFreshSession();
+    ({ data, error } = await runQuery());
+  }
   if (requestId !== pendingUsersRequestSeq) return;
   el.pendingUsersLoading.classList.add('hide');
   if (error) {
@@ -6939,18 +6997,25 @@ async function loadAllUsers(resetToFirstPage = false){
   el.allUsersList.innerHTML = '';
   const from = (usersPage - 1) * USERS_PAGE_SIZE;
   const to = from + USERS_PAGE_SIZE - 1;
-  let query = supabaseClient
-    .from('profiles')
-    .select('id,name,email,role,status,created_at', { count: 'exact' });
-  if (term) {
-    const safeTerm = term.replace(/[,()]/g, ' ').trim();
-    query = query.or(`name.ilike.%${safeTerm}%,email.ilike.%${safeTerm}%`);
+  const runQuery = () => {
+    let query = supabaseClient
+      .from('profiles')
+      .select('id,name,email,role,status,created_at', { count: 'exact' });
+    if (term) {
+      const safeTerm = term.replace(/[,()]/g, ' ').trim();
+      query = query.or(`name.ilike.%${safeTerm}%,email.ilike.%${safeTerm}%`);
+    }
+    if (role) query = query.eq('role', role);
+    if (status) query = query.eq('status', status);
+    return query.order('created_at', { ascending: false }).range(from, to);
+  };
+  let { data, error, count } = await runQuery();
+  if (error && isAuthError(error)) {
+    // Access token had likely gone stale in the background — refresh it
+    // and retry once before giving up.
+    await ensureFreshSession();
+    ({ data, error, count } = await runQuery());
   }
-  if (role) query = query.eq('role', role);
-  if (status) query = query.eq('status', status);
-  const { data, error, count } = await query
-    .order('created_at', { ascending: false })
-    .range(from, to);
   if (requestId !== allUsersRequestSeq) return;
   el.allUsersLoading.classList.add('hide');
   if (error) {
@@ -6980,14 +7045,20 @@ function reloadAllUsersFromFilters(){
 }
 async function loadAdminStats(){
   document.querySelectorAll('#viewAdmin .admin-stat').forEach(card => card.classList.add('is-loading'));
-  const queries = [
+  const runQueries = () => Promise.all([
     supabaseClient.from('profiles').select('*', { count: 'exact', head: true }),
     supabaseClient.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
     supabaseClient.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
     supabaseClient.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'rejected')
-  ];
+  ]);
   try {
-    const results = await Promise.all(queries);
+    let results = await runQueries();
+    if (results.some(result => result.error && isAuthError(result.error))) {
+      // Access token had likely gone stale in the background — refresh it
+      // and retry once before giving up.
+      await ensureFreshSession();
+      results = await runQueries();
+    }
     if (results.some(result => result.error)) {
       console.error('Could not load admin account stats.', results.find(result => result.error)?.error);
       showToast('Could not load admin account statistics.', 'error');
