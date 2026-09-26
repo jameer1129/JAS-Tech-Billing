@@ -141,6 +141,13 @@ self.addEventListener("fetch", (event) => {
     url.pathname.endsWith(".html") ||
     url.pathname.endsWith("config.json")
   ) {
+
+    // invoice.html must NEVER be cached
+    if (url.pathname.endsWith("/invoice.html") || url.pathname === "/invoice.html") {
+      event.respondWith(fetch(event.request));
+      return;
+    }
+
     event.respondWith(
       cacheFirst(event.request).then(async (response) => {
         if (response && response.ok) {
