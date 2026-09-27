@@ -72,10 +72,9 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
 .card-badge--percent{width:75px;height:50px;min-width:0;border-radius:14px;color:var(--primary);font-weight:800;font-size:20px;padding:8px 13px;border:2px solid var(--primary);background:var(--paper)}
 .card-badge--search{
   background:var(--primary);
-  animation:searchFloat 1.8s ease-in-out infinite;
+  animation:searchFloat 2s ease-in-out infinite;
   overflow:visible;
 }
-.card-badge--search i{animation:searchScan 1.8s ease-in-out infinite;}
 .card-badge--search::after{
   content:"";
   position:absolute;
@@ -83,15 +82,14 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
   border:2px solid var(--primary);
   border-radius:50%;
   opacity:0;
-  animation:searchRipple 1.8s ease-out infinite;
+  animation:searchRipple .5s ease-out infinite;
 }
 @keyframes searchFloat{
-  0%,100%{transform:translate(-50%,-50%) translateX(-3px);}
-  50%{transform:translate(-50%,-50%) translateX(3px);}
-}
-@keyframes searchScan{
-  0%,100%{transform:rotate(-12deg);}
-  50%{transform:rotate(12deg);}
+  0%   { transform: translate(-50%, -50%) translate(-35px, -25px) rotate(0deg); }
+  25%  { transform: translate(-50%, -50%) translate(35px, 0px) rotate(15deg); }
+  50%  { transform: translate(-50%, -50%) translate(-35px, 25px) rotate(0deg); }
+  75%  { transform: translate(-50%, -50%) translate(35px, 50px) rotate(15deg); }
+  100% { transform: translate(-50%, -50%) translate(-35px, -25px) rotate(0deg); }
 }
 @keyframes searchRipple{
   0%{transform:scale(.75);opacity:.45;}
@@ -125,29 +123,26 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
 
 /* ---------- success + confetti ---------- */
 /* ---------- polished success animation ---------- */
-.card-badge--anim{animation:successBadgeIn .8s cubic-bezier(.16,.84,.44,1) both, badgeIdle 1.8s ease-in-out .65s infinite;}
-.card-badge--anim i{animation:successCheckIn .6s .2s cubic-bezier(.16,.84,.44,1) both;}
-.invoice-card{animation:successCardIn .7s cubic-bezier(.16,.84,.44,1) both;}
+.card-badge--anim{animation:badgeIn .8s cubic-bezier(.16,.84,.44,1) both, badgeIdle 1.8s ease-in-out .65s infinite;}
+.card-badge--anim i{animation:heckIn .6s .2s cubic-bezier(.16,.84,.44,1) both;}
+.invoice-card{animation:cardIn .7s cubic-bezier(.16,.84,.44,1) both;}
 
 @keyframes badgeIdle{
-  0%,100%{
-    transform:translate(-50%,-50%) scale(1);
-  }
-  50%{
-    transform:translate(-50%,-50%) scale(1.08);
-  }
+  0%{transform:translate(-50%,-50%) scale(.95);}
+  50%{transform:translate(-50%,-50%) scale(1.05);}
+  100%{transform:translate(-50%,-50%) scale(.95);}
 }
-@keyframes successBadgeIn{
+@keyframes badgeIn{
   0%{opacity:0;transform:translate(-50%,-50%) scale(.45);}
   65%{opacity:1;transform:translate(-50%,-50%) scale(1.08);}
   100%{opacity:1;transform:translate(-50%,-50%) scale(1);}
 }
-@keyframes successCheckIn{
+@keyframes checkIn{
   0%{opacity:0;transform:scale(.35) rotate(-18deg);}
   70%{opacity:1;transform:scale(1.16) rotate(3deg);}
   100%{opacity:1;transform:scale(1) rotate(0);}
 }
-@keyframes successCardIn{
+@keyframes cardIn{
   0%{opacity:.4;transform:translateY(8px) scale(.96);}
   65%{opacity:1;transform:translateY(-2px) scale(1.015);}
   100%{opacity:1;transform:translateY(0) scale(1);}
@@ -381,7 +376,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
       showSignature:data.show_signature!==false
     };
     $('invoiceTitle').textContent=invoiceData.invoiceNumber;
-    showState('stateInvoice');
+    // showState('stateInvoice');
   }
 
   /* ---------- simulated progress (UI only — does not affect PDF generation logic) ---------- */
@@ -435,7 +430,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
       const tx=Math.cos(angle)*dist;
       const ty=Math.sin(angle)*dist-(40+Math.random()*70);
       const rot=(Math.random()*560-280)+'deg';
-      const dur=(2200+Math.random())+'ms';
+      const dur=(2200+Math.random()*1000)+'ms';
       el.style.setProperty('--tx',tx+'px');
       el.style.setProperty('--ty',ty+'px');
       el.style.setProperty('--rot',rot);
