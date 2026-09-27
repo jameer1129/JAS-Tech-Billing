@@ -125,9 +125,18 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
 
 /* ---------- success + confetti ---------- */
 /* ---------- polished success animation ---------- */
-.card-badge--anim{animation:successBadgeIn .65s cubic-bezier(.16,.84,.44,1) both;}
+.card-badge--anim{animation:successBadgeIn .65s cubic-bezier(.16,.84,.44,1) both, badgeIdle 1.8s ease-in-out .65s infinite;}
 .card-badge--anim i{animation:successCheckIn .48s .16s cubic-bezier(.16,.84,.44,1) both;}
-#successStage .invoice-card{animation:successCardIn .7s cubic-bezier(.16,.84,.44,1) both;}
+.invoice-card{animation:successCardIn .7s cubic-bezier(.16,.84,.44,1) both;}
+
+@keyframes badgeIdle{
+  0%,100%{
+    transform:translate(-50%,-50%) scale(1);
+  }
+  50%{
+    transform:translate(-50%,-50%) scale(1.08);
+  }
+}
 @keyframes successBadgeIn{
   0%{opacity:0;transform:translate(-50%,-50%) scale(.45);}
   65%{opacity:1;transform:translate(-50%,-50%) scale(1.08);}
@@ -168,7 +177,6 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
 </head>
 <body>
 <main class="customer-shell" aria-live="polite">
-
   <!-- 1. LOADING -->
   <section class="state active" id="stateLoading">
     <div class="brand-wrap">
@@ -241,7 +249,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
           <div class="skel skel--b"></div>
           <div class="skel skel--d"></div>
           </div>
-          <div class="card-badge card-badge--anim card-badge--percent" id="progressPercent">0%</div>
+          <div class="card-badge card-badge--percent" id="progressPercent">0%</div>
         </div>
       </div>
     </div>
@@ -310,7 +318,6 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
       <div><strong>Need help?</strong>Contact JAS Tech for support.</div>
     </div>
   </section>
-
 </main>
 <div id="pdfRenderWrap"><div id="pdfWrapper" class="pdf-wrapper-container"><div id="invoiceRoot" class="invoice-render"></div></div></div>
 <script>
