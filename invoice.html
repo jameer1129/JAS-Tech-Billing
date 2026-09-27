@@ -36,15 +36,24 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
 .state.active{display:flex;animation:stateIn .5s cubic-bezier(.16,.84,.44,1);}
 @keyframes stateIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
 
-.brand-wrap{display:flex;flex-direction:column;align-items:center;gap:3px;margin-bottom:2px;}
-.brand-mark{height:50px;object-fit:contain;}
+.brand-wrap{display:flex;flex-direction:column;align-items:center;gap:3px;}
+.brand-mark {
+  background:var(--paper);
+  height: 18vw;
+  max-height: 60px;
+  object-fit: contain;
+  padding: 7px 14px;
+  border-radius: 6px;
+  border:1px solid var(--line);
+  box-shadow: 0 3px 10px rgba(1, 37, 135, 0.12);
+}
 
 .state h1{font-size:24px;font-weight:700;margin:0;color:var(--ink);letter-spacing:-.01em;}
 .state p{margin:0;color:var(--muted);font-size:14.5px;line-height:1.55;max-width:300px;}
 
 /* ---------- invoice card (loading / ready / generating / success / error) ---------- */
 .card-stage{position:relative;display:flex;align-items:center;justify-content:center;padding:10px;}
-.invoice-card{position:relative;width:168px;height:206px;background:#fff;border-radius:18px;border:1px solid var(--line);box-shadow:0 14px 34px rgba(1,37,135,.10);overflow:hidden;flex:0 0 auto;}
+.invoice-card{position:relative;width:168px;height:206px;background:#fff;border-radius:18px;border:1px solid var(--line);box-shadow: 0 3px 10px rgba(1, 37, 135, 0.12);overflow:hidden;flex:0 0 auto;}
 .invoice-card__top{position:absolute;top:0;left:0;right:0;height:14px;background:var(--primary);border-radius:18px 18px 0 0;}
 .invoice-card__body{position:absolute;inset:28px 18px 18px 18px;display:flex;flex-direction:column;gap:11px;}
 .skel{height:7px;border-radius:4px;background:var(--surface);border:1px solid var(--line);}
@@ -96,7 +105,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
 .ring-track{fill:none;stroke:var(--surface);stroke-width:6;}
 .ring-progress{fill:none;stroke:var(--primary);stroke-width:6;stroke-linecap:round;stroke-dasharray:691.15;stroke-dashoffset:691.15;transition:stroke-dashoffset .18s linear;}
 
-.invoice-number{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;max-width:250px;background:#EEF2FC;border:1px solid #DCE4F7;border-radius:12px;padding:10px 8px 10px 14px;text-align:left;}
+.invoice-number{box-shadow: 0 3px 10px rgba(1, 37, 135, 0.12);display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;max-width:250px;background:#EEF2FC;border:1px solid #DCE4F7;border-radius:12px;padding:10px 8px 10px 14px;text-align:left;}
 .invoice-number .label{display:block;font-size:11px;color:var(--muted);font-weight:500;margin-bottom:4px;}
 .invoice-number .value{display:block;font-size:15px;color:var(--primary);font-weight:700;}
 .copy-btn{border:1.5px solid var(--line);background:#fff;color:var(--muted);width:32px;height:32px;border-radius:9px;display:grid;place-items:center;cursor:pointer;font-size:13px;flex:0 0 auto;transition:background .15s ease,color .15s ease,border-color .15s ease;}
@@ -108,8 +117,8 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
 .customer-btn:active{transform:translateY(1px) scale(.99);}
 
 /* ---------- info box ---------- */
-.info-box{display:flex;align-items:center;gap:6px;text-align:left;background:#EEF2FC;border:1px solid #DCE4F7;border-radius:12px;padding:12px 14px;font-size:12px;color:var(--muted);max-width:290px;}
-.info-box strong{display:block;color:var(--ink);font-weight:700;margin-bottom:2px;}
+.info-box{box-shadow: 0 3px 10px rgba(1, 37, 135, 0.12);display:flex;align-items:center;gap:6px;text-align:left;background:#EEF2FC;border:1px solid #DCE4F7;border-radius:12px;padding:12px 14px;font-size:12px;color:var(--muted);max-width:290px;}
+.info-box strong{display:block;color:var(--ink);font-weight:700;margin-bottom:4px;}
 .info-box--success{background:#E9F7EF;border-color:#CDEBD9;}
 .info-icon{font-size:24px;color:var(--primary);}
 .info-box--success .info-icon{color:var(--success);}
@@ -434,7 +443,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
       stage.appendChild(el);
       pieces.push(el);
     }
-    setTimeout(()=>{pieces.forEach(p=>p.remove());},5000);
+    setTimeout(()=>{pieces.forEach(p=>p.remove());},4800);
   }
 
   async function downloadInvoice(){
