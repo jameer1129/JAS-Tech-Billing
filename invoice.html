@@ -435,7 +435,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
       const tx=Math.cos(angle)*dist;
       const ty=Math.sin(angle)*dist-(40+Math.random()*70);
       const rot=(Math.random()*560-280)+'deg';
-      const dur=(2200+Math.random()*1000)+'ms';
+      const dur=(2200+Math.random())+'ms';
       el.style.setProperty('--tx',tx+'px');
       el.style.setProperty('--ty',ty+'px');
       el.style.setProperty('--rot',rot);

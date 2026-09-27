@@ -6389,7 +6389,7 @@ function triggerPdfConfirmConfetti(){
     piece.style.background=colors[i%colors.length];
     if(i%4===0){piece.style.width='4px';piece.style.height='26px';piece.style.borderRadius='2px';}
     else{piece.style.width='7px';piece.style.height='11px';piece.style.borderRadius='2px';}
-    const dur=(2200+Math.random()*1000)+'ms';
+    const dur=(2200+Math.random())+'ms';
     piece.style.animation='confettiBurst '+dur+' cubic-bezier(.16,.84,.44,1) forwards';
     piece.style.animationDelay=(Math.random()*220)+'ms';
     stage.appendChild(piece);
