@@ -57,10 +57,10 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
 .invoice-pill i{font-size:9px;}
 
 .card-badge{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:60px;height:60px;border-radius:50%;background:var(--paper);border:3px solid #fff;display:grid;place-items:center;color:#fff;font-size:24px;z-index:3;}
-.card-badge--ready{background:var(--primary);}
+.card-badge--anim{background:var(--primary);}
 .card-badge--success{background:var(--success);}
 .card-badge--error{background:var(--error);}
-.card-badge--percent{width:auto;height:auto;min-width:0;border-radius:14px;border:2px solid var(--primary);color:var(--primary);font-weight:800;font-size:15px;padding:8px 13px;}
+.card-badge--percent{width:75px;height:50px;min-width:0;border-radius:14px;color:var(--primary);font-weight:800;font-size:20px;padding:8px 13px;border:2px solid var(--primary);background:var(--paper)}
 .card-badge--search{
   background:var(--primary);
   animation:searchFloat 1.8s ease-in-out infinite;
@@ -116,8 +116,8 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
 
 /* ---------- success + confetti ---------- */
 /* ---------- polished success animation ---------- */
-.card-badge--ready{animation:successBadgeIn .65s cubic-bezier(.16,.84,.44,1) both;}
-.card-badge--ready i{animation:successCheckIn .48s .16s cubic-bezier(.16,.84,.44,1) both;}
+.card-badge--anim{animation:successBadgeIn .65s cubic-bezier(.16,.84,.44,1) both;}
+.card-badge--anim i{animation:successCheckIn .48s .16s cubic-bezier(.16,.84,.44,1) both;}
 #successStage .invoice-card{animation:successCardIn .7s cubic-bezier(.16,.84,.44,1) both;}
 @keyframes successBadgeIn{
   0%{opacity:0;transform:translate(-50%,-50%) scale(.45);}
@@ -149,7 +149,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
   .state.active{animation:none;}
   .card-badge--search{animation:none;transform:translate(-50%,-50%);}
   .card-badge--search i,.card-badge--search::after,
-  .card-badge--ready,#successStage .invoice-card{animation:none;}
+  .card-badge--anim,#successStage .invoice-card{animation:none;}
   .ring-progress{transition:none;}
   .confetti-piece{display:none;}
 }
@@ -199,7 +199,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
           <div class="skel skel--b"></div>
           <div class="skel skel--d"></div>
         </div>
-        <div class="card-badge card-badge--ready"><i class="fa-solid fa-file-circle-check"></i></div>
+        <div class="card-badge card-badge--anim"><i class="fa-solid fa-file-circle-check"></i></div>
       </div>
     </div>
     <div class="invoice-number">
@@ -232,7 +232,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
           <div class="skel skel--b"></div>
           <div class="skel skel--d"></div>
           </div>
-          <div class="card-badge card-badge--percent" id="progressPercent">0%</div>
+          <div class="card-badge card-badge--anim card-badge--percent" id="progressPercent">0%</div>
         </div>
       </div>
     </div>
@@ -261,7 +261,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
           <div class="skel skel--b"></div>
           <div class="skel skel--d"></div>
           </div>
-          <div class="card-badge card-badge--ready card-badge--success"><i class="fa-solid fa-check"></i></div>
+          <div class="card-badge card-badge--anim card-badge--success"><i class="fa-solid fa-check"></i></div>
         </div>
       </div>
     </div>
@@ -290,7 +290,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
           <div class="skel skel--b"></div>
           <div class="skel skel--d"></div>
         </div>
-        <div class="card-badge card-badge--error"><i class="fa-solid fa-triangle-exclamation"></i></div>
+        <div class="card-badge card-badge--anim card-badge--error"><i class="fa-solid fa-triangle-exclamation"></i></div>
       </div>
     </div>
     <h1>Invoice unavailable</h1>

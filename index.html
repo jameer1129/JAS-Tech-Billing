@@ -4678,6 +4678,19 @@ async function ensureFreshSession(){
   try { await supabaseClient.auth.getSession(); }
   catch (err) { console.error('Session refresh check failed:', err); }
 }
+// getSession() above only refreshes the token if the client's own clock
+// thinks it has already expired. That's cheap, so it's fine to call on
+// every tab switch — but it means a request can still come back 401 (server
+// rejected a token the client believed was still valid, e.g. clock drift or
+// a tight expiry margin) and a getSession()-based retry would just resend
+// the same stale token and fail again. So once we've actually seen a 401,
+// force a real refresh instead: refreshSession() unconditionally exchanges
+// the refresh token for a brand-new access token, no local-expiry guess.
+async function forceSessionRefresh(){
+  if (!supabaseClient) return;
+  try { await supabaseClient.auth.refreshSession(); }
+  catch (err) { console.error('Forced session refresh failed:', err); }
+}
 function startManualSessionRefresh(client){
   if (!client || client._manualRefreshStarted) return;
   client._manualRefreshStarted = true;
@@ -6681,7 +6694,7 @@ async function loadBills(resetToFirstPage){
   if (error && isAuthError(error)) {
     // Access token had likely gone stale in the background — refresh it
     // and retry the whole fetch once before giving up.
-    await ensureFreshSession();
+    await forceSessionRefresh();
     ({ data, error, count } = await runFetch());
   }
   // A newer loadBills() call was started while this one was in flight
@@ -7062,7 +7075,7 @@ async function loadPendingUsers(){
   if (error && isAuthError(error)) {
     // Access token had likely gone stale in the background — refresh it
     // and retry once before giving up.
-    await ensureFreshSession();
+    await forceSessionRefresh();
     ({ data, error } = await runQuery());
   }
   if (requestId !== pendingUsersRequestSeq) return;
@@ -7103,7 +7116,7 @@ async function loadAllUsers(resetToFirstPage = false){
   if (error && isAuthError(error)) {
     // Access token had likely gone stale in the background — refresh it
     // and retry once before giving up.
-    await ensureFreshSession();
+    await forceSessionRefresh();
     ({ data, error, count } = await runQuery());
   }
   if (requestId !== allUsersRequestSeq) return;
@@ -7146,7 +7159,7 @@ async function loadAdminStats(){
     if (results.some(result => result.error && isAuthError(result.error))) {
       // Access token had likely gone stale in the background — refresh it
       // and retry once before giving up.
-      await ensureFreshSession();
+      await forceSessionRefresh();
       results = await runQueries();
     }
     if (results.some(result => result.error)) {
