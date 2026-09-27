@@ -115,10 +115,10 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
 .customer-btn:active{transform:translateY(1px) scale(.99);}
 
 /* ---------- info box ---------- */
-.info-box{box-shadow: 0 3px 10px rgba(1, 37, 135, 0.12);display:flex;align-items:center;gap:6px;text-align:left;background:#EEF2FC;border:1px solid #DCE4F7;border-radius:12px;padding:12px 14px;font-size:13px;color:var(--muted);max-width:290px;}
+.info-box{box-shadow: 0 3px 10px rgba(1, 37, 135, 0.12);display:flex;align-items:center;gap:8px;text-align:left;background:#EEF2FC;border:1px solid #DCE4F7;border-radius:12px;padding:12px 14px;font-size:13px;color:var(--muted);max-width:290px;}
 .info-box strong{display:block;color:var(--ink);font-weight:700;margin-bottom:4px;}
 .info-box--success{background:#E9F7EF;border-color:#CDEBD9;}
-.info-icon{font-size:24px;color:var(--primary);}
+.info-icon{font-size:20px;color:var(--primary);}
 .info-box--success .info-icon{color:var(--success);}
 
 /* ---------- success + confetti ---------- */
@@ -313,7 +313,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
     <p id="errorMessage">We couldn't find the invoice for this link. It may be invalid, expired, or has been removed.</p>
     <button class="customer-btn" id="btnRetry"><i class="fa-solid fa-arrow-rotate-left"></i>Try Again</button>
     <div class="info-box">
-      <div class="info-icon"><i class="fa-solid fa-circle-info"></i></div>
+      <div class="info-icon" style="font-size:24px;"><i class="fa-solid fa-circle-info"></i></div>
       <div><strong>Need help?</strong>Contact JAS Tech for support.</div>
     </div>
   </section>
