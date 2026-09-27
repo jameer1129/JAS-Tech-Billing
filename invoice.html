@@ -86,9 +86,9 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
 }
 @keyframes searchFloat{
   0%   { transform: translate(-50%, -50%) translate(-35px, -25px) rotate(0deg); }
-  25%  { transform: translate(-50%, -50%) translate(35px, 0px) rotate(15deg); }
-  50%  { transform: translate(-50%, -50%) translate(-35px, 25px) rotate(0deg); }
-  75%  { transform: translate(-50%, -50%) translate(35px, 50px) rotate(15deg); }
+  25%  { transform: translate(-50%, -50%) translate(35px, 50px) rotate(15deg); }
+  50%  { transform: translate(-50%, -50%) translate(35px, -25px) rotate(0deg); }
+  75%  { transform: translate(-50%, -50%) translate(-35px, 50px) rotate(15deg); }
   100% { transform: translate(-50%, -50%) translate(-35px, -25px) rotate(0deg); }
 }
 @keyframes searchRipple{
@@ -115,7 +115,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
 .customer-btn:active{transform:translateY(1px) scale(.99);}
 
 /* ---------- info box ---------- */
-.info-box{box-shadow: 0 3px 10px rgba(1, 37, 135, 0.12);display:flex;align-items:center;gap:6px;text-align:left;background:#EEF2FC;border:1px solid #DCE4F7;border-radius:12px;padding:12px 14px;font-size:12px;color:var(--muted);max-width:290px;}
+.info-box{box-shadow: 0 3px 10px rgba(1, 37, 135, 0.12);display:flex;align-items:center;gap:6px;text-align:left;background:#EEF2FC;border:1px solid #DCE4F7;border-radius:12px;padding:12px 14px;font-size:13px;color:var(--muted);max-width:290px;}
 .info-box strong{display:block;color:var(--ink);font-weight:700;margin-bottom:4px;}
 .info-box--success{background:#E9F7EF;border-color:#CDEBD9;}
 .info-icon{font-size:24px;color:var(--primary);}
@@ -193,6 +193,10 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
     </div>
     <h1>Finding your invoice</h1>
     <p>Please wait while we retrieve your invoice.</p>
+    <div class="info-box">
+      <div class="info-icon"><i class="fa-solid fa-lock"></i></div>
+      <div>This is a secure invoice link <br> from JAS Tech...</div>
+    </div>
   </section>
 
   <!-- 2. INVOICE READY -->
@@ -250,7 +254,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
     </div>
     <h1>Preparing your invoice</h1>
     <p>Your PDF is being generated.</p>
-    <div class="info-box info-box--neutral">
+    <div class="info-box">
       <div class="info-icon"><i class="fa-regular fa-clock"></i></div>
       <div>This may take a few seconds.<br>Please do not close this page.</div>
     </div>
@@ -308,7 +312,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
     <h1>Invoice unavailable</h1>
     <p id="errorMessage">We couldn't find the invoice for this link. It may be invalid, expired, or has been removed.</p>
     <button class="customer-btn" id="btnRetry"><i class="fa-solid fa-arrow-rotate-left"></i>Try Again</button>
-    <div class="info-box info-box--help">
+    <div class="info-box">
       <div class="info-icon"><i class="fa-solid fa-circle-info"></i></div>
       <div><strong>Need help?</strong>Contact JAS Tech for support.</div>
     </div>
@@ -376,7 +380,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
       showSignature:data.show_signature!==false
     };
     $('invoiceTitle').textContent=invoiceData.invoiceNumber;
-    // showState('stateInvoice');
+    showState('stateInvoice');
   }
 
   /* ---------- simulated progress (UI only — does not affect PDF generation logic) ---------- */
