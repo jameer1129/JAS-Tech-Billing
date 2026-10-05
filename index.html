@@ -3585,7 +3585,7 @@ function scheduleHtml2PdfWarmup(){
     : (cb) => window.setTimeout(cb, 2000);
   schedule(() => { loadHtml2Pdf().catch(() => {}); });
 }
-const MAX_NETWORK_WAIT_MS = 15000;
+const MAX_NETWORK_WAIT_MS = 20000;
 let bootDeadline = null;
 const MIN_NETWORK_WAIT_MS = 3000;
 function nextNetworkTimeoutMs(){

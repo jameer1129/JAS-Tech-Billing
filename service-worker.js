@@ -4,7 +4,7 @@
    Safe Activation Handoff
    ========================================================= */
 
-const CACHE_NAME = "v2.2.4";
+const CACHE_NAME = "v2.2.2";
 
 // Delay before taking control of already-open pages.
 const CLAIM_DELAY_MS = 2000;
@@ -23,6 +23,62 @@ const STATIC_ASSETS = [
   "./assets/icons/whatsapp-qr.jpeg",
 ];
 
+// Third-party files that index.html needs at startup. They are cached so
+// the app can open without any network.
+const CDN_HOSTS = [
+  "cdnjs.cloudflare.com",
+  "cdn.jsdelivr.net",
+  "fonts.googleapis.com",
+  "fonts.gstatic.com",
+];
+
+const CDN_SCRIPTS = [
+  "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2",
+  "https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js",
+  // Loaded later (on PDF export / print), cached now so it works offline.
+  "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js",
+];
+
+// Stylesheets: we also read them to find and cache their font files.
+const CDN_STYLESHEETS = [
+  "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.3.1/css/all.min.css",
+  "https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;750;800&display=swap",
+];
+
+async function precacheCdn(cache) {
+  // Scripts (stored as opaque responses, same as a normal <script> load).
+  await Promise.allSettled(
+    CDN_SCRIPTS.map(async (url) => {
+      const response = await fetch(new Request(url, { mode: "no-cors" }));
+      await cache.put(url, response);
+    })
+  );
+
+  // Stylesheets + the .woff2 font files they reference.
+  await Promise.allSettled(
+    CDN_STYLESHEETS.map(async (url) => {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const css = await response.clone().text();
+      await cache.put(url, response);
+
+      const fontUrls = new Set();
+      for (const match of css.matchAll(/url\(\s*["']?([^"')]+)["']?\s*\)/g)) {
+        const fontUrl = new URL(match[1], url).href;
+        if (/\.woff2(\?|#|$)/i.test(fontUrl)) fontUrls.add(fontUrl);
+      }
+
+      await Promise.allSettled(
+        [...fontUrls].map(async (fontUrl) => {
+          const fontResponse = await fetch(fontUrl);
+          if (fontResponse.ok) await cache.put(fontUrl, fontResponse);
+        })
+      );
+    })
+  );
+}
+
 self.addEventListener("message", (event) => {
   if (event.data?.type === "GET_VERSION") {
     event.source.postMessage(CACHE_NAME);
@@ -31,8 +87,8 @@ self.addEventListener("message", (event) => {
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) =>
-      Promise.allSettled(
+    caches.open(CACHE_NAME).then(async (cache) => {
+      await Promise.allSettled(
         STATIC_ASSETS.map((asset) =>
           cache.add(asset).catch((error) => {
             console.warn(
@@ -41,8 +97,13 @@ self.addEventListener("install", (event) => {
             );
           })
         )
-      )
-    )
+      );
+
+      // Never let a CDN problem block the install.
+      await precacheCdn(cache).catch((error) => {
+        console.warn("Service worker failed to cache CDN files:", error);
+      });
+    })
   );
 
   self.skipWaiting();
@@ -119,6 +180,17 @@ self.addEventListener("fetch", (event) => {
     url.hostname === "supabase.co" ||
     url.hostname.endsWith(".supabase.co")
   ) {
+    return;
+  }
+
+  // =========================================================
+  // CDN SCRIPTS / STYLES / FONTS — CACHE FIRST
+  // =========================================================
+  if (CDN_HOSTS.includes(url.hostname)) {
+    event.respondWith(
+      cacheFirst(event.request)
+    );
+
     return;
   }
 
