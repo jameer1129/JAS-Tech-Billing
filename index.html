@@ -3581,7 +3581,7 @@ function scheduleHtml2PdfWarmup(){
     : (cb) => window.setTimeout(cb, 2000);
   schedule(() => { loadHtml2Pdf().catch(() => {}); });
 }
-const MAX_NETWORK_WAIT_MS = 20000;
+const MAX_NETWORK_WAIT_MS = 15000;
 let bootDeadline = null;
 const MIN_NETWORK_WAIT_MS = 3000;
 function nextNetworkTimeoutMs(){
@@ -4759,6 +4759,18 @@ async function forceSessionRefresh(){
   try { await supabaseClient.auth.refreshSession(); }
   catch (err) { console.error('Forced session refresh failed:', err); }
 }
+// Runs a Supabase call; if it comes back with a stale/expired-token error,
+// force one real session refresh and run it once more. Safe for writes because
+// an auth rejection happens before the database function/statement executes,
+// so nothing has been saved yet when we retry.
+async function withAuthRetry(run){
+  let result = await run();
+  if (result?.error && isAuthError(result.error)) {
+    await forceSessionRefresh();
+    result = await run();
+  }
+  return result;
+}
 function startManualSessionRefresh(client){
   if (!client || client._manualRefreshStarted) return;
   client._manualRefreshStarted = true;
@@ -4911,6 +4923,11 @@ function showOfflineScreen(reason = 'offline'){
   offlineScreenReason = reason;
   offlineScreenReasonAt = Date.now();
   updateOfflineScreenCopy(reason);
+  // Never leave a loader (boot or action) spinning on top of this screen.
+  // suppressBootLoaderHide is only meant for the password-recovery flow and
+  // would otherwise keep the loader covering the offline screen.
+  suppressBootLoaderHide = false;
+  hideActionLoader();
   showScreen('offline');
 }
 function updateOfflineScreenCopy(reason){
@@ -4931,8 +4948,14 @@ function handleOffline(){
   if (withinGraceOfServerDiagnosis) return;
   showOfflineScreen('offline');
 }
+let lastSupabaseOrigin = null;
 function isSupabaseRequest(input){
-  try { return new URL(typeof input === 'string' ? input : input?.url || '', location.href).hostname.endsWith('.supabase.co'); } catch (_) { return false; }
+  try {
+    const u = new URL(typeof input === 'string' ? input : input?.url || '', location.href);
+    const match = u.hostname.endsWith('.supabase.co');
+    if (match) lastSupabaseOrigin = u.origin;
+    return match;
+  } catch (_) { return false; }
 }
 const nativeFetch = window.fetch.bind(window);
 // A fetch() that THROWS does not always mean "no connection". The browser also
@@ -4942,16 +4965,31 @@ const nativeFetch = window.fetch.bind(window);
 // the offline screen, probe the server: a no-cors request only rejects on a
 // true network failure (DNS/TCP/TLS/timeout), and resolves (opaque) if the
 // server is reachable at all, even when it rejected the real request.
-async function isServerReachable(input){
-  if (!navigator.onLine) return false;
-  try {
-    const origin = new URL(typeof input === 'string' ? input : input?.url || '', location.href).origin;
+const SERVER_PROBE_TIMEOUT_MS = 3000;
+let serverProbeInFlight = null;
+// One shared probe, so several requests failing at once don't each fire their
+// own and keep the loader up longer.
+function probeServer(origin){
+  if (serverProbeInFlight) return serverProbeInFlight;
+  serverProbeInFlight = (async () => {
+    if (!navigator.onLine) return false;
     const controller = new AbortController();
-    const t = setTimeout(() => controller.abort(), 4000);
+    const t = setTimeout(() => controller.abort(), SERVER_PROBE_TIMEOUT_MS);
     try {
       await nativeFetch(origin + '/auth/v1/health', { mode: 'no-cors', cache: 'no-store', signal: controller.signal });
       return true;
-    } finally { clearTimeout(t); }
+    } catch (_) {
+      return false;
+    } finally {
+      clearTimeout(t);
+    }
+  })().finally(() => { serverProbeInFlight = null; });
+  return serverProbeInFlight;
+}
+async function isServerReachable(input){
+  try {
+    const origin = new URL(typeof input === 'string' ? input : input?.url || '', location.href).origin;
+    return await probeServer(origin);
   } catch (_) {
     return false;
   }
@@ -4983,7 +5021,9 @@ window.fetch = async function(input, init){
       // genuinely unreachable. If it IS reachable, the request was simply
       // rejected (blocked DB, missing function, permissions...), so rethrow
       // and let the caller show a normal error toast instead.
-      const reachable = await isServerReachable(input);
+      // A request that timed out already waited the full limit, so go straight
+      // to the screen instead of adding a probe delay on top.
+      const reachable = timedOut ? false : await isServerReachable(input);
       if (!reachable) {
         showOfflineScreen(navigator.onLine ? 'server' : 'offline');
       } else {
@@ -6415,7 +6455,7 @@ async function saveBillToSupabase(){
       price: p.rate,
     }))
   };
-  const { data: bill, error: billErr } = await supabaseClient.rpc('create_bill', billRow);
+  const { data: bill, error: billErr } = await withAuthRetry(() => supabaseClient.rpc('create_bill', billRow));
   if (billErr) throw billErr;
   return bill;
 }
@@ -6510,7 +6550,7 @@ async function openInvoiceQr(invoiceNo){
   el.invoiceQrSkeleton?.classList.remove('hide');
   showOverlay(el.invoiceQrModalOverlay);
   try{
-    const {data,error}=await supabaseClient.rpc('get_or_create_invoice_public_token',{p_invoice_no:invoiceNo});
+    const {data,error}=await withAuthRetry(() => supabaseClient.rpc('get_or_create_invoice_public_token',{p_invoice_no:invoiceNo}));
     if(error) throw error;
     if(!data) throw new Error('Token unavailable');
     const base=new URL(CONFIG.public_invoice_url || './invoice.html',location.href);
@@ -6948,10 +6988,10 @@ async function reprintBill(invoiceNo){
   // during app startup while the invoice items are fetched.
   showActionLoader('Loading Bill…');
   try {
-    const { data: items, error } = await supabaseClient
+    const { data: items, error } = await withAuthRetry(() => supabaseClient
       .from('bill_items')
       .select('item_name,description,serial,qty,price,amount')
-      .eq('invoice_no', invoiceNo);
+      .eq('invoice_no', invoiceNo));
     if (error) throw error;
     // Load into state, then reuse the existing render + download pipeline (skip re-saving)
     state.customer = {
@@ -7030,7 +7070,7 @@ async function deleteBill(){
   setDeleteBillButtonState(true);
   showActionLoader('Deleting bill…');
   try {
-    const { error } = await supabaseClient.from('bills').delete().eq('invoice_no', pendingDeleteBillId);
+    const { error } = await withAuthRetry(() => supabaseClient.from('bills').delete().eq('invoice_no', pendingDeleteBillId));
     if (error) {
       console.error(error);
       hideActionLoader();
@@ -7320,10 +7360,10 @@ async function setUserStatus(userId, status){
   }
   showActionLoader(status === 'approved' ? 'Approving User' : 'Rejecting User');
   try {
-    const { error } = await supabaseClient
+    const { error } = await withAuthRetry(() => supabaseClient
       .from('profiles')
       .update({ status })
-      .eq('id', userId);
+      .eq('id', userId));
     if (error) throw error;
     hideActionLoader();
     showToast(status === 'approved' ? 'User approved' : 'User rejected', 'success');
@@ -7346,10 +7386,10 @@ async function setUserRole(userId, role){
   }
   showActionLoader(role === 'admin' ? 'Making Admin' : 'Making Employee');
   try {
-    const { error } = await supabaseClient
+    const { error } = await withAuthRetry(() => supabaseClient
       .from('profiles')
       .update({ role })
-      .eq('id', userId);
+      .eq('id', userId));
     if (error) throw error;
     hideActionLoader();
     showToast('Role updated', 'success');
@@ -9148,8 +9188,25 @@ window.addEventListener('online', handleOnline);
 document.addEventListener('DOMContentLoaded', () => {
   cacheElements();
   if (el.btnOfflineRetry) {
-    el.btnOfflineRetry.addEventListener('click', () => {
-      if (navigator.onLine) window.location.reload();
+    el.btnOfflineRetry.addEventListener('click', async () => {
+      const btn = el.btnOfflineRetry;
+      if (btn.disabled) return;
+      if (!navigator.onLine) {
+        showToast('Still offline. Check Wi-Fi or mobile data and try again.', 'warning');
+        return;
+      }
+      const originalHtml = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-rotate-right fa-spin" aria-hidden="true"></i> Checking…';
+      const origin = lastSupabaseOrigin || (CONFIG?.supabase?.url ? new URL(CONFIG.supabase.url).origin : null);
+      // Unknown server (cold start while offline): just reload. Otherwise only
+      // reload once the server actually answers, so a failed retry stays on
+      // this screen instead of bouncing through the loader again.
+      const ok = origin ? await probeServer(origin) : true;
+      if (ok) { window.location.reload(); return; }
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+      showToast('Still can’t reach the server. Please try again in a moment.', 'warning');
     });
   }
   init();
