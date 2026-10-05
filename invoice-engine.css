@@ -261,7 +261,7 @@
   line-height:1.2;
   text-align:left;
 }
-.inv-services__item i{font-family:"Font Awesome 6 Free", "Font Awesome 5 Free", sans-serif !important;font-weight:900 !important;font-size:18px;}
+.inv-services__item i{font-family:"Font Awesome 7 Free", sans-serif !important;font-weight:900 !important;font-size:18px;}
 .inv-services__sep{width:1px;height:26px;background:rgba(255,255,255,0.4);}
 .inv-thanks-container{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:12px;width:100%;}
 .inv-thanks-line{flex:1;height:2px;background:var(--primary);position:relative;opacity:0.8;}

@@ -1236,3 +1236,113 @@ revoke all on function public.get_public_invoice(text) from public;
 revoke all on function public.get_or_create_invoice_public_token(text) from public;
 grant execute on function public.get_public_invoice(text) to anon, authenticated;
 grant execute on function public.get_or_create_invoice_public_token(text) to authenticated;
+
+-- // Supabase Edge Function: send-feedback
+-- // Secrets needed:
+-- //   supabase secrets set RESEND_API_KEY=...
+-- //   supabase secrets set FEEDBACK_TO_EMAIL=you@domain.com
+-- //   supabase secrets set FEEDBACK_FROM_EMAIL="JAS Billing <feedback@yourdomain.com>"
+-- // Deploy:
+-- //   supabase functions deploy send-feedback
+-- //
+-- // Flow: logged-in user -> JWT -> this function -> verified name/email -> Resend -> your inbox.
+-- // The browser only supplies: feedback, app_version, timezone (display only).
+-- import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+-- const corsHeaders = {
+--   "Access-Control-Allow-Origin": "*",
+--   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+--   "Access-Control-Allow-Methods": "POST, OPTIONS",
+-- };
+-- const json = (body: unknown, status = 200) =>
+--   new Response(JSON.stringify(body), {
+--     status,
+--     headers: { ...corsHeaders, "Content-Type": "application/json" },
+--   });
+-- const esc = (v: string) =>
+--   v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+-- Deno.serve(async (req) => {
+--   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+--   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
+
+--   try {
+--     const supabase = createClient(
+--       Deno.env.get("SUPABASE_URL")!,
+--       Deno.env.get("SUPABASE_ANON_KEY")!,
+--       { global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } } },
+--     );
+--     const { data: { user }, error: authError } = await supabase.auth.getUser();
+--     if (authError || !user) return json({ error: "Unauthorized" }, 401);
+
+--     const body = await req.json();
+--     const feedback = String(body.feedback ?? "").trim();
+--     if (feedback.length < 10 || feedback.length > 1000) {
+--       return json({ error: "Invalid feedback length" }, 400);
+--     }
+
+--     // Name comes from the user's own profile row (same source the app uses),
+--     // read with the caller's JWT so RLS applies. Falls back to auth metadata.
+--     const { data: profile } = await supabase
+--       .from("profiles")
+--       .select("name")
+--       .eq("id", user.id)
+--       .maybeSingle();
+--     const name =
+--       String(profile?.name ?? user.user_metadata?.full_name ?? user.user_metadata?.name ?? "")
+--         .trim()
+--         .slice(0, 100) || "Unknown";
+--     const email = user.email ?? "Unknown";
+
+--     const appVersion = String(body.app_version ?? "unknown").trim().slice(0, 40);
+--     const tz = String(body.timezone ?? "UTC").slice(0, 60);
+
+--     // Server receipt time; the client timezone is used for display only.
+--     const sentAt = new Date();
+--     let when: string;
+--     try {
+--       when = sentAt.toLocaleString("en-GB", { timeZone: tz, dateStyle: "medium", timeStyle: "short" }) + ` (${tz})`;
+--     } catch {
+--       when = sentAt.toISOString();
+--     }
+
+--     const resendApiKey = Deno.env.get("RESEND_API_KEY");
+--     const toEmail = Deno.env.get("FEEDBACK_TO_EMAIL");
+--     const fromEmail = Deno.env.get("FEEDBACK_FROM_EMAIL");
+--     if (!resendApiKey || !toEmail || !fromEmail) {
+--       console.error("Feedback email secrets are not configured.");
+--       return json({ error: "Feedback service is not configured" }, 500);
+--     }
+
+--     const html = `
+--       <h2>New app feedback</h2>
+--       <table cellpadding="6" style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:14px">
+--         <tr><td><b>Name</b></td><td>${esc(name)}</td></tr>
+--         <tr><td><b>Email</b></td><td>${esc(email)}</td></tr>
+--         <tr><td><b>App version</b></td><td>${esc(appVersion)}</td></tr>
+--         <tr><td><b>Date / time</b></td><td>${esc(when)}</td></tr>
+--       </table>
+--       <h3>Feedback</h3>
+--       <p style="white-space:pre-wrap;font-family:Arial,sans-serif;font-size:14px">${esc(feedback)}</p>`;
+
+--     const res = await fetch("https://api.resend.com/emails", {
+--       method: "POST",
+--       headers: { Authorization: `Bearer ${resendApiKey}`, "Content-Type": "application/json" },
+--       body: JSON.stringify({
+--         from: fromEmail,
+--         to: [toEmail],
+--         reply_to: email !== "Unknown" ? email : undefined,
+--         subject: `App feedback from ${name} (${appVersion})`,
+--         html,
+--       }),
+--     });
+--     if (!res.ok) {
+--       console.error("Resend error:", res.status, await res.text());
+--       return json({ error: "Email provider rejected the request" }, 502);
+--     }
+--     return json({ ok: true });
+--   } catch (error) {
+--     console.error("send-feedback error:", error);
+--     return json({ error: "Server error" }, 500);
+--   }
+-- });
