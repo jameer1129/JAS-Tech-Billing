@@ -3343,7 +3343,7 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
       <p id="invoiceQrNumber">Invoice</p>
       <div class="invoice-qr-canvas-wrap">
         <div class="invoice-qr-skeleton" id="invoiceQrSkeleton" aria-hidden="true"></div>
-        <canvas id="invoiceQrCanvas" width="260" height="260" class="hide"></canvas>
+        <canvas id="invoiceQrCanvas" class="hide"></canvas>
       </div>
       <p class="invoice-qr-caption" id="invoiceQrStatus">Scan this QR code to download the invoice.</p>
     </div>
@@ -6588,11 +6588,12 @@ async function openInvoiceQr(invoiceNo){
     base.searchParams.set('t',data);
     if(!window.QRCode || !QRCode.toCanvas) throw new Error('QR generator unavailable');
     await QRCode.toCanvas(el.invoiceQrCanvas,base.toString(),{
-      width:280,
-      margin:1,
-      errorCorrectionLevel:'H'
+      width:560,
+      margin:2,
+      errorCorrectionLevel:'M'
     });
-
+    el.invoiceQrCanvas.style.width = '280px';
+    el.invoiceQrCanvas.style.height = '280px';
     // Add the JAS Tech logo in the center of the QR.
     // The logo is embedded so the QR keeps working when the app is deployed
     // without requiring a separate image request.
