@@ -1010,8 +1010,8 @@ html.pop-open,body.pop-open{overflow:hidden!important;}
 .drawer.open{transform:translateX(0);}
 .drawer__close{
   position:absolute;
-  top:16px;
-  right:16px;
+  top:14px;
+  right:14px;
   background:rgba(127,127,127,.16);
   border:1px solid rgba(15,23,42,.07);
   box-shadow:0 5px 14px rgba(15,23,42,.07);
@@ -1032,7 +1032,7 @@ html.pop-open,body.pop-open{overflow:hidden!important;}
   flex-direction:column;
   align-items:center;
   text-align:center;
-  padding:56px 24px 20px;
+  padding:40px 24px 12px;
 }
 .drawer__user-avatar {
   width: 84px;
@@ -1044,15 +1044,10 @@ html.pop-open,body.pop-open{overflow:hidden!important;}
   justify-content: center;
   font-size: 36px;
   flex-shrink: 0;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
   position: relative; 
   overflow: hidden;   
   background: radial-gradient(circle at 35% 25%, #5C72FF 0%, #344CEB 45%, #2A3FB8 75%, #162270 100%);
-  box-shadow: 
-    inset -4px -4px 8px rgba(0, 0, 0, 0.45),     /* Internal shadow for 3D roundness */
-    inset 2px 2px 4px rgba(255, 255, 255, 0.35), /* Top-left rim highlight */
-    0 10px 24px rgba(22, 34, 112, 0.2),          /* Deep blue blend drop-shadow */
-    0 4px 6px rgba(0, 0, 0, 0.15);               /* Neutral ambient shadow grounding */
 }
 .drawer__user-avatar img{
   position:relative;
@@ -1086,26 +1081,40 @@ html.pop-open,body.pop-open{overflow:hidden!important;}
   text-overflow:ellipsis;
   max-width:100%;
 }
-.drawer__user-role{font-size:11.5px;color:var(--primary-text);font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
-.drawer__divider{height:1px;background:var(--line);margin:0 20px 10px;}
+.drawer__user-role{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  padding:4px 10px;
+  border-radius:12px;
+  background:rgba(1, 37, 135, .08);
+  border:1px solid rgba(1, 37, 135, .16);
+  margin-top:4px;
+  font-size:11.5px;color:var(--primary-text);font-weight:700;text-transform:uppercase;letter-spacing:.5px;
+}
+body.dark-theme .drawer__user-role{background: rgba(23, 105, 255, .15);border-color: rgba(23, 105, 255, .25);}  
+.drawer__divider{height:1px;background:var(--line);margin:0 20px 6px;}
 .drawer__body{flex:1;padding:8px 16px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;}
 .drawer__item{
+  --acc:127,127,127;
+  --fg:var(--text);
+  position:relative;
   display:flex;
   align-items:center;
   gap:14px;
-  padding:14px 16px;
+  padding:13px 16px;
   font-size:18px;
   font-weight:600;
   color:var(--text);
   cursor:pointer;
-  border:1px solid var(--line);
-  background:rgba(127,127,127,.08);
-  border-radius:14px;
+  border:1px solid rgba(var(--acc),.5);
+  background:linear-gradient(135deg,rgba(var(--acc),.10),rgba(var(--acc),.03));
+  border-radius:18px;
   width:100%;
   text-align:left;
-  transition:background .12s ease;
+  box-shadow:0 0 16px rgba(var(--acc),.10);
+  transition:transform .12s ease,box-shadow .2s ease,background .2s ease;
 }
-.drawer__item:hover{background:rgba(127,127,127,.14);}
 .drawer__item-icon{
   width:42px;
   height:42px;
@@ -1114,45 +1123,34 @@ html.pop-open,body.pop-open{overflow:hidden!important;}
   align-items:center;
   justify-content:center;
   font-size:16px;
-  color:#fff;
+  color:var(--fg);
   flex-shrink:0;
-  box-shadow:var(--shadow-sm);
+  border:1.5px solid rgba(var(--acc),.85);
+  background: radial-gradient(circle,rgba(var(--acc), 0.1) 50%,rgba(var(--acc), 0.5) 75% );
 }
-.drawer__item-icon--blue{
-  background:radial-gradient(circle,transparent,rgba(47,95,222,.18));
-  color:#285ED8;
+.drawer__item--theme{--acc:47,95,222;--fg:#285ED8;}
+.drawer__item--purple{--acc:147,80,240;--fg:#6655D7;}
+.drawer__item--green{--acc:16,185,129;--fg:#0E9F6E;}
+.drawer__item--red{--acc:239,68,68;--fg:#B52F42;}
+body.dark-theme .drawer__item--theme{--acc:245,176,0;--fg:#FFC933;}
+body.dark-theme .drawer__item--purple{--acc:168,85,247;--fg:#E58BFF;}
+body.dark-theme .drawer__item--green{--acc:20,200,150;--fg:#2DE0B0;}
+body.dark-theme .drawer__item--red{--acc:239,68,68;--fg:#FF5C6C;}
+.drawer__item:hover{
+  border-color:rgba(var(--acc),.6);
+  background:linear-gradient(135deg,rgba(var(--acc),.14),rgba(var(--acc),.04));
+  box-shadow:0 0 18px rgba(var(--acc),.28);
 }
-.drawer__item-icon--purple{
-  background:radial-gradient(circle,transparent,rgba(108,92,231,.18));
-  color:#6655D7;
-}
-.drawer__item-icon--red{
-  background:radial-gradient(circle,transparent,rgba(190,48,67,.18));
-  color:#B52F42;
-}
-body.dark-theme .drawer__item-icon--blue{
-  background:radial-gradient(circle,transparent,rgba(47,95,222,.5));
-  color:#72A7FF;
-}
-body.dark-theme .drawer__item-icon--purple{
-  background:radial-gradient(circle,transparent,rgba(108,92,231,.4));
-  color:#B5A8FF;
-}
-body.dark-theme .drawer__item-icon--red{
-  background:radial-gradient(circle,transparent,rgba(190,48,67,.4));
-  color:#FF7888;
-}
-.drawer__item-text{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0;}
+.drawer__item-text{flex:1;display:flex;flex-direction:column;gap:4px;min-width:0;}
 .drawer__item-title{font-size:14.5px;font-weight:700;color:var(--text);line-height:1.25;}
 .drawer__item-subtitle{font-size:12px;color:var(--muted);font-weight:500;line-height:1.25;}
-.drawer__item-chevron{color:var(--primary-text);font-size:13px;flex-shrink:0;opacity:.8;}
-.drawer__item.danger .drawer__item-title{color:var(--danger);}
-.drawer__item.danger:hover{background:rgba(214,69,69,.08);}
+.drawer__item-chevron{color:var(--fg);font-size:13px;flex-shrink:0;}
+.drawer__item.danger .drawer__item-title{color:var(--fg);}
 .drawer__footer{
   display:flex;
   align-items:center;
   gap:12px;
-  padding:16px 20px;
+  padding:12px 20px;
   border-top:1px solid var(--line);
   background:rgba(127, 127, 127, .08);;
 }
@@ -1169,9 +1167,11 @@ body.dark-theme .drawer__footer{background:rgba(127, 127, 127, .08);}
   font-size:14px;
   flex-shrink:0;
 }
-.drawer__footer-title{font-size:13px;font-weight:700;color:var(--text);}
-.drawer__footer-sub{font-size:11px;color:var(--muted);margin-top: 6px}
+.drawer__footer-title{font-size:14px;font-weight:700;color:var(--text);}
+.drawer__footer-sub{font-size:12px;color:var(--muted);margin-top: 6px}
 
+.feedback-counter{margin:6px 2px 0;text-align:right;font-size:12px;color:var(--muted);}
+.feedback-hint{margin:0 0 10px;font-size:13.5px;color:var(--muted);line-height:1.5;}
 @media(max-width:640px){.user-menu-wrap,.app-bar .theme-toggle{display:none;}
 .app-bar__hamburger{display:flex;}
 .app-bar{padding:12px 16px;}
@@ -3359,28 +3359,36 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
     <div class="drawer__user-avatar" id="drawerUserAvatar"><i class="fa-solid fa-user"></i></div>
     <div class="drawer__user-info">
       <div class="drawer__user-name" id="drawerUserName"></div>
-      <div class="drawer__user-role" id="drawerUserRole"></div>
+      <div class="drawer__user-role"><i class="fa-solid fa-user-tag"></i><span  id="drawerUserRole"></span></div>
     </div>
   </div>
   <div class="drawer__divider"></div>
   <div class="drawer__body">
-    <button class="drawer__item theme-toggle">
-      <span class="drawer__item-icon drawer__item-icon--blue"><i class="fa-solid fa-moon"></i></span>
+    <button class="drawer__item drawer__item--theme theme-toggle">
+      <span class="drawer__item-icon"><i class="fa-solid fa-moon"></i></span>
       <span class="drawer__item-text">
         <span class="drawer__item-title" id="drawerThemeLabel">Dark Mode</span>
         <span class="drawer__item-subtitle" id="drawerThemeSubtitle">Switch to dark theme</span>
       </span>
     </button>
-    <button class="drawer__item" id="drawerChangePw">
-      <span class="drawer__item-icon drawer__item-icon--purple"><i class="fa-solid fa-lock"></i></span>
+    <button class="drawer__item drawer__item--purple" id="drawerChangePw">
+      <span class="drawer__item-icon"><i class="fa-solid fa-lock"></i></span>
       <span class="drawer__item-text">
         <span class="drawer__item-title">Change Password</span>
         <span class="drawer__item-subtitle">Update your password</span>
       </span>
       <i class="fa-solid fa-chevron-right drawer__item-chevron"></i>
     </button>
-    <button class="drawer__item danger" id="drawerLogout">
-      <span class="drawer__item-icon drawer__item-icon--red"><i class="fa-solid fa-right-from-bracket"></i></span>
+    <button class="drawer__item drawer__item--green" id="drawerFeedback">
+      <span class="drawer__item-icon"><i class="fa-regular fa-message"></i></span>
+      <span class="drawer__item-text">
+        <span class="drawer__item-title">Feedback</span>
+        <span class="drawer__item-subtitle">Share your feedback</span>
+      </span>
+      <i class="fa-solid fa-chevron-right drawer__item-chevron"></i>
+    </button>
+    <button class="drawer__item drawer__item--red danger" id="drawerLogout">
+      <span class="drawer__item-icon"><i class="fa-solid fa-right-from-bracket"></i></span>
       <span class="drawer__item-text">
         <span class="drawer__item-title">Log Out</span>
         <span class="drawer__item-subtitle">Sign out of your account</span>
@@ -3393,6 +3401,39 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
     <div>
       <div class="drawer__footer-title">Secure &bull; Fast &bull; Reliable</div>
       <span class="drawer__footer-sub" id="drawerFooterVersion"></span>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay hide" id="feedbackModalOverlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="feedbackModalTitle">
+    <div class="modal__header">
+      <h3 id="feedbackModalTitle">Feedback</h3>
+    </div>
+    <div class="modal__body">
+      <p class="feedback-hint">Tell us what you like, what is broken, or what we should improve.</p>
+      <div class="field">
+        <textarea id="feedbackText" rows="6" maxlength="1000" placeholder="Write your feedback here…" aria-label="Your feedback"></textarea>
+      </div>
+      <div class="feedback-counter"><span id="feedbackCount">0</span>/1000</div>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--ghost" id="btnCancelFeedback" type="button">Cancel</button>
+      <button class="btn btn--primary" id="btnSendFeedback" type="button"><i class="fa-solid fa-paper-plane"></i> Send</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay modal--confirm hide" id="feedbackThanksModalOverlay">
+  <div class="modal">
+    <div class="pdf-confirm-confetti-stage" id="feedbackConfettiStage" aria-hidden="true"></div>
+    <div class="modal__header">
+      <div class="confirm-icon confirm-icon--success"><i class="fa-solid fa-check"></i></div>
+      <h3>Thank You!</h3>
+    </div>
+    <div class="modal__body">
+      <p>Your feedback has been sent. We really appreciate you helping us improve.</p>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--primary" id="btnFeedbackThanksClose" type="button">Done</button>
     </div>
   </div>
 </div>
@@ -3867,6 +3908,15 @@ function cacheElements(){
   el.drawerThemeSubtitle = document.getElementById('drawerThemeSubtitle');
   el.drawerLogout = document.getElementById('drawerLogout');
   el.drawerChangePw = document.getElementById('drawerChangePw');
+  el.drawerFeedback = document.getElementById('drawerFeedback');
+  el.feedbackModalOverlay = document.getElementById('feedbackModalOverlay');
+  el.feedbackText = document.getElementById('feedbackText');
+  el.feedbackCount = document.getElementById('feedbackCount');
+  el.btnCancelFeedback = document.getElementById('btnCancelFeedback');
+  el.btnSendFeedback = document.getElementById('btnSendFeedback');
+  el.feedbackThanksModalOverlay = document.getElementById('feedbackThanksModalOverlay');
+  el.feedbackConfettiStage = document.getElementById('feedbackConfettiStage');
+  el.btnFeedbackThanksClose = document.getElementById('btnFeedbackThanksClose');
   el.changePasswordModalOverlay = document.getElementById('changePasswordModalOverlay');
   el.changePwCurrent = document.getElementById('changePwCurrent');
   el.changePwNew = document.getElementById('changePwNew');
@@ -3937,6 +3987,7 @@ async function loadConfig(){
   }
   applyConfig();
 }
+let appVersion = 'v1.0.0'; // updated from the service-worker version message
 function applyConfig(){
   const root = document.documentElement.style;
   const lightTheme = CONFIG.theme.light || {};
@@ -3971,11 +4022,14 @@ function applyConfig(){
   if(CONFIG.invoice.defaultNotes) state.notes = CONFIG.invoice.defaultNotes;
   syncDisplayToggleState();
   if (el.drawerFooterVersion) {
-    const version = 'v1.0.0';
-    el.drawerFooterVersion.textContent = `${CONFIG.company.name} Billing ${version}`;
+    appVersion = 'v1.0.0';
+    el.drawerFooterVersion.textContent = `${CONFIG.company.name} Billing ${appVersion}`;
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.addEventListener('message', (e) => {
-        if (typeof e.data === 'string') el.drawerFooterVersion.textContent = `${CONFIG.company.name} Billing ${e.data}`;
+        if (typeof e.data === 'string') {
+          appVersion = e.data;
+          el.drawerFooterVersion.textContent = `${CONFIG.company.name} Billing ${e.data}`;
+        }
       });
       navigator.serviceWorker.ready.then((reg) => {
         reg.active?.postMessage({ type: 'GET_VERSION' });
@@ -4881,32 +4935,60 @@ function isSupabaseRequest(input){
   try { return new URL(typeof input === 'string' ? input : input?.url || '', location.href).hostname.endsWith('.supabase.co'); } catch (_) { return false; }
 }
 const nativeFetch = window.fetch.bind(window);
+// A fetch() that THROWS does not always mean "no connection". The browser also
+// throws a generic TypeError when the server answered but the response was
+// unusable to the page: a blocked/paused database, a gateway rejection without
+// CORS headers, a missing function, etc. So before replacing the whole app with
+// the offline screen, probe the server: a no-cors request only rejects on a
+// true network failure (DNS/TCP/TLS/timeout), and resolves (opaque) if the
+// server is reachable at all, even when it rejected the real request.
+async function isServerReachable(input){
+  if (!navigator.onLine) return false;
+  try {
+    const origin = new URL(typeof input === 'string' ? input : input?.url || '', location.href).origin;
+    const controller = new AbortController();
+    const t = setTimeout(() => controller.abort(), 4000);
+    try {
+      await nativeFetch(origin + '/auth/v1/health', { mode: 'no-cors', cache: 'no-store', signal: controller.signal });
+      return true;
+    } finally { clearTimeout(t); }
+  } catch (_) {
+    return false;
+  }
+}
 window.fetch = async function(input, init){
   const isSupabase = isSupabaseRequest(input);
   let timeoutId = null;
   let fetchInit = init;
+  let timedOut = false;
+  let callerAborted = false;
   if (isSupabase) {
     const controller = new AbortController();
-    timeoutId = setTimeout(() => controller.abort(), nextNetworkTimeoutMs());
+    timeoutId = setTimeout(() => { timedOut = true; controller.abort(); }, nextNetworkTimeoutMs());
     // Respect any abort signal the caller already passed in (e.g. Supabase's
     // own internal cancellation) rather than overriding it outright.
     const originalSignal = init?.signal;
     if (originalSignal) {
-      if (originalSignal.aborted) controller.abort();
-      else originalSignal.addEventListener('abort', () => controller.abort(), { once: true });
+      const onCallerAbort = () => { callerAborted = true; controller.abort(); };
+      if (originalSignal.aborted) onCallerAbort();
+      else originalSignal.addEventListener('abort', onCallerAbort, { once: true });
     }
     fetchInit = { ...init, signal: controller.signal };
   }
   try {
     return await nativeFetch(input, fetchInit);
   } catch (error) {
-    if (isSupabase) {
-      // A timeout abort looks identical to any other failed fetch here.
-      // navigator.onLine is normally still true on a slow-but-alive
-      // connection, so this correctly shows "Connection Trouble" rather
-      // than "You're Offline" -- the user's internet is technically up,
-      // it's just too slow for the request to finish in time.
-      showOfflineScreen(navigator.onLine ? 'server' : 'offline');
+    if (isSupabase && !(callerAborted && !timedOut)) {
+      // Only show the offline / connection-trouble screen when the server is
+      // genuinely unreachable. If it IS reachable, the request was simply
+      // rejected (blocked DB, missing function, permissions...), so rethrow
+      // and let the caller show a normal error toast instead.
+      const reachable = await isServerReachable(input);
+      if (!reachable) {
+        showOfflineScreen(navigator.onLine ? 'server' : 'offline');
+      } else {
+        console.warn('Supabase request failed but server is reachable; not showing offline screen.', error);
+      }
     }
     throw error;
   } finally {
@@ -6370,9 +6452,9 @@ async function handlePreviewDownload(){
   }
   openSaveChoiceModal();
 }
-function triggerPdfConfirmConfetti(){
+function triggerPdfConfirmConfetti(customStage){
   if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
-  const stage=el.pdfConfirmConfettiStage;
+  const stage=customStage||el.pdfConfirmConfettiStage;
   if(!stage)return;
   stage.querySelectorAll('.confetti-piece').forEach(p=>p.remove());
   const colors=['#012587','#F5B400','#FF6B57','#1F9254','#6C5CE7','#14919B'];
@@ -7294,6 +7376,58 @@ function closeAllActionMenus(){
 function closeUserDropdown(){}
 function toggleUserDropdown(){ openDrawer(); }
 
+const FEEDBACK_MIN_LENGTH = 10;
+const FEEDBACK_MAX_LENGTH = 1000;
+function openFeedbackModal(){
+  el.feedbackText.value = '';
+  el.feedbackCount.textContent = '0';
+  el.feedbackText.classList.remove('input-error');
+  showOverlay(el.feedbackModalOverlay);
+  setTimeout(() => el.feedbackText.focus(), 50);
+}
+function closeFeedbackModal(){
+  hideOverlay(el.feedbackModalOverlay);
+}
+function closeFeedbackThanks(){
+  hideOverlay(el.feedbackThanksModalOverlay);
+}
+async function handleSendFeedback(){
+  const feedback = el.feedbackText.value.trim();
+  if (feedback.length < FEEDBACK_MIN_LENGTH) {
+    el.feedbackText.classList.add('input-error');
+    showToast(`Please write at least ${FEEDBACK_MIN_LENGTH} characters.`, 'warning');
+    el.feedbackText.focus();
+    return;
+  }
+  if (feedback.length > FEEDBACK_MAX_LENGTH) {
+    el.feedbackText.classList.add('input-error');
+    showToast(`Feedback is too long (max ${FEEDBACK_MAX_LENGTH} characters).`, 'warning');
+    return;
+  }
+  el.feedbackText.classList.remove('input-error');
+  if (!navigator.onLine) { showToast('You are offline. Please try again when connected.', 'warning'); return; }
+  if (!supabaseClient || !currentSession) { showToast('Please log in again to send feedback.', 'warning'); return; }
+
+  await withGuardedSubmit(el.btnSendFeedback, 'Sending feedback…', async () => {
+    const { data, error } = await supabaseClient.functions.invoke('send-feedback', {
+      // Identity (name/email) and the timestamp are set server-side from the
+      // authenticated JWT, so the browser cannot spoof them.
+      body: {
+        feedback,
+        app_version: appVersion,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || ''
+      }
+    });
+    if (error || data?.error) throw (error || new Error(data.error));
+    el.feedbackText.value = '';
+    await hideOverlay(el.feedbackModalOverlay);
+    showOverlay(el.feedbackThanksModalOverlay);
+    triggerPdfConfirmConfetti(el.feedbackConfettiStage);
+  }, () => {
+    // Keep the modal open with the typed text so nothing is lost.
+    showToast('Could not send feedback. Please try again.', 'error');
+  });
+}
 function openChangePasswordModal(){
   el.changePwCurrent.value = '';
   el.changePwNew.value = '';
@@ -8003,6 +8137,8 @@ function getDismissibleOverlays(){
     [el.pwaUpdateModalOverlay, dismissPwaUpdateAsLater],
     [el.pwaEntryModalOverlay, closePwaEntryModal],
     [el.changePasswordModalOverlay, closeChangePasswordModal],
+    [el.feedbackModalOverlay, closeFeedbackModal],
+    [el.feedbackThanksModalOverlay, closeFeedbackThanks],
     [el.saveChoiceModalOverlay, closeSaveChoiceModal],
     [el.pdfActionModalOverlay, closePdfActionModal],
     [el.invoiceQrModalOverlay, closeInvoiceQr],
@@ -8150,6 +8286,14 @@ function bindEvents(){
   el.btnDrawerClose.addEventListener('click', closeDrawer);
   el.drawerBackdrop.addEventListener('click', closeDrawer);
   el.drawerLogout.addEventListener('click', () => { closeDrawer(); openLogoutConfirm(); });
+  el.drawerFeedback.addEventListener('click', () => { closeDrawer(); openFeedbackModal(); });
+  el.btnCancelFeedback.addEventListener('click', closeFeedbackModal);
+  el.btnSendFeedback.addEventListener('click', handleSendFeedback);
+  el.btnFeedbackThanksClose.addEventListener('click', closeFeedbackThanks);
+  el.feedbackText.addEventListener('input', () => {
+    el.feedbackCount.textContent = String(el.feedbackText.value.length);
+    el.feedbackText.classList.remove('input-error');
+  });
   document.querySelectorAll('.nav-tab').forEach(tab => {
     tab.addEventListener('click', () => switchView(tab.dataset.view));
   });

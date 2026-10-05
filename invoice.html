@@ -341,8 +341,8 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
   async function loadInvoice(){
     const token=getToken();
     if(!token){
-      const err=new Error('invalid');
-      err.code='INVALID_INVOICE';
+      const err=new Error('This invoice link is missing the secure token.');
+      err.code='MISSING_TOKEN';
       throw err;
     }
 
@@ -350,6 +350,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
       if(!CONFIG)await loadConfig();
     }catch(err){
       err.code='NETWORK_ERROR';
+      err.message='We could not load the invoice settings right now.';
       throw err;
     }
 
@@ -357,13 +358,13 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
     const {data,error}=await client.rpc('get_public_invoice',{p_token:token});
 
     if(error){
-      const err=new Error(error.message||'Unable to load invoice');
+      const err=new Error(error.message || 'Unable to verify this invoice link.');
       err.code='NETWORK_ERROR';
       throw err;
     }
 
     if(!data){
-      const err=new Error('Invoice not found');
+      const err=new Error('This invoice link is invalid, expired, or no longer available.');
       err.code='INVALID_INVOICE';
       throw err;
     }
@@ -523,31 +524,35 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
 
     if(code==='INVALID_INVOICE'){
       if(title)title.textContent='Invoice unavailable';
-      if(message)message.textContent="We couldn't find the invoice for this link. It may be invalid, expired, or has been removed.";
-      if(retry)retry.innerHTML='<i class="fa-solid fa-arrow-rotate-left"></i>Try Again';
+      if(message)message.textContent='This invoice link is invalid, expired, or no longer available.';
+      if(retry)retry.innerHTML='<i class="fa-solid fa-arrow-rotate-left"></i>Check Again';
+    }else if(code==='MISSING_TOKEN'){
+      if(title)title.textContent='Link is incomplete';
+      if(message)message.textContent='The invoice link is missing details. Please open the full link again.';
+      if(retry)retry.innerHTML='<i class="fa-solid fa-arrow-rotate-left"></i>Rescan QR Code';
     }else{
-      if(title)title.textContent='Unable to load invoice';
-      if(message)message.textContent='We couldn’t load this invoice right now. Please check your internet connection and try again.';
-      if(retry)retry.innerHTML='<i class="fa-solid fa-arrow-rotate-left"></i>Try Again';
+      if(title)title.textContent='Unable to open invoice';
+      if(message)message.textContent='We could not verify this invoice right now. Please try again.';
+      if(retry)retry.innerHTML='<i class="fa-solid fa-arrow-rotate-left"></i>Retry';
     }
 
     showState('stateError');
   }
 
   async function start(){
-    invoiceData=null;
+    invoiceData=null; 
     showState('stateLoading');
     try{
       await loadInvoice();
     }catch(err){
       console.error(err);
-      setErrorState(err.code==='INVALID_INVOICE'?'INVALID_INVOICE':'NETWORK_ERROR');
+      setErrorState(err.code === 'INVALID_INVOICE' ? 'INVALID_INVOICE' : err.code === 'MISSING_TOKEN' ? 'MISSING_TOKEN' : 'NETWORK_ERROR');
     }
   }
 
   $('btnDownload').addEventListener('click',downloadInvoice);
   $('btnCopy').addEventListener('click',copyInvoiceNumber);
-  $('btnRetry').addEventListener('click',start);
+  $('btnRetry').addEventListener('click',handleDone);
   $('btnDone').addEventListener('click',handleDone);
   start();
 })();
