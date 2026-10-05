@@ -5,6 +5,52 @@
   const A4_WIDTH=794,A4_HEIGHT=1123;
   let CONFIG=null,html2pdfLoadPromise=null;
 
+  /* ---- Images are embedded as data URLs while the PDF is built ----
+     The PDF builder (html2canvas) re-requests every <img> from the server.
+     With data URLs there is nothing to request, so it works from the
+     service-worker cache and never depends on the network. */
+  const assetDataUrls={};
+  function assetSrc(path){return assetDataUrls[path]||path;}
+  function blobToDataUrl(blob){
+    return new Promise((resolve,reject)=>{
+      const reader=new FileReader();
+      reader.onload=()=>resolve(reader.result);
+      reader.onerror=()=>reject(reader.error);
+      reader.readAsDataURL(blob);
+    });
+  }
+  async function loadAssetAsDataUrl(path){
+    if(assetDataUrls[path])return true;
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),8000);
+    try{
+      const res=await fetch(new URL(path,location.href).href,{signal:controller.signal});
+      if(!res.ok)return false;
+      const blob=await res.blob();
+      if(!blob.size||!/^image\//i.test(blob.type))return false;
+      assetDataUrls[path]=await blobToDataUrl(blob);
+      return true;
+    }catch(e){
+      return false;
+    }finally{
+      clearTimeout(timer);
+    }
+  }
+  function neededAssetPaths(data){
+    const d=normalizeData(data),c=CONFIG||{},a=c.assets||{},list=[];
+    if(a.horizontalLogo)list.push(a.horizontalLogo);
+    if(d.showWatermark&&c.display?.showWatermark!==false&&a.watermark)list.push(a.watermark);
+    if(c.display?.showQr!==false&&d.showQr&&a.scannerQr)list.push(a.scannerQr);
+    if(c.display?.showSignature!==false&&d.showSignature&&a.signature)list.push(a.signature);
+    return [...new Set(list)];
+  }
+  /* Loads every image the invoice needs. Returns the list of paths that
+     could NOT be loaded (empty array = all good). */
+  async function preloadAssets(data){
+    const paths=neededAssetPaths(data);
+    const results=await Promise.all(paths.map(loadAssetAsDataUrl));
+    return paths.filter((_,i)=>!results[i]);
+  }
+
   function configure(config){CONFIG=config||{};return CONFIG;}
   function roundMoney(n){return Math.round((Number(n)||0)*100)/100;}
   function escapeHtml(str){
@@ -83,12 +129,12 @@
     const d=normalizeData(data),c=CONFIG||{};
     const {totalItems,totalQty,grandTotal}=calculateTotals(d.products);
 
-    const page1HeaderHtml=`<div class="inv-header"><img src="${escapeHtml(c.assets?.horizontalLogo||'')}" class="inv-header__logo" crossOrigin="anonymous" alt="${escapeHtml(c.company?.name||'')}"><div class="inv-header__right"><div class="inv-header__ribbon"><span class="inv-header__ribbon-text">INVOICE</span><span class="inv-header__ribbon-stripe"></span><span class="inv-header__ribbon-stripe"></span></div><div class="inv-header__meta"><div class="row"><span class="k">Invoice No.</span><span class="sep">:</span><span class="v">${escapeHtml(d.invoiceNumber)}</span></div><div class="row"><span class="k">Date</span><span class="sep">:</span><span class="v">${escapeHtml(d.dateStr)}</span></div></div></div></div><hr class="inv-divider"><div class="inv-customer"><div class="inv-customer__icon"><i class="fa-solid fa-user"></i></div><div class="inv-customer__details"><div class="inv-customer__label">BILL TO</div><div class="inv-customer__name">${escapeHtml(d.customer.name)}</div>${d.customer.address?`<div class="inv-customer__address">${escapeHtml(d.customer.address)}</div>`:''}${d.customer.mobile?`<div class="inv-customer__line">Mobile: ${escapeHtml(d.customer.mobile)}</div>`:''}</div></div>`;
+    const page1HeaderHtml=`<div class="inv-header"><img src="${escapeHtml(assetSrc(c.assets?.horizontalLogo||''))}" class="inv-header__logo" crossOrigin="anonymous" alt="${escapeHtml(c.company?.name||'')}"><div class="inv-header__right"><div class="inv-header__ribbon"><span class="inv-header__ribbon-text">INVOICE</span><span class="inv-header__ribbon-stripe"></span><span class="inv-header__ribbon-stripe"></span></div><div class="inv-header__meta"><div class="row"><span class="k">Invoice No.</span><span class="sep">:</span><span class="v">${escapeHtml(d.invoiceNumber)}</span></div><div class="row"><span class="k">Date</span><span class="sep">:</span><span class="v">${escapeHtml(d.dateStr)}</span></div></div></div></div><hr class="inv-divider"><div class="inv-customer"><div class="inv-customer__icon"><i class="fa-solid fa-user"></i></div><div class="inv-customer__details"><div class="inv-customer__label">BILL TO</div><div class="inv-customer__name">${escapeHtml(d.customer.name)}</div>${d.customer.address?`<div class="inv-customer__address">${escapeHtml(d.customer.address)}</div>`:''}${d.customer.mobile?`<div class="inv-customer__line">Mobile: ${escapeHtml(d.customer.mobile)}</div>`:''}</div></div>`;
 
     const qrVisible=c.display?.showQr!==false&&d.showQr;
     const signatureVisible=c.display?.showSignature!==false&&d.showSignature;
 
-    const footerHtml=`<div class="inv-footer"><div class="inv-footer-details"><div class="contact-block"><div><i class="fa-solid fa-location-dot"></i> <span>${(c.company?.addressLines||[]).map(escapeHtml).join('<br>')}</span></div><div><i class="fa-solid fa-phone"></i> <span>${escapeHtml(c.company?.phone||'')}</span></div><div><i class="fa-solid fa-envelope"></i> <span>${escapeHtml(c.company?.email||'')}</span></div></div>${qrVisible?`<div class="qr-block"><img src="${escapeHtml(c.assets?.scannerQr||'')}" crossOrigin="anonymous" alt="QR Code"><span>${escapeHtml(c.scanner?.scannerCaption||'')}</span></div>`:''}${signatureVisible?`<div class="sign-block"><div class="for-line">${escapeHtml(c.signatureBlock?.forLine||'')}</div><img src="${escapeHtml(c.assets?.signature||'')}" crossOrigin="anonymous" alt="Signature"><div class="auth-line">${escapeHtml(c.signatureBlock?.authLine||'')}</div></div>`:''}</div><div class="inv-services">${(c.services||[]).map((s,i)=>`${i>0?'<span class="inv-services__sep"></span>':''}<div class="inv-services__item"><i class="fa-solid ${escapeHtml(s.icon)}"></i> <div>${formatServiceLabel(s.label)}</div></div>`).join('')}</div><div class="inv-thanks-container"><div class="inv-thanks-line left"></div><div class="inv-thanks">${escapeHtml(c.footer?.thankYouMessage||'')}</div><div class="inv-thanks-line right"></div></div><div class="inv-copy">${escapeHtml(c.footer?.copyrightLine||'')}</div></div>`;
+    const footerHtml=`<div class="inv-footer"><div class="inv-footer-details"><div class="contact-block"><div><i class="fa-solid fa-location-dot"></i> <span>${(c.company?.addressLines||[]).map(escapeHtml).join('<br>')}</span></div><div><i class="fa-solid fa-phone"></i> <span>${escapeHtml(c.company?.phone||'')}</span></div><div><i class="fa-solid fa-envelope"></i> <span>${escapeHtml(c.company?.email||'')}</span></div></div>${qrVisible?`<div class="qr-block"><img src="${escapeHtml(assetSrc(c.assets?.scannerQr||''))}" crossOrigin="anonymous" alt="QR Code"><span>${escapeHtml(c.scanner?.scannerCaption||'')}</span></div>`:''}${signatureVisible?`<div class="sign-block"><div class="for-line">${escapeHtml(c.signatureBlock?.forLine||'')}</div><img src="${escapeHtml(assetSrc(c.assets?.signature||''))}" crossOrigin="anonymous" alt="Signature"><div class="auth-line">${escapeHtml(c.signatureBlock?.authLine||'')}</div></div>`:''}</div><div class="inv-services">${(c.services||[]).map((s,i)=>`${i>0?'<span class="inv-services__sep"></span>':''}<div class="inv-services__item"><i class="fa-solid ${escapeHtml(s.icon)}"></i> <div>${formatServiceLabel(s.label)}</div></div>`).join('')}</div><div class="inv-thanks-container"><div class="inv-thanks-line left"></div><div class="inv-thanks">${escapeHtml(c.footer?.thankYouMessage||'')}</div><div class="inv-thanks-line right"></div></div><div class="inv-copy">${escapeHtml(c.footer?.copyrightLine||'')}</div></div>`;
 
     const notesText=d.notes===null?(c.invoice?.defaultNotes||''):String(d.notes||'').trim();
     const showNotes=c.display?.showNotes!==false&&notesText&&d.includeNotesOnPdf;
@@ -96,7 +142,7 @@
 
     const summaryHtml=`<div class="inv-summary">${c.display?.showTotalItems?`<div class="inv-summary__row"><span>TOTAL ITEMS</span><b>${totalItems}</b></div>`:''}${c.display?.showTotalQuantity?`<div class="inv-summary__row"><span>TOTAL QUANTITY</span><b>${totalQty}</b></div>`:''}<div class="inv-summary__total"><span class="label" style="font-size:16px;">GRAND TOTAL</span><span class="value">${formatCurrency(grandTotal,true)}</span></div></div>`;
 
-    const watermarkHtml=d.showWatermark&&c.display?.showWatermark!==false?`<img src="${escapeHtml(c.assets?.watermark||'')}" class="inv-watermark" crossOrigin="anonymous" alt="Watermark Background">`:'';
+    const watermarkHtml=d.showWatermark&&c.display?.showWatermark!==false?`<img src="${escapeHtml(assetSrc(c.assets?.watermark||''))}" class="inv-watermark" crossOrigin="anonymous" alt="Watermark Background">`:'';
 
     const PAGE_HEIGHT=A4_HEIGHT,PAGE_PAD_TOP=40,PAGE_PAD_BOTTOM=30,TABLE_MARGIN_TOP=12,TABLE_BORDER=2,SAFETY_MARGIN=10;
     const products=d.products,chunks=[];
@@ -104,7 +150,7 @@
     if(!products.length){
       chunks.push({isLast:true,products:[],rowsHeight:0});
     }else{
-      const contPageHeaderSample=`<div class="page-continuation-header"><div class="cont-left"><img src="${escapeHtml(c.assets?.horizontalLogo||'')}" class="cont-logo" alt=""><div class="inv-header__ribbon" style="margin-bottom:0;padding:3px 45px 3px 25px;font-size:14px;"><span class="inv-header__ribbon-text">INVOICE</span></div><span class="cont-page-count">(Page 1 of 1)</span></div><div class="cont-inv-no">No. ${escapeHtml(d.invoiceNumber)}</div></div>`;
+      const contPageHeaderSample=`<div class="page-continuation-header"><div class="cont-left"><img src="${escapeHtml(assetSrc(c.assets?.horizontalLogo||''))}" class="cont-logo" alt=""><div class="inv-header__ribbon" style="margin-bottom:0;padding:3px 45px 3px 25px;font-size:14px;"><span class="inv-header__ribbon-text">INVOICE</span></div><span class="cont-page-count">(Page 1 of 1)</span></div><div class="cont-inv-no">No. ${escapeHtml(d.invoiceNumber)}</div></div>`;
       const bottomRowHtml=`<div class="inv-bottom-row">${showNotes?notesHtml:''}${summaryHtml}</div>`;
       const blockHeights=measureBlocks({page1Header:page1HeaderHtml,contHeader:contPageHeaderSample,bottomRow:bottomRowHtml,footer:footerHtml});
       const page1HeaderHeight=blockHeights.page1Header;
@@ -141,7 +187,7 @@
     chunks.forEach((chunk,pageIndex)=>{
       const isFirstPage=pageIndex===0,isLastPage=chunk.isLast,pageNum=pageIndex+1;
       const rowsHtml=chunk.products.map(p=>buildInvRowHtml(p,globalIdx++)).join('');
-      const contPageHeaderHtml=`<div class="page-continuation-header"><div class="cont-left"><img src="${escapeHtml(c.assets?.horizontalLogo||'')}" class="cont-logo" crossOrigin="anonymous" alt="${escapeHtml(c.company?.name||'')}"><span class="cont-page-count">(Page ${pageNum} of ${totalPages})</span></div><div class="cont-inv-no"><div class="inv-header__ribbon" style="margin-bottom:0;padding:3px 45px 3px 25px;font-size:14px;"><span class="inv-header__ribbon-text">INVOICE</span><span class="inv-header__ribbon-stripe"></span><span class="inv-header__ribbon-stripe"></span></div>No. ${escapeHtml(d.invoiceNumber)}</div></div>`;
+      const contPageHeaderHtml=`<div class="page-continuation-header"><div class="cont-left"><img src="${escapeHtml(assetSrc(c.assets?.horizontalLogo||''))}" class="cont-logo" crossOrigin="anonymous" alt="${escapeHtml(c.company?.name||'')}"><span class="cont-page-count">(Page ${pageNum} of ${totalPages})</span></div><div class="cont-inv-no"><div class="inv-header__ribbon" style="margin-bottom:0;padding:3px 45px 3px 25px;font-size:14px;"><span class="inv-header__ribbon-text">INVOICE</span><span class="inv-header__ribbon-stripe"></span><span class="inv-header__ribbon-stripe"></span></div>No. ${escapeHtml(d.invoiceNumber)}</div></div>`;
       const tableHtml=chunk.products.length?`<table class="inv-table"><thead><tr><th class="idx">#</th><th>PRODUCT / DESCRIPTION</th><th class="col-qty">QTY</th><th class="col-rate num">RATE (₹)</th><th class="col-amt num">AMOUNT (₹)</th></tr></thead><tbody>${rowsHtml}</tbody></table>`:'';
 
       pagesHtml+=`<div class="invoice-page ${isFirstPage?'':'page-continuation'}">${isFirstPage?page1HeaderHtml:contPageHeaderHtml}<div class="inv-table-wrap">${tableHtml}</div>${isLastPage?`<div class="inv-bottom-row">${showNotes?notesHtml:''}${summaryHtml}</div>${footerHtml}`:''}${watermarkHtml}</div>`;
@@ -188,11 +234,26 @@
     const root=document.getElementById(targetContainerId),wrapper=document.getElementById(wrapperId);
     if(!root||!wrapper)throw new Error('Invoice PDF render target not found.');
 
+    const missingAssets=await preloadAssets(data);
+    if(missingAssets.length)throw new Error('Invoice images could not be loaded: '+missingAssets.join(', '));
+
     renderInvoiceTemplate(data,targetContainerId);
     await waitForImages(root);
     await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
     fitInvoiceToSinglePage(targetContainerId);
     void wrapper.offsetHeight;
+
+    // The invoice stylesheet is read once (from the service-worker cache) and
+    // injected into html2canvas's page copy as a <style> tag, so the copy does
+    // not request invoice-engine.css from the server again.
+    const cssLink=document.querySelector('link[rel="stylesheet"][href*="invoice-engine.css"]');
+    let inlineCss='';
+    if(cssLink){
+      try{
+        const cssRes=await fetch(cssLink.href);
+        if(cssRes.ok)inlineCss=await cssRes.text();
+      }catch(e){inlineCss='';}
+    }
 
     const invoiceNumber=normalizeData(data).invoiceNumber;
     const opt={
@@ -210,7 +271,19 @@
         scrollX:0,
         scrollY:0,
         x:0,
-        y:0
+        y:0,
+        // html2canvas clones the whole page; skip the app's own <img> tags
+        // (logos in the loader / app bar) so it does not request them again.
+        ignoreElements:(el)=>{
+          if(inlineCss&&el.tagName==='LINK'&&cssLink&&el.href===cssLink.href)return true;
+          return el.tagName==='IMG'&&!/^data:/i.test(el.getAttribute('src')||'')&&!el.closest('#'+wrapperId+', .html2pdf__container');
+        },
+        onclone:(clonedDoc)=>{
+          if(!inlineCss)return;
+          const style=clonedDoc.createElement('style');
+          style.textContent=inlineCss;
+          clonedDoc.head.appendChild(style);
+        }
       },
       jsPDF:{unit:'px',format:[A4_WIDTH,A4_HEIGHT],orientation:'portrait'},
       pagebreak:{mode:['css','legacy']}
@@ -224,6 +297,7 @@
 
   window.InvoiceEngine={
     configure,
+    preloadAssets,
     renderInvoiceTemplate,
     generatePdfBlob,
     fitInvoiceToSinglePage,

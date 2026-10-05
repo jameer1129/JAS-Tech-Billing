@@ -4,7 +4,7 @@
    Safe Activation Handoff
    ========================================================= */
 
-const CACHE_NAME = "v2.2.2";
+const CACHE_NAME = "v2.2.7";
 
 // Delay before taking control of already-open pages.
 const CLAIM_DELAY_MS = 2000;
@@ -169,6 +169,10 @@ function cacheFirst(request) {
 self.addEventListener("fetch", (event) => {
   // Only handle GET requests.
   if (event.request.method !== "GET") return;
+
+  // The app sets this header when it must check the real server
+  // (for example, before creating a PDF). Skip the cache for those.
+  if (event.request.headers.get("X-Bypass-SW") === "1") return;
 
   const url = new URL(event.request.url);
 

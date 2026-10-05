@@ -3585,7 +3585,7 @@ function scheduleHtml2PdfWarmup(){
     : (cb) => window.setTimeout(cb, 2000);
   schedule(() => { loadHtml2Pdf().catch(() => {}); });
 }
-const MAX_NETWORK_WAIT_MS = 20000;
+const MAX_NETWORK_WAIT_MS = 15000;
 let bootDeadline = null;
 const MIN_NETWORK_WAIT_MS = 3000;
 function nextNetworkTimeoutMs(){
@@ -6473,6 +6473,29 @@ let _pdfActionDidSave = false;
 // draft. Downloading/sharing a previous bill must never reset or save over
 // the user's actual in-progress draft — it must be restored instead.
 let _pdfForPreviousBill = false;
+/* ---- PDF safety check -------------------------------------------------
+   Never save or generate an invoice unless every image it needs can be
+   loaded (from the service-worker cache or the server) and the invoice
+   stylesheet is present. Images are embedded into the PDF page as data
+   URLs by the invoice engine, so the PDF builder makes no image requests. */
+async function ensureInvoiceAssetsAvailable(){
+  const missing = [];
+  const cssLink = document.querySelector('link[rel="stylesheet"][href*="invoice-engine.css"]');
+  if (!cssLink || !cssLink.sheet) missing.push('invoice-engine.css');
+  try {
+    InvoiceEngine.configure(CONFIG);
+    missing.push(...await InvoiceEngine.preloadAssets(getCurrentInvoiceEngineData()));
+  } catch (e) {
+    console.warn('Invoice asset check failed:', e);
+    missing.push('(asset check error)');
+  }
+  if (missing.length) {
+    console.warn('Invoice assets unavailable, PDF not generated:', missing);
+    showToast('Invoice images could not be loaded, so the PDF was not created. Please reload the app and try again.', 'error');
+    return false;
+  }
+  return true;
+}
 async function generatePdfBlob(){
   const root = document.getElementById('invoiceRoot');
   showActionLoader('Generating your invoice…');
@@ -6489,6 +6512,8 @@ async function handlePreviewDownload(){
     showToast('Add at least one product before downloading.', 'warning');
     return;
   }
+  // Check first, while the preview is still open, so the user can retry.
+  if (!(await ensureInvoiceAssetsAvailable())) return;
   await hideOverlay(el.previewModalOverlay);
   clearPreviewScaleContainer();
   if (loadedBillForPrint !== null) {
@@ -6700,6 +6725,11 @@ function closePdfActionModal(){
 }
 async function handleSaveChoice(saveToDb){
   closeSaveChoiceModal();
+  // Do this BEFORE saving, so a bill is never saved without a valid PDF.
+  showActionLoader('Checking invoice…');
+  const assetsOk = await ensureInvoiceAssetsAvailable();
+  hideActionLoader();
+  if (!assetsOk) return;
   let didSave = false;
   try {
     if (saveToDb) {
