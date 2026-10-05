@@ -16,6 +16,7 @@ const STATIC_ASSETS = [
   "./config.json",
   "./manifest.json",
   "./assets/logo/logo.png",
+  "./assets/logo/logo-qr.png",
   "./assets/logo/main-logo.png",
   "./assets/logo/horizontal-logo.png",
   "./assets/signature/signature.png",

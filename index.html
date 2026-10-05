@@ -6609,10 +6609,10 @@ async function openInvoiceQr(invoiceNo){
 
     const qrSize = el.invoiceQrCanvas.width;
 
-    const logoSize = Math.round(qrSize * 0.205);
+    const logoSize = Math.round(qrSize * 0.2);
 
     const logoPadding = 5;   // space: logo → border
-    const qrMargin = 6;      // space: border → QR modules
+    const qrMargin = 7;      // space: border → QR modules
     const borderWidth = 2;
 
     const logoPlateSize =
@@ -6625,7 +6625,7 @@ async function openInvoiceQr(invoiceNo){
     const plateX = (qrSize - logoPlateSize) / 2;
     const outerX = (qrSize - outerPlateSize) / 2;
 
-    const radius = 50;
+    const radius = 60;
     // Clear a clean white area behind the logo so QR modules do not show
     // through the logo edges.
     qrCtx.save();
@@ -6638,7 +6638,7 @@ async function openInvoiceQr(invoiceNo){
       outerX,
       outerPlateSize,
       outerPlateSize,
-      radius + 6
+      radius
     );
     qrCtx.fill();
 
