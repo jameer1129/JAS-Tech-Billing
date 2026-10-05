@@ -854,7 +854,7 @@ body.dark-theme .confirm-icon--devices .device-mobile{background:#000F36;}
 .modal{position:relative;overflow:visible;}
 .confirm-icon{animation:successBadgeIn .8s cubic-bezier(.16,.84,.44,1) both,confirmBadgeIdle 1.8s ease-in-out .65s infinite;position:relative;z-index:2;}
 .confirm-icon i{animation:successCheckIn .6s .2s cubic-bezier(.16,.84,.44,1) both;}
-@keyframes confirmBadgeIdle{0%{transform:scale(.95);}50%{transform:scale(1.05);}100%{transform:scale(.95);}}
+@keyframes confirmBadgeIdle{0%{transform:scale(1);}50%{transform:scale(.9);}100%{transform:scale(1);}}
 @keyframes successBadgeIn{0%{opacity:0;transform:scale(.45);}65%{opacity:1;transform:scale(1.08);}100%{opacity:1;transform:scale(1);}}
 @keyframes successCheckIn{0%{opacity:0;transform:scale(.35) rotate(-18deg);}70%{opacity:1;transform:scale(1.16) rotate(3deg);}100%{opacity:1;transform:scale(1) rotate(0);}}
 .pdf-confirm-confetti-stage{position:absolute;inset:0;pointer-events:none;overflow:visible;z-index:1;}
@@ -3242,6 +3242,7 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
 <div class="modal-overlay hide" id="billDetailsModalOverlay">
   <div class="modal" role="dialog" aria-modal="true">
     <div class="modal__header" style="padding-bottom:0;">
+      <i class="fa-solid fa-receipt"></i>
       <h3>Bill Details</h3>
     </div>
     <div class="modal__body" id="billDetailsBody"></div>
@@ -4932,6 +4933,8 @@ function showOfflineScreen(reason = 'offline'){
   suppressBootLoaderHide = false;
   hideActionLoader();
   showScreen('offline');
+  // If the Install / Open App modal is already open, close it.
+  try { if (typeof closePwaEntryModal === 'function') closePwaEntryModal(); } catch (e) {}
 }
 function updateOfflineScreenCopy(reason){
   if (!el.offlineScreenTitle || !el.offlineScreenText) return;
@@ -7931,7 +7934,15 @@ async function closePwaEntryModal(){
   await hideOverlay(el.pwaEntryModalOverlay);
 }
 
+function isOfflineNow(){
+  return !navigator.onLine ||
+         offlineStartup ||
+         (el.offlineScreen && !el.offlineScreen.classList.contains('hide'));
+}
+
 function showPwaEntryModal(mode){
+  // Never show Install / Open App while the offline screen is active.
+  if (isOfflineNow()) return;
   if (!el.pwaEntryModalOverlay || isRunningAsPwa() || pwaInstallInProgress || pwaEntryModalVisible) return;
 
   const isOpenMode = mode === 'open';
@@ -8012,7 +8023,7 @@ function waitForBootLoaderHidden(){
 }
 
 async function preparePwaEntry(){
-  if (isRunningAsPwa() || pwaInstallInProgress) return;
+  if (isRunningAsPwa() || pwaInstallInProgress || isOfflineNow()) return;
 
   const urlParams = new URLSearchParams(window.location.search);
   const isPasswordResetLink = urlParams.get('mode') === 'update-password';
@@ -8024,7 +8035,7 @@ async function preparePwaEntry(){
   // the boot loader disappears -- wait for auth/data resolution to
   // actually finish first, whether that takes 200ms or several seconds.
   await waitForBootLoaderHidden();
-  if (isRunningAsPwa() || pwaInstallInProgress) return;
+  if (isRunningAsPwa() || pwaInstallInProgress || isOfflineNow()) return;
 
   // Normal Chrome visit: if the PWA is already installed, show Open App.
   if (typeof navigator.getInstalledRelatedApps === 'function') {
