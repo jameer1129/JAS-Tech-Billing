@@ -6589,7 +6589,7 @@ async function openInvoiceQr(invoiceNo){
     if(!window.QRCode || !QRCode.toCanvas) throw new Error('QR generator unavailable');
     await QRCode.toCanvas(el.invoiceQrCanvas,base.toString(),{
       width:560,
-      margin:2,
+      margin:1,
       errorCorrectionLevel:'M'
     });
     el.invoiceQrCanvas.style.width = '280px';
@@ -6600,84 +6600,95 @@ async function openInvoiceQr(invoiceNo){
     const qrCtx = el.invoiceQrCanvas.getContext('2d');
     if (!qrCtx) throw new Error('QR canvas context unavailable');
 
-    const qrLogo = new Image();
-    qrLogo.decoding = 'async';
-    qrLogo.src = 'assets/logo/logo-qr.png';    await new Promise((resolve, reject) => {
-      qrLogo.onload = resolve;
-      qrLogo.onerror = () => reject(new Error('QR logo unavailable'));
-    });
+  const qrLogo = new Image();
+  qrLogo.decoding = 'async';
+  qrLogo.src = 'assets/logo/logo-qr.png';
 
-    const qrSize = el.invoiceQrCanvas.width;
+  await new Promise((resolve, reject) => {
+    qrLogo.onload = resolve;
+    qrLogo.onerror = () => reject(new Error('QR logo unavailable'));
+  });
+  const qrSize = el.invoiceQrCanvas.width;
 
-    const logoSize = Math.round(qrSize * 0.2);
+  const logoSize = Math.round(qrSize * 0.22);
 
-    const logoPadding = 5;   // space: logo → border
-    const qrMargin = 7;      // space: border → QR modules
-    const borderWidth = 2;
+  const logoPadding = 7;
+  const qrMargin = 12;
+  const borderWidth = 2;
 
-    const logoPlateSize =
-      logoSize + (logoPadding * 2);
+  const logoPlateSize = logoSize + (logoPadding * 2);
+  const outerPlateSize = logoPlateSize + (qrMargin * 2);
 
-    const outerPlateSize =
-      logoPlateSize + (qrMargin * 2);
+  const center = qrSize / 2;
 
-    const logoX = (qrSize - logoSize) / 2;
-    const plateX = (qrSize - logoPlateSize) / 2;
-    const outerX = (qrSize - outerPlateSize) / 2;
+  const logoRadius = logoSize / 2;
+  const plateRadius = logoPlateSize / 2;
+  const outerRadius = outerPlateSize / 2;
 
-    const radius = 60;
-    // Clear a clean white area behind the logo so QR modules do not show
-    // through the logo edges.
-    qrCtx.save();
+  qrCtx.save();
 
-    // 1. White margin / clearance from QR modules
-    qrCtx.fillStyle = '#fff';
-    qrCtx.beginPath();
-    qrCtx.roundRect(
-      outerX,
-      outerX,
-      outerPlateSize,
-      outerPlateSize,
-      radius
-    );
-    qrCtx.fill();
+  /* 1. White circular clearance */
+  qrCtx.fillStyle = '#fff';
+  qrCtx.beginPath();
+  qrCtx.arc(
+    center,
+    center,
+    outerRadius,
+    0,
+    Math.PI * 2
+  );
+  qrCtx.fill();
 
-    // 2. White logo plate
-    qrCtx.fillStyle = '#fff';
-    qrCtx.beginPath();
-    qrCtx.roundRect(
-      plateX,
-      plateX,
-      logoPlateSize,
-      logoPlateSize,
-      radius
-    );
-    qrCtx.fill();
+  /* 2. White circular logo plate */
+  qrCtx.fillStyle = '#fff';
+  qrCtx.beginPath();
+  qrCtx.arc(
+    center,
+    center,
+    plateRadius,
+    0,
+    Math.PI * 2
+  );
+  qrCtx.fill();
 
-    // 3. Border
-    qrCtx.strokeStyle = '#000';
-    qrCtx.lineWidth = borderWidth;
-    qrCtx.beginPath();
-    qrCtx.roundRect(
-      plateX,
-      plateX,
-      logoPlateSize,
-      logoPlateSize,
-      radius
-    );
-    qrCtx.stroke();
+  /* 3. Circular border */
+  qrCtx.strokeStyle = '#000';
+  qrCtx.lineWidth = borderWidth;
+  qrCtx.beginPath();
+  qrCtx.arc(
+    center,
+    center,
+    plateRadius,
+    0,
+    Math.PI * 2
+  );
+  qrCtx.stroke();
 
-    // 4. Logo
-    qrCtx.imageSmoothingEnabled = true;
-    qrCtx.drawImage(
-      qrLogo,
-      logoX,
-      logoX,
-      logoSize,
-      logoSize
-    );
+  /* 4. Circular logo */
+  qrCtx.save();
 
-    qrCtx.restore();
+  qrCtx.beginPath();
+  qrCtx.arc(
+    center,
+    center,
+    logoRadius,
+    0,
+    Math.PI * 2
+  );
+  qrCtx.clip();
+
+  qrCtx.imageSmoothingEnabled = true;
+  qrCtx.imageSmoothingQuality = 'high';
+
+  qrCtx.drawImage(
+    qrLogo,
+    center - logoRadius,
+    center - logoRadius,
+    logoSize,
+    logoSize
+  );
+
+  qrCtx.restore();
 
     el.invoiceQrSkeleton?.classList.add('hide');
     el.invoiceQrCanvas.classList.remove('hide');
