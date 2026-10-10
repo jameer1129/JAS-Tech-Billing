@@ -3605,6 +3605,28 @@ let currentProfile = null;   // { id, name, email, role, status }
 // only shows a "session expired" message for the latter.
 let intentionalSignOut = false;
 let signOutVerificationTimer = null;
+
+// When the authenticated session is genuinely lost, clear every popup that
+// belongs to the authenticated app before switching to the login screen.
+// Do this centrally rather than relying on the drawer or a fixed list of modal
+// close handlers: newer/admin/PWA modals are covered automatically as well.
+function closeAllAppOverlaysForSessionExpiry(){
+  if (typeof closeDrawer === 'function') closeDrawer();
+
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    // Cancel a pending animated hide so its fallback timer cannot interfere
+    // with the login screen or with the next popup opened after login.
+    if (typeof overlay._hideCancel === 'function') overlay._hideCancel();
+    overlay.classList.add('hide');
+    overlay.classList.remove('closing');
+    if (overlay.hasAttribute('aria-hidden')) overlay.setAttribute('aria-hidden', 'true');
+  });
+
+  // Also clear non-modal popovers such as date pickers that can be open over
+  // authenticated screens when the session expires.
+  document.querySelectorAll('.date-picker__overlay').forEach(overlay => overlay.remove());
+  syncPopOpenState();
+}
 // supabase-js can fire a spurious SIGNED_OUT: when a tab wakes up after
 // being backgrounded/idle, it runs two internal refresh attempts almost
 // back-to-back (its visibility-change handler and its auto-refresh ticker).
@@ -3638,10 +3660,10 @@ async function handlePossiblySpuriousSignOut(client){
       showToast('Your session expired. Please log in again.', 'warning');
     }
     intentionalSignOut = false;
-    // A real session loss must also close any account drawer that was left
-    // open while the user was idle. Otherwise the login screen appears
-    // underneath a stale drawer/backdrop UI state.
-    if (typeof closeDrawer === 'function') closeDrawer();
+    // A real session loss must dismiss every authenticated-app popup (not
+    // just the account drawer) before revealing the login screen. This covers
+    // admin dialogs, billing modals, feedback, PWA prompts, and future modals.
+    closeAllAppOverlaysForSessionExpiry();
     showScreen('auth');
   }, 900);
 }
