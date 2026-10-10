@@ -59,7 +59,7 @@ if ('launchQueue' in window) {
   --muted: #6B7280;
   --line: #d5d5d5;
   --focus-ring: rgba(1,37,135,.16);
-  --danger: #DC2626;
+  --danger: #f44336;
   --success: #1F9254;
   --warning: #ff9700;
   --radius: 12px;
@@ -2091,25 +2091,6 @@ body.dark-theme .pdf-option__switch-track{background:#3A3A40;}
   outline:none;
   box-shadow:none !important;
 }
-.bills-search-clear{
-  position:absolute;
-  right:8px;
-  top:50%;
-  transform:translateY(-50%);
-  background:none;
-  border:none;
-  color:var(--muted);
-  cursor:pointer;
-  width:28px;
-  height:28px;
-  border-radius:6px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:13px;
-  transition:color .15s ease,background .15s ease;
-}
-.bills-search-clear:hover{color:var(--text);background:var(--bg);}
 .bills-filter-row{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;animation:fadeIn .35s ease;}
 .date-filter-btn{
   width:100%;
@@ -3018,7 +2999,6 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
           <div class="bills-search-input-wrap field--icon">
             <i class="fa-solid fa-magnifying-glass search-icon"></i>
             <input type="text" id="billSearchInput" name="cf-txt-7g8h" placeholder="Search invoice, customer, phone, product name..." autocomplete="nope" autocorrect="off" spellcheck="false" data-lpignore="true" data-form-type="other" readonly maxlength="80">
-            <button class="bills-search-clear hide" id="btnClearSearch" aria-label="Clear search"><i class="fa-solid fa-xmark"></i></button>
           </div>
           <button class="bills-filter-toggle" id="btnBillsFilterToggle" type="button" aria-label="Show bill filters" title="Show bill filters"><i class="fa-solid fa-arrow-down-wide-short"></i></button>
         </div>
@@ -3859,7 +3839,6 @@ function cacheElements(){
   el.toastStack = document.getElementById('toastStack');
   el.drawerFooterVersion = document.getElementById('drawerFooterVersion');
   el.billSearchInput = document.getElementById('billSearchInput');
-  el.btnClearSearch = document.getElementById('btnClearSearch');
   el.btnBillsFilterToggle = document.getElementById('btnBillsFilterToggle');
   el.billsFilterRow = document.getElementById('billsFilterRow');
   el.billDateFilter = document.getElementById('billDateFilter');
@@ -8609,25 +8588,27 @@ function bindEvents(){
     }
   });
   el.billSearchInput.addEventListener('input', () => {
-    el.btnClearSearch.classList.toggle('hide', !el.billSearchInput.value);
+    updateBillsFilterToggle();
     clearTimeout(billsSearchDebounceTimer);
     billsSearchDebounceTimer = setTimeout(() => loadBills(true), SEARCH_DEBOUNCE_MS);
   });
-  el.btnClearSearch.addEventListener('click', () => {
-    el.billSearchInput.value = '';
-    el.btnClearSearch.classList.add('hide');
-    loadBills(true);
-  });
   let billsFiltersOpen = false;
   function updateBillsFilterToggle(){
-    const active = billsFiltersOpen;
+    // Match the Users filter button: show one X whenever the panel is open
+    // OR any bill search, date filter, or non-default sort is active.
+    const active = billsFiltersOpen ||
+      !!el.billSearchInput.value.trim() ||
+      billsDateRange !== 'any' ||
+      !!billsCustomDate ||
+      billsSortCol !== 'created_at' ||
+      billsSortDir !== 'desc';
     el.btnBillsFilterToggle.innerHTML = active
       ? '<i class="fa-solid fa-xmark"></i>'
       : '<i class="fa-solid fa-arrow-down-wide-short"></i>';
     el.btnBillsFilterToggle.classList.toggle('active', active);
     el.btnBillsFilterToggle.classList.toggle('is-clear', active);
-    el.btnBillsFilterToggle.setAttribute('aria-label', active ? 'Clear and hide bill filters' : 'Show bill filters');
-    el.btnBillsFilterToggle.setAttribute('title', active ? 'Clear and hide bill filters' : 'Show bill filters');
+    el.btnBillsFilterToggle.setAttribute('aria-label', active ? 'Clear bill search and filters' : 'Show bill filters');
+    el.btnBillsFilterToggle.setAttribute('title', active ? 'Clear bill search and filters' : 'Show bill filters');
   }
   function openBillsFilters(){
     billsFiltersOpen = true;
@@ -8644,7 +8625,6 @@ function bindEvents(){
     el.billDateFilter.value = '';
     if (billDateFilterPicker) billDateFilterPicker.updateText();
     el.billSearchInput.value = '';
-    el.btnClearSearch.classList.add('hide');
     el.dateFilterLabel.textContent = 'Any Date';
     el.btnDateFilter.classList.remove('active');
     el.dateCustomWrap.classList.remove('show');
@@ -8659,7 +8639,13 @@ function bindEvents(){
   }
   el.btnBillsFilterToggle.addEventListener('click', (e) => {
     e.stopPropagation();
-    if (billsFiltersOpen) resetAndHideBillsFilters();
+    const hasActiveBillControls = billsFiltersOpen ||
+      !!el.billSearchInput.value.trim() ||
+      billsDateRange !== 'any' ||
+      !!billsCustomDate ||
+      billsSortCol !== 'created_at' ||
+      billsSortDir !== 'desc';
+    if (hasActiveBillControls) resetAndHideBillsFilters();
     else openBillsFilters();
   });
   // Date filter dropdown
