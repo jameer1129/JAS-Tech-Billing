@@ -1,4 +1,4 @@
-:root{--primary:#012587;}
+:root{--inv-primary:#012587;}
 /* ==========================================================
    INVOICE / PDF — printable invoice layout used for preview,
    PDF generation and the download flow
@@ -49,7 +49,7 @@
 .inv-header__ribbon{
   display: inline-block;
   position: relative;
-  background: var(--primary);
+  background: var(--inv-primary);
   transform: skewX(-25deg);
   padding: 6px 35px 6px 25px;
   color: #ffffff;
@@ -66,14 +66,14 @@
 .inv-header__meta .row{display:flex;justify-content:flex-end;align-items:center;margin:6px 0;}
 .inv-header__meta .row .k{width:85px;text-align:left;color:#000000;font-weight:700;}
 .inv-header__meta .row .sep{font-weight:700;color:#000000;margin-right:8px;}
-.inv-header__meta .row .v{font-weight:700;color:var(--primary);min-width:85px;text-align:left;}
-.inv-divider{border:none;border-top:2px solid var(--primary);width:100%;position:relative;z-index:5;}
+.inv-header__meta .row .v{font-weight:700;color:var(--inv-primary);min-width:85px;text-align:left;}
+.inv-divider{border:none;border-top:2px solid var(--inv-primary);width:100%;position:relative;z-index:5;}
 .inv-customer{display:flex;gap:14px;align-items:flex-start;position:relative;z-index:5;}
 .inv-customer__icon{
   width:34px;
   height:34px;
   border-radius:50%;
-  background:var(--primary);
+  background:var(--inv-primary);
   color:#FFFFFF;
   display:flex;
   align-items:center;
@@ -87,7 +87,7 @@
   font-size:13px;
   font-weight:750;
   letter-spacing:0.8px;
-  color:var(--primary);
+  color:var(--inv-primary);
   text-transform:uppercase;
   line-height:1;
   margin-bottom:2px;
@@ -103,14 +103,14 @@
   align-items: center;
   width: 100%;
   padding-bottom: 12px;
-  border-bottom: 2px solid var(--primary);
+  border-bottom: 2px solid var(--inv-primary);
   position: relative;
   z-index: 5;
 }
 .cont-left{display: flex;align-items: center;gap: 110px;}
 .cont-logo{height: 34px;width: auto;margin-right: 12px;object-fit: contain;}
 .cont-page-count{font-weight: 600;color: #6B7280;font-size: 12px;margin-left: 8px;}
-.cont-inv-no{font-weight: 700;color: var(--primary);font-size: 13.5px;}
+.cont-inv-no{font-weight: 700;color: var(--inv-primary);font-size: 13.5px;}
 .inv-table-wrap{width:100%;flex:1;display:flex;flex-direction:column;position:relative;z-index:5;}
 .inv-table{
   width:100%;
@@ -124,7 +124,7 @@
   overflow: hidden;
 }
 .inv-table thead th{
-  background:var(--primary) !important;
+  background:var(--inv-primary) !important;
   color:#FFFFFF !important;
   padding:12px 14px;
   font-size:12px;
@@ -184,7 +184,7 @@
   font-size:14px;
   font-weight:700;
   letter-spacing:0.8px;
-  color:var(--primary);
+  color:var(--inv-primary);
   text-transform:uppercase;
 }
 .inv-notes__text{font-size:13px;color:#000000;line-height:1.55;white-space:pre-line;}
@@ -202,7 +202,7 @@
 }
 .inv-summary__row span, .inv-summary__row b{word-break:break-word;overflow-wrap:break-word;}
 .inv-summary__total{
-  background:var(--primary);
+  background:var(--inv-primary);
   color:#FFFFFF;
   padding:12px 16px;
   display:flex;
@@ -216,11 +216,11 @@
 .inv-footer-details{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
 .contact-block{display:flex;flex-direction:column;gap:10px;}
 .contact-block div{display:flex;align-items:center;gap:12px;font-size:13px;color:#000000;font-weight:500;}
-.contact-block i{color:var(--primary);font-size:16px;width:18px;text-align:center;}
+.contact-block i{color:var(--inv-primary);font-size:16px;width:18px;text-align:center;}
 .qr-block{display:flex;flex-direction:column;align-items:center;gap:4px;transform:translateY(-5px);}
 .qr-block img{width:88px;height:88px;border:2px solid #000000;border-radius:6px;padding:4px;}
 .qr-block span{
-  background:var(--primary);
+  background:var(--inv-primary);
   color:#FFFFFF;
   padding:3px 10px 4px;
   border-radius:10px;
@@ -229,19 +229,19 @@
   letter-spacing:0.5px;
 }
 .sign-block{display:flex;flex-direction:column;align-items:center;gap:4px;}
-.sign-block .for-line{color:var(--primary);font-weight:700;font-size:14px;margin-bottom:2px;}
+.sign-block .for-line{color:var(--inv-primary);font-weight:700;font-size:14px;margin-bottom:2px;}
 .sign-block img{height:55px;object-fit:contain;}
 .sign-block .auth-line{
-  color:var(--primary);
+  color:var(--inv-primary);
   font-weight:700;
   font-size:12px;
-  border-top:1.5px dashed var(--primary);
+  border-top:1.5px dashed var(--inv-primary);
   padding-top:6px;
   min-width:190px;
   text-align:center;
 }
 .inv-services{
-  background:var(--primary);
+  background:var(--inv-primary);
   color:#FFFFFF;
   padding:12px 18px;
   display:flex;
@@ -264,7 +264,7 @@
 .inv-services__item i{font-family:"Font Awesome 7 Free", sans-serif !important;font-weight:900 !important;font-size:18px;}
 .inv-services__sep{width:1px;height:26px;background:rgba(255,255,255,0.4);}
 .inv-thanks-container{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:12px;width:100%;}
-.inv-thanks-line{flex:1;height:2px;background:var(--primary);position:relative;opacity:0.8;}
+.inv-thanks-line{flex:1;height:2px;background:var(--inv-primary);position:relative;opacity:0.8;}
 .inv-thanks-line.left::after{
   content:"";
   position:absolute;
@@ -272,7 +272,7 @@
   top:-2px;
   width:6px;
   height:6px;
-  background:var(--primary);
+  background:var(--inv-primary);
   border-radius:50%;
 }
 .inv-thanks-line.right::after{
@@ -282,10 +282,10 @@
   top:-2px;
   width:6px;
   height:6px;
-  background:var(--primary);
+  background:var(--inv-primary);
   border-radius:50%;
 }
-.inv-thanks{font-size:16px;font-weight:700;color:var(--primary);letter-spacing:0.2px;white-space:nowrap;}
+.inv-thanks{font-size:16px;font-weight:700;color:var(--inv-primary);letter-spacing:0.2px;white-space:nowrap;}
 .inv-copy{text-align:center;font-size:11px;color:#212121;font-weight:600;margin-top:6px;}
 .invoice-page.compact .inv-table thead th{padding:8px 12px;}
 .invoice-page.compact .inv-table tbody td{padding:8px 12px;}
@@ -297,3 +297,37 @@
 .invoice-page.compact-2 .inv-customer{margin-top:6px;}
 .invoice-page.compact-2 .inv-table{margin-top:6px;}
 .invoice-page.compact-2 .inv-bottom-row{margin-top:6px;}
+
+/* ==========================================================
+   SHARED PRODUCT ROW STYLES (description + S/N)
+   Same look in index.html preview/PDF and invoice.html PDF.
+   Hard-coded colours so the app theme (dark mode, config
+   colours) can never change how the invoice looks.
+   ========================================================== */
+.invoice-page{font-family:"Roboto",sans-serif;font-synthesis:none;font-kerning:normal;text-align:left;}
+.invoice-page,.invoice-page *{box-sizing:border-box;}
+.inv-table .prod-meta{margin-top:4px;line-height:1.45;}
+.inv-table .prod-desc-line{
+  display:block;
+  color:#6B7280 !important;
+  font-size:12px;
+  font-weight:400;
+  margin-top:2px;
+  white-space:pre-line;
+  word-break:break-word;
+  overflow-wrap:anywhere;
+}
+.inv-table .prod-sn-line{
+  display:block;
+  font-size:12px;
+  font-weight:400;
+  margin-top:2px;
+  color:#212121 !important;
+  background:none !important;
+  padding:0 !important;
+  white-space:normal;
+  word-break:break-word;
+  overflow-wrap:anywhere;
+}
+.inv-table .prod-sn-line .sn-label{color:var(--inv-primary) !important;font-weight:700;}
+.inv-table .prod-sn-line .sn-value{color:#6B7280 !important;font-weight:500;}

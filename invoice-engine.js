@@ -51,7 +51,23 @@
     return paths.filter((_,i)=>!results[i]);
   }
 
-  function configure(config){CONFIG=config||{};return CONFIG;}
+  function configure(config){
+    CONFIG=config||{};
+    /* Invoice colour is fixed to the LIGHT theme colour, so dark mode or
+       the page it is generated from never changes the invoice. */
+    try{document.documentElement.style.setProperty('--inv-primary',(CONFIG.theme&&CONFIG.theme.light&&CONFIG.theme.light.primary)||'#012587');}catch(e){}
+    return CONFIG;
+  }
+  /* One date style everywhere: DD-MM-YYYY (accepts YYYY-MM-DD, DD/MM/YYYY, DD-MM-YYYY). */
+  function formatInvoiceDate(v){
+    const s=String(v==null?'':v).trim();
+    if(!s)return '';
+    let m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if(m)return m[3]+'-'+m[2]+'-'+m[1];
+    m=s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);
+    if(m)return m[1].padStart(2,'0')+'-'+m[2].padStart(2,'0')+'-'+m[3];
+    return s;
+  }
   function roundMoney(n){return Math.round((Number(n)||0)*100)/100;}
   function escapeHtml(str){
     if(str==null||str==='')return '';
@@ -69,7 +85,7 @@
     const d=data||{};
     return {
       invoiceNumber:d.invoiceNumber||'AUTO',
-      dateStr:d.dateStr||'',
+      dateStr:formatInvoiceDate(d.dateStr),
       customer:{name:d.customer?.name||'',address:d.customer?.address||'',mobile:d.customer?.mobile||''},
       products:Array.isArray(d.products)?d.products:[],
       notes:d.notes==null?null:String(d.notes),
@@ -304,6 +320,7 @@
     formatCurrency,
     escapeHtml,
     normalizeData,
+    formatInvoiceDate,
     A4_WIDTH,
     A4_HEIGHT
   };
