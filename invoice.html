@@ -7,7 +7,7 @@
 <title>JAS Tech - Invoice</title>
 <link rel="icon" href="assets/icons/app-icon.png">
 <link rel="apple-touch-icon" href="assets/icons/app-icon.png">
-<link rel="stylesheet" href="./invoice-engine.css?v=2">
+<link rel="stylesheet" href="./invoice-engine.css?v=3">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -151,9 +151,6 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
 .confetti-piece{position:absolute;left:50%;top:50%;pointer-events:none;will-change:transform,opacity;opacity:0;animation-fill-mode:forwards;z-index:1;}
 @keyframes confettiBurst{0%{transform:translate(-50%,-50%) translate(0,0) rotate(0deg);opacity:1;}100%{transform:translate(-50%,-50%) translate(var(--tx),var(--ty)) rotate(var(--rot));opacity:0;}}
 
-#pdfRenderWrap{position:fixed;left:-10000px;top:0;width:794px;overflow:hidden;pointer-events:none;}
-.pdf-wrapper-container,.invoice-render{width:794px;}
-
 @media (max-width:420px){
   .state{min-height:80vh;}
 }
@@ -168,7 +165,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
 }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="./invoice-engine.js?v=2"></script>
+<script src="./invoice-engine.js?v=3"></script>
 </head>
 <body>
 <main class="customer-shell" aria-live="polite">
@@ -382,6 +379,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
     };
     $('invoiceTitle').textContent=invoiceData.invoiceNumber;
     showState('stateInvoice');
+    InvoiceEngine.warmup();
   }
 
   /* ---------- simulated progress (UI only — does not affect PDF generation logic) ---------- */
@@ -464,17 +462,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
       /* Finish the visible progress first, then start the browser download. */
       await finishProgress();
 
-      const url=URL.createObjectURL(result.blob);
-      const a=document.createElement('a');
-      a.href=url;
-      a.download=result.filename;
-      a.style.display='none';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-
-      /* Keep the object URL alive briefly so slower browsers can begin the download. */
-      setTimeout(()=>URL.revokeObjectURL(url),3000);
+      InvoiceEngine.downloadBlob(result.blob,result.filename);
 
       showState('stateSuccess');
       triggerConfetti();

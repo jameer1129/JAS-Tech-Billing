@@ -246,11 +246,58 @@
     return html2pdfLoadPromise;
   }
 
-  async function generatePdfBlob(data,targetContainerId='invoiceRoot',wrapperId='pdfWrapper'){
+  /* ---- Shared PDF helpers (used by index.html AND invoice.html) ---- */
+
+  /* Creates the off-screen render area if the page does not have it. */
+  function ensureRenderTarget(rootId,wrapperId){
+    let root=document.getElementById(rootId),wrapper=document.getElementById(wrapperId);
+    if(root&&wrapper)return;
+    let host=document.getElementById('pdfRenderWrap');
+    if(!host){host=document.createElement('div');host.id='pdfRenderWrap';document.body.appendChild(host);}
+    if(!wrapper){wrapper=document.createElement('div');wrapper.id=wrapperId;wrapper.className='pdf-wrapper-container';host.appendChild(wrapper);}
+    if(!root){root=document.createElement('div');root.id=rootId;root.className='invoice-render';wrapper.appendChild(root);}
+  }
+
+  /* One check for everything an invoice needs: the stylesheet + every image.
+     Returns the list of missing things (empty array = all good). */
+  async function checkAssets(data){
+    const missing=[];
+    const cssLink=document.querySelector('link[rel="stylesheet"][href*="invoice-engine.css"]');
+    if(!cssLink||!cssLink.sheet)missing.push('invoice-engine.css');
+    try{missing.push(...await preloadAssets(data));}
+    catch(e){console.warn('Invoice asset check failed:',e);missing.push('(asset check error)');}
+    return missing;
+  }
+
+  /* Starts the html2pdf download during idle time so the first PDF is fast.
+     Skipped on data-saver / very slow connections. */
+  function warmup(){
+    if(window.html2pdf||html2pdfLoadPromise)return;
+    const conn=navigator.connection||navigator.mozConnection||navigator.webkitConnection;
+    if(conn){
+      if(conn.saveData)return;
+      if(conn.effectiveType&&['slow-2g','2g'].includes(conn.effectiveType))return;
+    }
+    const schedule=typeof window.requestIdleCallback==='function'
+      ?cb=>window.requestIdleCallback(cb,{timeout:4000})
+      :cb=>setTimeout(cb,2000);
+    schedule(()=>{loadHtml2Pdf().catch(()=>{});});
+  }
+
+  /* Saves a blob as a file (same behaviour for employee and customer). */
+  function downloadBlob(blob,filename){
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download=filename;a.style.display='none';
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),3000);
+  }
+
+  async function buildPdfBlob(data,targetContainerId,wrapperId){
     const root=document.getElementById(targetContainerId),wrapper=document.getElementById(wrapperId);
     if(!root||!wrapper)throw new Error('Invoice PDF render target not found.');
 
-    const missingAssets=await preloadAssets(data);
+    const missingAssets=await checkAssets(data);
     if(missingAssets.length)throw new Error('Invoice images could not be loaded: '+missingAssets.join(', '));
 
     renderInvoiceTemplate(data,targetContainerId);
@@ -307,13 +354,27 @@
 
     const html2pdfFn=await loadHtml2Pdf();
     const blob=await html2pdfFn().set(opt).from(wrapper).outputPdf('blob');
-    root.innerHTML='';
     return {blob,filename:opt.filename};
+  }
+
+  /* The ONE function both pages call to make the invoice PDF. */
+  async function generatePdfBlob(data,targetContainerId='invoiceRoot',wrapperId='pdfWrapper'){
+    ensureRenderTarget(targetContainerId,wrapperId);
+    try{
+      return await buildPdfBlob(data,targetContainerId,wrapperId);
+    }finally{
+      const r=document.getElementById(targetContainerId);
+      if(r)r.innerHTML='';
+    }
   }
 
   window.InvoiceEngine={
     configure,
     preloadAssets,
+    checkAssets,
+    loadHtml2Pdf,
+    warmup,
+    downloadBlob,
     renderInvoiceTemplate,
     generatePdfBlob,
     fitInvoiceToSinglePage,

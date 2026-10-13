@@ -10,6 +10,7 @@
   left:-9999px;
   width:794px;
   overflow:hidden;
+  pointer-events:none;
   z-index:-9999;
 }
 .pdf-wrapper-container,.invoice-render{width:794px;margin:0;padding:0;background:#FFFFFF;}

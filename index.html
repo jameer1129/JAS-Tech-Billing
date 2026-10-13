@@ -2528,8 +2528,8 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
 .date-custom-wrap,.date-picker,.date-picker__input{min-width:0;box-sizing:border-box;}
 .date-custom-wrap .date-picker,.date-custom-wrap .date-picker__input{width:100%;}
 </style>
-<link rel="stylesheet" href="./invoice-engine.css">
-<script src="./invoice-engine.js"></script>
+<link rel="stylesheet" href="./invoice-engine.css?v=3">
+<script src="./invoice-engine.js?v=3"></script>
 </head>
 <body>
 <!-- ================= OFFLINE UI ================= -->
@@ -3531,40 +3531,9 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
 // with a synchronous <script> tag. loadHtml2Pdf() caches the in-flight
 // promise so concurrent/repeated calls (or a slow/failed first attempt)
 // don't inject the tag more than once.
-let _html2pdfLoadPromise = null;
-function loadHtml2Pdf(){
-  if (window.html2pdf) return Promise.resolve(window.html2pdf);
-  if (_html2pdfLoadPromise) return _html2pdfLoadPromise;
-  _html2pdfLoadPromise = new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
-    script.onload = () => resolve(window.html2pdf);
-    script.onerror = (err) => {
-      _html2pdfLoadPromise = null; // allow retrying on a later click
-      reject(err);
-    };
-    document.head.appendChild(script);
-  });
-  return _html2pdfLoadPromise;
-}
-// Kicks off the html2pdf download during browser idle time once the app is
-// up, so it's usually already in memory by the time someone actually clicks
-// Download/Print -- instead of every first PDF paying for the ~700KB
-// download at that moment. Only fires once (loadHtml2Pdf() is itself
-// idempotent), and backs off on data-saver mode or a very slow connection
-// so it doesn't cost anything for someone who can't spare the bandwidth.
-function scheduleHtml2PdfWarmup(){
-  if (window.html2pdf || _html2pdfLoadPromise) return;
-  const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-  if (connection) {
-    if (connection.saveData) return;
-    if (connection.effectiveType && ['slow-2g', '2g'].includes(connection.effectiveType)) return;
-  }
-  const schedule = typeof window.requestIdleCallback === 'function'
-    ? (cb) => window.requestIdleCallback(cb, { timeout: 4000 })
-    : (cb) => window.setTimeout(cb, 2000);
-  schedule(() => { loadHtml2Pdf().catch(() => {}); });
-}
+// PDF libraries + warm-up now live in invoice-engine.js (shared with invoice.html).
+function loadHtml2Pdf(){ return InvoiceEngine.loadHtml2Pdf(); }
+function scheduleHtml2PdfWarmup(){ InvoiceEngine.warmup(); }
 const MAX_NETWORK_WAIT_MS = 15000;
 let bootDeadline = null;
 const MIN_NETWORK_WAIT_MS = 3000;
@@ -6480,16 +6449,8 @@ let _pdfForPreviousBill = false;
    stylesheet is present. Images are embedded into the PDF page as data
    URLs by the invoice engine, so the PDF builder makes no image requests. */
 async function ensureInvoiceAssetsAvailable(){
-  const missing = [];
-  const cssLink = document.querySelector('link[rel="stylesheet"][href*="invoice-engine.css"]');
-  if (!cssLink || !cssLink.sheet) missing.push('invoice-engine.css');
-  try {
-    InvoiceEngine.configure(CONFIG);
-    missing.push(...await InvoiceEngine.preloadAssets(getCurrentInvoiceEngineData()));
-  } catch (e) {
-    console.warn('Invoice asset check failed:', e);
-    missing.push('(asset check error)');
-  }
+  InvoiceEngine.configure(CONFIG);
+  const missing = await InvoiceEngine.checkAssets(getCurrentInvoiceEngineData());
   if (missing.length) {
     console.warn('Invoice assets unavailable, PDF not generated:', missing);
     showToast('Invoice images could not be loaded, so the PDF was not created. Please reload the app and try again.', 'error');
@@ -6797,12 +6758,7 @@ async function handleSaveChoice(saveToDb){
 }
 function downloadPdfBlob(){
   if (!_pendingPdfBlob) return;
-  const url = URL.createObjectURL(_pendingPdfBlob);
-  const a = document.createElement('a');
-  a.href = url; a.download = _pendingPdfFilename;
-  document.body.appendChild(a); a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  InvoiceEngine.downloadBlob(_pendingPdfBlob, _pendingPdfFilename);
   showToast('Invoice downloaded', 'success');
   const wasSaved = _pdfActionDidSave;
   const wasPreviousBill = _pdfForPreviousBill;
@@ -8929,15 +8885,18 @@ function bindEvents(){
         e.preventDefault();
         if(active.id === 'prodName') {
           if (markError(active, validateField(active))) el.prodDesc.focus();
+          else showToast('Please fix the highlighted fields.', 'warning');
         }
         else if(active.id === 'prodSerial') {
           el.prodQty.focus();
         }
         else if(active.id === 'prodQty') {
           if (markError(active, validateField(active, 'qty'))) el.prodRate.focus();
+          else showToast('Please fix the highlighted fields.', 'warning');
         }
         else if(active.id === 'prodRate') {
           if (markError(active, validateField(active, 'rate'))) saveProduct();
+          else showToast('Please fix the highlighted fields.', 'warning');
           }
         }
       }
