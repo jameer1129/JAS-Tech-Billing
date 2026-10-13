@@ -2528,8 +2528,8 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
 .date-custom-wrap,.date-picker,.date-picker__input{min-width:0;box-sizing:border-box;}
 .date-custom-wrap .date-picker,.date-custom-wrap .date-picker__input{width:100%;}
 </style>
-<link rel="stylesheet" href="./invoice-engine.css?v=3">
-<script src="./invoice-engine.js?v=3"></script>
+<link rel="stylesheet" href="./invoice-engine.css?v=6">
+<script src="./invoice-engine.js?v=6"></script>
 </head>
 <body>
 <!-- ================= OFFLINE UI ================= -->
@@ -3533,7 +3533,10 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
 // don't inject the tag more than once.
 // PDF libraries + warm-up now live in invoice-engine.js (shared with invoice.html).
 function loadHtml2Pdf(){ return InvoiceEngine.loadHtml2Pdf(); }
-function scheduleHtml2PdfWarmup(){ InvoiceEngine.warmup(); }
+function scheduleHtml2PdfWarmup(){
+  try { InvoiceEngine.configure(CONFIG); InvoiceEngine.warmup(getCurrentInvoiceEngineData()); }
+  catch (e) { InvoiceEngine.warmup(); }
+}
 const MAX_NETWORK_WAIT_MS = 15000;
 let bootDeadline = null;
 const MIN_NETWORK_WAIT_MS = 3000;
@@ -3985,6 +3988,7 @@ function applyConfig(){
   }
   el.appBarLogo.src = CONFIG.assets.mainLogo || '';
   el.appBarCompanyName.textContent = (CONFIG.company.name + ' Billing').toUpperCase();
+  InvoiceEngine.configure(CONFIG);
   el.authCompanyName.textContent = (CONFIG.company.name + ' Billing').toUpperCase();
   el.resetPasswordCompanyName.textContent = (CONFIG.company.name + ' Billing').toUpperCase();
   document.title = CONFIG.company.name + ' Billing';
@@ -6448,16 +6452,6 @@ let _pdfForPreviousBill = false;
    loaded (from the service-worker cache or the server) and the invoice
    stylesheet is present. Images are embedded into the PDF page as data
    URLs by the invoice engine, so the PDF builder makes no image requests. */
-async function ensureInvoiceAssetsAvailable(){
-  InvoiceEngine.configure(CONFIG);
-  const missing = await InvoiceEngine.checkAssets(getCurrentInvoiceEngineData());
-  if (missing.length) {
-    console.warn('Invoice assets unavailable, PDF not generated:', missing);
-    showToast('Invoice images could not be loaded, so the PDF was not created. Please reload the app and try again.', 'error');
-    return false;
-  }
-  return true;
-}
 async function generatePdfBlob(){
   const root = document.getElementById('invoiceRoot');
   showActionLoader('Generating your invoice…');
@@ -6475,7 +6469,7 @@ async function handlePreviewDownload(){
     return;
   }
   // Check first, while the preview is still open, so the user can retry.
-  if (!(await ensureInvoiceAssetsAvailable())) return;
+  if (!(await InvoiceEngine.ensureAssetsAvailable(getCurrentInvoiceEngineData(), msg => showToast(msg, 'error')))) return;
   await hideOverlay(el.previewModalOverlay);
   clearPreviewScaleContainer();
   if (loadedBillForPrint !== null) {
@@ -6701,7 +6695,7 @@ async function handleSaveChoice(saveToDb){
   closeSaveChoiceModal();
   // Do this BEFORE saving, so a bill is never saved without a valid PDF.
   showActionLoader('Checking invoice…');
-  const assetsOk = await ensureInvoiceAssetsAvailable();
+  const assetsOk = await InvoiceEngine.ensureAssetsAvailable(getCurrentInvoiceEngineData(), msg => showToast(msg, 'error'));
   hideActionLoader();
   if (!assetsOk) return;
   let didSave = false;

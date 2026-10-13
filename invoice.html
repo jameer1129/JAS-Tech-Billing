@@ -7,7 +7,7 @@
 <title>JAS Tech - Invoice</title>
 <link rel="icon" href="assets/icons/app-icon.png">
 <link rel="apple-touch-icon" href="assets/icons/app-icon.png">
-<link rel="stylesheet" href="./invoice-engine.css?v=3">
+<link rel="stylesheet" href="./invoice-engine.css?v=6">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -165,7 +165,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
 }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="./invoice-engine.js?v=3"></script>
+<script src="./invoice-engine.js?v=6"></script>
 </head>
 <body>
 <main class="customer-shell" aria-live="polite">
@@ -319,7 +319,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
 <script>
 (function(){
   'use strict';
-  let CONFIG=null, invoiceData=null, progressTimer=null;
+  let CONFIG=null, invoiceData=null, progressTimer=null, lastErrorCode='';
   const $=id=>document.getElementById(id);
   const reduceMotion=window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const RING_C=691.15;
@@ -379,7 +379,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
     };
     $('invoiceTitle').textContent=invoiceData.invoiceNumber;
     showState('stateInvoice');
-    InvoiceEngine.warmup();
+    InvoiceEngine.warmup(invoiceData);
   }
 
   /* ---------- simulated progress (UI only — does not affect PDF generation logic) ---------- */
@@ -457,6 +457,8 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
     startFakeProgress();
 
     try{
+      /* Same safety check as the employee app: images + stylesheet first. */
+      if(!(await InvoiceEngine.ensureAssetsAvailable(invoiceData)))throw new Error('Invoice images could not be loaded.');
       const result=await InvoiceEngine.generatePdfBlob(invoiceData,'invoiceRoot','pdfWrapper');
 
       /* Finish the visible progress first, then start the browser download. */
@@ -510,7 +512,12 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
     const message=$('errorMessage');
     const retry=$('btnRetry');
 
-    if(code==='INVALID_INVOICE'){
+    lastErrorCode=code;
+    if(code==='DOWNLOAD_ERROR'){
+      if(title)title.textContent='Download failed';
+      if(message)message.textContent='Your internet connection seems slow or unstable. Please try again.';
+      if(retry)retry.innerHTML='<i class="fa-solid fa-arrow-rotate-left"></i>Try Again';
+    }else if(code==='INVALID_INVOICE'){
       if(title)title.textContent='Invoice unavailable';
       if(message)message.textContent='This invoice link is invalid, expired, or no longer available.';
       if(retry)retry.innerHTML='<i class="fa-solid fa-arrow-rotate-left"></i>Check Again';
@@ -540,7 +547,12 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
 
   $('btnDownload').addEventListener('click',downloadInvoice);
   $('btnCopy').addEventListener('click',copyInvoiceNumber);
-  $('btnRetry').addEventListener('click',handleDone);
+  $('btnRetry').addEventListener('click',()=>{
+    /* Download / network problems: really retry. Bad or missing link: go back. */
+    if(lastErrorCode==='DOWNLOAD_ERROR'&&invoiceData)downloadInvoice();
+    else if(lastErrorCode==='NETWORK_ERROR')start();
+    else handleDone();
+  });
   $('btnDone').addEventListener('click',handleDone);
   start();
 })();

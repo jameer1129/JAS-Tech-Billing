@@ -19,9 +19,10 @@
       reader.readAsDataURL(blob);
     });
   }
-  async function loadAssetAsDataUrl(path){
-    if(assetDataUrls[path])return true;
-    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),8000);
+  /* One download attempt. The time limit is generous so slow 3G / weak
+     mobile data can finish; it only exists to stop a connection that hangs. */
+  async function fetchAssetOnce(path,timeoutMs){
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeoutMs);
     try{
       const res=await fetch(new URL(path,location.href).href,{signal:controller.signal});
       if(!res.ok)return false;
@@ -34,6 +35,23 @@
     }finally{
       clearTimeout(timer);
     }
+  }
+  /* Loads one image as a data URL: up to 3 attempts, and a request that is
+     already in progress (e.g. from warmup) is shared, never downloaded twice. */
+  const assetPromises={};
+  function loadAssetAsDataUrl(path){
+    if(assetDataUrls[path])return Promise.resolve(true);
+    if(assetPromises[path])return assetPromises[path];
+    const p=(async()=>{
+      for(let attempt=0;attempt<3;attempt++){
+        if(await fetchAssetOnce(path,60000))return true;
+        await new Promise(r=>setTimeout(r,700*(attempt+1)));
+      }
+      return false;
+    })();
+    assetPromises[path]=p;
+    p.then(ok=>{if(!ok)delete assetPromises[path];});
+    return p;
   }
   function neededAssetPaths(data){
     const d=normalizeData(data),c=CONFIG||{},a=c.assets||{},list=[];
@@ -269,15 +287,30 @@
     return missing;
   }
 
+  /* THE shared safety check, used by index.html and invoice.html before any
+     PDF is made: true only if the stylesheet and every image are ready. */
+  const ASSETS_ERROR_MESSAGE='Invoice images could not be loaded, so the PDF was not created. Please check your internet and try again.';
+  async function ensureAssetsAvailable(data,onFail){
+    const missing=await checkAssets(data);
+    if(missing.length){
+      console.warn('Invoice assets unavailable, PDF not generated:',missing);
+      if(typeof onFail==='function'){try{onFail(ASSETS_ERROR_MESSAGE,missing);}catch(e){}}
+    }
+    return missing.length===0;
+  }
+
   /* Starts the html2pdf download during idle time so the first PDF is fast.
      Skipped on data-saver / very slow connections. */
-  function warmup(){
-    if(window.html2pdf||html2pdfLoadPromise)return;
+  function warmup(data){
     const conn=navigator.connection||navigator.mozConnection||navigator.webkitConnection;
     if(conn){
       if(conn.saveData)return;
-      if(conn.effectiveType&&['slow-2g','2g'].includes(conn.effectiveType))return;
+      if(conn.effectiveType&&['slow-2g','2g'].includes(conn.effectiveType)&&!data)return;
     }
+    /* Download the logo / QR / signature in the background now, so on a slow
+       connection they are already ready when the PDF button is pressed. */
+    if(data){try{preloadAssets(data).catch(()=>{});}catch(e){}}
+    if(window.html2pdf||html2pdfLoadPromise)return;
     const schedule=typeof window.requestIdleCallback==='function'
       ?cb=>window.requestIdleCallback(cb,{timeout:4000})
       :cb=>setTimeout(cb,2000);
@@ -297,8 +330,7 @@
     const root=document.getElementById(targetContainerId),wrapper=document.getElementById(wrapperId);
     if(!root||!wrapper)throw new Error('Invoice PDF render target not found.');
 
-    const missingAssets=await checkAssets(data);
-    if(missingAssets.length)throw new Error('Invoice images could not be loaded: '+missingAssets.join(', '));
+    if(!(await ensureAssetsAvailable(data)))throw new Error('Invoice images could not be loaded.');
 
     renderInvoiceTemplate(data,targetContainerId);
     await waitForImages(root);
@@ -372,6 +404,7 @@
     configure,
     preloadAssets,
     checkAssets,
+    ensureAssetsAvailable,
     loadHtml2Pdf,
     warmup,
     downloadBlob,
