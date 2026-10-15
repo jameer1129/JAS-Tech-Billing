@@ -1662,6 +1662,8 @@ body.dark-theme .verify-info strong{color:#F3F4F6;}
 .pending-card p{margin:0 0 20px;color:var(--muted);font-size:13.5px;line-height:1.55;}
 .pending-card.rejected i{color:var(--danger);}
 .pending-actions{display:flex;gap:10px;justify-content:center;}
+@keyframes pendingRefreshSpin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+#btnPendingRefresh i.is-spinning{animation:pendingRefreshSpin .8s linear infinite;}
 .pending-actions .btn{flex:1;min-height:52px;}
 .pending-actions .btn i{font-size:16px;}
 /* ---------- Forgot-password hero ---------- */
@@ -5888,18 +5890,40 @@ let pendingRefreshInProgress = false;
 async function handlePendingRefresh(){
   if (pendingRefreshInProgress) return;
   pendingRefreshInProgress = true;
-  const icon = el.btnPendingRefresh.querySelector('i');
-  el.btnPendingRefresh.disabled = true;
-  icon.classList.add('fa-spin');
+  const btn = el.btnPendingRefresh;
+  const icon = btn.querySelector('i');
+  const prevStatus = currentProfile?.status;
+  btn.disabled = true;
+  // Restart the animation cleanly from 0deg
+  icon.classList.remove('is-spinning');
+  void icon.offsetWidth;
+  icon.classList.add('is-spinning');
+  const minSpin = new Promise(r => setTimeout(r, 800)); // at least one full turn
+  let failed = false;
   try {
     await afterAuthResolved();
   } catch (err) {
+    failed = true;
     console.error('Failed to refresh approval status', err);
-    showToast('Could not check your status. Please try again.', 'error');
-  } finally {
-    icon.classList.remove('fa-spin');
-    el.btnPendingRefresh.disabled = false;
-    pendingRefreshInProgress = false;
+  }
+  await minSpin;
+  // Let the current rotation finish so the icon never stops mid-turn
+  await new Promise(resolve => {
+    let done = false;
+    const finish = () => { if (done) return; done = true; icon.removeEventListener('animationiteration', finish); resolve(); };
+    icon.addEventListener('animationiteration', finish);
+    setTimeout(finish, 1000);
+  });
+  icon.classList.remove('is-spinning');
+  btn.disabled = false;
+  pendingRefreshInProgress = false;
+
+  if (failed) { showToast('Could not check your status. Please try again.', 'error'); return; }
+  // Still on the same gated screen and status unchanged -> tell the user
+  const stillHere = el.pendingScreen && !el.pendingScreen.classList.contains('hide');
+  if (stillHere && currentProfile?.status === prevStatus) {
+    if (currentProfile.status === 'rejected') showToast('Status unchanged: your access is still denied.', 'info');
+    else showToast('Status unchanged: still waiting for approval.', 'info');
   }
 }
 function enterApp(){
