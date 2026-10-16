@@ -812,18 +812,17 @@ body.dark-theme .toast-card--error{background:#2B1514;border-color:#D64545AA;}
 .bd-row{display:flex;flex-direction:column;padding:10px 0;border-top:1px solid var(--line);}
 .bd-row:first-child,.user-row:first-child{border-top:none;}
 .user-row:first-child{padding-top:4px;}
-.bd-row__header{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px;font-weight:700;}
+.bd-row__header{display:flex;align-items:center;gap:10px;color:var(--primary-text);font-size:13px;font-weight:700;}
 .bd-row__icon{
   width:20px;
   height:20px;
   display:flex;
   align-items:center;
   justify-content:center;
-  color:var(--muted);
   font-size:14px;
 }
 .bd-row__label{margin:0;}
-.bd-row__value{margin-top:6px;font-size:14px;color:var(--text);word-break:break-word;}
+.bd-row__value{margin-top:6px;font-size:14px;word-break:break-word;}
 .bd-row__value--mono{font-size:13px;}
 .modal--confirm{z-index:110 !important;}
 .modal--confirm .modal{max-width:380px;}
@@ -879,7 +878,7 @@ body.dark-theme .confirm-icon--info{background:rgba(1,37,135,.4);}
 .confirm-chip{display:block;width:fit-content;max-width:100%;margin:8px auto 0;padding:6px 14px;border-radius:999px;background:color-mix(in srgb, var(--primary) 10%, transparent);color:var(--primary-text);font-size:13px;font-weight:700;text-align:center;overflow-wrap:anywhere;word-break:break-word;}
 .confirm-chip:empty{display:none;}
 .modal--confirm p.confirm-chip{color:var(--primary-text);font-size:13px;}
-.confirm-note{display:flex;align-items:flex-start;gap:9px;margin-top:6px;width:100%;padding:10px 12px;border:1px solid color-mix(in srgb, var(--primary-text) 26%, transparent);border-radius:var(--radius-sm);background:color-mix(in srgb, var(--primary) 35%, transparent);color:var(--primary-text);font-size:12px;line-height:1.5;text-align:left;}
+.confirm-note{display:flex;align-items:flex-start;gap:6px;margin-top:6px;width:100%;padding:10px 12px;border:1px solid color-mix(in srgb, var(--primary-text) 26%, transparent);border-radius:var(--radius-sm);background:color-mix(in srgb, var(--primary) 35%, transparent);color:var(--primary-text);font-size:12px;line-height:1.5;text-align:left;}
 .confirm-note i{flex:0 0 14px;margin-top:2px;text-align:center;color:var(--primary-text);}
 .confirm-note--danger{border-color:rgba(244,67,54,.4);background:rgba(244,67,54,.09);color:var(--danger) !important;}
 .confirm-note--danger i{color:var(--danger);}
@@ -2259,7 +2258,7 @@ body.dark-theme .date-dropdown{background:var(--surface);border-color:var(--line
   align-items:center;
   gap:8px;
 }
-.bill-card__name i{font-size:13px;opacity:.75;flex-shrink:0;}
+.bill-card__name i{font-size:13px;flex-shrink:0;}
 .bill-card__phone{font-size:14px;color:var(--muted);display:flex;align-items:center;gap:7px;overflow-wrap:anywhere;}
 .bill-card__phone i{font-size:12px;}
 .bill-card__footer{padding-top:13px;border-top:1.5px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px;}
@@ -3280,10 +3279,10 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
           <span class="confirm-target" id="deleteBillTargetName"></span>
           <span class="bill-confirm-card__total" id="deleteBillTotal"></span>
         </div>
-        <div class="bill-confirm-card__meta"><i class="fa-solid fa-user"></i><span style="color:var(--text);" id="deleteBillCustomer"></span></div>
+        <div class="bill-confirm-card__meta" style="color:var(--text);"><i class="fa-solid fa-user"></i><span id="deleteBillCustomer"></span></div>
         <div class="bill-confirm-card__meta"><i class="fa-regular fa-calendar"></i><span id="deleteBillDate"></span></div>
       </div>
-      <div class="confirm-note confirm-note--danger" id="deleteBillNote"><i class="fa-regular fa-clock" aria-hidden="true"></i><span></span></div>
+      <div class="confirm-note confirm-note--warning" id="deleteBillNote"><i class="fa-regular fa-clock" aria-hidden="true"></i><span></span></div>
     </div>
     <div class="modal__footer">
       <button class="btn btn--ghost" id="btnCancelDeleteBill" type="button">Cancel</button>
@@ -7197,8 +7196,8 @@ function configureBillModal(mode, bill){
   const note = document.getElementById('deleteBillNote');
   const noteIcon = note.querySelector('i');
   const noteText = note.querySelector('span');
-  note.classList.remove('confirm-note--success', 'confirm-note--warning');
   if (restore) {
+    note.classList.remove('confirm-note--success', 'confirm-note--danger', 'confirm-note--warning');
     const left = bill ? billDaysLeft(bill.deleted_at) : null;
     if (left === null) {
       note.classList.add('confirm-note--success');
@@ -7207,10 +7206,11 @@ function configureBillModal(mode, bill){
     } else if (left <= 2) {
       if (left === 0) {
         note.classList.add('confirm-note--danger');
+        noteIcon.className = 'fa-solid fa-circle-exclamation';
       } else {
         note.classList.add('confirm-note--warning');
+        noteIcon.className = 'fa-solid fa-triangle-exclamation';
       }
-      noteIcon.className = 'fa-solid fa-triangle-exclamation';
       noteText.textContent = left === 0
         ? 'Permanent deletion is due today. Restore it now to keep it.'
         : `Only ${left} day${left === 1 ? '' : 's'} left before this bill is permanently deleted.`;
