@@ -906,6 +906,18 @@ body.dark-theme #invoiceQrCanvas{filter: invert(1);}
 .pwa-update-modal .modal{max-width:400px;}
 .pwa-update-modal .modal__header{position:relative;padding-top:24px;}
 .pwa-update-modal .modal__footer{gap:10px;}
+.pwa-update-progress{display:none;width:100%;text-align:center;}
+.pwa-update-modal.is-updating .pwa-update-progress{display:block;}
+.pwa-update-modal.is-updating .pwa-update-default{display:none;}
+.pwa-update-modal.is-updating .modal__footer{display:none;}
+.pwa-update-modal.is-updating .modal__body{padding:8px 28px 32px;}
+.pwa-update-modal.is-updating .confirm-icon i{animation:pwaUpdateSpin 1s linear infinite;}
+.pwa-update-bar{height:8px;border-radius:999px;background:color-mix(in srgb, var(--primary) 15%, transparent);overflow:hidden;}
+.pwa-update-bar__fill{height:100%;width:0;border-radius:999px;background:var(--primary-text);transition:width .12s linear;}
+.pwa-update-progress .confirm-lead{margin-bottom:14px !important;}
+.pwa-update-progress__meta{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;margin-top:10px;font-size:12.5px;color:var(--muted);}
+.pwa-update-progress__meta #pwaUpdatePercent{font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;}
+@keyframes pwaUpdateSpin{to{transform:rotate(360deg);}}
 .pwa-install-modal{z-index:120 !important;}
 .pwa-install-modal .modal{max-width:400px;}
 .pwa-install-modal .modal__footer{gap:10px;}
@@ -3574,8 +3586,15 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
       <h3 id="pwaUpdateModalTitle">Update Available</h3>
     </div>
     <div class="modal__body">
-      <p class="confirm-lead">A new version is ready.</p>
-      <p>Update now to get the latest fixes and improvements.</p>
+      <div class="pwa-update-default">
+        <p class="confirm-lead">A new version is ready.</p>
+        <p>Update now to get the latest fixes and improvements.</p>
+      </div>
+      <div class="pwa-update-progress" role="status" aria-live="polite">
+        <p class="confirm-lead" id="pwaUpdateStatus">Downloading update…</p>
+        <div class="pwa-update-bar"><div class="pwa-update-bar__fill" id="pwaUpdateBarFill"></div></div>
+        <div class="pwa-update-progress__meta"><span>Please don't close the app</span><span id="pwaUpdatePercent">0%</span></div>
+      </div>
     </div>
     <div class="modal__footer">
       <button type="button" class="btn btn--ghost" id="btnPwaUpdateLater">Later</button>
@@ -8130,6 +8149,7 @@ let pwaInstallInProgress = false;
 let pwaUpdateRegistration = null;
 let pwaUpdateModalVisible = false;
 let pwaUpdateReloading = false;
+let pwaUpdateApplying = false;
 
 function isRunningAsPwa(){
   return window.matchMedia('(display-mode: standalone)').matches ||
@@ -8353,12 +8373,54 @@ function reloadAfterPwaUpdate(registration){
 async function applyPwaUpdate(){
   const registration = pwaUpdateRegistration;
   if (!registration || pwaUpdateReloading) return;
-  pwaUpdateModalVisible = false;
+  if (pwaUpdateApplying) return;
+  pwaUpdateApplying = true;
   el.btnPwaUpdateNow.disabled = true;
   el.btnPwaUpdateLater.disabled = true;
   if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
-  el.pwaUpdateModalOverlay.setAttribute('aria-hidden', 'true');
-  await hideOverlay(el.pwaUpdateModalOverlay);
+
+  // Keep the modal open and show a short fake download progress so the
+  // background service-worker work feels like a real update.
+  const fill = document.getElementById('pwaUpdateBarFill');
+  const pct = document.getElementById('pwaUpdatePercent');
+  const status = document.getElementById('pwaUpdateStatus');
+  el.pwaUpdateModalOverlay.classList.add('is-updating');
+  const iconWrap = el.pwaUpdateModalOverlay.querySelector('.confirm-icon');
+  const iconEl = iconWrap ? iconWrap.querySelector('i') : null;
+  const titleEl = document.getElementById('pwaUpdateModalTitle');
+  if (titleEl) titleEl.textContent = 'Updating App';
+
+  const DURATION = 3000;
+  const start = performance.now();
+  await new Promise(resolve => {
+    const tick = (now) => {
+      const t = Math.min((now - start) / DURATION, 1);
+      const eased = 1 - Math.pow(1 - t, 2);
+      const value = Math.round(eased * 100);
+      if (fill) {
+        fill.style.width = value + '%';
+        // Blue (hue 220) -> green (hue 142) as the percentage grows.
+        // Stay blue until 25%, then shift to green by 100%.
+        const colorT = Math.max(0, (eased - 0.25) / 0.75);
+        const hue = Math.round(220 - (220 - 142) * colorT);
+        fill.style.background = 'hsl(' + hue + ', 72%, 52%)';
+        // Header icon circle follows the same color: solid fill, white icon.
+        if (iconWrap) {
+          iconWrap.style.background = 'hsl(' + hue + ', 72%, 45%)';
+          iconWrap.style.color = '#fff';
+        }
+      }
+      if (pct) pct.textContent = value + '%';
+      if (status) status.textContent = t < 0.75 ? 'Downloading update…' : (t < 1 ? 'Installing…' : 'Restarting…');
+      if (t < 1) requestAnimationFrame(tick); else resolve();
+    };
+    requestAnimationFrame(tick);
+  });
+  // Success state: solid green circle with a white check.
+  if (iconWrap) { iconWrap.style.background = 'hsl(142, 72%, 40%)'; iconWrap.style.color = '#fff'; }
+  if (iconEl) { iconEl.className = 'fa-solid fa-check'; iconEl.style.animation = 'none'; }
+  await new Promise(r => setTimeout(r, 1000));
+
   sessionStorage.setItem('jas_pwa_updated', '1');
   reloadAfterPwaUpdate(registration);
 }
@@ -8400,7 +8462,6 @@ function getDismissibleOverlays(){
     [el.billDetailsModalOverlay, closeBillDetailsModal],
     [el.logoutModalOverlay, () => pendingRecoveryConflict ? cancelRecoveryConflict() : closeLogoutConfirm()],
     [el.expiredRecoveryModalOverlay, cancelExpiredRecovery],
-    [el.pwaUpdateModalOverlay, dismissPwaUpdateAsLater],
     [el.pwaEntryModalOverlay, closePwaEntryModal],
     [el.changePasswordModalOverlay, closeChangePasswordModal],
     [el.feedbackModalOverlay, closeFeedbackModal],
