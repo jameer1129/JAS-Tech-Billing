@@ -802,7 +802,7 @@ body.dark-theme .toast-card--error{background:#2B1514;border-color:#D64545AA;}
 }
 .modal__header{display:flex;align-items:center;justify-content:center;padding:20px 20px 12px;text-align:center;gap:8px;color:var(--primary-text);}
 .modal__header h3 {margin:0;font-size:16px;text-align:center;}
-.modal--confirm .modal__header{flex-direction:column;padding: 28px 20px 4px;}
+.modal--confirm .modal__header{flex-direction:column;padding: 28px 20px 8px;}
 .modal--confirm .modal__header .confirm-icon{margin:0;}
 .modal--confirm .modal__header h3{color:var(--text);}
 .modal__body{padding:6px 20px;display:flex;flex-direction:column;gap:12px;}
@@ -875,10 +875,8 @@ body.dark-theme .confirm-icon--info{background:rgba(1,37,135,.4);}
 .modal--confirm p{margin:0;color:var(--muted);font-size:13.5px;line-height:1.5;}
 .modal--confirm .confirm-target{color:var(--primary-text);font-weight:700;overflow-wrap:anywhere;word-break:break-word;}
 /* ---------- Confirm modal building blocks: chip, note, checklist ---------- */
-.confirm-chip{display:block;width:fit-content;max-width:100%;margin:8px auto 0;padding:6px 14px;border-radius:999px;background:color-mix(in srgb, var(--primary) 10%, transparent);color:var(--primary-text);font-size:13px;font-weight:700;text-align:center;overflow-wrap:anywhere;word-break:break-word;}
-.confirm-chip:empty{display:none;}
-.modal--confirm p.confirm-chip{color:var(--primary-text);font-size:13px;}
-.confirm-note{display:flex;align-items:flex-start;gap:6px;margin-top:6px;width:100%;padding:10px 12px;border:1px solid color-mix(in srgb, var(--primary-text) 26%, transparent);border-radius:var(--radius-sm);background:color-mix(in srgb, var(--primary) 35%, transparent);color:var(--primary-text);font-size:12px;line-height:1.5;text-align:left;}
+.confirm-note{font-weight:500; display:flex;align-items:flex-start;gap:6px;margin-top:6px;width:100%;padding:10px 12px;border:1px solid color-mix(in srgb, var(--primary-text) 26%, transparent);border-radius:var(--radius-sm);background:color-mix(in srgb, var(--primary) 10%, transparent);color:var(--primary-text);font-size:12px;line-height:1.5;text-align:left;}
+body.dark-theme .confirm-note{background:color-mix(in srgb, var(--primary) 35%, transparent)}
 .confirm-note i{flex:0 0 14px;margin-top:2px;text-align:center;color:var(--primary-text);}
 .confirm-note--danger{border-color:rgba(244,67,54,.4);background:rgba(244,67,54,.09);color:var(--danger) !important;}
 .confirm-note--danger i{color:var(--danger);}
@@ -2822,7 +2820,7 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
       <p id="otpConfirmMessage">
         We will send a 6-digit verification code to your email address.
       </p>
-      <p id="otpConfirmEmail" class="confirm-chip"></p>
+      <p id="otpConfirmEmail" class="confirm-target"></p>
       <div class="confirm-note"><i class="fa-regular fa-envelope-open" aria-hidden="true"></i><span>Can’t find it? Check your spam or junk folder.</span></div>
     </div>
     <div class="modal__footer">
@@ -3257,7 +3255,7 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
     </div>
     <div class="modal__body">
       <p class="confirm-lead">Remove this product from the invoice?</p>
-      <p class="confirm-chip" id="deleteTargetName"></p>
+      <p class="confirm-target" id="deleteTargetName"></p>
       <div class="confirm-note"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span>The invoice total updates automatically. You can add the product again anytime.</span></div>
     </div>
     <div class="modal__footer">
@@ -3542,7 +3540,7 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
     </div>
     <div class="modal__body">
       <p id="logoutModalMessage">Are you sure you want to log out?</p>
-      <p id="logoutModalEmail" class="confirm-chip"></p>
+      <p id="logoutModalEmail" class="confirm-target"></p>
       <div class="confirm-note"><i class="fa-solid fa-lock" aria-hidden="true"></i><span>You’ll need to sign in again to keep billing.</span></div>
     </div>
     <div class="modal__footer">
