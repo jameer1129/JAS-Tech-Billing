@@ -835,12 +835,6 @@ body.dark-theme .toast-card--error{background:#2B1514;border-color:#D64545AA;}
 .bill-confirm-card__meta{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--muted);min-width:0;}
 .bill-confirm-card__meta i{width:14px;flex:0 0 14px;text-align:center;}
 .bill-confirm-card__meta span{min-width:0;overflow-wrap:anywhere;}
-.delete-retention-note{display:flex;align-items:flex-start;gap:9px;width:100%;margin:8px 0 0 !important;padding:10px 12px;border:1px solid rgba(255,151,0,.35);border-radius:var(--radius-sm);background:rgba(255,151,0,.10);color:var(--text) !important;font-size:12px !important;line-height:1.5;text-align:left;}
-.delete-retention-note i{flex:0 0 14px;margin-top:2px;text-align:center;color:var(--warning);}
-.delete-retention-note--ok{border-color:rgba(31,146,84,.35);background:rgba(31,146,84,.10);}
-.delete-retention-note--ok i{color:var(--success);}
-.delete-retention-note--urgent{border-color:rgba(244,67,54,.4);background:rgba(244,67,54,.10);}
-.delete-retention-note--urgent i{color:var(--danger);}
 .confirm-icon--restore{background:color-mix(in srgb, var(--success) 15%, transparent);color:var(--success);}
 .modal--confirm .confirm-icon{
   width:60px;
@@ -881,6 +875,29 @@ body.dark-theme .confirm-icon--devices .device-mobile{background:#000F36;}
 body.dark-theme .confirm-icon--info{background:rgba(1,37,135,.4);}
 .modal--confirm p{margin:0;color:var(--muted);font-size:13.5px;line-height:1.5;}
 .modal--confirm .confirm-target{color:var(--primary-text);font-weight:700;overflow-wrap:anywhere;word-break:break-word;}
+/* ---------- Confirm modal building blocks: chip, note, checklist ---------- */
+.confirm-chip{display:block;width:fit-content;max-width:100%;margin:8px auto 0;padding:6px 14px;border-radius:999px;background:color-mix(in srgb, var(--primary) 10%, transparent);color:var(--primary-text);font-size:13px;font-weight:700;text-align:center;overflow-wrap:anywhere;word-break:break-word;}
+.confirm-chip:empty{display:none;}
+.modal--confirm p.confirm-chip{color:var(--primary-text);font-size:13px;}
+.confirm-note{display:flex;align-items:flex-start;gap:9px;margin-top:6px;width:100%;padding:10px 12px;border:1px solid color-mix(in srgb, var(--primary-text) 26%, transparent);border-radius:var(--radius-sm);background:color-mix(in srgb, var(--primary) 35%, transparent);color:var(--primary-text);font-size:12px;line-height:1.5;text-align:left;}
+.confirm-note i{flex:0 0 14px;margin-top:2px;text-align:center;color:var(--primary-text);}
+.confirm-note--danger{border-color:rgba(244,67,54,.4);background:rgba(244,67,54,.09);color:var(--danger) !important;}
+.confirm-note--danger i{color:var(--danger);}
+.confirm-note--success{border-color:rgba(31,146,84,.38);background:rgba(31,146,84,.09);color:var(--success) !important;}
+.confirm-note--success i{color:var(--success);}
+.confirm-note--warning{border-color:rgba(255,151,0,.38);background:rgba(255,151,0,.10);color:var(--warning) !important;}
+.confirm-note--warning i{color:var(--warning);}
+.confirm-list-title{margin-top:12px !important;font-size:12px !important;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:var(--muted);}
+.confirm-list{list-style:none;margin:8px 0 0;padding:10px 12px;width:100%;display:flex;flex-direction:column;gap:8px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--bg);text-align:left;font-size:13px;color:var(--text);}
+.confirm-list li{display:flex;align-items:center;gap:10px;min-width:0;}
+.confirm-list i{flex:0 0 16px;text-align:center;color:var(--danger);font-size:13px;}
+.confirm-list--neutral i{color:var(--primary-text);}
+.confirm-lead{color:var(--text) !important;font-weight:600;font-size:14px !important;}
+/* Invoice Ready: one clear primary action, then secondary row, then close. */
+.pdf-actions{flex-direction:column;gap:10px;}
+.pdf-actions .btn{flex:0 0 auto;width:100%;}
+.pdf-actions__row{display:flex;gap:8px;width:100%;}
+.pdf-actions__row .btn{flex:1 1 0;min-width:0;}
 body.dark-theme #invoiceQrCanvas{filter: invert(1);}
 
 /* ---------- Invoice QR loader ---------- */
@@ -2806,7 +2823,8 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
       <p id="otpConfirmMessage">
         We will send a 6-digit verification code to your email address.
       </p>
-      <p id="otpConfirmEmail" class="confirm-target"></p>
+      <p id="otpConfirmEmail" class="confirm-chip"></p>
+      <div class="confirm-note"><i class="fa-regular fa-envelope-open" aria-hidden="true"></i><span>Can’t find it? Check your spam or junk folder.</span></div>
     </div>
     <div class="modal__footer">
       <button class="btn btn--ghost" id="btnCancelOtpSendConfirm">Cancel</button>
@@ -3239,7 +3257,9 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
       <h3>Delete Product</h3>
     </div>
     <div class="modal__body">
-      <p>Are you sure you want to delete<br><span class="confirm-target" id="deleteTargetName"></span> from this invoice?</p>
+      <p class="confirm-lead">Remove this product from the invoice?</p>
+      <p class="confirm-chip" id="deleteTargetName"></p>
+      <div class="confirm-note"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span>The invoice total updates automatically. You can add the product again anytime.</span></div>
     </div>
     <div class="modal__footer">
       <button class="btn btn--ghost" id="btnCancelDelete">Cancel</button>
@@ -3263,7 +3283,7 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
         <div class="bill-confirm-card__meta"><i class="fa-solid fa-user"></i><span id="deleteBillCustomer"></span></div>
         <div class="bill-confirm-card__meta"><i class="fa-regular fa-calendar"></i><span id="deleteBillDate"></span></div>
       </div>
-      <p class="delete-retention-note" id="deleteBillNote"><i class="fa-regular fa-clock" aria-hidden="true"></i><span></span></p>
+      <div class="confirm-note confirm-note--danger" id="deleteBillNote"><i class="fa-regular fa-clock" aria-hidden="true"></i><span></span></div>
     </div>
     <div class="modal__footer">
       <button class="btn btn--ghost" id="btnCancelDeleteBill" type="button">Cancel</button>
@@ -3305,7 +3325,15 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
       <h3>Reset Invoice</h3>
     </div>
     <div class="modal__body">
-      <p>This clears the customer details, all products, and notes, and starts a fresh invoice number.<br>This can't be undone.</p>
+      <p class="confirm-lead">Start over with a blank invoice?</p>
+      <p class="confirm-list-title">This will clear</p>
+      <ul class="confirm-list">
+        <li><i class="fa-solid fa-user" aria-hidden="true"></i>Customer details</li>
+        <li><i class="fa-solid fa-box" aria-hidden="true"></i>All products</li>
+        <li><i class="fa-solid fa-note-sticky" aria-hidden="true"></i>Notes</li>
+        <li><i class="fa-solid fa-hashtag" aria-hidden="true"></i>Invoice number (a fresh one is started)</li>
+      </ul>
+      <div class="confirm-note confirm-note--danger"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i><span>This can’t be undone.</span></div>
     </div>
     <div class="modal__footer">
       <button class="btn btn--ghost" id="btnCancelResetInvoice">Cancel</button>
@@ -3320,7 +3348,9 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
       <h3>Restore Previous Invoice?</h3>
     </div>
     <div class="modal__body">
-      <p>We found a previous invoice that you were working on. Would you like to restore it or start fresh?</p>
+      <p class="confirm-lead">You have an unfinished invoice.</p>
+      <p>We saved your last session automatically. Continue where you left off, or start a new invoice.</p>
+      <div class="confirm-note"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span>Starting fresh clears the saved draft.</span></div>
     </div>
     <div class="modal__footer">
       <button class="btn btn--ghost" id="btnRestoreBillReset"><i class="fa-solid fa-rotate-left"></i> Start Fresh</button>
@@ -3335,7 +3365,8 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
       <h3>Save Invoice?</h3>
     </div>
     <div class="modal__body">
-      <p>Do you want to save this invoice to the database before downloading?</p>
+      <p class="confirm-lead">Save this invoice before downloading?</p>
+      <div class="confirm-note"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i><span>Saved invoices appear in Previous Bills. Choose No to download without saving.</span></div>
     </div>
     <div class="modal__footer">
       <button class="btn btn--outline" id="btnSaveChoiceNo"><i class="fa-solid fa-xmark"></i> No</button>
@@ -3353,15 +3384,13 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
     <div class="modal__body">
       <p id="pdfActionMsg">Invoice is ready.</p>
     </div>
-    <div class="modal__footer" style="flex-direction:column;gap:10px;">
-      <div style="display:flex;gap:8px;width:100%;">
+    <div class="modal__footer pdf-actions">
+      <button class="btn btn--primary" id="btnPdfDownload"><i class="fa-solid fa-download"></i> Download PDF</button>
+      <div class="pdf-actions__row">
         <button class="btn btn--outline" id="btnPdfQr"><i class="fa-solid fa-qrcode"></i> QR Download</button>
         <button class="btn btn--outline" id="btnPdfShare"><i class="fa-solid fa-share-nodes"></i> Share PDF</button>
       </div>
-      <div style="display:flex;gap:8px;width:100%;">
-        <button class="btn btn--ghost" id="btnPdfActionCancel">Close</button>
-        <button class="btn btn--primary" id="btnPdfDownload"><i class="fa-solid fa-download"></i> Download PDF</button>
-      </div>
+      <button class="btn btn--ghost" id="btnPdfActionCancel">Close</button>
     </div>
   </div>
 </div>
@@ -3465,7 +3494,8 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
       <h3>Thank You!</h3>
     </div>
     <div class="modal__body">
-      <p>Your feedback has been sent. We really appreciate you helping us improve.</p>
+      <p class="confirm-lead">Your feedback has been sent.</p>
+      <p>We read every message. Thanks for helping us improve JAS Billing.</p>
     </div>
     <div class="modal__footer">
       <button class="btn btn--primary" id="btnFeedbackThanksClose" type="button">Done</button>
@@ -3513,7 +3543,8 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
     </div>
     <div class="modal__body">
       <p id="logoutModalMessage">Are you sure you want to log out?</p>
-      <p id="logoutModalEmail" class="confirm-target"></p>
+      <p id="logoutModalEmail" class="confirm-chip"></p>
+      <div class="confirm-note"><i class="fa-solid fa-lock" aria-hidden="true"></i><span>You’ll need to sign in again to keep billing.</span></div>
     </div>
     <div class="modal__footer">
       <button class="btn btn--ghost" id="btnCancelLogout">Cancel</button>
@@ -3531,6 +3562,7 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
     </div>
     <div class="modal__body">
       <p id="expiredRecoveryMessage"></p>
+      <div class="confirm-note confirm-note--warning"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i><span>For your security, reset links work only for a short time.</span></div>
     </div>
     <div class="modal__footer">
       <button class="btn btn--ghost" id="btnCancelExpiredRecovery">Cancel</button>
@@ -3545,7 +3577,8 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
       <h3 id="pwaUpdateModalTitle">Update Available</h3>
     </div>
     <div class="modal__body">
-      <p>A new version of JAS Billing is available. Update now to use the latest version.</p>
+      <p class="confirm-lead">A new version is ready.</p>
+      <p>Update now to get the latest fixes and improvements.</p>
     </div>
     <div class="modal__footer">
       <button type="button" class="btn btn--ghost" id="btnPwaUpdateLater">Later</button>
@@ -7164,21 +7197,25 @@ function configureBillModal(mode, bill){
   const note = document.getElementById('deleteBillNote');
   const noteIcon = note.querySelector('i');
   const noteText = note.querySelector('span');
-  note.classList.remove('delete-retention-note--ok', 'delete-retention-note--urgent');
+  note.classList.remove('confirm-note--success', 'confirm-note--warning');
   if (restore) {
     const left = bill ? billDaysLeft(bill.deleted_at) : null;
     if (left === null) {
-      note.classList.add('delete-retention-note--ok');
+      note.classList.add('confirm-note--success');
       noteIcon.className = 'fa-solid fa-circle-check';
       noteText.textContent = 'The bill goes back to Previous Bills exactly as it was.';
     } else if (left <= 2) {
-      note.classList.add('delete-retention-note--urgent');
+      if (left === 0) {
+        note.classList.add('confirm-note--danger');
+      } else {
+        note.classList.add('confirm-note--warning');
+      }
       noteIcon.className = 'fa-solid fa-triangle-exclamation';
       noteText.textContent = left === 0
         ? 'Permanent deletion is due today. Restore it now to keep it.'
         : `Only ${left} day${left === 1 ? '' : 's'} left before this bill is permanently deleted.`;
     } else {
-      note.classList.add('delete-retention-note--ok');
+      note.classList.add('confirm-note--success');
       noteIcon.className = 'fa-regular fa-clock';
       noteText.textContent = `${left} days left before this bill is permanently deleted.`;
     }
