@@ -112,7 +112,8 @@ create table if not exists public.bills (
     references public.profiles(id)
     on delete set null,
   created_by_name text default '',
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  deleted_at TIMESTAMPTZ DEFAULT NULL
 );
 -- 3. BILL ITEMS
 --
@@ -1236,6 +1237,96 @@ revoke all on function public.get_public_invoice(text) from public;
 revoke all on function public.get_or_create_invoice_public_token(text) from public;
 grant execute on function public.get_public_invoice(text) to anon, authenticated;
 grant execute on function public.get_or_create_invoice_public_token(text) to authenticated;
+
+
+BEGIN;
+
+-- 1. Soft-delete a bill without removing its data
+CREATE OR REPLACE FUNCTION public.soft_delete_bill(
+  p_invoice_no TEXT
+)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  affected_rows INTEGER;
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Authentication required.';
+  END IF;
+
+  IF NOT public.is_admin() THEN
+    RAISE EXCEPTION 'Only approved admins can delete bills.';
+  END IF;
+
+  UPDATE public.bills
+  SET deleted_at = pg_catalog.now()
+  WHERE invoice_no = p_invoice_no
+    AND deleted_at IS NULL;
+
+  GET DIAGNOSTICS affected_rows = ROW_COUNT;
+
+  IF affected_rows = 0 THEN
+    RAISE EXCEPTION 'Bill not found or already deleted.';
+  END IF;
+
+  RETURN TRUE;
+END;
+$$;
+
+
+-- 2. Restore a previously soft-deleted bill
+CREATE OR REPLACE FUNCTION public.restore_bill(
+  p_invoice_no TEXT
+)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  affected_rows INTEGER;
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Authentication required.';
+  END IF;
+
+  IF NOT public.is_admin() THEN
+    RAISE EXCEPTION 'Only approved admins can restore bills.';
+  END IF;
+
+  UPDATE public.bills
+  SET deleted_at = NULL
+  WHERE invoice_no = p_invoice_no
+    AND deleted_at IS NOT NULL;
+
+  GET DIAGNOSTICS affected_rows = ROW_COUNT;
+
+  IF affected_rows = 0 THEN
+    RAISE EXCEPTION 'Deleted bill not found or already restored.';
+  END IF;
+
+  RETURN TRUE;
+END;
+$$;
+
+
+-- 3. Restrict who can execute these functions
+REVOKE ALL ON FUNCTION public.soft_delete_bill(TEXT)
+FROM PUBLIC, anon;
+
+REVOKE ALL ON FUNCTION public.restore_bill(TEXT)
+FROM PUBLIC, anon;
+
+GRANT EXECUTE ON FUNCTION public.soft_delete_bill(TEXT)
+TO authenticated;
+
+GRANT EXECUTE ON FUNCTION public.restore_bill(TEXT)
+TO authenticated;
+
+COMMIT;
 
 -- // Supabase Edge Function: send-feedback
 -- // Secrets needed:

@@ -507,6 +507,8 @@ body.dark-theme .prod-stat--amt{background:rgba(23,105,255,.14);}
 }
 .actions-popup__item:hover{background:var(--bg);}
 .actions-popup__item.success{color:var(--success);}
+.actions-popup__item.bill-restore-action{color:var(--success);gap:12px;}
+.actions-popup__item.bill-restore-action i{width:16px;flex:0 0 16px;text-align:center;color:inherit;}
 .actions-popup__item.success:hover{background:rgba(31,146,84,.08);}
 .actions-popup__item.danger{color:var(--danger);}
 .actions-popup__item.danger:hover{background:rgba(214,69,69,.08);}
@@ -826,6 +828,20 @@ body.dark-theme .toast-card--error{background:#2B1514;border-color:#D64545AA;}
 .modal--confirm{z-index:110 !important;}
 .modal--confirm .modal{max-width:380px;}
 .modal--confirm .modal__body{align-items:center;text-align:center;padding:4px 24px;}
+.bill-confirm-card{width:100%;margin-top:8px;padding:12px 14px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--bg);display:flex;flex-direction:column;gap:6px;text-align:left;}
+.bill-confirm-card__top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-bottom:8px;margin-bottom:2px;border-bottom:1px dashed var(--line);}
+.bill-confirm-card__top .confirm-target{font-size:14.5px;min-width:0;}
+.bill-confirm-card__total{font-size:15px;font-weight:700;color:var(--text);white-space:nowrap;}
+.bill-confirm-card__meta{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--muted);min-width:0;}
+.bill-confirm-card__meta i{width:14px;flex:0 0 14px;text-align:center;}
+.bill-confirm-card__meta span{min-width:0;overflow-wrap:anywhere;}
+.delete-retention-note{display:flex;align-items:flex-start;gap:9px;width:100%;margin:8px 0 0 !important;padding:10px 12px;border:1px solid rgba(255,151,0,.35);border-radius:var(--radius-sm);background:rgba(255,151,0,.10);color:var(--text) !important;font-size:12px !important;line-height:1.5;text-align:left;}
+.delete-retention-note i{flex:0 0 14px;margin-top:2px;text-align:center;color:var(--warning);}
+.delete-retention-note--ok{border-color:rgba(31,146,84,.35);background:rgba(31,146,84,.10);}
+.delete-retention-note--ok i{color:var(--success);}
+.delete-retention-note--urgent{border-color:rgba(244,67,54,.4);background:rgba(244,67,54,.10);}
+.delete-retention-note--urgent i{color:var(--danger);}
+.confirm-icon--restore{background:color-mix(in srgb, var(--success) 15%, transparent);color:var(--success);}
 .modal--confirm .confirm-icon{
   width:60px;
   height:60px;
@@ -2149,6 +2165,10 @@ body.dark-theme .date-dropdown{background:var(--surface);border-color:var(--line
 }
 .date-dropdown__item:hover{background:var(--bg);}
 .date-dropdown__item.active{color:var(--primary-text);background:rgba(1,37,135,.06);}
+/* Restore Bills action: clearer icon spacing and green accent. */
+#btnShowRestoreBills{display:flex;align-items:center;gap:9px;color:var(--success);font-weight:700;}
+#btnShowRestoreBills i{width:16px;flex:0 0 16px;text-align:center;color:inherit;}
+#btnShowRestoreBills:hover,#btnShowRestoreBills.active{background:rgba(31,146,84,.12);}
 .date-filter-wrap-new,.sort-filter-wrap{position:relative;flex:1 1 0;min-width:0;}
 /* ---------- Bill cards ---------- */
 #viewPreviousBills{max-width:1060px;}
@@ -3035,6 +3055,8 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
               <button class="date-dropdown__item" data-sort="total" data-dir="asc">Amount: Low to High</button>
               <button class="date-dropdown__item" data-sort="customer_name" data-dir="asc">Customer: A to Z</button>
               <button class="date-dropdown__item" data-sort="customer_name" data-dir="desc">Customer: Z to A</button>
+              <div class="date-dropdown__divider" data-restore-divider="true" style="border-top:1px solid var(--line);margin:5px 0;"></div>
+              <button class="date-dropdown__item hide" id="btnShowRestoreBills" type="button"><i class="fa-solid fa-trash-arrow-up" aria-hidden="true"></i><span>Restore Bills</span></button>
             </div>
           </div>
         </div>
@@ -3207,17 +3229,26 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
   </div>
 </div>
 <div class="modal-overlay modal--confirm hide" id="deleteBillModalOverlay">
-  <div class="modal">
+  <div class="modal" role="alertdialog" aria-modal="true" aria-labelledby="deleteBillTitle" aria-describedby="deleteBillMessage">
     <div class="modal__header">
-      <div class="confirm-icon confirm-icon--danger"><i class="fa-solid fa-triangle-exclamation"></i></div>
-      <h3>Delete Bill</h3>
+      <div class="confirm-icon confirm-icon--danger" id="deleteBillIcon"><i class="fa-solid fa-trash-can"></i></div>
+      <h3 id="deleteBillTitle">Delete Bill</h3>
     </div>
     <div class="modal__body">
-      <p>Are you sure you want to permanently delete<br><span class="confirm-target" id="deleteBillTargetName"></span> invoice?</p>
+      <p id="deleteBillMessage">Move this invoice to Restore Bills?</p>
+      <div class="bill-confirm-card">
+        <div class="bill-confirm-card__top">
+          <span class="confirm-target" id="deleteBillTargetName"></span>
+          <span class="bill-confirm-card__total" id="deleteBillTotal"></span>
+        </div>
+        <div class="bill-confirm-card__meta"><i class="fa-solid fa-user"></i><span id="deleteBillCustomer"></span></div>
+        <div class="bill-confirm-card__meta"><i class="fa-regular fa-calendar"></i><span id="deleteBillDate"></span></div>
+      </div>
+      <p class="delete-retention-note" id="deleteBillNote"><i class="fa-regular fa-clock" aria-hidden="true"></i><span></span></p>
     </div>
     <div class="modal__footer">
-      <button class="btn btn--ghost" id="btnCancelDeleteBill">Cancel</button>
-      <button class="btn btn--danger" id="btnConfirmDeleteBill">Delete</button>
+      <button class="btn btn--ghost" id="btnCancelDeleteBill" type="button">Cancel</button>
+      <button class="btn btn--danger" id="btnConfirmDeleteBill" type="button">Delete</button>
     </div>
   </div>
 </div>
@@ -3570,6 +3601,8 @@ let CONFIG = null;
 let editingProductId = null;
 let pendingDeleteId = null;
 let pendingDeleteBillId = null;
+let pendingRestoreBillId = null;
+let isRestoreBillsMode = false;
 let supabaseClient = null;
 let currentSession = null;
 let currentProfile = null;   // { id, name, email, role, status }
@@ -5800,6 +5833,10 @@ function refreshAppChromeFromProfile(){
   el.appBarUserName.textContent = truncateText(fullName, 20);
   el.appBarUserName.setAttribute('title', fullName);
   el.navAdminTab.classList.toggle('hide', !['admin','super_admin'].includes(currentProfile.role));
+  // Admin-only Restore Bills entry (kept here: syncRestoreBillsOption lives in a closure not reachable from this scope).
+  const isAdminRole = ['admin','super_admin'].includes((currentProfile.role || '').toLowerCase());
+  document.getElementById('btnShowRestoreBills')?.classList.toggle('hide', !isAdminRole);
+  document.querySelector('[data-restore-divider]')?.classList.toggle('hide', !isAdminRole);
 }
 async function afterAuthResolved(){
   const userId = currentSession?.user?.id;
@@ -6825,7 +6862,11 @@ async function loadBills(resetToFirstPage){
   const runFetch = async () => {
     let query = supabaseClient
       .from('bills')
-      .select('invoice_no,customer_name,customer_phone,customer_address,bill_date,notes,include_notes,show_watermark,show_qr,show_signature,total,created_by,created_by_name,created_at', { count: 'exact' });
+      .select('invoice_no,customer_name,customer_phone,customer_address,bill_date,notes,include_notes,show_watermark,show_qr,show_signature,total,created_by,created_by_name,created_at,deleted_at', { count: 'exact' });
+    // Active history and Restore Bills share the existing search/sort/pagination UI.
+    query = isRestoreBillsMode
+      ? query.not('deleted_at', 'is', null)
+      : query.is('deleted_at', null);
     let productSearchAuthError = null;
     if (rawQuery) {
       const term = sanitizeSearchTerm(rawQuery);
@@ -6923,7 +6964,7 @@ function renderBillsTable(){
   }
   el.billsEmptyState.classList.add('hide');
   el.billsTableWrap.classList.remove('hide');
-  const isAdmin = ['admin', 'super_admin'].includes((currentProfile.role || '').toLowerCase());
+  const isAdmin = ['admin', 'super_admin'].includes((currentProfile?.role || '').toLowerCase());
   // Update sort indicators
   document.querySelectorAll('.bills-table thead th.sortable').forEach(th => {
     const isActive = billsSortCol === th.dataset.col;
@@ -7069,40 +7110,139 @@ async function reprintBill(invoiceNo){
     draftBillSnapshot = null;
   }
 }
-function setDeleteBillButtonState(isDeleting){
+function setDeleteBillButtonState(isBusy){
   if (!el.btnConfirmDeleteBill) return;
-  el.btnConfirmDeleteBill.disabled = isDeleting;
-  el.btnConfirmDeleteBill.setAttribute('aria-busy', isDeleting ? 'true' : 'false');
-  if (el.btnCancelDeleteBill) el.btnCancelDeleteBill.disabled = isDeleting;
+  const restore = el.deleteBillModalOverlay?.dataset.mode === 'restore';
+  el.btnConfirmDeleteBill.disabled = isBusy;
+  el.btnConfirmDeleteBill.setAttribute('aria-busy', isBusy ? 'true' : 'false');
+  // Plain text label only: the action loader overlay already shows progress.
+  el.btnConfirmDeleteBill.textContent = restore ? 'Restore' : 'Delete';
+  if (el.btnCancelDeleteBill) el.btnCancelDeleteBill.disabled = isBusy;
+}
+const BILL_RETENTION_DAYS = 7;
+function billDaysLeft(deletedAt){
+  if (!deletedAt) return null;
+  const end = new Date(deletedAt).getTime() + BILL_RETENTION_DAYS * 86400000;
+  if (Number.isNaN(end)) return null;
+  return Math.max(0, Math.ceil((end - Date.now()) / 86400000));
+}
+// One place that configures the shared confirm modal for either action.
+function configureBillModal(mode, bill){
+  const modal = el.deleteBillModalOverlay;
+  const restore = mode === 'restore';
+  modal.dataset.mode = mode;
+  document.getElementById('deleteBillTitle').textContent = restore ? 'Restore Bill' : 'Delete Bill';
+  const icon = document.getElementById('deleteBillIcon');
+  icon.className = 'confirm-icon ' + (restore ? 'confirm-icon--restore' : 'confirm-icon--danger');
+  icon.innerHTML = restore ? '<i class="fa-solid fa-trash-arrow-up"></i>' : '<i class="fa-solid fa-trash-can"></i>';
+  document.getElementById('deleteBillMessage').textContent = restore
+    ? 'Restore this invoice to Previous Bills?'
+    : 'Move this invoice to Restore Bills?';
+  el.deleteBillTargetName.textContent = bill ? bill.invoice_no : '';
+  document.getElementById('deleteBillTotal').textContent = bill ? formatCurrency(bill.total) : '';
+  document.getElementById('deleteBillCustomer').textContent = bill ? (bill.customer_name || 'Walk-in customer') : '';
+  document.getElementById('deleteBillDate').textContent = bill && bill.bill_date ? formatDateForDisplay(bill.bill_date) : 'No date';
+  const note = document.getElementById('deleteBillNote');
+  const noteIcon = note.querySelector('i');
+  const noteText = note.querySelector('span');
+  note.classList.remove('delete-retention-note--ok', 'delete-retention-note--urgent');
+  if (restore) {
+    const left = bill ? billDaysLeft(bill.deleted_at) : null;
+    if (left === null) {
+      note.classList.add('delete-retention-note--ok');
+      noteIcon.className = 'fa-solid fa-circle-check';
+      noteText.textContent = 'The bill goes back to Previous Bills exactly as it was.';
+    } else if (left <= 2) {
+      note.classList.add('delete-retention-note--urgent');
+      noteIcon.className = 'fa-solid fa-triangle-exclamation';
+      noteText.textContent = left === 0
+        ? 'Permanent deletion is due today. Restore it now to keep it.'
+        : `Only ${left} day${left === 1 ? '' : 's'} left before this bill is permanently deleted.`;
+    } else {
+      note.classList.add('delete-retention-note--ok');
+      noteIcon.className = 'fa-regular fa-clock';
+      noteText.textContent = `${left} days left before this bill is permanently deleted.`;
+    }
+  } else {
+    noteIcon.className = 'fa-regular fa-clock';
+    noteText.textContent = `You can restore it from Restore Bills for ${BILL_RETENTION_DAYS} days. After that it is permanently deleted.`;
+  }
+  el.btnConfirmDeleteBill.classList.toggle('btn--danger', !restore);
+  el.btnConfirmDeleteBill.classList.toggle('btn--success', restore);
+  setDeleteBillButtonState(false);
 }
 function requestDeleteBill(invoiceNo){
+  if (!['admin', 'super_admin'].includes((currentProfile?.role || '').toLowerCase())) return;
   const bill = billsCache.find(b => b.invoice_no === invoiceNo);
   if (!bill) return;
+  pendingRestoreBillId = null;
   pendingDeleteBillId = invoiceNo;
-  el.deleteBillTargetName.textContent ="\""+ bill.invoice_no +"\"";
-  setDeleteBillButtonState(false);
+  configureBillModal('delete', bill);
   showOverlay(el.deleteBillModalOverlay);
+  el.btnCancelDeleteBill.focus();
 }
 function closeDeleteBillModal(){
-  hideOverlay(el.deleteBillModalOverlay);
   pendingDeleteBillId = null;
-  setDeleteBillButtonState(false);
+  pendingRestoreBillId = null;
+  // Reset only after the fade-out finishes so the content doesn't change mid-animation.
+  hideOverlay(el.deleteBillModalOverlay).then(() => configureBillModal('delete', null));
 }
 async function deleteBill(){
   if (pendingDeleteBillId === null) return;
+  if (!['admin', 'super_admin'].includes((currentProfile?.role || '').toLowerCase())) {
+    showToast('Only approved admins can delete bills.', 'error');
+    closeDeleteBillModal();
+    return;
+  }
   setDeleteBillButtonState(true);
-  showActionLoader('Deleting bill…');
+  showActionLoader('Moving bill to Restore Bills…');
   try {
-    const { error } = await withAuthRetry(() => supabaseClient.from('bills').delete().eq('invoice_no', pendingDeleteBillId));
+    const invoiceNo = pendingDeleteBillId;
+    const { error } = await withAuthRetry(() => supabaseClient.rpc('soft_delete_bill', { p_invoice_no: invoiceNo }));
     if (error) {
       console.error(error);
-      hideActionLoader();
-      showToast('Could not delete bill.', 'error');
+      showToast(error.message || 'Could not delete bill.', 'error');
       return;
     }
+    showToast('Bill moved to Restore Bills', 'success');
+    await loadBills(true);
+  } finally {
     hideActionLoader();
-    showToast('Bill deleted', 'success');
-    loadBills();
+    closeDeleteBillModal();
+  }
+}
+function requestRestoreBill(invoiceNo){
+  if (!['admin', 'super_admin'].includes((currentProfile?.role || '').toLowerCase())) {
+    showToast('Only approved admins can restore bills.', 'error');
+    return;
+  }
+  const bill = billsCache.find(b => b.invoice_no === invoiceNo);
+  if (!bill) return;
+  pendingDeleteBillId = null;
+  pendingRestoreBillId = invoiceNo;
+  configureBillModal('restore', bill);
+  showOverlay(el.deleteBillModalOverlay);
+  el.btnCancelDeleteBill.focus();
+}
+async function restoreBill(){
+  if (pendingRestoreBillId === null) return;
+  if (!['admin', 'super_admin'].includes((currentProfile?.role || '').toLowerCase())) {
+    showToast('Only approved admins can restore bills.', 'error');
+    closeDeleteBillModal();
+    return;
+  }
+  setDeleteBillButtonState(true);
+  showActionLoader('Restoring bill…');
+  try {
+    const invoiceNo = pendingRestoreBillId;
+    const { error } = await withAuthRetry(() => supabaseClient.rpc('restore_bill', { p_invoice_no: invoiceNo }));
+    if (error) {
+      console.error(error);
+      showToast(error.message || 'Could not restore bill.', 'error');
+      return;
+    }
+    showToast('Bill restored', 'success');
+    await loadBills(true);
   } finally {
     hideActionLoader();
     closeDeleteBillModal();
@@ -7118,14 +7258,15 @@ function toggleBillsMoreMenu(btn, invoiceNo){
   const popup = document.createElement('div');
   popup.className = 'actions-popup actions-popup-previousmenu';
   popup.dataset.invoice = invoiceNo;
+  const restoring = isRestoreBillsMode;
   popup.innerHTML = `
     <button class="actions-popup__item" data-menu="bill-details" data-invoice="${escapeHtml(invoiceNo)}">
       <i class="fa-solid fa-info-circle"></i> Bill Details
     </button>
     <div class="actions-popup__sep"></div>
-    <button class="actions-popup__item danger" data-menu="bill-delete" data-invoice="${escapeHtml(invoiceNo)}">
-      <i class="fa-solid fa-trash"></i> Delete Bill
-    </button>
+    ${restoring
+      ? `<button class="actions-popup__item success bill-restore-action" data-menu="bill-restore" data-invoice="${escapeHtml(invoiceNo)}"><i class="fa-solid fa-trash-arrow-up" aria-hidden="true"></i><span>Restore</span></button>`
+      : `<button class="actions-popup__item danger" data-menu="bill-delete" data-invoice="${escapeHtml(invoiceNo)}"><i class="fa-solid fa-trash"></i> Delete Bill</button>`}
   `;
   wrap.appendChild(popup);
   const rect = btn.getBoundingClientRect();
@@ -8627,7 +8768,9 @@ function bindEvents(){
     document.querySelectorAll('#dateDropdown .date-dropdown__item').forEach(i => i.classList.toggle('active', i.dataset.range === 'any'));
     billsSortCol = 'created_at';
     billsSortDir = 'desc';
+    isRestoreBillsMode = false;
     el.sortFilterLabel.textContent = 'Newest First';
+    syncRestoreBillsOption();
     el.btnSortBills.classList.remove('active');
     el.sortDropdown.querySelectorAll('.date-dropdown__item').forEach(i => i.classList.toggle('active', i.dataset.sort === 'created_at' && i.dataset.dir === 'desc'));
     updateBillsFilterToggle();
@@ -8677,6 +8820,35 @@ function bindEvents(){
     'customer_name:asc': 'Customer: A to Z',
     'customer_name:desc': 'Customer: Z to A'
   };
+  const restoreBillsOption = document.getElementById('btnShowRestoreBills');
+  const restoreBillsDivider = el.sortDropdown.querySelector('[data-restore-divider]');
+  function syncRestoreBillsOption(){
+    const isAdmin = ['admin', 'super_admin'].includes((currentProfile?.role || '').toLowerCase());
+    restoreBillsOption?.classList.toggle('hide', !isAdmin);
+    restoreBillsDivider?.classList.toggle('hide', !isAdmin);
+    if (restoreBillsOption) {
+      restoreBillsOption.classList.toggle('active', isRestoreBillsMode);
+      restoreBillsOption.innerHTML = isRestoreBillsMode
+        ? '<i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i><span>Previous Bills</span>'
+        : '<i class="fa-solid fa-trash-arrow-up" aria-hidden="true"></i><span>Restore Bills</span>';
+    }
+    if (isRestoreBillsMode) {
+      el.sortFilterLabel.textContent = 'Restore Bills';
+      el.btnSortBills.classList.add('active');
+    } else {
+      el.sortFilterLabel.textContent = sortLabels[`${billsSortCol}:${billsSortDir}`] || 'Newest First';
+    }
+  }
+  syncRestoreBillsOption();
+  restoreBillsOption?.addEventListener('click', () => {
+    if (!['admin', 'super_admin'].includes((currentProfile?.role || '').toLowerCase())) return;
+    isRestoreBillsMode = !isRestoreBillsMode;
+    billsPage = 1;
+    el.sortDropdown.classList.add('hide');
+    syncRestoreBillsOption();
+    updateBillsFilterToggle();
+    loadBills(true);
+  });
   el.btnSortBills.addEventListener('click', (e) => {
     e.stopPropagation();
     el.sortDropdown.classList.toggle('hide');
@@ -8685,6 +8857,8 @@ function bindEvents(){
   el.sortDropdown.addEventListener('click', e => {
     const item = e.target.closest('[data-sort]');
     if (!item) return;
+    isRestoreBillsMode = false;
+    syncRestoreBillsOption();
     billsSortCol = item.dataset.sort;
     billsSortDir = item.dataset.dir;
     el.sortDropdown.classList.add('hide');
@@ -8716,7 +8890,10 @@ function bindEvents(){
   el.billsTableBody.addEventListener('click', handleBillsTableClick);
   el.billsPaginationControls.addEventListener('click', handleBillsPaginationClick);
   el.btnCancelDeleteBill.addEventListener('click', closeDeleteBillModal);
-  el.btnConfirmDeleteBill.addEventListener('click', deleteBill);
+  el.btnConfirmDeleteBill.addEventListener('click', () => {
+    if (pendingRestoreBillId !== null) restoreBill();
+    else deleteBill();
+  });
   el.btnCloseBillDetailsModalFooter.addEventListener('click', closeBillDetailsModal);
   el.pendingUsersList.addEventListener('click', handlePendingUsersClick);
   el.allUsersList.addEventListener('click', handleAllUsersClick);
@@ -8834,6 +9011,8 @@ function bindEvents(){
         if (bill) openBillDetailsModal(bill);
       } else if (item.dataset.menu === 'bill-delete') {
         requestDeleteBill(invoiceNo);
+      } else if (item.dataset.menu === 'bill-restore') {
+        requestRestoreBill(invoiceNo);
       }
     }
   });
