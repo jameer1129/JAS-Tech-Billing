@@ -2170,6 +2170,25 @@ body.dark-theme .date-dropdown{background:var(--surface);border-color:var(--line
 #btnShowRestoreBills i{width:16px;flex:0 0 16px;text-align:center;color:inherit;}
 #btnShowRestoreBills:hover,#btnShowRestoreBills.active{background:rgba(31,146,84,.12);}
 .date-filter-wrap-new,.sort-filter-wrap{position:relative;flex:1 1 0;min-width:0;}
+/* Filter row: labels truncate instead of pushing the button past the screen edge. */
+.bills-filter-row{flex-wrap:nowrap;}
+.date-filter-wrap-new{flex:0.85 1 0;}
+.sort-filter-wrap{flex:1.15 1 0;}
+.bills-filter-row .date-filter-btn{flex:0 0 auto;min-width:0;max-width:100%;overflow:hidden;}
+.bills-filter-row .date-filter-btn > span{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;text-align:left;}
+.bills-filter-row .date-filter-btn > i{flex:0 0 auto;}
+.bills-filter-row .date-filter-btn .caret{margin-left:auto;}
+/* Sort menu grows to fit its longest option and stays inside the screen. */
+.sort-filter-wrap .date-dropdown{left:auto;right:0;min-width:100%;width:max-content;max-width:calc(100vw - 32px);}
+.sort-filter-wrap .date-dropdown__item{white-space:nowrap;}
+@media(max-width:420px){
+  .bills-filter-row{gap:8px;}
+  .bills-filter-row .date-filter-btn{padding:9px 10px;gap:6px;font-size:12.5px;}
+}
+@media(max-width:340px){
+  .bills-filter-row{flex-wrap:wrap;}
+  .date-filter-wrap-new,.sort-filter-wrap{flex:1 1 100%;}
+}
 /* ---------- Bill cards ---------- */
 #viewPreviousBills{max-width:1060px;}
 #viewPreviousBills > .card{padding:0;background:transparent;border:none;box-shadow:none;}
