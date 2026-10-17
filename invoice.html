@@ -124,7 +124,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
 /* ---------- success + confetti ---------- */
 /* ---------- polished success animation ---------- */
 .card-badge--anim{animation:badgeIn .8s cubic-bezier(.16,.84,.44,1) both, badgeIdle 1.8s ease-in-out .65s infinite;}
-.card-badge--anim i{animation:heckIn .6s .2s cubic-bezier(.16,.84,.44,1) both;}
+.card-badge--anim i{animation:checkIn .6s .2s cubic-bezier(.16,.84,.44,1) both;}
 .invoice-card{animation:cardIn .7s cubic-bezier(.16,.84,.44,1) both;}
 
 @keyframes badgeIdle{
@@ -278,11 +278,11 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
         </div>
       </div>
     </div>
-    <h1>Invoice downloaded</h1>
-    <p>Your invoice has been successfully downloaded.</p>
+    <h1>Download started</h1>
+    <p>Your invoice download has been requested. Check your Downloads folder to find the PDF.</p>
     <div class="info-box info-box--success">
       <div class="info-icon"><i class="fa-solid fa-file-lines"></i></div>
-      <div>The invoice has been saved locally and is ready to view.</div>
+      <div>The PDF should appear in your device's Downloads folder. If it doesn't, check your browser's download status.</div>
     </div>
     <button class="customer-btn" id="btnDone"><i class="fa-solid fa-check"></i>Done</button>
   </section>
@@ -461,16 +461,17 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
       if(!(await InvoiceEngine.ensureAssetsAvailable(invoiceData)))throw new Error('Invoice images could not be loaded.');
       const result=await InvoiceEngine.generatePdfBlob(invoiceData,'invoiceRoot','pdfWrapper');
 
-      /* Finish the visible progress first, then start the browser download. */
+      /* Finish the visible progress first, then request the browser download. */
       await finishProgress();
 
-      InvoiceEngine.downloadBlob(result.blob,result.filename);
+      await Promise.resolve(InvoiceEngine.downloadBlob(result.blob,result.filename));
 
+      /* Browsers do not reliably expose whether the file was saved to disk. */
       showState('stateSuccess');
       triggerConfetti();
     }catch(err){
       clearInterval(progressTimer);
-      console.error(err);
+      console.error('Invoice download failed:',err);
       setErrorState('DOWNLOAD_ERROR');
     }
   }
