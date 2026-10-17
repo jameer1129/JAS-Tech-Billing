@@ -4,7 +4,7 @@
    Safe Activation Handoff
    ========================================================= */
 
-const CACHE_NAME = "v3.0.5";
+const CACHE_NAME = "v3.0.4";
 
 // Delay before taking control of already-open pages.
 const CLAIM_DELAY_MS = 2000;
