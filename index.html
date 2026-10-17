@@ -845,7 +845,6 @@ body.dark-theme .toast-card--error{background:#2B1514;border-color:#D64545AA;}
   font-size:26px;
   margin:0 auto 10px;
 }
-.confirm-icon--info{background:color-mix(in srgb, var(--primary) 15%, transparent);color:var(--primary-text);}
 .confirm-icon--devices{
   position:relative;
   font-size:initial;
@@ -858,7 +857,10 @@ body.dark-theme .toast-card--error{background:#2B1514;border-color:#D64545AA;}
   background:#D3DAEA;
 }
 body.dark-theme .confirm-icon--devices .device-mobile{background:#000F36;}
+.confirm-icon--info{background:color-mix(in srgb, var(--primary) 15%, transparent);color:var(--primary-text);border:1px solid color-mix(in srgb, var(--primary-text) 25%, transparent);}
+body.dark-theme .confirm-icon--info{background:rgba(1,37,135,.4);}
 .confirm-icon--success{background:var(--success);color:white;}
+.confirm-icon--danger{background:color-mix(in srgb, var(--danger) 15%, transparent);color:var(--danger);border:1px solid color-mix(in srgb, var(--danger) 25%, transparent);}
 /* ---------- PDF confirmation success animation + confetti ---------- */
 .modal{position:relative;overflow:visible;}
 .confirm-icon{animation:successBadgeIn .8s cubic-bezier(.16,.84,.44,1) both,confirmBadgeIdle 1.8s ease-in-out .65s infinite;position:relative;z-index:2;}
@@ -870,19 +872,17 @@ body.dark-theme .confirm-icon--devices .device-mobile{background:#000F36;}
 .confetti-piece{position:absolute;left:50%;top:50%;pointer-events:none;will-change:transform,opacity;opacity:0;animation-fill-mode:forwards;z-index:1;}
 @keyframes confettiBurst{0%{transform:translate(-50%,-50%) translate(0,0) rotate(0deg);opacity:1;}100%{transform:translate(-50%,-50%) translate(var(--tx),var(--ty)) rotate(var(--rot));opacity:0;}}
 @media(prefers-reduced-motion:reduce){.confirm-icon.confirm-icon,.confirm-icon.confirm-icon i{animation:none!important;}.confetti-piece{display:none;}}
-.confirm-icon--danger{background:color-mix(in srgb, var(--danger) 15%, transparent);color:var(--danger);}
-body.dark-theme .confirm-icon--info{background:rgba(1,37,135,.4);}
 .modal--confirm p{margin:0;color:var(--muted);font-size:13.5px;line-height:1.5;}
 .modal--confirm .confirm-target{color:var(--primary-text);font-weight:700;overflow-wrap:anywhere;word-break:break-word;}
 /* ---------- Confirm modal building blocks: chip, note, checklist ---------- */
 .confirm-note{font-weight:500; display:flex;align-items:flex-start;gap:6px;margin-top:6px;width:100%;padding:10px 12px;border:1px solid color-mix(in srgb, var(--primary-text) 26%, transparent);border-radius:var(--radius-sm);background:color-mix(in srgb, var(--primary) 10%, transparent);color:var(--primary-text);font-size:12px;line-height:1.5;text-align:left;}
-body.dark-theme .confirm-note{background:color-mix(in srgb, var(--primary) 35%, transparent)}
+body.dark-theme .confirm-note{background: rgba(1, 37, 135, .4);}
 .confirm-note i{flex:0 0 14px;margin-top:2px;text-align:center;color:var(--primary-text);}
-.confirm-note--danger{border-color:rgba(244,67,54,.4);background:rgba(244,67,54,.09);color:var(--danger) !important;}
+.confirm-note--danger{border-color:rgba(244,67,54,.4);background:rgba(244,67,54,.09)!important;color:var(--danger) !important;}
 .confirm-note--danger i{color:var(--danger);}
-.confirm-note--success{border-color:rgba(31,146,84,.38);background:rgba(31,146,84,.09);color:var(--success) !important;}
+.confirm-note--success{border-color:rgba(31,146,84,.38);background:rgba(31,146,84,.09) !important;color:var(--success) !important;}
 .confirm-note--success i{color:var(--success);}
-.confirm-note--warning{border-color:rgba(255,151,0,.38);background:rgba(255,151,0,.10);color:var(--warning) !important;}
+.confirm-note--warning{border-color:rgba(255,151,0,.38);background:rgba(255,151,0,.10) !important;color:var(--warning) !important;}
 .confirm-note--warning i{color:var(--warning);}
 .confirm-list-title{margin-top:12px !important;font-size:12px !important;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:var(--muted);}
 .confirm-list{list-style:none;margin:8px 0 0;padding:10px 12px;width:100%;display:flex;flex-direction:column;gap:8px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--bg);text-align:left;font-size:13px;color:var(--text);}
@@ -8395,7 +8395,7 @@ async function applyPwaUpdate(){
   await new Promise(resolve => {
     const tick = (now) => {
       const t = Math.min((now - start) / DURATION, 1);
-      const eased = 1 - Math.pow(1 - t, 2);
+      const eased = Math.pow(t, 2);
       const value = Math.round(eased * 100);
       if (fill) {
         fill.style.width = value + '%';
@@ -8403,10 +8403,10 @@ async function applyPwaUpdate(){
         // Stay blue until 25%, then shift to green by 100%.
         const colorT = Math.max(0, (eased - 0.25) / 0.75);
         const hue = Math.round(220 - (220 - 142) * colorT);
-        fill.style.background = 'hsl(' + hue + ', 72%, 52%)';
+        fill.style.background = 'hsl(' + hue + ', 99%, 26%)';
         // Header icon circle follows the same color: solid fill, white icon.
         if (iconWrap) {
-          iconWrap.style.background = 'hsl(' + hue + ', 72%, 45%)';
+          iconWrap.style.background = 'hsl(' + hue + ', 99%, 26%)';
           iconWrap.style.color = '#fff';
         }
       }
