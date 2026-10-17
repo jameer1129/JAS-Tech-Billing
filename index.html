@@ -890,11 +890,6 @@ body.dark-theme .confirm-note{background: rgba(1, 37, 135, .4);}
 .confirm-list i{flex:0 0 16px;text-align:center;color:var(--danger);font-size:13px;}
 .confirm-list--neutral i{color:var(--primary-text);}
 .confirm-lead{color:var(--text) !important;font-weight:600;font-size:14px !important;}
-/* Invoice Ready: one clear primary action, then secondary row, then close. */
-.pdf-actions{flex-direction:column;gap:10px;}
-.pdf-actions .btn{flex:0 0 auto;width:100%;}
-.pdf-actions__row{display:flex;gap:8px;width:100%;}
-.pdf-actions__row .btn{flex:1 1 0;min-width:0;}
 body.dark-theme #invoiceQrCanvas{filter: invert(1);}
 
 /* ---------- Invoice QR loader ---------- */
@@ -3393,13 +3388,15 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
     <div class="modal__body">
       <p id="pdfActionMsg">Invoice is ready.</p>
     </div>
-    <div class="modal__footer pdf-actions">
-      <button class="btn btn--primary" id="btnPdfDownload"><i class="fa-solid fa-download"></i> Download PDF</button>
-      <div class="pdf-actions__row">
+    <div class="modal__footer" style="flex-direction:column;gap:10px;">
+      <div style="display:flex;gap:8px;width:100%;">
         <button class="btn btn--outline" id="btnPdfQr"><i class="fa-solid fa-qrcode"></i> QR Download</button>
         <button class="btn btn--outline" id="btnPdfShare"><i class="fa-solid fa-share-nodes"></i> Share PDF</button>
       </div>
-      <button class="btn btn--ghost" id="btnPdfActionCancel">Close</button>
+      <div style="display:flex;gap:8px;width:100%;">
+        <button class="btn btn--ghost" id="btnPdfActionCancel">Close</button>
+        <button class="btn btn--primary" id="btnPdfDownload"><i class="fa-solid fa-download"></i> Download PDF</button>
+      </div>
     </div>
   </div>
 </div>
@@ -3418,7 +3415,8 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
       <p class="invoice-qr-caption" id="invoiceQrStatus">Scan this QR code to download the invoice.</p>
     </div>
     <div class="modal__footer">
-      <button class="btn btn--primary" id="btnInvoiceQrClose"><i class="fa-solid fa-check"></i> Done</button>
+      <button class="btn btn--ghost" id="btnInvoiceQrClose"> Close</button>
+      <button class="btn btn--primary" id="btnInvoiceQrDone"><i class="fa-solid fa-check"></i> Done</button>
     </div>
   </div>
 </div>
@@ -3909,6 +3907,7 @@ function cacheElements(){
   el.invoiceQrNumber = document.getElementById('invoiceQrNumber');
   el.invoiceQrStatus = document.getElementById('invoiceQrStatus');
   el.btnInvoiceQrClose = document.getElementById('btnInvoiceQrClose');
+  el.btnInvoiceQrDone = document.getElementById('btnInvoiceQrDone');
   el.productModalOverlay = document.getElementById('productModalOverlay');
   el.modalTitle = document.getElementById('modalTitle');
   el.btnCancelProduct = document.getElementById('btnCancelProduct');
@@ -8812,7 +8811,8 @@ function bindEvents(){
   el.btnPdfDownload.addEventListener('click', downloadPdfBlob);
   el.btnPdfShare.addEventListener('click', sharePdfBlob);
   el.btnPdfQr.addEventListener('click', () => openInvoiceQr(state.invoiceNumber));
-  el.btnInvoiceQrClose.addEventListener('click', () =>{closeInvoiceQr();closePdfActionModal();});
+  el.btnInvoiceQrDone.addEventListener('click', () =>{closeInvoiceQr();closePdfActionModal();});
+  el.btnInvoiceQrClose.addEventListener('click', () =>{closeInvoiceQr();});
   el.btnPdfActionCancel.addEventListener('click', closePdfActionModal);
   el.btnDownloadFromPreview.addEventListener('click', handlePreviewDownload);
   el.btnClosePreviewModal.addEventListener('click', closePreviewModal);
