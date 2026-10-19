@@ -52,10 +52,10 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
 .state p{margin:0;color:var(--muted);font-size:14.5px;line-height:1.55;max-width:300px;}
 
 /* ---------- invoice card (loading / ready / generating / success / error) ---------- */
-.card-stage{position:relative;display:flex;align-items:center;justify-content:center;padding:10px;}
-.invoice-card{position:relative;width:168px;height:206px;background:#fff;border-radius:18px;border:1px solid var(--line);box-shadow: 0 3px 10px rgba(1, 37, 135, 0.12);overflow:hidden;flex:0 0 auto;}
+.card-stage{position:relative;display:flex;align-items:center;justify-content:center;padding:8px;}
+.invoice-card{position:relative;width:145px;height:185px;background:#fff;border-radius:18px;border:1px solid var(--line);box-shadow: 0 3px 10px rgba(1, 37, 135, 0.12);overflow:hidden;flex:0 0 auto;}
 .invoice-card__top{position:absolute;top:0;left:0;right:0;height:14px;background:var(--primary);border-radius:18px 18px 0 0;}
-.invoice-card__body{position:absolute;inset:28px 18px 18px 18px;display:flex;flex-direction:column;gap:11px;}
+.invoice-card__body{position:absolute;inset:28px 18px 18px 18px;display:flex;flex-direction:column;gap:10px;}
 .skel{height:7px;border-radius:4px;background:var(--surface);border:1px solid var(--line);}
 .skel--a{width:72%;margin-top:20px;}
 .skel--b{width:88%;}
@@ -65,12 +65,15 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
 .invoice-pill{position:absolute;top:22px;right:14px;display:flex;align-items:center;gap:5px;background:var(--primary);color:#fff;font-size:10px;font-weight:700;letter-spacing:.04em;padding:5px 9px;border-radius:999px;z-index:2;}
 .invoice-pill i{font-size:9px;}
 
-.card-badge{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:60px;height:60px;border-radius:50%;background:var(--paper);border:3px solid #fff;display:grid;place-items:center;color:#fff;font-size:24px;z-index:3;}
+.card-badge{position:absolute;left:50%;top:53.5%;transform:translate(-50%,-50%);width:60px;height:60px;border-radius:50%;background:var(--paper);border:3px solid #fff;display:grid;place-items:center;color:#fff;font-size:24px;z-index:3;}
 .card-badge--anim{background:var(--primary);}
 .card-badge--success{background:var(--success);}
 .card-badge--error{background:var(--error);}
 .card-badge--percent{width:75px;height:50px;min-width:0;border-radius:14px;color:var(--primary);font-weight:800;font-size:20px;padding:8px 13px;border:2px solid var(--primary);background:var(--paper)}
 .card-badge--search{
+  width:50px;
+  height:50px;
+  font-size:20px;
   background:#ff9700;
   animation:searchFloat 2s ease-in-out infinite;
   overflow:visible;
@@ -98,7 +101,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
 }
 
 /* ---------- circular progress ring (generating state) ---------- */
-.ring-wrap{position:relative;width:300px;height:300px;display:flex;align-items:center;justify-content:center;}
+.ring-wrap{position:relative;width:280px;height:280px;display:flex;align-items:center;justify-content:center;}
 .ring-wrap svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);}
 .ring-track{fill:none;stroke:var(--surface);stroke-width:6;}
 .ring-progress{fill:none;stroke:var(--primary);stroke-width:6;stroke-linecap:round;stroke-dasharray:691.15;stroke-dashoffset:691.15;transition:stroke-dashoffset .12s linear;}
@@ -111,11 +114,11 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
 .copy-btn.copied{color:var(--success);}
 
 /* ---------- buttons ---------- */
-.customer-btn{border:0;border-radius:11px;background:var(--primary);color:#fff;font-weight:600;padding:13px 22px;cursor:pointer;min-width:180px;display:inline-flex;align-items:center;justify-content:center;gap:9px;font-size:14.5px;transition:transform .12s ease,background .15s ease;}
+.customer-btn{margin-top:12px; border:0;border-radius:11px;background:var(--primary);color:#fff;font-weight:600;padding:13px 22px;cursor:pointer;min-width:180px;display:inline-flex;align-items:center;justify-content:center;gap:9px;font-size:14.5px;transition:transform .12s ease,background .15s ease;}
 .customer-btn:active{transform:translateY(1px) scale(.99);}
 
 /* ---------- info box ---------- */
-.info-box{box-shadow: 0 3px 10px rgba(1, 37, 135, 0.12);display:flex;align-items:center;gap:8px;text-align:left;background:#EEF2FC;border:1px solid #DCE4F7;border-radius:12px;padding:12px 14px;font-size:13px;color:var(--muted);max-width:290px;}
+.info-box{margin-top:8px; box-shadow: 0 3px 10px rgba(1, 37, 135, 0.12);display:flex;align-items:center;gap:8px;text-align:left;background:#EEF2FC;border:1px solid #DCE4F7;border-radius:12px;padding:12px 14px;font-size:13px;color:var(--muted);max-width:290px;}
 .info-box strong{display:block;color:var(--ink);font-weight:700;margin-bottom:4px;}
 .info-box--success{background:#E9F7EF;border-color:#CDEBD9;}
 .info-icon{font-size:20px;color:var(--primary);}
@@ -332,39 +335,72 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
     const m=String(value).trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
     return m?m[3]+'-'+m[2]+'-'+m[1]:String(value);
   }
-  async function loadConfig(){
-    const r=await fetch('./config.json',{cache:'no-store'}); if(!r.ok)throw new Error('config'); CONFIG=await r.json(); InvoiceEngine.configure(CONFIG);
+  const TIMEOUT_MS=15000;
+  function codedError(code,msg){const e=new Error(msg);e.code=code;return e;}
+
+  /* fetch with a hard time limit. Any connection failure or timeout becomes a NETWORK_ERROR. */
+  async function timedFetch(url,opts){
+    if(navigator.onLine===false)throw codedError('NETWORK_ERROR','No internet connection.');
+    const ctrl=new AbortController();
+    const outer=opts&&opts.signal;
+    if(outer){ if(outer.aborted)ctrl.abort(); else outer.addEventListener('abort',()=>ctrl.abort(),{once:true}); }
+    let timedOut=false;
+    const timer=setTimeout(()=>{timedOut=true;ctrl.abort();},TIMEOUT_MS);
+    try{
+      return await fetch(url,Object.assign({},opts,{signal:ctrl.signal}));
+    }catch(e){
+      throw codedError('NETWORK_ERROR',timedOut?'The request timed out.':'Network connection failed.');
+    }finally{
+      clearTimeout(timer);
+    }
   }
+
+  async function loadConfig(){
+    const r=await timedFetch('./config.json',{cache:'no-store'});
+    if(!r.ok)throw codedError('CONFIG_ERROR','Configuration file is not available.');
+    let json;
+    try{json=await r.json();}catch(e){throw codedError('CONFIG_ERROR','Configuration file is invalid.');}
+    if(!json||!json.supabase||!json.supabase.url||!json.supabase.anonKey)throw codedError('CONFIG_ERROR','Configuration is incomplete.');
+    CONFIG=json;
+    try{InvoiceEngine.configure(CONFIG);}catch(e){throw codedError('CONFIG_ERROR','Configuration could not be applied.');}
+  }
+
   async function loadInvoice(){
     const token=getToken();
-    if(!token){
-      const err=new Error('This invoice link is missing the secure token.');
-      err.code='MISSING_TOKEN';
-      throw err;
+    if(!token)throw codedError('MISSING_TOKEN','This invoice link is missing the secure token.');
+
+    if(!CONFIG)await loadConfig(); /* throws NETWORK_ERROR or CONFIG_ERROR */
+
+    if(typeof supabase==='undefined'||!supabase.createClient){
+      /* Supabase library comes from a CDN: if it is missing, the network is the usual cause */
+      throw codedError(navigator.onLine===false?'NETWORK_ERROR':'CONFIG_ERROR','Supabase library did not load.');
     }
 
+    let netFailed=false;
+    const client=supabase.createClient(CONFIG.supabase.url,CONFIG.supabase.anonKey,{
+      auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},
+      global:{fetch:async(url,opts)=>{
+        try{return await timedFetch(url,opts);}
+        catch(e){netFailed=true;throw e;}
+      }}
+    });
+
+    let result;
     try{
-      if(!CONFIG)await loadConfig();
-    }catch(err){
-      err.code='NETWORK_ERROR';
-      err.message='We could not load the invoice settings right now.';
-      throw err;
+      result=await client.rpc('get_public_invoice',{p_token:token});
+    }catch(e){
+      throw codedError('NETWORK_ERROR','Network connection failed.');
     }
-
-    const client=supabase.createClient(CONFIG.supabase.url,CONFIG.supabase.anonKey,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
-    const {data,error}=await client.rpc('get_public_invoice',{p_token:token});
+    const {data,error}=result;
 
     if(error){
-      const err=new Error(error.message || 'Unable to verify this invoice link.');
-      err.code='NETWORK_ERROR';
-      throw err;
+      if(netFailed||/failed to fetch|network|timed out|abort|load failed/i.test(error.message||''))
+        throw codedError('NETWORK_ERROR',error.message||'Network connection failed.');
+      /* Server answered but with an error (config/db/permission problem) */
+      throw codedError('SERVER_ERROR',error.message||'Server error.');
     }
 
-    if(!data){
-      const err=new Error('This invoice link is invalid, expired, or no longer available.');
-      err.code='INVALID_INVOICE';
-      throw err;
-    }
+    if(!data)throw codedError('INVALID_INVOICE','This invoice link is invalid, expired, or no longer available.');
 
     invoiceData={
       invoiceNumber:data.invoice_no||'AUTO',
@@ -526,9 +562,14 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
       if(title)title.textContent='Link is incomplete';
       if(message)message.textContent='The invoice link is missing details. Please open the full link again.';
       if(retry)retry.innerHTML='<i class="fa-solid fa-arrow-rotate-left"></i>Rescan QR Code';
+    }else if(code==='NETWORK_ERROR'){
+      if(title)title.textContent='Network error';
+      if(message)message.textContent='Please check your internet connection and try again.';
+      if(retry)retry.innerHTML='<i class="fa-solid fa-arrow-rotate-left"></i>Retry';
     }else{
+      /* CONFIG_ERROR, SERVER_ERROR and anything unexpected */
       if(title)title.textContent='Unable to open invoice';
-      if(message)message.textContent='We could not verify this invoice right now. Please try again.';
+      if(message)message.textContent='We could not open this invoice right now. Please contact JAS Tech for support.';
       if(retry)retry.innerHTML='<i class="fa-solid fa-arrow-rotate-left"></i>Retry';
     }
 
@@ -542,7 +583,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
       await loadInvoice();
     }catch(err){
       console.error(err);
-      setErrorState(err.code === 'INVALID_INVOICE' ? 'INVALID_INVOICE' : err.code === 'MISSING_TOKEN' ? 'MISSING_TOKEN' : 'NETWORK_ERROR');
+      setErrorState(['INVALID_INVOICE','MISSING_TOKEN','NETWORK_ERROR','CONFIG_ERROR','SERVER_ERROR'].includes(err.code)?err.code:'SERVER_ERROR');
     }
   }
 
@@ -551,10 +592,11 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
   $('btnRetry').addEventListener('click',()=>{
     /* Download / network problems: really retry. Bad or missing link: go back. */
     if(lastErrorCode==='DOWNLOAD_ERROR'&&invoiceData)downloadInvoice();
-    else if(lastErrorCode==='NETWORK_ERROR')start();
+    else if(lastErrorCode==='NETWORK_ERROR'||lastErrorCode==='CONFIG_ERROR'||lastErrorCode==='SERVER_ERROR')start();
     else handleDone();
   });
   $('btnDone').addEventListener('click',handleDone);
+  window.addEventListener('online',()=>{if(lastErrorCode==='NETWORK_ERROR'&&$('stateError')?.classList.contains('active'))start();});
   start();
 })();
 </script>
