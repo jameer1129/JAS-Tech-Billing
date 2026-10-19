@@ -56,7 +56,8 @@ create table if not exists public.profiles (
     check (
       status in ('pending', 'approved', 'rejected')
     ),
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  avatar_updated_at TIMESTAMPTZ DEFAULT NULL;
 );
 -- ROLE CONSTRAINT MIGRATION
 --

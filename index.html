@@ -47,6 +47,8 @@ if ('launchQueue' in window) {
 <link rel="icon" href="assets/icons/app-icon.png">
 <link rel="apple-touch-icon" href="assets/icons/app-icon.png">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.3.1/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js" defer></script>
 <style>
@@ -982,7 +984,7 @@ body.dark-theme #invoiceQrCanvas{filter: invert(1);}
 }
 .app-bar__brand{display:flex;align-items:center;gap:12px;}
 .app-bar__logo{height: 40px;width:40px;object-fit:contain;}
-.app-bar__title h1{margin:0;font-size:16px;letter-spacing:3px;font-weight:700;}
+.app-bar__title h1{margin:0;font-size:18px;letter-spacing:3px;font-weight:700;}
 .app-bar__title span{font-size:10.5px;opacity:.85;letter-spacing:.4px;}
 .app-bar__actions{display:flex;gap:8px;align-items:center;}
 .app-bar__icon-btn{
@@ -1010,8 +1012,8 @@ body.dark-theme #invoiceQrCanvas{filter: invert(1);}
   gap:8px;
   font-size:12px;
   background:rgba(255,255,255,.14);
-  padding:10px 13px;
-  border-radius:20px;
+  padding:8px 13px 8px 10px;
+  border-radius:26px;
   border:none;
   color:#fff;
   cursor:pointer;
@@ -1020,14 +1022,18 @@ body.dark-theme #invoiceQrCanvas{filter: invert(1);}
 .app-bar__user:hover{background:rgba(255,255,255,.24);}
 .app-bar__user:active{transform:scale(.97);}
 .app-bar__user i{opacity:.85;}
+.app-bar__user .app-bar__trigger-avatar{width:32px;height:32px;border-radius:50%;object-fit:cover;flex:0 0 32px;display:block;}
+.app-bar__user .app-bar__trigger-fallback{width:32px;height:32px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:0 0 32px;background:rgba(255,255,255,.16);font-size:17px;}
+.app-bar__user .app-bar__trigger-fallback[hidden]{display:none!important;}
 .app-bar__user b{
   font-weight:700;
-  max-width:180px;
+  max-width:150px;
   display:inline-block;
   overflow:hidden;
   text-overflow:ellipsis;
   white-space:nowrap;
   vertical-align:middle;
+  font-size:14px;
 }
 .app-bar__user .caret{font-size:10px;opacity:.7;margin-left:2px;}
 /* ---------- Account drawer (shared desktop + mobile) ---------- */
@@ -1110,6 +1116,19 @@ html.pop-open,body.pop-open{overflow:hidden!important;}
 }
 .drawer__user-avatar img + *{position:relative;z-index:1;}
 .drawer__user-avatar i{position:relative;z-index:1;}
+.drawer__user-avatar{cursor:pointer;border:0;padding:0;outline-offset:4px;}
+.drawer__user-avatar:focus-visible{outline:3px solid var(--primary-text);}
+.profile-avatar-actions{position:absolute;top:35px;left:50%;transform:translateX(-50%);width:150px;background:var(--surface);border:1.5px solid var(--line);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.18);z-index:250;padding:5px;overflow:hidden;animation:fadeIn .14s ease;}
+.profile-avatar-actions[hidden]{display:none!important;}
+.profile-avatar-actions button{width:100%;display:flex;align-items:center;gap:11px;padding:12px 11px;border:0;border-radius:8px;background:transparent;color:var(--text);font:600 13px "Roboto",sans-serif;text-align:left;cursor:pointer;}
+.profile-avatar-actions button[hidden]{display:none!important;}
+.profile-avatar-actions button:hover{background:var(--bg);}
+.profile-avatar-actions button i{width:17px;text-align:center;color:var(--primary-text);}
+.profile-avatar-actions button.danger{color:var(--danger);}
+.profile-avatar-actions button.danger i{color:var(--danger);}
+.drawer__profile{position:relative;}
+#profileAvatarInput{display:none;}
+
 
 .drawer__user-avatar::before {
   content: '';
@@ -1223,8 +1242,10 @@ body.dark-theme .drawer__footer{background:rgba(127, 127, 127, .08);}
 
 .feedback-counter{margin:6px 2px 0;text-align:right;font-size:12px;color:var(--muted);}
 .feedback-hint{margin:0 0 12px;font-size:13.5px;color:var(--muted);line-height:1.5;}
-@media(max-width:640px){.user-menu-wrap,.app-bar .theme-toggle{display:none;}
-.app-bar__hamburger{display:flex;}
+@media(max-width:640px){.user-menu-wrap{display:block;}.app-bar .theme-toggle{display:none;}
+.app-bar__user{padding:4px;border-radius:50%;width:40px;height:40px;justify-content:center;gap:0;background:rgba(255,255,255,.14);}
+.app-bar__user #appBarUserName,.app-bar__user .caret{display:none;}
+.app-bar__hamburger{display:none!important;}
 .app-bar{padding:12px 16px;}
 .app-bar__title h1{letter-spacing:2px;}
 }/* ---------- Secondary nav tabs ---------- */
@@ -2539,6 +2560,12 @@ body.dark-theme .admin-empty__icon::before{background:rgba(23,105,255,.14);}
   font-weight:450;
   text-transform:uppercase;
 }
+.user-row__avatar-img{
+  position:absolute;left:0;top:50%;transform:translateY(-50%);
+  width:46px;height:46px;border-radius:50%;object-fit:cover;
+  z-index:1;background:var(--surface);
+}
+.user-row__avatar-img[hidden]{display:none!important;}
 .user-row__info b{font-size:14px;line-height:1.25;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .user-row__info > span{font-size:12px;line-height:1.3;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .admin-user-list .user-row__actions{align-self:center;display:flex;align-items:center;flex:0 0 auto;}
@@ -2605,6 +2632,25 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
 #btnAdminUserFilter.is-clear:hover,#btnBillsFilterToggle.is-clear:hover{background:rgba(239,68,68,.08);}
 .date-custom-wrap,.date-picker,.date-picker__input{min-width:0;box-sizing:border-box;}
 .date-custom-wrap .date-picker,.date-custom-wrap .date-picker__input{width:100%;}
+
+/* ---------- Profile photo square crop modal ---------- */
+.profile-avatar-crop-overlay{position:fixed;inset:0;z-index:400;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(8,15,35,.72);backdrop-filter:blur(5px);}
+.profile-avatar-crop-overlay[hidden]{display:none!important;}
+.profile-avatar-crop-modal{width:min(100%,460px);max-height:92vh;overflow:auto;background:var(--surface);color:var(--text);border:1px solid var(--line);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.28);}
+.profile-avatar-crop-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 20px;border-bottom:1px solid var(--line);}
+.profile-avatar-crop-header h3{margin:0;font-size:16px;color:var(--primary-text);}
+.profile-avatar-crop-help{margin:0;padding:14px 20px 0;color:var(--muted);font-size:12.5px;line-height:1.5;}
+.profile-avatar-crop-stage{height:min(52vh,380px);min-height:220px;margin:14px 18px 8px;background:#151922;border-radius:12px;overflow:hidden;}
+.profile-avatar-crop-stage img{display:block;max-width:100%;max-height:100%;}
+.profile-avatar-crop-stage .cropper-view-box,.profile-avatar-crop-stage .cropper-face{border-radius:50%;}
+.profile-avatar-crop-stage .cropper-line,.profile-avatar-crop-stage .cropper-point{background-color:var(--primary);}
+.profile-avatar-crop-tools{display:flex;justify-content:center;gap:10px;padding:8px 18px 14px;}
+.profile-avatar-crop-tool{width:42px;height:38px;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--text);cursor:pointer;}
+.profile-avatar-crop-tool:hover{border-color:var(--primary-text);color:var(--primary-text);}
+.profile-avatar-crop-footer{display:flex;gap:10px;padding:0 18px 18px;}
+.profile-avatar-crop-footer .btn{flex:1;min-height:42px;}
+body.dark-theme .profile-avatar-crop-modal{background:var(--surface);}
+@media(max-width:480px){.profile-avatar-crop-overlay{padding:12px;}.profile-avatar-crop-modal{border-radius:14px;}.profile-avatar-crop-stage{height:46vh;min-height:200px;margin:12px 12px 6px;}.profile-avatar-crop-header{padding:15px 16px;}.profile-avatar-crop-help{padding:12px 16px 0;}.profile-avatar-crop-footer{padding:0 12px 14px;}}
 </style>
 <link rel="stylesheet" href="./invoice-engine.css?v=6">
 <script src="./invoice-engine.js?v=6"></script>
@@ -2924,7 +2970,7 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
     <div class="app-bar__actions">
       <div class="user-menu-wrap" id="userMenuWrap">
         <button class="app-bar__user" id="appBarUser" aria-label="Account menu" aria-haspopup="dialog" aria-expanded="false" aria-controls="appDrawer">
-          <i class="fa-regular fa-circle-user"></i> <b id="appBarUserName"></b> <i class="fa-solid fa-chevron-right caret"></i>
+          <span class="app-bar__trigger-fallback" id="appBarUserFallback" aria-hidden="true"><i class="fa-solid fa-user"></i></span><b id="appBarUserName"></b><i class="fa-solid fa-chevron-right caret"></i>
         </button>
       </div>
       <button class="app-bar__icon-btn app-bar__hamburger" id="btnDrawerOpen" aria-label="Open menu">
@@ -3440,7 +3486,12 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
 <div class="drawer" id="appDrawer" role="dialog" aria-modal="true" aria-label="Menu">
   <button class="drawer__close" id="btnDrawerClose" aria-label="Close menu"><i class="fa-solid fa-xmark"></i></button>
   <div class="drawer__profile">
-    <div class="drawer__user-avatar" id="drawerUserAvatar"><i class="fa-solid fa-user"></i></div>
+    <button class="drawer__user-avatar" id="drawerUserAvatar" type="button" aria-label="Change profile picture" aria-haspopup="true" aria-expanded="false"><i class="fa-solid fa-user"></i></button>
+    <div class="profile-avatar-actions" id="profileAvatarActions" role="menu" hidden>
+      <button type="button" id="btnUploadProfileAvatar" role="menuitem"><i class="fa-solid fa-arrow-up-from-bracket"></i><span>Upload image</span></button>
+      <button type="button" id="btnRemoveProfileAvatar" class="danger" role="menuitem"><i class="fa-regular fa-trash-can"></i><span>Remove DP</span></button>
+    </div>
+    <input type="file" id="profileAvatarInput" accept="image/jpeg,image/png,image/webp">
     <div class="drawer__user-info">
       <div class="drawer__user-name" id="drawerUserName"></div>
       <div class="drawer__user-role"><i class="fa-solid fa-user-tag"></i><span  id="drawerUserRole"></span></div>
@@ -3639,6 +3690,25 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
   <div id="pdfWrapper" class="pdf-wrapper-container">
     <div id="invoiceRoot" class="invoice-render"></div>
   </div>
+</div>
+
+<div class="profile-avatar-crop-overlay" id="profileAvatarCropOverlay" hidden>
+  <section class="profile-avatar-crop-modal" role="dialog" aria-modal="true" aria-labelledby="profileAvatarCropTitle">
+    <header class="profile-avatar-crop-header">
+      <h3 id="profileAvatarCropTitle"><i class="fa-solid fa-crop-simple"></i> Crop profile photo</h3>
+    </header>
+    <p class="profile-avatar-crop-help">Move the photo to reposition it. Drag the corners to adjust the square crop, or use zoom controls. Your profile picture will appear circular.</p>
+    <div class="profile-avatar-crop-stage"><img id="profileAvatarCropImage" alt="Crop your profile photo"></div>
+    <div class="profile-avatar-crop-tools" aria-label="Photo zoom controls">
+      <button type="button" class="profile-avatar-crop-tool" id="btnProfileAvatarZoomOut" title="Zoom out" aria-label="Zoom out"><i class="fa-solid fa-minus"></i></button>
+      <button type="button" class="profile-avatar-crop-tool" id="btnProfileAvatarZoomIn" title="Zoom in" aria-label="Zoom in"><i class="fa-solid fa-plus"></i></button>
+      <button type="button" class="profile-avatar-crop-tool" id="btnProfileAvatarRotate" title="Rotate photo" aria-label="Rotate photo"><i class="fa-solid fa-rotate-right"></i></button>
+    </div>
+    <footer class="profile-avatar-crop-footer">
+      <button type="button" class="btn btn--ghost" id="btnCancelProfileAvatarCrop">Cancel</button>
+      <button type="button" class="btn btn--primary" id="btnSaveProfileAvatarCrop"><i class="fa-solid fa-check"></i> Save photo</button>
+    </footer>
+  </section>
 </div>
 <script>
 // html2pdf.js (~700KB) is only needed when a user actually exports/prints an
@@ -3999,6 +4069,10 @@ function cacheElements(){
   el.drawerUserName = document.getElementById('drawerUserName');
   el.drawerUserRole = document.getElementById('drawerUserRole');
   el.drawerUserAvatar = document.getElementById('drawerUserAvatar');
+  el.profileAvatarActions = document.getElementById('profileAvatarActions');
+  el.profileAvatarInput = document.getElementById('profileAvatarInput');
+  el.btnUploadProfileAvatar = document.getElementById('btnUploadProfileAvatar');
+  el.btnRemoveProfileAvatar = document.getElementById('btnRemoveProfileAvatar');
   el.drawerThemeLabel = document.getElementById('drawerThemeLabel');
   el.drawerThemeSubtitle = document.getElementById('drawerThemeSubtitle');
   el.drawerLogout = document.getElementById('drawerLogout');
@@ -5869,7 +5943,7 @@ async function handleLogout(){
 async function fetchOwnProfile(){
   const { data, error } = await supabaseClient
     .from('profiles')
-    .select('id,name,email,role,status')
+    .select('id,name,email,role,status,avatar_updated_at')
     .eq('id', currentSession.user.id)
     .single();
   if (error) {
@@ -5911,7 +5985,41 @@ function clearCachedProfile(userId){
 // unlike enterApp(), it never touches the current view/draft, so it's safe
 // to call after a background reverify without disturbing anything the user
 // is already doing on the optimistically-rendered screen.
+function refreshAppBarAvatar(){
+  const button = el.appBarUser;
+  if (!button) return;
+  const userMeta = currentSession?.user?.user_metadata || {};
+  const avatarUrl = getProfileAvatarUrl()
+    || (currentProfile?.avatar_updated_at ? '' : (userMeta.profile_avatar_removed ? '' : (userMeta.avatar_url || userMeta.picture || '')));
+  const existing = button.querySelector('.app-bar__trigger-avatar');
+  const fallback = document.getElementById('appBarUserFallback');
+  if (!avatarUrl) {
+    existing?.remove();
+    if (fallback) fallback.hidden = false;
+    return;
+  }
+  if (existing?.src === avatarUrl) {
+    if (fallback) fallback.hidden = true;
+    return;
+  }
+  const img = document.createElement('img');
+  img.className = 'app-bar__trigger-avatar';
+  img.src = avatarUrl;
+  img.alt = '';
+  img.referrerPolicy = 'no-referrer';
+  img.addEventListener('error', () => {
+    img.remove();
+    if (fallback) fallback.hidden = false;
+  }, { once: true });
+  img.addEventListener('load', () => {
+    if (fallback) fallback.hidden = true;
+  }, { once: true });
+  if (existing) existing.replaceWith(img);
+  else button.insertBefore(img, button.firstChild);
+  if (fallback) fallback.hidden = true;
+}
 function refreshAppChromeFromProfile(){
+  refreshAppBarAvatar();
   const fullName = currentProfile.name || currentProfile.email || '';
   el.appBarUserName.textContent = truncateText(fullName, 20);
   el.appBarUserName.setAttribute('title', fullName);
@@ -6047,6 +6155,7 @@ async function handlePendingRefresh(){
   }
 }
 function enterApp(){
+  refreshAppBarAvatar();
   // Re-sync now that currentSession is known, so the account-scoped
   // jas_pref_* keys (see prefKeyFor) are read instead of whatever the
   // pre-login boot-time sync picked up before any account was known.
@@ -7449,19 +7558,46 @@ function getUserAvatarColor(user){
   return colors[Math.abs(hash) % colors.length];
 }
 
+// Use the exact same canonical timestamp format for the Storage filename
+// and profiles.avatar_updated_at. Both values come from the same ISO timestamp.
+function getAvatarObjectName(timestamp){
+  if (!timestamp) return '';
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toISOString().replace('T', ' ').replace('Z', '+00');
+}
+function getProfileAvatarUrl(profile = currentProfile){
+  const timestamp = profile?.avatar_updated_at;
+  const userId = profile?.id || currentSession?.user?.id;
+  if (!timestamp || !userId || !supabaseClient) return '';
+  const objectName = getAvatarObjectName(timestamp);
+  if (!objectName) return '';
+  const { data } = supabaseClient.storage.from('profile-avatars').getPublicUrl(`${userId}/${objectName}`);
+  return data?.publicUrl ? `${data.publicUrl}?v=${encodeURIComponent(String(timestamp))}` : '';
+}
+
 // One shared user-row renderer is used by both Pending Users and All Users.
-// User avatars intentionally never use profile pictures here: every user gets
-// one letter with a stable color derived from that user's id.
+// Only request an avatar when profiles.avatar_updated_at is present.
 function renderUserRow(user, { isSelf = false, showActions = false } = {}){
   const letter = getUserAvatarLetter(user);
   const avatarColor = getUserAvatarColor(user);
   const name = user?.name || user?.email || '';
+  const avatarUpdatedAt = user?.avatar_updated_at;
+  const avatarUrl = avatarUpdatedAt && user?.id && supabaseClient
+    ? (() => {
+        const objectName = getAvatarObjectName(avatarUpdatedAt);
+        const objectPath = `${user.id}/${objectName}`;
+        const { data } = supabaseClient.storage.from('profile-avatars').getPublicUrl(objectPath);
+        return data?.publicUrl || '';
+      })()
+    : '';
   const role = user?.role || '';
   const status = user?.status || '';
 
   return `
     <div class="user-row" data-id="${escapeHtml(user.id || '')}" data-role="${escapeHtml(role)}" data-status="${escapeHtml(status)}">
       <div class="user-row__info" data-initial="${escapeHtml(letter)}" style="--user-avatar-bg:${avatarColor};">
+        ${avatarUrl ? `<img class="user-row__avatar-img" src="${escapeHtml(avatarUrl)}?v=${encodeURIComponent(String(avatarUpdatedAt))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}
         <b>${escapeHtml(name)} ${isSelf ? '<span style="color:var(--muted);font-weight:500;">(you)</span>' : ''}</b>
         <span>${escapeHtml(user?.email || '')}</span>
         <div class="admin-user-badges">
@@ -7525,7 +7661,7 @@ async function loadAllUsers(resetToFirstPage = false){
   const runQuery = () => {
     let query = supabaseClient
       .from('profiles')
-      .select('id,name,email,role,status,created_at', { count: 'exact' });
+      .select('id,name,email,role,status,created_at,avatar_updated_at', { count: 'exact' });
     if (term) {
       const safeTerm = term.replace(/[,()]/g, ' ').trim();
       query = query.or(`name.ilike.%${safeTerm}%,email.ilike.%${safeTerm}%`);
@@ -8015,28 +8151,208 @@ function handleTableClick(e){
   if(btn.dataset.action === 'edit') editProduct(id);
   else if(btn.dataset.action === 'delete') requestDeleteProduct(id);
 }
+function closeProfileAvatarActions(){
+  if (el.profileAvatarActions) el.profileAvatarActions.hidden = true;
+  if (el.drawerUserAvatar) el.drawerUserAvatar.setAttribute('aria-expanded','false');
+}
+function toggleProfileAvatarActions(){
+  if (!el.profileAvatarActions || !el.drawerUserAvatar) return;
+  const opening = el.profileAvatarActions.hidden;
+  el.profileAvatarActions.hidden = !opening;
+  el.drawerUserAvatar.setAttribute('aria-expanded', String(opening));
+}
+function getProfileAvatarPath(){
+  return currentSession?.user?.user_metadata?.profile_avatar_path || '';
+}
+let profileAvatarCropper = null;
+let profileAvatarCropFile = null;
+function closeProfileAvatarCropper(){
+  const overlay = document.getElementById('profileAvatarCropOverlay');
+  if (profileAvatarCropper) { profileAvatarCropper.destroy(); profileAvatarCropper = null; }
+  if (overlay) overlay.hidden = true;
+  const image = document.getElementById('profileAvatarCropImage');
+  if (image) image.removeAttribute('src');
+  profileAvatarCropFile = null;
+}
+function openProfileAvatarCropper(file){
+  if (!window.Cropper) {
+    showToast('Image crop tool could not load. Check your internet connection and try again.', 'error', 6000);
+    return;
+  }
+  const overlay = document.getElementById('profileAvatarCropOverlay');
+  const image = document.getElementById('profileAvatarCropImage');
+  if (!overlay || !image) return;
+  closeProfileAvatarCropper();
+  profileAvatarCropFile = file;
+  overlay.hidden = false;
+  document.documentElement.classList.add('pop-open');
+  image.onload = () => {
+    profileAvatarCropper = new Cropper(image, {
+      aspectRatio: 1,
+      viewMode: 1,
+      dragMode: 'move',
+      autoCropArea: 0.88,
+      responsive: true,
+      restore: false,
+      guides: true,
+      center: true,
+      highlight: false,
+      cropBoxMovable: true,
+      cropBoxResizable: true,
+      toggleDragModeOnDblclick: false,
+      background: false,
+      minCropBoxWidth: 80,
+      minCropBoxHeight: 80
+    });
+  };
+  image.onerror = () => {
+    closeProfileAvatarCropper();
+    document.documentElement.classList.remove('pop-open');
+    showToast('Could not open this image. Please choose another one.', 'error');
+  };
+  image.src = URL.createObjectURL(file);
+}
+async function handleProfileAvatarUpload(file){
+  if (!file) return;
+  if (!currentSession?.user?.id || !supabaseClient) {
+    showToast('Please sign in again to change your profile picture.', 'error'); return;
+  }
+  if (!['image/jpeg','image/png','image/webp'].includes(file.type)) {
+    showToast('Choose a JPG, PNG, or WebP image.', 'error'); return;
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    showToast('Profile pictures must be 5 MB or smaller.', 'error'); return;
+  }
+  openProfileAvatarCropper(file);
+}
+async function saveCroppedProfileAvatar(){
+  if (!profileAvatarCropper || !profileAvatarCropFile) return;
+  const saveBtn = document.getElementById('btnSaveProfileAvatarCrop');
+  if (saveBtn?.disabled) return;
+  const sourceType = profileAvatarCropFile.type;
+  const outputType = sourceType === 'image/png' ? 'image/png' : 'image/jpeg';
+  const canvas = profileAvatarCropper.getCroppedCanvas({
+    width: 512, height: 512, minWidth: 256, minHeight: 256,
+    maxWidth: 1024, maxHeight: 1024, imageSmoothingEnabled: true,
+    imageSmoothingQuality: 'high', fillColor: '#ffffff'
+  });
+  if (!canvas) { showToast('Could not crop this image. Please try again.', 'error'); return; }
+  const croppedBlob = await new Promise(resolve => canvas.toBlob(resolve, outputType, outputType === 'image/jpeg' ? 0.92 : undefined));
+  if (!croppedBlob) { showToast('Could not prepare the cropped image.', 'error'); return; }
+  const file = new File([croppedBlob], `avatar.${outputType === 'image/png' ? 'png' : 'jpg'}`, {type:outputType, lastModified:Date.now()});
+  closeProfileAvatarCropper();
+  document.documentElement.classList.remove('pop-open');
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving…'; }
+  if (!currentSession?.user?.id || !supabaseClient) {
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '<i class="fa-solid fa-check"></i> Save photo'; }
+    showToast('Please sign in again to change your profile picture.', 'error'); return;
+  }
+  const userId = currentSession.user.id;
+  const avatarUpdatedAt = new Date().toISOString();
+  const avatarObjectName = getAvatarObjectName(avatarUpdatedAt);
+  const path = `${userId}/${avatarObjectName}`;
+  const bucket = supabaseClient.storage.from('profile-avatars');
+  const oldPath = getProfileAvatarPath();
+  showActionLoader('Uploading profile picture…');
+  try {
+    const { error: uploadError } = await bucket.upload(path, file, {upsert:true, contentType:file.type, cacheControl:'0'});
+    if (uploadError) throw uploadError;
+    const { data: publicData } = bucket.getPublicUrl(path);
+    const avatarUrl = `${publicData.publicUrl}${publicData.publicUrl.includes('?') ? '&' : '?'}v=${Date.now()}`;
+    const { error: profilePathError } = await supabaseClient
+      .from('profiles')
+      .update({ avatar_updated_at: avatarUpdatedAt })
+      .eq('id', userId);
+    if (profilePathError) throw profilePathError;
+    if (currentProfile) {
+      currentProfile = { ...currentProfile, avatar_updated_at: avatarUpdatedAt };
+      saveCachedProfile(currentProfile);
+    }
+
+    const { data, error: updateError } = await supabaseClient.auth.updateUser({
+      data: { profile_avatar_url:avatarUrl, profile_avatar_path:path, profile_avatar_removed:false }
+    });
+    if (updateError) throw updateError;
+    if (data?.user) currentSession = {...currentSession, user:data.user};
+    if (oldPath && oldPath !== path) {
+      const {error} = await bucket.remove([oldPath]);
+      if (error) console.warn('Old profile picture cleanup failed:', error);
+    }
+    closeProfileAvatarActions(); openDrawer();
+    showToast('Profile picture updated.', 'success');
+  } catch (error) {
+    console.error('Profile picture upload failed:', error);
+    const message = error?.message || '';
+    showToast(message.toLowerCase().includes('bucket not found')
+      ? 'Create a public "profile-avatars" bucket in Supabase Storage first.'
+      : `Could not update profile picture${message ? ': ' + message : '.'}`, 'error', 6000);
+  } finally {
+    hideActionLoader();
+    const btn = document.getElementById('btnSaveProfileAvatarCrop');
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-check"></i> Save photo'; }
+  }
+}
+async function handleRemoveProfileAvatar(){
+  if (!currentSession?.user?.id || !supabaseClient) {
+    showToast('Please sign in again to change your profile picture.', 'error'); return;
+  }
+  const oldPath = getProfileAvatarPath();
+  showActionLoader('Removing profile picture…');
+  try {
+    const { error: profilePathError } = await supabaseClient
+      .from('profiles')
+      .update({ avatar_updated_at: null })
+      .eq('id', currentSession.user.id);
+    if (profilePathError) throw profilePathError;
+    if (currentProfile) {
+      currentProfile = { ...currentProfile, avatar_updated_at: null };
+      saveCachedProfile(currentProfile);
+    }
+
+    const {data, error} = await supabaseClient.auth.updateUser({
+      data:{profile_avatar_url:null, profile_avatar_path:null, profile_avatar_removed:true}
+    });
+    if (error) throw error;
+    if (data?.user) currentSession = {...currentSession, user:data.user};
+    closeProfileAvatarActions(); openDrawer();
+    if (oldPath) {
+      const {error:removeError} = await supabaseClient.storage.from('profile-avatars').remove([oldPath]);
+      if (removeError) console.warn('Profile picture cleanup failed:', removeError);
+    }
+    showToast('Profile picture removed.', 'success');
+  } catch (error) {
+    console.error('Profile picture removal failed:', error);
+    showToast(`Could not remove profile picture${error?.message ? ': ' + error.message : '.'}`, 'error', 6000);
+  } finally {
+    hideActionLoader();
+  }
+}
 function openDrawer(){
+  refreshAppBarAvatar();
   el.drawerUserName.textContent = currentProfile ? (currentProfile.name || currentProfile.email) : '';
   el.drawerUserRole.textContent = currentProfile ? currentProfile.role : '';
 
-  // Use the avatar supplied by Supabase Auth in the current session token.
-  // Google OAuth normally provides both avatar_url and picture; prefer avatar_url.
-  const avatarUrl = currentSession?.user?.user_metadata?.avatar_url
-    || currentSession?.user?.user_metadata?.picture
-    || '';
+  const userMeta = currentSession?.user?.user_metadata || {};
+  const avatarUrl = getProfileAvatarUrl()
+    || (currentProfile?.avatar_updated_at ? '' : (userMeta.profile_avatar_removed ? '' : (userMeta.avatar_url || userMeta.picture || '')));
+  if (el.btnRemoveProfileAvatar) el.btnRemoveProfileAvatar.hidden = !avatarUrl;
   if (el.drawerUserAvatar) {
     el.drawerUserAvatar.innerHTML = '';
     if (avatarUrl) {
       const img = document.createElement('img');
       img.src = avatarUrl;
-      img.alt = '';
+      img.alt = 'Profile picture';
       img.referrerPolicy = 'no-referrer';
       img.addEventListener('error', () => {
-        el.drawerUserAvatar.innerHTML = '<i class=\"fa-solid fa-user\"></i>';
+        el.drawerUserAvatar.innerHTML = '<i class="fa-solid fa-user"></i>';
+        if (el.btnRemoveProfileAvatar) el.btnRemoveProfileAvatar.hidden = true;
+      }, { once: true });
+      img.addEventListener('load', () => {
+        if (el.btnRemoveProfileAvatar) el.btnRemoveProfileAvatar.hidden = false;
       }, { once: true });
       el.drawerUserAvatar.appendChild(img);
     } else {
-      el.drawerUserAvatar.innerHTML = '<i class=\"fa-solid fa-user\"></i>';
+      el.drawerUserAvatar.innerHTML = '<i class="fa-solid fa-user"></i>';
     }
   }
   el.appDrawer.classList.add('open');
@@ -8624,6 +8940,29 @@ function bindEvents(){
       openChangePwForgotLogoutConfirm();
     });
   }
+  el.drawerUserAvatar.addEventListener('click', toggleProfileAvatarActions);
+  el.btnUploadProfileAvatar.addEventListener('click', () => {
+    closeProfileAvatarActions();
+    el.profileAvatarInput.value = '';
+    el.profileAvatarInput.click();
+  });
+  el.profileAvatarInput.addEventListener('change', async () => {
+    await handleProfileAvatarUpload(el.profileAvatarInput.files?.[0]);
+  });
+  const cropOverlay = document.getElementById('profileAvatarCropOverlay');
+  const cancelProfileCrop = () => { closeProfileAvatarCropper(); document.documentElement.classList.remove('pop-open'); };
+  document.getElementById('btnCancelProfileAvatarCrop')?.addEventListener('click', cancelProfileCrop);
+  document.getElementById('btnSaveProfileAvatarCrop')?.addEventListener('click', saveCroppedProfileAvatar);
+  document.getElementById('btnProfileAvatarZoomIn')?.addEventListener('click', () => profileAvatarCropper?.zoom(0.1));
+  document.getElementById('btnProfileAvatarZoomOut')?.addEventListener('click', () => profileAvatarCropper?.zoom(-0.1));
+  document.getElementById('btnProfileAvatarRotate')?.addEventListener('click', () => profileAvatarCropper?.rotate(90));
+  el.btnRemoveProfileAvatar.addEventListener('click', handleRemoveProfileAvatar);
+  document.addEventListener('click', event => {
+    if (!event.target.closest('#drawerUserAvatar') && !event.target.closest('#profileAvatarActions')) closeProfileAvatarActions();
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') closeProfileAvatarActions();
+  });
   el.btnDrawerOpen.addEventListener('click', openDrawer);
   el.btnDrawerClose.addEventListener('click', closeDrawer);
   el.drawerBackdrop.addEventListener('click', closeDrawer);
