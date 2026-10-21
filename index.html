@@ -111,7 +111,7 @@ to {opacity:0;transform:translateY(6px);}}
     modalFadeIn .22s ease-out both;
 }
 .modal-overlay:not(.closing),
-.date-picker__overlay:not(.closing){animation:backdropIn .4s ease both;}
+.date-picker__overlay:not(.closing){animation:backdropIn .45s ease both;}
 .modal-overlay.closing .modal,
 .date-picker__overlay.closing .date-picker__panel{
   animation:
@@ -119,7 +119,7 @@ to {opacity:0;transform:translateY(6px);}}
     modalFadeOut .34s linear both;
 }
 .modal-overlay.closing,
-.date-picker__overlay.closing{animation:backdropOut .38s ease both;}
+.date-picker__overlay.closing{animation:backdropOut .45s ease-in both;}
 }
 @keyframes modalSlideIn{from{transform:translateY(90px) scale(.96);}to{transform:none;}}
 @keyframes modalFadeIn{from{opacity:0;}to{opacity:1;}}
@@ -973,7 +973,7 @@ body.dark-theme #invoiceQrCanvas{filter: invert(1);}
   display:flex;
   align-items:center;
   justify-content:space-between;
-  padding:12px 22px;
+  padding:10px 22px;
   position:fixed;
   top:0;
   left:0;
@@ -1012,7 +1012,7 @@ body.dark-theme #invoiceQrCanvas{filter: invert(1);}
   gap:8px;
   font-size:12px;
   background:rgba(255,255,255,.14);
-  padding:8px 13px 8px 10px;
+  padding:4px 13px 4px 4px;
   border-radius:26px;
   border:none;
   color:#fff;
@@ -1022,8 +1022,8 @@ body.dark-theme #invoiceQrCanvas{filter: invert(1);}
 .app-bar__user:hover{background:rgba(255,255,255,.24);}
 .app-bar__user:active{transform:scale(.97);}
 .app-bar__user i{opacity:.85;}
-.app-bar__user .app-bar__trigger-avatar{width:32px;height:32px;border-radius:50%;object-fit:cover;flex:0 0 32px;display:block;}
-.app-bar__user .app-bar__trigger-fallback{width:32px;height:32px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:0 0 32px;background:rgba(255,255,255,.16);font-size:17px;}
+.app-bar__user .app-bar__trigger-avatar{width:36px;height:36px;border-radius:50%;object-fit:cover;flex:0 0 32px;display:block;}
+.app-bar__user .app-bar__trigger-fallback{width:36px;height:36px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:rgba(255,255,255,.16);font-size:17px;}
 .app-bar__user .app-bar__trigger-fallback[hidden]{display:none!important;}
 .app-bar__user b{
   font-weight:700;
@@ -1094,6 +1094,8 @@ html.pop-open,body.pop-open{overflow:hidden!important;}
 .drawer__user-avatar {
   width: 84px;
   height: 84px;
+}
+.user-avatar {
   border-radius: 50%;
   color: #fff;
   display: flex;
@@ -1106,6 +1108,7 @@ html.pop-open,body.pop-open{overflow:hidden!important;}
   overflow: hidden;   
   background: radial-gradient(circle at 35% 25%, #5C72FF 0%, #344CEB 45%, #2A3FB8 75%, #162270 100%);
 }
+
 .drawer__user-avatar img{
   position:relative;
   z-index:1;
@@ -1118,19 +1121,42 @@ html.pop-open,body.pop-open{overflow:hidden!important;}
 .drawer__user-avatar i{position:relative;z-index:1;}
 .drawer__user-avatar{cursor:pointer;border:0;padding:0;outline-offset:4px;}
 .drawer__user-avatar:focus-visible{outline:3px solid var(--primary-text);}
-.profile-avatar-actions{position:absolute;top:35px;left:50%;transform:translateX(-50%);width:150px;background:var(--surface);border:1.5px solid var(--line);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.18);z-index:250;padding:5px;overflow:hidden;animation:fadeIn .14s ease;}
-.profile-avatar-actions[hidden]{display:none!important;}
-.profile-avatar-actions button{width:100%;display:flex;align-items:center;gap:11px;padding:12px 11px;border:0;border-radius:8px;background:transparent;color:var(--text);font:600 13px "Roboto",sans-serif;text-align:left;cursor:pointer;}
-.profile-avatar-actions button[hidden]{display:none!important;}
-.profile-avatar-actions button:hover{background:var(--bg);}
-.profile-avatar-actions button i{width:17px;text-align:center;color:var(--primary-text);}
-.profile-avatar-actions button.danger{color:var(--danger);}
-.profile-avatar-actions button.danger i{color:var(--danger);}
+.drawer__user-avatar-edit {
+  position: absolute;
+  top: 96px;
+  left: calc(50% + 16px);
+  z-index: 3;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 3px solid var(--surface);
+  border-radius: 50%;
+  background: #012587;
+  color: #fff;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+.drawer__user-avatar-edit:active{transform:scale(.92);}
+.profile-avatar-modal{max-width:390px;}
+.profile-avatar-modal .modal__header{justify-content:space-between;text-align:left;padding:18px 20px 12px;}
+.profile-avatar-modal .modal__header h3{font-size:17px;color:var(--text);}
+.profile-avatar-modal__close{width:34px;height:34px;border:0;border-radius:50%;background:var(--surface);color:var(--muted);font-size:16px;cursor:pointer;}
+.profile-avatar-modal__body{align-items:center;padding:22px 20px 26px;gap:12px;}
+.profile-avatar-preview{width:190px;height:190px;max-width:65vw;max-height:65vw;border:4px solid var(--surface);box-shadow:0 0 0 1px var(--line);font-size:64px;}
+.profile-avatar-preview img{display:block;width:100%;height:100%;object-fit:cover;}
+.profile-avatar-modal__hint{margin:0;color:var(--muted);font-size:12.5px;text-align:center;line-height:1.5;}
+.profile-avatar-modal .modal__footer{border-top:1px solid var(--line);padding-top:14px;gap:10px;}
+.profile-avatar-modal .modal__footer .btn{flex:1;min-width:0;min-height:46px;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:600;white-space:nowrap;}
+.profile-avatar-modal .modal__footer .btn--ghost.btn--danger{background:transparent!important;color:var(--danger)!important;border:1.5px solid var(--danger)!important;}
+.profile-avatar-modal .modal__footer .btn--ghost.btn--danger:hover{background:rgba(220,38,38,.08)!important;}
+.profile-avatar-modal .modal__footer .btn[hidden]{display:none!important;}
 .drawer__profile{position:relative;}
 #profileAvatarInput{display:none;}
 
 
-.drawer__user-avatar::before {
+.user-avatar::before {
   content: '';
   position: absolute;
   top: 1px;
@@ -1243,10 +1269,10 @@ body.dark-theme .drawer__footer{background:rgba(127, 127, 127, .08);}
 .feedback-counter{margin:6px 2px 0;text-align:right;font-size:12px;color:var(--muted);}
 .feedback-hint{margin:0 0 12px;font-size:13.5px;color:var(--muted);line-height:1.5;}
 @media(max-width:640px){.user-menu-wrap{display:block;}.app-bar .theme-toggle{display:none;}
-.app-bar__user{padding:4px;border-radius:50%;width:40px;height:40px;justify-content:center;gap:0;background:rgba(255,255,255,.14);}
+.app-bar__user{padding:4px;}
 .app-bar__user #appBarUserName,.app-bar__user .caret{display:none;}
 .app-bar__hamburger{display:none!important;}
-.app-bar{padding:12px 16px;}
+.app-bar{padding:10px 16px;}
 .app-bar__title h1{letter-spacing:2px;}
 }/* ---------- Secondary nav tabs ---------- */
 .nav-tabs{
@@ -3482,15 +3508,28 @@ body.dark-theme .profile-avatar-crop-modal{background:var(--surface);}
     </div>
   </div>
 </div>
+<div class="modal-overlay hide" id="profileAvatarModalOverlay" role="presentation">
+  <div class="modal profile-avatar-modal" role="dialog" aria-modal="true" aria-labelledby="profileAvatarModalTitle">
+    <div class="modal__header">
+      <h3 id="profileAvatarModalTitle">Profile photo</h3>
+      <button type="button" class="profile-avatar-modal__close" id="btnCloseProfileAvatarModal" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal__body profile-avatar-modal__body">
+      <div class="profile-avatar-preview user-avatar" id="profileAvatarModalPreview"><i class="fa-solid fa-user"></i></div>
+      <p class="profile-avatar-modal__hint" id="profileAvatarModalHint">Your profile picture</p>
+    </div>
+    <div class="modal__footer">
+      <button type="button" class="btn btn--ghost btn--danger" id="btnRemoveProfileAvatar" aria-label="Remove profile photo"><i class="fa-regular fa-trash-can" aria-hidden="true"></i><span>Remove</span></button>
+      <button type="button" class="btn btn--primary" id="btnUploadProfileAvatar"><i class="fa-solid fa-arrow-up-from-bracket" aria-hidden="true"></i><span>Upload</span></button>
+    </div>
+  </div>
+</div>
 <div class="drawer-backdrop" id="drawerBackdrop"></div>
 <div class="drawer" id="appDrawer" role="dialog" aria-modal="true" aria-label="Menu">
   <button class="drawer__close" id="btnDrawerClose" aria-label="Close menu"><i class="fa-solid fa-xmark"></i></button>
   <div class="drawer__profile">
-    <button class="drawer__user-avatar" id="drawerUserAvatar" type="button" aria-label="Change profile picture" aria-haspopup="true" aria-expanded="false"><i class="fa-solid fa-user"></i></button>
-    <div class="profile-avatar-actions" id="profileAvatarActions" role="menu" hidden>
-      <button type="button" id="btnUploadProfileAvatar" role="menuitem"><i class="fa-solid fa-arrow-up-from-bracket"></i><span>Upload image</span></button>
-      <button type="button" id="btnRemoveProfileAvatar" class="danger" role="menuitem"><i class="fa-regular fa-trash-can"></i><span>Remove DP</span></button>
-    </div>
+    <button class="drawer__user-avatar user-avatar" id="drawerUserAvatar" type="button" aria-label="View profile picture" aria-haspopup="dialog"><i class="fa-solid fa-user"></i></button>
+    <div class="drawer__user-avatar-edit" id="drawerUserAvatarEdit"><i class="fa-solid fa-camera" aria-hidden="true"></i></div>
     <input type="file" id="profileAvatarInput" accept="image/jpeg,image/png,image/webp">
     <div class="drawer__user-info">
       <div class="drawer__user-name" id="drawerUserName"></div>
@@ -4069,7 +4108,9 @@ function cacheElements(){
   el.drawerUserName = document.getElementById('drawerUserName');
   el.drawerUserRole = document.getElementById('drawerUserRole');
   el.drawerUserAvatar = document.getElementById('drawerUserAvatar');
-  el.profileAvatarActions = document.getElementById('profileAvatarActions');
+  el.profileAvatarModalOverlay = document.getElementById('profileAvatarModalOverlay');
+  el.profileAvatarModalPreview = document.getElementById('profileAvatarModalPreview');
+  el.profileAvatarModalHint = document.getElementById('profileAvatarModalHint');
   el.profileAvatarInput = document.getElementById('profileAvatarInput');
   el.btnUploadProfileAvatar = document.getElementById('btnUploadProfileAvatar');
   el.btnRemoveProfileAvatar = document.getElementById('btnRemoveProfileAvatar');
@@ -5988,9 +6029,7 @@ function clearCachedProfile(userId){
 function refreshAppBarAvatar(){
   const button = el.appBarUser;
   if (!button) return;
-  const userMeta = currentSession?.user?.user_metadata || {};
-  const avatarUrl = getProfileAvatarUrl()
-    || (currentProfile?.avatar_updated_at ? '' : (userMeta.profile_avatar_removed ? '' : (userMeta.avatar_url || userMeta.picture || '')));
+  const avatarUrl = getProfileAvatarUrl();
   const existing = button.querySelector('.app-bar__trigger-avatar');
   const fallback = document.getElementById('appBarUserFallback');
   if (!avatarUrl) {
@@ -8152,14 +8191,35 @@ function handleTableClick(e){
   else if(btn.dataset.action === 'delete') requestDeleteProduct(id);
 }
 function closeProfileAvatarActions(){
-  if (el.profileAvatarActions) el.profileAvatarActions.hidden = true;
-  if (el.drawerUserAvatar) el.drawerUserAvatar.setAttribute('aria-expanded','false');
+  hideOverlay(el.profileAvatarModalOverlay);
+}
+function updateProfileAvatarModalPreview(){
+  if (!el.profileAvatarModalPreview) return;
+  const avatarUrl = currentProfile?.avatar_updated_at ? getProfileAvatarUrl() : '';
+  el.profileAvatarModalPreview.innerHTML = '';
+  if (avatarUrl) {
+    const img = document.createElement('img');
+    img.src = avatarUrl; img.alt = 'Current profile picture'; img.referrerPolicy = 'no-referrer';
+    img.addEventListener('error', () => {
+      img.remove();
+      el.profileAvatarModalPreview.innerHTML = '<i class="fa-solid fa-user"></i>';
+      if (el.profileAvatarModalHint) el.profileAvatarModalHint.textContent = 'No profile photo available';
+      if (el.btnRemoveProfileAvatar) el.btnRemoveProfileAvatar.hidden = true;
+    }, {once:true});
+    el.profileAvatarModalPreview.appendChild(img);
+    if (el.profileAvatarModalHint) el.profileAvatarModalHint.textContent = 'Your current profile picture';
+    if (el.btnRemoveProfileAvatar) el.btnRemoveProfileAvatar.hidden = false;
+  } else {
+    el.profileAvatarModalPreview.innerHTML = '<i class="fa-solid fa-user"></i>';
+    if (el.profileAvatarModalHint) el.profileAvatarModalHint.textContent = 'No profile photo yet. Upload one to personalize your account.';
+    if (el.btnRemoveProfileAvatar) el.btnRemoveProfileAvatar.hidden = true;
+  }
 }
 function toggleProfileAvatarActions(){
-  if (!el.profileAvatarActions || !el.drawerUserAvatar) return;
-  const opening = el.profileAvatarActions.hidden;
-  el.profileAvatarActions.hidden = !opening;
-  el.drawerUserAvatar.setAttribute('aria-expanded', String(opening));
+  // Close the navigation drawer first, then open the profile-photo modal.
+  closeDrawer();
+  updateProfileAvatarModalPreview();
+  showOverlay(el.profileAvatarModalOverlay);
 }
 function getProfileAvatarPath(){
   return currentSession?.user?.user_metadata?.profile_avatar_path || '';
@@ -8332,10 +8392,7 @@ function openDrawer(){
   el.drawerUserName.textContent = currentProfile ? (currentProfile.name || currentProfile.email) : '';
   el.drawerUserRole.textContent = currentProfile ? currentProfile.role : '';
 
-  const userMeta = currentSession?.user?.user_metadata || {};
-  const avatarUrl = getProfileAvatarUrl()
-    || (currentProfile?.avatar_updated_at ? '' : (userMeta.profile_avatar_removed ? '' : (userMeta.avatar_url || userMeta.picture || '')));
-  if (el.btnRemoveProfileAvatar) el.btnRemoveProfileAvatar.hidden = !avatarUrl;
+  const avatarUrl = getProfileAvatarUrl();
   if (el.drawerUserAvatar) {
     el.drawerUserAvatar.innerHTML = '';
     if (avatarUrl) {
@@ -8345,10 +8402,8 @@ function openDrawer(){
       img.referrerPolicy = 'no-referrer';
       img.addEventListener('error', () => {
         el.drawerUserAvatar.innerHTML = '<i class="fa-solid fa-user"></i>';
-        if (el.btnRemoveProfileAvatar) el.btnRemoveProfileAvatar.hidden = true;
       }, { once: true });
       img.addEventListener('load', () => {
-        if (el.btnRemoveProfileAvatar) el.btnRemoveProfileAvatar.hidden = false;
       }, { once: true });
       el.drawerUserAvatar.appendChild(img);
     } else {
@@ -8941,6 +8996,11 @@ function bindEvents(){
     });
   }
   el.drawerUserAvatar.addEventListener('click', toggleProfileAvatarActions);
+  document.getElementById('drawerUserAvatarEdit').addEventListener('click', toggleProfileAvatarActions);
+  document.getElementById('btnCloseProfileAvatarModal')?.addEventListener('click', closeProfileAvatarActions);
+  el.profileAvatarModalOverlay?.addEventListener('click', event => {
+    if (event.target === el.profileAvatarModalOverlay) closeProfileAvatarActions();
+  });
   el.btnUploadProfileAvatar.addEventListener('click', () => {
     closeProfileAvatarActions();
     el.profileAvatarInput.value = '';
@@ -8957,11 +9017,8 @@ function bindEvents(){
   document.getElementById('btnProfileAvatarZoomOut')?.addEventListener('click', () => profileAvatarCropper?.zoom(-0.1));
   document.getElementById('btnProfileAvatarRotate')?.addEventListener('click', () => profileAvatarCropper?.rotate(90));
   el.btnRemoveProfileAvatar.addEventListener('click', handleRemoveProfileAvatar);
-  document.addEventListener('click', event => {
-    if (!event.target.closest('#drawerUserAvatar') && !event.target.closest('#profileAvatarActions')) closeProfileAvatarActions();
-  });
   document.addEventListener('keydown', event => {
-    if (event.key === 'Escape') closeProfileAvatarActions();
+    if (event.key === 'Escape' && el.profileAvatarModalOverlay && !el.profileAvatarModalOverlay.classList.contains('hide')) closeProfileAvatarActions();
   });
   el.btnDrawerOpen.addEventListener('click', openDrawer);
   el.btnDrawerClose.addEventListener('click', closeDrawer);
