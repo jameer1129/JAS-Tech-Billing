@@ -6765,9 +6765,9 @@ function triggerPdfConfirmConfetti(customStage){
   // "Realistic Look" from canvas-confetti: several bursts mixed together.
   const mobile=window.innerWidth<640;
   const count=mobile?100:150;            // pieces
-  const sp=mobile?50/120:1;              // phones: widest spread (120) becomes 50
+  const sp=mobile?60:140;              // phones: widest spread (120) becomes 60
   const defaults={
-    origin:{ x:0.5, y:0.7 },
+    origin:{ x:0.5, y:0.6 },
     colors:['#012587','#F5B400','#FF6B57','#1F9254','#6C5CE7','#14919B'],
     zIndex:9999,                         // above modals and toasts
     disableForReducedMotion:true
@@ -6776,7 +6776,7 @@ function triggerPdfConfirmConfetti(customStage){
     confetti({
       ...defaults,
       ...opts,
-      spread: Math.round(opts.spread*sp),
+      spread: sp,
       particleCount: Math.floor(count*ratio)
     });
   }
