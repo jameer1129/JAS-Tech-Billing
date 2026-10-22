@@ -893,6 +893,23 @@ body.dark-theme .confirm-icon--info{background:rgba(1,37,135,.4);}
 @media(prefers-reduced-motion:reduce){.confirm-icon.confirm-icon,.confirm-icon.confirm-icon i{animation:none!important;}.confetti-piece{display:none;}}
 .modal--confirm p{margin:0;color:var(--muted);font-size:13.5px;line-height:1.5;}
 .modal--confirm .confirm-target{color:var(--primary-text);font-weight:700;overflow-wrap:anywhere;word-break:break-word;}
+/* ---------- Admin user info modal ---------- */
+.user-info-modal{max-width:430px; max-height:calc(100dvh - 32px);display:flex;flex-direction:column;overflow:hidden;}
+.user-info-modal .modal__body{flex:1 1 auto;min-height:0;overflow-y:auto; overscroll-behavior:contain;}
+.user-info-modal .modal__footer{padding:0 12px 12px;}
+.user-info-profile{display:flex;align-items:center;flex-direction:column;gap:10px;}
+.user-info-avatar{position:relative;width:76px;height:76px;flex:0 0 76px;border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--user-avatar-bg,#3F51B5);color:#fff;font-size:34px;font-weight:500;}
+.user-info-avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.user-info-name{font-size:16px;font-weight:700;text-align:center;overflow-wrap:anywhere;}
+.user-info-details{display:flex;flex-direction:column;gap:0;}
+.user-info-details>div{display:flex;flex-direction:column;align-items:stretch;gap:5px;padding:10px 0;border-top:1px solid var(--line);font-size:13px;min-width:0;}
+.user-info-details span{color:var(--primary-text);font-size:12px;font-weight:600;flex:none;}
+.user-info-details b{text-align:left;overflow-wrap:anywhere;word-break:break-word;font-weight:600;min-width:0;}
+.user-info-modal #userInfoTitle{display:flex;align-items:center;gap:8px;color:var(--primary-text);}
+.user-info-modal #userInfoTitle>i{color:var(--primary-text);}
+.user-info-details span i{width:15px;margin-right:5px;text-align:center;}
+.user-info-details b.badge{align-self:flex-start;text-align:left;overflow-wrap:anywhere;word-break:break-word;padding:0;border:0;border-radius:0;background:transparent!important;}
+.user-info-trigger{font-size:11px;}
 /* ---------- Confirm modal building blocks: chip, note, checklist ---------- */
 .confirm-note{font-weight:500; display:flex;align-items:flex-start;gap:6px;margin-top:6px;width:100%;padding:10px 12px;border:1px solid color-mix(in srgb, var(--primary-text) 26%, transparent);border-radius:var(--radius-sm);background:color-mix(in srgb, var(--primary) 10%, transparent);color:var(--primary-text);font-size:12px;line-height:1.5;text-align:left;}
 body.dark-theme .confirm-note{background: rgba(1, 37, 135, .4);}
@@ -3309,6 +3326,28 @@ body.dark-theme .profile-avatar-crop-modal{background:var(--surface);}
     </section>
   </main>
 </div>
+<div class="modal-overlay hide" id="userInfoModalOverlay" role="presentation">
+  <div class="modal user-info-modal" role="dialog" aria-modal="true" aria-labelledby="userInfoTitle">
+    <div class="modal__header"><h3 id="userInfoTitle"><i class="fa-solid fa-circle-user" aria-hidden="true"></i> User Info</h3></div>
+    <div class="modal__body">
+      <div class="user-info-profile">
+        <div class="user-info-avatar" id="userInfoAvatar" data-initial="?" aria-label="User avatar"></div>
+        <div class="user-info-name" id="userInfoName"></div>
+      </div>
+      <div class="user-info-details">
+        <div><span><i class="fa-solid fa-fingerprint" aria-hidden="true"></i> User ID</span><b id="userInfoId"></b></div>
+        <div><span><i class="fa-solid fa-envelope" aria-hidden="true"></i> Email</span><b id="userInfoEmail"></b></div>
+        <div><span><i class="fa-solid fa-calendar-plus" aria-hidden="true"></i> Profile Created</span><b id="userInfoCreated"></b></div>
+        <div><span><i class="fa-solid fa-clock" aria-hidden="true"></i> Last Sign-in</span><b id="userInfoLastSignIn">Loading…</b></div>
+        <div><span><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Role</span><b id="userInfoRole"></b></div>
+        <div><span><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Status</span><b id="userInfoStatus"></b></div>
+      </div>
+    </div>
+    <div class="modal__footer">
+      <button type="button" class="btn btn--primary" id="btnUserInfoDone"><i class="fa-solid fa-xmark" aria-hidden="true"></i> Close</button>
+    </div>
+  </div>
+</div>
 <div class="modal-overlay hide" id="productModalOverlay">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div class="modal__header">
@@ -4160,6 +4199,16 @@ function cacheElements(){
   el.allUsersLoading = document.getElementById('allUsersLoading');
   el.allUsersEmpty = document.getElementById('allUsersEmpty');
   el.allUsersList = document.getElementById('allUsersList');
+  el.userInfoModalOverlay = document.getElementById('userInfoModalOverlay');
+  el.userInfoAvatar = document.getElementById('userInfoAvatar');
+  el.userInfoName = document.getElementById('userInfoName');
+  el.userInfoId = document.getElementById('userInfoId');
+  el.userInfoEmail = document.getElementById('userInfoEmail');
+  el.userInfoCreated = document.getElementById('userInfoCreated');
+  el.userInfoLastSignIn = document.getElementById('userInfoLastSignIn');
+  el.userInfoRole = document.getElementById('userInfoRole');
+  el.userInfoStatus = document.getElementById('userInfoStatus');
+  el.btnUserInfoDone = document.getElementById('btnUserInfoDone');
   el.allUsersPagination = document.getElementById('allUsersPagination');
   el.allUsersPaginationInfo = document.getElementById('allUsersPaginationInfo');
   el.allUsersPaginationControls = document.getElementById('allUsersPaginationControls');
@@ -7649,7 +7698,7 @@ function renderUserRow(user, { isSelf = false, showActions = false } = {}){
   const status = user?.status || '';
 
   return `
-    <div class="user-row" data-id="${escapeHtml(user.id || '')}" data-role="${escapeHtml(role)}" data-status="${escapeHtml(status)}">
+    <div class="user-row" data-id="${escapeHtml(user.id || '')}" data-role="${escapeHtml(role)}" data-status="${escapeHtml(status)}" data-created-at="${escapeHtml(user?.created_at || '')}">
       <div class="user-row__info" data-initial="${escapeHtml(letter)}" style="--user-avatar-bg:${avatarColor};">
         ${avatarUrl ? `<img class="user-row__avatar-img" src="${escapeHtml(avatarUrl)}?v=${encodeURIComponent(String(avatarUpdatedAt))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}
         <b>${escapeHtml(name)} ${isSelf ? '<span style="color:var(--muted);font-weight:500;">(you)</span>' : ''}</b>
@@ -7663,11 +7712,13 @@ function renderUserRow(user, { isSelf = false, showActions = false } = {}){
         ${showActions ? `
           <button class="btn btn--success btn--sm" data-action="approve" data-id="${escapeHtml(user.id || '')}" aria-label="Approve user"><i class="fa-solid fa-check"></i><span>Approve</span></button>
           <button class="btn btn--danger btn--sm" data-action="reject" data-id="${escapeHtml(user.id || '')}" aria-label="Reject user"><i class="fa-solid fa-xmark"></i><span>Reject</span></button>
-        ` : (!isSelf && role !== 'super_admin' ? `
+        ` : ((role.toLowerCase() !== 'super_admin' || isSelf) ? (isSelf ? `
+          <button type="button" class="kebab-btn user-info-trigger" data-user-info="${escapeHtml(user.id || '')}" aria-label="User info" title="User info"><i class="fa-solid fa-info"></i></button>
+        ` : `
           <div class="user-actions-menu-wrap">
             <button class="kebab-btn" data-id="${escapeHtml(user.id || '')}" data-role="${escapeHtml(role)}" data-status="${escapeHtml(status)}" data-name="${escapeHtml(name)}" aria-label="User actions"><i class="fa-solid fa-ellipsis-vertical"></i></button>
           </div>
-        ` : '')}
+        `) : '')}
       </div>
     </div>
   `;
@@ -8148,7 +8199,69 @@ async function confirmRecoveryConflictLogout(){
     hideActionLoader();
   }
 }
+function formatUserInfoDate(value){
+  if (!value) return 'Not available';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 'Not available' : date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+}
+async function openUserInfo(userId, trigger){
+  const row = document.querySelector(`.user-row[data-id="${CSS.escape(String(userId))}"]`);
+  if (!row) return;
+  const targetIsSuperAdmin = (row.dataset.role || '').toLowerCase() === 'super_admin';
+  const viewerIsSuperAdmin = (currentProfile?.role || '').toLowerCase() === 'super_admin';
+  const viewerIsTarget = String(currentProfile?.id || '') === String(userId || '');
+  if (targetIsSuperAdmin && !(viewerIsSuperAdmin && viewerIsTarget)) return;
+  const info = row.querySelector('.user-row__info');
+  const avatarImage = info?.querySelector('.user-row__avatar-img');
+  const name = row.querySelector('.user-row__info b')?.childNodes[0]?.textContent?.trim() || '';
+  const email = info?.querySelector(':scope > span')?.textContent?.trim() || '';
+  const user = {
+    id: row.dataset.id,
+    name,
+    email,
+    role: row.dataset.role || '',
+    status: row.dataset.status || '',
+    created_at: row.dataset.createdAt || ''
+  };
+  el.userInfoName.textContent = user.name || user.email || 'User';
+  el.userInfoId.textContent = user.id;
+  el.userInfoEmail.textContent = user.email || 'Not available';
+  el.userInfoCreated.textContent = formatUserInfoDate(user.created_at);
+  el.userInfoLastSignIn.textContent = 'Loading…';
+  el.userInfoRole.className = `badge badge--${['super_admin','employee'].includes(user.role.toLowerCase()) ? user.role.toLowerCase() : ''}`;
+  el.userInfoRole.textContent = user.role || 'Not available';
+  el.userInfoStatus.className = `badge badge--${['approved','pending','rejected'].includes(user.status.toLowerCase()) ? user.status.toLowerCase() : 'employee'}`;
+  el.userInfoStatus.textContent = user.status || 'Not available';
+  el.userInfoAvatar.style.setProperty('--user-avatar-bg', getComputedStyle(info).getPropertyValue('--user-avatar-bg').trim() || getUserAvatarColor(user));
+  el.userInfoAvatar.dataset.initial = getUserAvatarLetter(user);
+  el.userInfoAvatar.textContent = getUserAvatarLetter(user);
+  el.userInfoAvatar.replaceChildren();
+  el.userInfoAvatar.textContent = getUserAvatarLetter(user);
+  if (avatarImage?.getAttribute('src')) {
+    const image = document.createElement('img');
+    image.src = avatarImage.currentSrc || avatarImage.src;
+    image.alt = '';
+    image.referrerPolicy = 'no-referrer';
+    image.onerror = () => image.remove();
+    el.userInfoAvatar.appendChild(image);
+  }
+  showOverlay(el.userInfoModalOverlay);
+  try {
+    const { data, error } = await supabaseClient.functions.invoke('get-user-last-sign-in', {
+      body: { user_id: user.id }
+    });
+    if (error) throw error;
+    el.userInfoLastSignIn.textContent = formatUserInfoDate(data?.last_sign_in_at);
+  } catch (error) {
+    console.error('Could not load user last sign-in:', error);
+    el.userInfoLastSignIn.textContent = 'Unavailable';
+  }
+}
+function closeUserInfo(){ hideOverlay(el.userInfoModalOverlay); }
+
 function handleAllUsersClick(e){
+  const infoButton = e.target.closest('.user-info-trigger');
+  if (infoButton) { openUserInfo(infoButton.dataset.userInfo); return; }
   const kebab = e.target.closest('.kebab-btn');
   if (!kebab) return;
   // Super Admin accounts are immutable: nobody, including another Super Admin, can open actions for them.
@@ -8180,7 +8293,11 @@ function handleAllUsersClick(e){
   const popup = document.createElement('div');
   popup.className = 'actions-popup actions-popup-adminmenu';
   popup.innerHTML = `
-    <button class="actions-popup__item" data-menu="role" data-id="${userId}" data-val="${newRole}">
+    <button class="actions-popup__item" data-menu="info" data-id="${escapeHtml(userId)}">
+      <i class="fa-solid fa-circle-info"></i> User Info
+    </button>
+    <div class="actions-popup__sep"></div>
+    <button class="actions-popup__item" data-menu="role" data-id="${escapeHtml(userId)}" data-val="${newRole}">
       <i class="fa-solid fa-user-gear"></i> Make ${newRole === 'admin' ? 'Admin' : 'Employee'}
     </button>
     <div class="actions-popup__sep"></div>
@@ -8191,7 +8308,8 @@ function handleAllUsersClick(e){
     const item = e.target.closest('[data-menu]');
     if (!item) return;
     closeAllActionMenus();
-    if (item.dataset.menu === 'role') setUserRole(item.dataset.id, item.dataset.val);
+    if (item.dataset.menu === 'info') openUserInfo(item.dataset.id);
+    else if (item.dataset.menu === 'role') setUserRole(item.dataset.id, item.dataset.val);
     else if (item.dataset.menu === 'status') setUserStatus(item.dataset.id, item.dataset.val);
   });
 }
@@ -9431,6 +9549,7 @@ function bindEvents(){
   el.btnCloseBillDetailsModalFooter.addEventListener('click', closeBillDetailsModal);
   el.pendingUsersList.addEventListener('click', handlePendingUsersClick);
   el.allUsersList.addEventListener('click', handleAllUsersClick);
+  el.btnUserInfoDone.addEventListener('click', closeUserInfo);
   el.allUsersPaginationControls.addEventListener('click', handleAllUsersPaginationClick);
   let adminFiltersOpen = false;
   function updateAdminUserSearchButton(){
