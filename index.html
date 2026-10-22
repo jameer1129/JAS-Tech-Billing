@@ -3822,26 +3822,6 @@ function nextNetworkTimeoutMs(){
   if (bootDeadline === null) return MAX_NETWORK_WAIT_MS;
   return Math.max(bootDeadline - Date.now(), MIN_NETWORK_WAIT_MS);
 }
-// Used only if config.json fails to load/parse, so applyConfig() has a safe
-// shape to read instead of crashing on CONFIG being null. Leaving
-// supabase.url/anonKey empty is intentional: the existing check in init()
-// (`if (!CONFIG.supabase.url || !CONFIG.supabase.anonKey)`) already routes
-// that case to the auth screen instead of crashing.
-const DEFAULT_CONFIG = {
-  company: { name: 'XYZ Company' },
-  theme: {
-    light: { primary: '', primaryText:'', background: '', surface: '', text: '', border: '' },
-    dark:  { primary: '', primaryText:'', background: '', surface: '', text: '', border: '' }
-  },
-  assets: { mainLogo: '' },
-  invoice: {
-    defaultNotes: '',
-    filePrefix: 'Invoice-',
-    numberFormat: 'MMDDHHmmss',
-    currencySymbol: '₹'
-  },
-  supabase: { url: '', anonKey: '' }
-};
 let CONFIG = null;
 let editingProductId = null;
 let pendingDeleteId = null;
@@ -4256,10 +4236,12 @@ async function loadConfig(){
     if (!response.ok) throw new Error(`Failed to load config.json: ${response.status}`);
     CONFIG = await response.json();
   } catch (error) {
-    console.warn("Falling back to default config.", error);
-    CONFIG = DEFAULT_CONFIG;
+    console.error('Could not load config.json:', error);
+    CONFIG = null;
+    return false;
   }
   applyConfig();
+  return true;
 }
 let appVersion = 'v1.0.0'; // updated from the service-worker version message
 function applyConfig(){
@@ -8196,11 +8178,6 @@ async function confirmRecoveryConflictLogout(){
     hideActionLoader();
   }
 }
-function formatUserInfoDate(value){
-  if (!value) return 'Not available';
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? 'Not available' : date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
-}
 async function openUserInfo(userId, trigger){
   const row = document.querySelector(`.user-row[data-id="${CSS.escape(String(userId))}"]`);
   if (!row) return;
@@ -8223,7 +8200,7 @@ async function openUserInfo(userId, trigger){
   el.userInfoName.textContent = user.name || user.email || 'User';
   el.userInfoId.textContent = user.id;
   el.userInfoEmail.textContent = user.email || 'Not available';
-  el.userInfoCreated.textContent = formatUserInfoDate(user.created_at);
+  el.userInfoCreated.textContent = formatDateTime(user.created_at);
   el.userInfoLastSignIn.textContent = 'Loading…';
   el.userInfoRole.className = `badge badge--${['super_admin','employee'].includes(user.role.toLowerCase()) ? user.role.toLowerCase() : ''}`;
   el.userInfoRole.textContent = user.role || 'Not available';
@@ -8248,7 +8225,7 @@ async function openUserInfo(userId, trigger){
       body: { user_id: user.id }
     });
     if (error) throw error;
-    el.userInfoLastSignIn.textContent = formatUserInfoDate(data?.last_sign_in_at);
+    el.userInfoLastSignIn.textContent = formatDateTime(data?.last_sign_in_at);
   } catch (error) {
     console.error('Could not load user last sign-in:', error);
     el.userInfoLastSignIn.textContent = 'Unavailable';
@@ -8903,7 +8880,7 @@ async function applyPwaUpdate(){
   await new Promise(resolve => {
     const tick = (now) => {
       const t = Math.min((now - start) / DURATION, 1);
-      const eased = Math.pow(t, 2);
+      const eased = t;
       const value = Math.round(eased * 100);
       if (fill) {
         fill.style.width = value + '%';
@@ -9771,7 +9748,10 @@ async function init(){
   }
   setupAutoSaveListeners();
   getDismissibleOverlays().forEach(([overlay]) => hideOverlay(overlay));
-  await loadConfig();
+  if (!(await loadConfig())) {
+    showOfflineScreen('server');
+    return;
+  }
   bindEvents();
   // Check after the app is initialized so the installed-app prompt does not
   // compete with the first-install or update flows.
