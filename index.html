@@ -831,7 +831,7 @@ body.dark-theme .toast-card--error{background:#2B1514;border-color:#D64545AA;}
 .bd-row{display:flex;flex-direction:column;padding:10px 0;border-top:1px solid var(--line);}
 .bd-row:first-child,.user-row:first-child{border-top:none;}
 .user-row:first-child{padding-top:4px;}
-.bd-row__header{display:flex;align-items:center;gap:10px;color:var(--primary-text);font-size:13px;font-weight:700;}
+.bd-row__header{display:flex;align-items:center;gap:10px;color:var(--primary-text);font-size:14px;font-weight:700;}
 .bd-row__icon{
   width:20px;
   height:20px;
@@ -841,7 +841,7 @@ body.dark-theme .toast-card--error{background:#2B1514;border-color:#D64545AA;}
   font-size:14px;
 }
 .bd-row__label{margin:0;}
-.bd-row__value{margin-top:6px;font-size:14px;word-break:break-word;}
+.bd-row__value{margin-top:6px;font-size:14px;word-break:break-word;font-weight:600;}
 .bd-row__value--mono{font-size:13px;}
 .modal--confirm{z-index:110 !important;}
 .modal--confirm .modal{max-width:380px;}
@@ -881,7 +881,10 @@ body.dark-theme .confirm-icon--info{background:rgba(1,37,135,.4);}
 .confirm-icon--success{background:var(--success);color:white;}
 .confirm-icon--danger{background:color-mix(in srgb, var(--danger) 15%, transparent);color:var(--danger);border:1px solid color-mix(in srgb, var(--danger) 25%, transparent);}
 /* ---------- PDF confirmation success animation + confetti ---------- */
-.modal{position:relative;overflow:visible;}
+.modal{position:relative;overflow:visible;display:flex;flex-direction:column;max-height:calc(100dvh - 40px);}
+/* Every modal: header + footer stay fixed, only the body scrolls when content is too tall. */
+.modal__header,.modal__footer{flex:0 0 auto;}
+.modal__body{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;}
 .confirm-icon{animation:successBadgeIn .8s cubic-bezier(.16,.84,.44,1) both,confirmBadgeIdle 1.8s ease-in-out .65s infinite;position:relative;z-index:2;}
 .confirm-icon i{animation:successCheckIn .6s .2s cubic-bezier(.16,.84,.44,1) both;}
 @keyframes confirmBadgeIdle{0%{transform:scale(1);}50%{transform:scale(.9);}100%{transform:scale(1);}}
@@ -963,6 +966,7 @@ body.dark-theme #invoiceQrCanvas{filter: invert(1);}
   width: 95%;
   border-radius: var(--radius);
   max-height: 95vh;
+  max-height: calc(100dvh - 40px);   /* real visible height on phones */
   display: flex;
   flex-direction: column;
 }
@@ -974,11 +978,16 @@ body.dark-theme #invoiceQrCanvas{filter: invert(1);}
   flex-direction: column;
   align-items: center;
   gap: 20px;
-  min-height: 400px;
+  min-height: min(400px, 35dvh);     /* can shrink on short screens so the footer stays visible */
+  flex: 1 1 auto;
   width: 100%;
   scrollbar-width:thin;
   background: #525659 !important;
 }
+.modal--preview .modal__footer{
+  padding: 12px 20px 16px;
+}
+.change-pw-footer{border-top:1px solid var(--line);}
 #previewScaleContainer{display: flex;flex-direction: column;gap: 24px;transform-origin: top center;width: 794px;}
 /* ==========================================================
    APP CHROME — app bar, user menu, mobile drawer, nav tabs,
@@ -2608,7 +2617,7 @@ body.dark-theme .admin-empty__icon::before{background:rgba(23,105,255,.14);}
 .user-row__avatar-img{
   position:absolute;left:0;top:50%;transform:translateY(-50%);
   width:46px;height:46px;border-radius:50%;object-fit:cover;
-  z-index:1;background:var(--surface);
+  z-index:1;
 }
 .user-row__avatar-img[hidden]{display:none!important;}
 .user-row__info b{font-size:14px;line-height:1.25;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -2681,21 +2690,23 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
 /* ---------- Profile photo square crop modal ---------- */
 .profile-avatar-crop-overlay{position:fixed;inset:0;z-index:400;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(8,15,35,.72);backdrop-filter:blur(5px);}
 .profile-avatar-crop-overlay[hidden]{display:none!important;}
-.profile-avatar-crop-modal{width:min(100%,460px);max-height:92vh;overflow:auto;background:var(--surface);color:var(--text);border:1px solid var(--line);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.28);}
-.profile-avatar-crop-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 20px;border-bottom:1px solid var(--line);}
+.profile-avatar-crop-modal{width:min(100%,460px);max-height:calc(100dvh - 32px);display:flex;flex-direction:column;overflow:hidden;background:var(--surface);color:var(--text);border:1px solid var(--line);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.28);}
+.profile-avatar-crop-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line);}
 .profile-avatar-crop-header h3{margin:0;font-size:16px;color:var(--primary-text);}
 .profile-avatar-crop-help{margin:0;padding:14px 20px 0;color:var(--muted);font-size:12.5px;line-height:1.5;}
-.profile-avatar-crop-stage{height:min(52vh,380px);min-height:220px;margin:14px 18px 8px;background:#151922;border-radius:12px;overflow:hidden;}
+.profile-avatar-crop-stage{height:min(50vh,380px);min-height:220px;margin:14px 18px 8px;background:#151922;border-radius:12px;overflow:hidden;}
 .profile-avatar-crop-stage img{display:block;max-width:100%;max-height:100%;}
 .profile-avatar-crop-stage .cropper-view-box,.profile-avatar-crop-stage .cropper-face{border-radius:50%;}
 .profile-avatar-crop-stage .cropper-line,.profile-avatar-crop-stage .cropper-point{background-color:var(--primary);}
 .profile-avatar-crop-tools{display:flex;justify-content:center;gap:10px;padding:8px 18px 14px;}
 .profile-avatar-crop-tool{width:42px;height:38px;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--text);cursor:pointer;}
 .profile-avatar-crop-tool:hover{border-color:var(--primary-text);color:var(--primary-text);}
-.profile-avatar-crop-footer{display:flex;gap:10px;padding:0 18px 18px;}
+.profile-avatar-crop-header,.profile-avatar-crop-footer{flex:0 0 auto;}
+.profile-avatar-crop-body{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;}
+.profile-avatar-crop-footer{display:flex;gap:10px;padding:12px 18px 16px;border-top:1px solid var(--line);}
 .profile-avatar-crop-footer .btn{flex:1;min-height:42px;}
 body.dark-theme .profile-avatar-crop-modal{background:var(--surface);}
-@media(max-width:480px){.profile-avatar-crop-overlay{padding:12px;}.profile-avatar-crop-modal{border-radius:14px;}.profile-avatar-crop-stage{height:46vh;min-height:200px;margin:12px 12px 6px;}.profile-avatar-crop-header{padding:15px 16px;}.profile-avatar-crop-help{padding:12px 16px 0;}.profile-avatar-crop-footer{padding:0 12px 14px;}}
+@media(max-width:480px){.profile-avatar-crop-overlay{padding:12px;}.profile-avatar-crop-modal{border-radius:14px;}.profile-avatar-crop-stage{height:46vh;min-height:200px;margin:12px 12px 6px;}.profile-avatar-crop-header{padding:15px 16px;}.profile-avatar-crop-help{padding:12px 16px 0;}.profile-avatar-crop-footer{padding:12px 12px 14px;}.profile-avatar-crop-modal{max-height:calc(100dvh - 24px);}}
 </style>
 <link rel="stylesheet" href="./invoice-engine.css?v=6">
 <script src="./invoice-engine.js?v=6"></script>
@@ -3168,7 +3179,7 @@ body.dark-theme .profile-avatar-crop-modal{background:var(--surface);}
         <div class="bills-search-bar">
           <div class="bills-search-input-wrap field--icon">
             <i class="fa-solid fa-magnifying-glass search-icon"></i>
-            <input type="text" id="billSearchInput" name="cf-txt-7g8h" placeholder="Search invoice, customer, phone, product name..." autocomplete="nope" autocorrect="off" spellcheck="false" data-lpignore="true" data-form-type="other" readonly maxlength="80">
+            <input type="text" id="billSearchInput" name="cf-txt-7g8h" placeholder="Search invoice, customer name, phone ..." autocomplete="nope" autocorrect="off" spellcheck="false" data-lpignore="true" data-form-type="other" readonly maxlength="80">
           </div>
           <button class="bills-filter-toggle" id="btnBillsFilterToggle" type="button" aria-label="Show bill filters" title="Show bill filters"><i class="fa-solid fa-arrow-down-wide-short"></i></button>
         </div>
@@ -3777,12 +3788,14 @@ body.dark-theme .profile-avatar-crop-modal{background:var(--surface);}
     <header class="profile-avatar-crop-header">
       <h3 id="profileAvatarCropTitle"><i class="fa-solid fa-crop-simple"></i> Crop profile photo</h3>
     </header>
+    <div class="profile-avatar-crop-body">
     <p class="profile-avatar-crop-help">Move the photo to reposition it. Drag the corners to adjust the square crop, or use zoom controls. Your profile picture will appear circular.</p>
     <div class="profile-avatar-crop-stage"><img id="profileAvatarCropImage" alt="Crop your profile photo"></div>
     <div class="profile-avatar-crop-tools" aria-label="Photo zoom controls">
       <button type="button" class="profile-avatar-crop-tool" id="btnProfileAvatarZoomOut" title="Zoom out" aria-label="Zoom out"><i class="fa-solid fa-minus"></i></button>
       <button type="button" class="profile-avatar-crop-tool" id="btnProfileAvatarZoomIn" title="Zoom in" aria-label="Zoom in"><i class="fa-solid fa-plus"></i></button>
       <button type="button" class="profile-avatar-crop-tool" id="btnProfileAvatarRotate" title="Rotate photo" aria-label="Rotate photo"><i class="fa-solid fa-rotate-right"></i></button>
+    </div>
     </div>
     <footer class="profile-avatar-crop-footer">
       <button type="button" class="btn btn--ghost" id="btnCancelProfileAvatarCrop">Cancel</button>
@@ -4328,7 +4341,7 @@ function formatDateTime(isoStr) {
   let hours = d.getHours();
   const ampm = hours >= 12 ? 'PM' : 'AM';
   hours = hours % 12 || 12;
-  return `${pad(d.getDate())} ${months[d.getMonth()]} ${d.getFullYear()} • ${pad(hours)}:${pad(d.getMinutes())} ${ampm}`;
+  return `${pad(d.getDate())} ${months[d.getMonth()]} ${d.getFullYear()}, ${pad(hours)}:${pad(d.getMinutes())} ${ampm}`;
 }
 function displayDateToISO(val) {
   return val ? swapDateParts(val) : null;
@@ -7151,9 +7164,8 @@ async function loadBills(resetToFirstPage){
   el.billsTableWrap.classList.add('hide');
   el.billsPagination.classList.add('hide');
   const rawQuery = el.billSearchInput.value.trim();
-  // The whole fetch (product-name lookup + main bills query) is wrapped in
-  // one function so it can be retried as a unit if either leg comes back
-  // with a stale/expired-token error, after refreshing the session once.
+  // Search is limited to invoice number, customer name, and customer phone.
+  // Product names are intentionally excluded from Bills search.
   const runFetch = async () => {
     let query = supabaseClient
       .from('bills')
@@ -7162,28 +7174,14 @@ async function loadBills(resetToFirstPage){
     query = isRestoreBillsMode
       ? query.not('deleted_at', 'is', null)
       : query.is('deleted_at', null);
-    let productSearchAuthError = null;
     if (rawQuery) {
       const term = sanitizeSearchTerm(rawQuery);
       if (term) {
-        // Search invoice/customer/phone plus product names from bill_items.
-        // Product names live in a separate table, so first find the matching
-        // invoice numbers and include those invoices in the main bill search.
-        let matchingProductInvoices = [];
-        const { data: productMatches, error: productSearchError } = await supabaseClient
-          .from('bill_items')
-          .select('invoice_no')
-          .ilike('item_name', `%${term}%`)
-          .limit(1000);
-        if (productSearchError && isAuthError(productSearchError)) {
-          productSearchAuthError = productSearchError;
-        } else if (!productSearchError && productMatches) {
-          matchingProductInvoices = [...new Set(productMatches.map(row => row.invoice_no).filter(Boolean))];
-        }
-        const productFilter = matchingProductInvoices.length
-          ? `,invoice_no.in.(${matchingProductInvoices.map(v => `\"${String(v).replace(/\"/g, '\\\"')}\"`).join(',')})`
-          : '';
-        query = query.or(`invoice_no.ilike.%${term}%,customer_name.ilike.%${term}%,customer_phone.ilike.%${term}%${productFilter}`);
+        // Invoice numbers and phone numbers match only from their beginning.
+        // Customer names match from the beginning of the name or any word.
+        query = query.or(
+          `invoice_no.ilike.${term}%,customer_name.ilike.${term}%,customer_name.ilike.% ${term}%,customer_phone.ilike.${term}%`
+        );
       }
     }
     // Date range filter
@@ -7214,9 +7212,6 @@ async function loadBills(resetToFirstPage){
     const to = from + BILLS_PAGE_SIZE - 1;
     query = query.range(from, to);
     const result = await query;
-    // Surface the product-search leg's auth error too, so the retry below
-    // covers a stale token regardless of which of the two queries hit it.
-    if (!result.error && productSearchAuthError) result.error = productSearchAuthError;
     return result;
   };
   let { data, error, count } = await runFetch();
@@ -7768,8 +7763,10 @@ async function loadAllUsers(resetToFirstPage = false){
       .from('profiles')
       .select('id,name,email,role,status,created_at,avatar_updated_at', { count: 'exact' });
     if (term) {
-      const safeTerm = term.replace(/[,()]/g, ' ').trim();
-      query = query.or(`name.ilike.%${safeTerm}%,email.ilike.%${safeTerm}%`);
+      const safeTerm = term.replace(/[%,()]/g, ' ').trim();
+      query = query.or(
+        `name.ilike.${safeTerm}%,name.ilike.% ${safeTerm}%,email.ilike.${safeTerm}%,email.ilike.%@${safeTerm}%,email.ilike.%.${safeTerm}%,email.ilike.%+${safeTerm}%,email.ilike.%-${safeTerm}%,email.ilike.%\\_${safeTerm}%`
+      );
     }
     if (role) query = query.eq('role', role);
     if (status) query = query.eq('status', status);
