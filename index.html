@@ -915,7 +915,7 @@ body.dark-theme .confirm-icon--info{background:rgba(1,37,135,.4);}
 .user-info-trigger{font-size:11px;}
 /* ---------- Confirm modal building blocks: chip, note, checklist ---------- */
 .confirm-note{font-weight:500; display:flex;align-items:flex-start;gap:6px;margin-top:6px;width:100%;padding:10px 12px;border:1px solid color-mix(in srgb, var(--primary-text) 26%, transparent);border-radius:var(--radius-sm);background:color-mix(in srgb, var(--primary) 10%, transparent);color:var(--primary-text);font-size:12px;line-height:1.5;text-align:left;}
-body.dark-theme .confirm-note{background: rgba(1, 37, 135, .4);}
+body.dark-theme .confirm-note{background: rgba(1, 37, 135, .35);}
 .confirm-note i{flex:0 0 14px;margin-top:2px;text-align:center;color:var(--primary-text);}
 .confirm-note--danger{border-color:rgba(244,67,54,.4);background:rgba(244,67,54,.09)!important;color:var(--danger) !important;}
 .confirm-note--danger i{color:var(--danger);}
@@ -1303,7 +1303,7 @@ body.dark-theme .drawer__footer{background:rgba(127, 127, 127, .08);}
 .theme-option__text span{font-size:12px;color:var(--muted);}
 .theme-option__check{color:var(--primary-text);font-size:18px;opacity:0;transform:scale(.5);transition:opacity .15s ease,transform .2s ease;}
 .theme-option.active{border-color:var(--primary-text);background:color-mix(in srgb,var(--primary) 8%,var(--surface));}
-body.dark-theme .theme-option.active{background:color-mix(in srgb,var(--primary) 25%,var(--surface));}
+body.dark-theme .theme-option.active{background:color-mix(in srgb,var(--primary) 30%,transparent);}
 .theme-option.active .theme-option__check{opacity:1;transform:none;}
 .feedback-counter{margin:6px 2px 0;text-align:right;font-size:12px;color:var(--muted);}
 .feedback-hint{margin:0 0 12px;font-size:13.5px;color:var(--muted);line-height:1.5;}
@@ -7449,8 +7449,8 @@ function configureBillModal(mode, bill){
   const note = document.getElementById('deleteBillNote');
   const noteIcon = note.querySelector('i');
   const noteText = note.querySelector('span');
+  note.classList.remove('confirm-note--success', 'confirm-note--danger', 'confirm-note--warning');
   if (restore) {
-    note.classList.remove('confirm-note--success', 'confirm-note--danger', 'confirm-note--warning');
     const left = bill ? billDaysLeft(bill.deleted_at) : null;
     if (left === null) {
       note.classList.add('confirm-note--success');
@@ -7473,6 +7473,7 @@ function configureBillModal(mode, bill){
       noteText.textContent = `${left} days left before this bill is permanently deleted.`;
     }
   } else {
+    note.classList.add('confirm-note--warning');
     noteIcon.className = 'fa-regular fa-clock';
     noteText.textContent = `You can restore it from Restore Bills for ${BILL_RETENTION_DAYS} days. After that it is permanently deleted.`;
   }
