@@ -18,7 +18,8 @@
 });
 (function(){
   try{
-    if(localStorage.getItem('jas_theme')==='dark'){
+    var t=localStorage.getItem('jas_theme');
+    if(t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches)){
       document.documentElement.classList.add('dark-theme');
     }
   }catch(e){}
@@ -814,7 +815,6 @@ body.dark-theme .toast-card--error{background:#2B1514;border-color:#D64545AA;}
   max-width:480px;
   border-radius:var(--radius);
   max-height:90vh;
-  overflow-y:auto;
   transition: background 0.15s ease;
   border:1px solid var(--line);
   box-shadow: var(--shadow-sm);
@@ -1294,6 +1294,17 @@ body.dark-theme .drawer__footer{background:rgba(127, 127, 127, .08);}
 .drawer__footer-title{font-size:14px;font-weight:700;color:var(--text);}
 .drawer__footer-sub{font-size:12px;color:var(--muted);margin-top: 6px}
 
+.theme-options{gap:10px;}
+.theme-option{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;text-align:left;cursor:pointer;color:var(--text);background:var(--surface);border:1.5px solid var(--line);border-radius:var(--radius-sm);transition:border-color .15s ease,background .15s ease,transform .08s ease;}
+.theme-option:active{transform:scale(.98);}
+.theme-option__icon{width:38px;height:38px;flex:0 0 38px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--bg);color:var(--primary-text);border:1px solid var(--line);font-size:16px;}
+.theme-option__text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+.theme-option__text b{font-size:14px;font-weight:700;}
+.theme-option__text span{font-size:12px;color:var(--muted);}
+.theme-option__check{color:var(--primary-text);font-size:18px;opacity:0;transform:scale(.5);transition:opacity .15s ease,transform .2s ease;}
+.theme-option.active{border-color:var(--primary-text);background:color-mix(in srgb,var(--primary) 8%,var(--surface));}
+body.dark-theme .theme-option.active{background:color-mix(in srgb,var(--primary) 25%,var(--surface));}
+.theme-option.active .theme-option__check{opacity:1;transform:none;}
 .feedback-counter{margin:6px 2px 0;text-align:right;font-size:12px;color:var(--muted);}
 .feedback-hint{margin:0 0 12px;font-size:13.5px;color:var(--muted);line-height:1.5;}
 @media(max-width:640px){.user-menu-wrap{display:block;}.app-bar .theme-toggle{display:none;}
@@ -3285,6 +3296,10 @@ body.dark-theme .profile-avatar-crop-modal{background:var(--surface);}
         <span>No pending sign-ups right now.</span>
       </div>
       <div id="pendingUsersList" class="pending-users-list"></div>
+      <div class="bills-pagination hide" id="pendingUsersPagination">
+        <div class="bills-pagination__info" id="pendingUsersPaginationInfo"></div>
+        <div class="bills-pagination__controls" id="pendingUsersPaginationControls"></div>
+      </div>
     </section>
     <section class="card admin-panel">
       <div class="admin-panel__header">
@@ -3593,9 +3608,10 @@ body.dark-theme .profile-avatar-crop-modal{background:var(--surface);}
     <button class="drawer__item drawer__item--theme theme-toggle">
       <span class="drawer__item-icon"><i class="fa-solid fa-moon"></i></span>
       <span class="drawer__item-text">
-        <span class="drawer__item-title" id="drawerThemeLabel">Dark Mode</span>
-        <span class="drawer__item-subtitle" id="drawerThemeSubtitle">Switch to dark theme</span>
+        <span class="drawer__item-title">Theme</span>
+        <span class="drawer__item-subtitle" id="drawerThemeSubtitle">Device default</span>
       </span>
+      <i class="fa-solid fa-chevron-right drawer__item-chevron"></i>
     </button>
     <button class="drawer__item drawer__item--purple" id="drawerChangePw">
       <span class="drawer__item-icon"><i class="fa-solid fa-lock"></i></span>
@@ -3627,6 +3643,18 @@ body.dark-theme .profile-avatar-crop-modal{background:var(--surface);}
     <div>
       <div class="drawer__footer-title">Secure &bull; Fast &bull; Reliable</div>
       <span class="drawer__footer-sub" id="drawerFooterVersion"></span>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay hide" id="themeModalOverlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="themeModalTitle">
+    <div class="modal__header">
+      <i class="fa-solid fa-palette"></i>
+      <h3 id="themeModalTitle">Choose Theme</h3>
+    </div>
+    <div class="modal__body theme-options" id="themeOptions" role="radiogroup" aria-label="Theme"></div>
+    <div class="modal__footer">
+      <button type="button" class="btn btn--primary" id="btnThemeDone"><i class="fa-solid fa-check"></i> Done</button>
     </div>
   </div>
 </div>
@@ -3933,6 +3961,8 @@ let billsPage = 1;
 let billsTotalCount = 0;
 let usersPage = 1;
 let usersTotalCount = 0;
+let pendingPage = 1;
+let pendingTotalCount = 0;
 let usersSearchDebounceTimer = null;
 let billsSearchDebounceTimer = null;
 let billsSortCol = 'created_at';
@@ -4148,8 +4178,10 @@ function cacheElements(){
   el.profileAvatarInput = document.getElementById('profileAvatarInput');
   el.btnUploadProfileAvatar = document.getElementById('btnUploadProfileAvatar');
   el.btnRemoveProfileAvatar = document.getElementById('btnRemoveProfileAvatar');
-  el.drawerThemeLabel = document.getElementById('drawerThemeLabel');
   el.drawerThemeSubtitle = document.getElementById('drawerThemeSubtitle');
+  el.themeModalOverlay = document.getElementById('themeModalOverlay');
+  el.themeOptions = document.getElementById('themeOptions');
+  el.btnThemeDone = document.getElementById('btnThemeDone');
   el.drawerLogout = document.getElementById('drawerLogout');
   el.drawerChangePw = document.getElementById('drawerChangePw');
   el.drawerFeedback = document.getElementById('drawerFeedback');
@@ -4170,6 +4202,9 @@ function cacheElements(){
   el.pendingUsersLoading = document.getElementById('pendingUsersLoading');
   el.pendingUsersEmpty = document.getElementById('pendingUsersEmpty');
   el.pendingUsersList = document.getElementById('pendingUsersList');
+  el.pendingUsersPagination = document.getElementById('pendingUsersPagination');
+  el.pendingUsersPaginationInfo = document.getElementById('pendingUsersPaginationInfo');
+  el.pendingUsersPaginationControls = document.getElementById('pendingUsersPaginationControls');
   el.adminTotalUsers = document.getElementById('adminTotalUsers');
   el.adminApprovedUsers = document.getElementById('adminApprovedUsers');
   el.adminPendingUsers = document.getElementById('adminPendingUsers');
@@ -4993,33 +5028,30 @@ function isAuthError(error){
     || msg.includes('not authenticated')
     || msg.includes('unauthorized');
 }
-// Forces the client to check/refresh the current session on demand. Used
-// right before a screen's data loads fire (e.g. switching tabs after the
-// app was backgrounded a while), so those loads don't race the 5-minute
-// background check in startManualSessionRefresh() and fire with a token
-// that already expired while the tab was hidden.
+
 async function ensureFreshSession(){
   if (!supabaseClient) return;
-  try { await supabaseClient.auth.getSession(); }
+  try {
+    const { data: { session } = {} } = await supabaseClient.auth.getSession();
+    // getSession() only refreshes once the token is (almost) expired by the
+    // client's own clock. Refresh proactively when under 5 minutes remain.
+    const msLeft = session?.expires_at ? session.expires_at * 1000 - Date.now() : 0;
+    if (session && msLeft < 5 * 60 * 1000) await forceSessionRefresh();
+  }
   catch (err) { console.error('Session refresh check failed:', err); }
 }
-// getSession() above only refreshes the token if the client's own clock
-// thinks it has already expired. That's cheap, so it's fine to call on
-// every tab switch — but it means a request can still come back 401 (server
-// rejected a token the client believed was still valid, e.g. clock drift or
-// a tight expiry margin) and a getSession()-based retry would just resend
-// the same stale token and fail again. So once we've actually seen a 401,
-// force a real refresh instead: refreshSession() unconditionally exchanges
-// the refresh token for a brand-new access token, no local-expiry guess.
-async function forceSessionRefresh(){
-  if (!supabaseClient) return;
-  try { await supabaseClient.auth.refreshSession(); }
-  catch (err) { console.error('Forced session refresh failed:', err); }
+let forcedRefreshPromise = null;
+function forceSessionRefresh(){
+  if (!supabaseClient) return Promise.resolve();
+  if (forcedRefreshPromise) return forcedRefreshPromise;
+  forcedRefreshPromise = (async () => {
+    try { await supabaseClient.auth.refreshSession(); }
+    catch (err) { console.error('Forced session refresh failed:', err); }
+    finally { setTimeout(() => { forcedRefreshPromise = null; }, 1500); }
+  })();
+  return forcedRefreshPromise;
 }
-// Runs a Supabase call; if it comes back with a stale/expired-token error,
-// force one real session refresh and run it once more. Safe for writes because
-// an auth rejection happens before the database function/statement executes,
-// so nothing has been saved yet when we retry.
+
 async function withAuthRetry(run){
   let result = await run();
   if (result?.error && isAuthError(result.error)) {
@@ -6002,13 +6034,13 @@ async function handleLogout(){
   try {
     // Reset the current invoice first
     resetInvoice(false);
-    const savedTheme = localStorage.getItem('jas_theme');
+    const savedTheme = getThemeMode();
     intentionalSignOut = true;
     await supabaseClient.auth.signOut({ scope: 'local' });
     // Clear all local data
     localStorage.clear();
     sessionStorage.clear();
-    localStorage.setItem('jas_theme',savedTheme);
+    localStorage.setItem(THEME_KEY, savedTheme);
     // Clear runtime state
     currentSession = null;
     currentProfile = null;
@@ -7706,18 +7738,13 @@ async function loadPendingUsers(){
   el.pendingUsersLoading.classList.remove('hide');
   el.pendingUsersEmpty.classList.add('hide');
   el.pendingUsersList.innerHTML = '';
-  const runQuery = () => supabaseClient
+  const from = (pendingPage - 1) * USERS_PAGE_SIZE;
+  const { data, error, count } = await withAuthRetry(() => supabaseClient
     .from('profiles')
-    .select('id,name,email,role,status,created_at')
+    .select('id,name,email,role,status,created_at', { count: 'exact' })
     .eq('status', 'pending')
-    .order('created_at', { ascending: true });
-  let { data, error } = await runQuery();
-  if (error && isAuthError(error)) {
-    // Access token had likely gone stale in the background — refresh it
-    // and retry once before giving up.
-    await forceSessionRefresh();
-    ({ data, error } = await runQuery());
-  }
+    .order('created_at', { ascending: true })
+    .range(from, from + USERS_PAGE_SIZE - 1));
   if (requestId !== pendingUsersRequestSeq) return;
   el.pendingUsersLoading.classList.add('hide');
   if (error) {
@@ -7725,9 +7752,15 @@ async function loadPendingUsers(){
     showToast('Could not load pending users.', 'error');
     return;
   }
+  // Last user on this page was approved/rejected -> step back one page.
+  if (!data.length && pendingPage > 1) {
+    pendingPage -= 1;
+    return loadPendingUsers();
+  }
+  pendingTotalCount = count || 0;
   el.pendingUsersEmpty.classList.toggle('hide', data.length > 0);
-  if (!data.length) return;
   el.pendingUsersList.innerHTML = data.map(u => renderUserRow(u, { showActions: true })).join('');
+  renderPagination(el.pendingUsersPagination, el.pendingUsersPaginationControls, el.pendingUsersPaginationInfo, pendingPage, USERS_PAGE_SIZE, pendingTotalCount);
 }
 async function loadAllUsers(resetToFirstPage = false){
   if (resetToFirstPage) usersPage = 1;
@@ -7798,14 +7831,17 @@ async function loadAdminStats(){
   ]);
   try {
     let results = await runQueries();
-    if (results.some(result => result.error && isAuthError(result.error))) {
-      // Access token had likely gone stale in the background — refresh it
-      // and retry once before giving up.
+    // HEAD (count-only) requests have an EMPTY response body, so a 401 has no
+    // code/message for isAuthError() - only result.status identifies it.
+    const isStale = r => r.error && (r.status === 401 || r.status === 403 || isAuthError(r.error));
+    for (let attempt = 0; attempt < 2 && results.some(isStale); attempt++) {
+      if (attempt > 0) await new Promise(res => setTimeout(res, 1200));
       await forceSessionRefresh();
       results = await runQueries();
     }
     if (results.some(result => result.error)) {
-      console.error('Could not load admin account stats.', results.find(result => result.error)?.error);
+      const failed = results.find(result => result.error);
+      console.error('Could not load admin account stats.', failed?.status, failed?.error);
       showToast('Could not load admin account statistics.', 'error');
       return;
     }
@@ -8520,34 +8556,72 @@ function closeDrawer(){
   syncPopOpenState();
   if (el.appBarUser) el.appBarUser.setAttribute('aria-expanded','false');
 }
-function applyTheme(isDark){
+/* ---------- Theme: light | dark | system (device default) ----------
+   Single source of truth: THEME_MODES. The popup options, drawer subtitle
+   and storage validation are all driven from it. */
+const THEME_KEY = 'jas_theme';
+const THEME_MODES = {
+  light:  { label: 'Light',          hint: 'Always use the light theme', icon: 'fa-sun' },
+  dark:   { label: 'Dark',           hint: 'Always use the dark theme',  icon: 'fa-moon' },
+  system: { label: 'Device default', hint: 'Match your device setting',  icon: 'fa-circle-half-stroke' }
+};
+const systemDarkQuery = window.matchMedia('(prefers-color-scheme: dark)');
+function getThemeMode(){
+  const saved = localStorage.getItem(THEME_KEY);
+  return Object.keys(THEME_MODES).includes(saved) ? saved : 'system';
+}
+function applyTheme(mode){
+  if (!Object.keys(THEME_MODES).includes(mode)) mode = 'system';
+  // 'system' is re-resolved from the device every time this runs (every page load).
+  const isDark = mode === 'dark' || (mode === 'system' && systemDarkQuery.matches);
   document.body.classList.toggle('dark-theme', isDark);
   document.documentElement.classList.toggle('dark-theme', isDark);
-  document.querySelectorAll('.theme-toggle i').forEach(icon => {
-    icon.className = isDark
-      ? 'fa-solid fa-sun'
-      : 'fa-solid fa-moon';
+  // Toggle buttons show the theme that is active right now: moon = dark, sun = light.
+  document.querySelectorAll('.theme-toggle i.fa-sun, .theme-toggle i.fa-moon')
+  .forEach(icon => {
+    icon.className = 'fa-solid ' + (isDark ? 'fa-moon' : 'fa-sun');
   });
-  el.drawerThemeLabel.textContent = isDark ? 'Light Mode' : 'Dark Mode';
-  if (el.drawerThemeSubtitle) el.drawerThemeSubtitle.textContent = isDark ? 'Switch to light theme' : 'Switch to dark theme';
-  localStorage.setItem('jas_theme', isDark ? 'dark' : 'light');
+  if (el.drawerThemeSubtitle) el.drawerThemeSubtitle.textContent = THEME_MODES[mode].label;
+  el.themeOptions?.querySelectorAll('.theme-option').forEach(btn => {
+    const active = btn.dataset.theme === mode;
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-checked', active);
+  });
+  localStorage.setItem(THEME_KEY, mode); // first launch creates the key ('system')
   const themeColorMeta = document.querySelector('meta[name="theme-color"]');
   if (themeColorMeta && CONFIG?.theme) {
     const activeTheme = isDark ? CONFIG.theme.dark : CONFIG.theme.light;
     themeColorMeta.setAttribute('content', (activeTheme && activeTheme.primary) || '#012587');
   }
 }
-function switchTheme(isDark){
+function switchTheme(mode){
   const supportsViewTransition = typeof document.startViewTransition === 'function';
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  if (reducedMotion || !supportsViewTransition) {
-    // No View Transition support: the existing global color/background
-    // transition on * already crossfades this smoothly.
-    applyTheme(isDark);
-    return;
-  }
-  document.startViewTransition(() => applyTheme(isDark));
+  if (reducedMotion || !supportsViewTransition) return applyTheme(mode);
+  document.startViewTransition(() => applyTheme(mode));
+}
+function openThemeModal(){
+  closeDrawer(); // the drawer sits above modals, so close it first
+  showOverlay(el.themeModalOverlay);
+}
+function closeThemeModal(){ return hideOverlay(el.themeModalOverlay); }
+function initTheme(){
+  el.themeOptions.innerHTML = Object.entries(THEME_MODES).map(([key, m]) => `
+    <button type="button" class="theme-option" role="radio" data-theme="${key}">
+      <span class="theme-option__icon"><i class="fa-solid ${m.icon}"></i></span>
+      <span class="theme-option__text"><b>${m.label}</b><span>${m.hint}</span></span>
+      <i class="fa-solid fa-circle-check theme-option__check"></i>
+    </button>`).join('');
+  applyTheme(getThemeMode());
+  // A change applies instantly; "Done" just closes the popup.
+  el.themeOptions.addEventListener('click', e => {
+    const btn = e.target.closest('.theme-option');
+    if (btn) switchTheme(btn.dataset.theme);
+  });
+  el.btnThemeDone.addEventListener('click', closeThemeModal);
+  document.addEventListener('click', e => { if (e.target.closest('.theme-toggle')) openThemeModal(); });
+  // Device theme changed while the app is open and mode is 'Device default'.
+  systemDarkQuery.addEventListener('change', () => { if (getThemeMode() === 'system') applyTheme('system'); });
 }
 function updateNotesInputState(){
   if (!el.invoiceNotes || !el.toggleNotesVisibility) return;
@@ -8949,6 +9023,7 @@ function getDismissibleOverlays(){
     [el.expiredRecoveryModalOverlay, cancelExpiredRecovery],
     [el.pwaEntryModalOverlay, closePwaEntryModal],
     [el.changePasswordModalOverlay, closeChangePasswordModal],
+    [el.themeModalOverlay, closeThemeModal],
     [el.feedbackModalOverlay, closeFeedbackModal],
     [el.feedbackThanksModalOverlay, closeFeedbackThanks],
     [el.saveChoiceModalOverlay, closeSaveChoiceModal],
@@ -9525,6 +9600,8 @@ function bindEvents(){
   el.allUsersList.addEventListener('click', handleAllUsersClick);
   el.btnUserInfoDone.addEventListener('click', closeUserInfo);
   el.allUsersPaginationControls.addEventListener('click', handleAllUsersPaginationClick);
+  el.pendingUsersPaginationControls.addEventListener('click', e =>
+    handlePaginationClick(e, USERS_PAGE_SIZE, pendingTotalCount, () => pendingPage, p => pendingPage = p, loadPendingUsers));
   let adminFiltersOpen = false;
   function updateAdminUserSearchButton(){
     if (!el.adminUserSearch || !el.btnAdminUserFilter) return;
@@ -9731,17 +9808,7 @@ async function init(){
   cacheElements();
   bootDeadline = Date.now() + MAX_NETWORK_WAIT_MS;
  // Apply the saved theme before showing the offline screen.
-  const savedTheme = localStorage.getItem('jas_theme');
-  if (savedTheme === 'dark') {
-    applyTheme(true);
-  } else {
-    applyTheme(false);
-  }
-  document.addEventListener('click', e => {
-    const themeToggle = e.target.closest('.theme-toggle');
-    if (!themeToggle) return;
-    switchTheme(!document.body.classList.contains('dark-theme'));
-  });
+  initTheme();
   if (!navigator.onLine) {
     showOfflineScreen();
     return;
