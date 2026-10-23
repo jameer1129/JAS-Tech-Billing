@@ -850,7 +850,7 @@ body.dark-theme .toast-card--error{background:#2B1514;border-color:#D64545AA;}
 .bill-confirm-card__top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-bottom:8px;margin-bottom:2px;border-bottom:1px dashed var(--line);}
 .bill-confirm-card__top .confirm-target{font-size:14.5px;min-width:0;}
 .bill-confirm-card__total{font-size:15px;font-weight:700;color:var(--text);white-space:nowrap;}
-.bill-confirm-card__meta{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--muted);min-width:0;}
+.bill-confirm-card__meta{font-weight:600; display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--muted);min-width:0;}
 .bill-confirm-card__meta i{width:14px;flex:0 0 14px;text-align:center;}
 .bill-confirm-card__meta span{min-width:0;overflow-wrap:anywhere;}
 .confirm-icon--restore{background:color-mix(in srgb, var(--success) 15%, transparent);color:var(--success);}
@@ -884,7 +884,7 @@ body.dark-theme .confirm-icon--info{background:rgba(1,37,135,.4);}
 .modal{position:relative;overflow:visible;display:flex;flex-direction:column;max-height:calc(100dvh - 40px);}
 /* Every modal: header + footer stay fixed, only the body scrolls when content is too tall. */
 .modal__header,.modal__footer{flex:0 0 auto;}
-.modal__body{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;}
+.modal__body{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;overflow-x: hidden;}
 .confirm-icon{animation:successBadgeIn .8s cubic-bezier(.16,.84,.44,1) both,confirmBadgeIdle 1.8s ease-in-out .65s infinite;position:relative;z-index:2;}
 .confirm-icon i{animation:successCheckIn .6s .2s cubic-bezier(.16,.84,.44,1) both;}
 @keyframes confirmBadgeIdle{0%{transform:scale(1);}50%{transform:scale(.9);}100%{transform:scale(1);}}
@@ -898,7 +898,7 @@ body.dark-theme .confirm-icon--info{background:rgba(1,37,135,.4);}
 .modal--confirm .confirm-target{color:var(--primary-text);font-weight:700;overflow-wrap:anywhere;word-break:break-word;}
 /* ---------- Admin user info modal ---------- */
 .user-info-modal{max-width:430px; max-height:calc(100dvh - 32px);display:flex;flex-direction:column;overflow:hidden;}
-.user-info-modal .modal__body{flex:1 1 auto;min-height:0;overflow-y:auto; overscroll-behavior:contain;}
+.user-info-modal .modal__body{flex:1 1 auto;min-height:0;overflow-y:auto; overscroll-behavior:contain;overflow-x: hidden;}
 .user-info-modal .modal__footer{padding:0 12px 12px;}
 .user-info-profile{display:flex;align-items:center;flex-direction:column;gap:10px;}
 .user-info-avatar{position:relative;width:76px;height:76px;flex:0 0 76px;border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--user-avatar-bg,#3F51B5);color:#fff;font-size:34px;font-weight:500;}
@@ -987,7 +987,7 @@ body.dark-theme #invoiceQrCanvas{filter: invert(1);}
 .modal--preview .modal__footer{
   padding: 12px 20px 16px;
 }
-.change-pw-footer{border-top:1px solid var(--line);}
+.change-pw-footer{border-top:1px solid var(--line);padding-bottom: 14px;}
 #previewScaleContainer{display: flex;flex-direction: column;gap: 24px;transform-origin: top center;width: 794px;}
 /* ==========================================================
    APP CHROME — app bar, user menu, mobile drawer, nav tabs,
@@ -3443,7 +3443,7 @@ body.dark-theme .profile-avatar-crop-modal{background:var(--surface);}
     </div>
     <div class="modal__body" id="billDetailsBody"></div>
     <div class="modal__footer">
-      <button class="btn btn--primary btn--full" id="btnCloseBillDetailsModalFooter">Close</button>
+      <button class="btn btn--primary btn--full" id="btnCloseBillDetailsModalFooter"><i class="fa-solid fa-xmark __web-inspector-hide-shortcut__" aria-hidden="true"></i>Close</button>
     </div>
   </div>
 </div>
