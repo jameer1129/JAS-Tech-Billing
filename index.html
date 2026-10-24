@@ -9624,6 +9624,8 @@ function bindEvents(){
       el.adminUserSearch.value = '';
       el.adminRoleFilter.dataset.value = '';
       el.adminStatusFilter.dataset.value = '';
+      el.adminRoleFilter.classList.remove('active');
+      el.adminStatusFilter.classList.remove('active');
       el.adminRoleFilterLabel.textContent = 'All Roles';
       el.adminStatusFilterLabel.textContent = 'All Status';
       el.adminRoleDropdown?.querySelectorAll('.date-dropdown__item').forEach(i => i.classList.toggle('active', !i.dataset.role));
@@ -9638,6 +9640,7 @@ function bindEvents(){
     const labelEl = type === 'role' ? el.adminRoleFilterLabel : el.adminStatusFilterLabel;
     const attr = type === 'role' ? 'role' : 'status';
     button.dataset.value = value;
+    button.classList.toggle('active', value !== '');
     labelEl.textContent = label;
     dropdown.querySelectorAll('.date-dropdown__item').forEach(i => i.classList.toggle('active', (i.dataset[attr] || '') === value));
     dropdown.classList.add('hide');
