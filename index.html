@@ -2637,6 +2637,8 @@ body.dark-theme .admin-empty__icon::before{background:rgba(23,105,255,.14);}
 .pending-users-list .user-row{flex-direction:column;align-items:stretch;gap:8px;}
 .pending-users-list .user-row__actions{width:100%;display:flex;justify-content:flex-end;align-items:center;gap:8px;flex-wrap:wrap;}
 .pending-users-list .user-row__actions .btn{flex:0 0 auto;padding:8px 12px;}
+.pending-users-list .user-row__actions .btn--primary{min-height:0;}
+.pending-users-list .user-row__actions .btn--primary i{font-size:11px;}
 .admin-panel .bills-pagination{margin:0;padding:8px 14px;}
 /* ---------- Loading skeleton ---------- */
 .admin-stat.is-loading .admin-stat__icon{background:#EEF0F3 !important;color:transparent !important;box-shadow:none;animation:jasSkeletonPulse 1s ease-in-out infinite;}
@@ -7720,6 +7722,7 @@ function renderUserRow(user, { isSelf = false, showActions = false } = {}){
       </div>
       <div class="user-row__actions">
         ${showActions ? `
+          <button class="btn btn--primary btn--sm" data-action="info" data-id="${escapeHtml(user.id || '')}" aria-label="User info"><i class="fa-solid fa-info"></i><span>User Info</span></button>
           <button class="btn btn--success btn--sm" data-action="approve" data-id="${escapeHtml(user.id || '')}" aria-label="Approve user"><i class="fa-solid fa-check"></i><span>Approve</span></button>
           <button class="btn btn--danger btn--sm" data-action="reject" data-id="${escapeHtml(user.id || '')}" aria-label="Reject user"><i class="fa-solid fa-xmark"></i><span>Reject</span></button>
         ` : ((role.toLowerCase() !== 'super_admin' || isSelf) ? (isSelf ? `
@@ -7916,7 +7919,8 @@ function handlePendingUsersClick(e){
   const btn = e.target.closest('button[data-action]');
   if (!btn) return;
   const id = btn.dataset.id;
-  if (btn.dataset.action === 'approve') setUserStatus(id, 'approved');
+  if (btn.dataset.action === 'info') openUserInfo(id);
+  else if (btn.dataset.action === 'approve') setUserStatus(id, 'approved');
   else if (btn.dataset.action === 'reject') setUserStatus(id, 'rejected');
 }
 function closeAllActionMenus(){
