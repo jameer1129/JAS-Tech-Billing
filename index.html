@@ -18,7 +18,7 @@
 });
 (function(){
   try{
-    var t=localStorage.getItem('jas_theme');
+    var t=localStorage.getItem('jas_theme_preference');
     if(t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches)){
       document.documentElement.classList.add('dark-theme');
     }
@@ -8560,7 +8560,7 @@ function closeDrawer(){
 /* ---------- Theme: light | dark | system (device default) ----------
    Single source of truth: THEME_MODES. The popup options, drawer subtitle
    and storage validation are all driven from it. */
-const THEME_KEY = 'jas_theme';
+const THEME_KEY = 'jas_theme_preference';
 const THEME_MODES = {
   light:  { label: 'Light',          hint: 'Always use the light theme', icon: 'fa-sun' },
   dark:   { label: 'Dark',           hint: 'Always use the dark theme',  icon: 'fa-moon' },
