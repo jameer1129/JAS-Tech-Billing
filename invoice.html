@@ -336,7 +336,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
     const m=String(value).trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
     return m?m[3]+'-'+m[2]+'-'+m[1]:String(value);
   }
-  const TIMEOUT_MS=15000;
+  const TIMEOUT_MS=20000;
   function codedError(code,msg){const e=new Error(msg);e.code=code;return e;}
 
   /* fetch with a hard time limit. Any connection failure or timeout becomes a NETWORK_ERROR. */

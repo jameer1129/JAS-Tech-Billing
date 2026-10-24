@@ -150,7 +150,7 @@ html,body{
 /* ---------- theme switch: simple crossfade ---------- */
 ::view-transition-old(root),
 ::view-transition-new(root){
-  animation-duration:.75s;
+  animation-duration:1s;
   animation-timing-function:ease;
 }
 @media(prefers-reduced-motion:reduce){
@@ -3843,7 +3843,7 @@ function scheduleHtml2PdfWarmup(){
   try { InvoiceEngine.configure(CONFIG); InvoiceEngine.warmup(getCurrentInvoiceEngineData()); }
   catch (e) { InvoiceEngine.warmup(); }
 }
-const MAX_NETWORK_WAIT_MS = 15000;
+const MAX_NETWORK_WAIT_MS = 20000;
 let bootDeadline = null;
 const MIN_NETWORK_WAIT_MS = 3000;
 function nextNetworkTimeoutMs(){
