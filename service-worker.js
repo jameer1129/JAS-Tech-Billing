@@ -20,7 +20,7 @@ const STATIC_ASSETS = [
   "./assets/logo/horizontal-logo.png",
   "./assets/signature/signature.png",
   "./assets/icons/app-icon.png",
-  "/assets/icons/app-icon-maskable.png",
+  "./assets/icons/app-icon-maskable.png",
   "./assets/icons/whatsapp-qr.jpeg",
 ];
 
