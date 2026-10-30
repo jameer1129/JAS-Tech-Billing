@@ -2355,7 +2355,9 @@ body.dark-theme .date-dropdown__item.active{background:rgba(1,37,135,.20);}
   cursor:pointer;
 }
 .bill-card__print:hover{color:var(--primary-text);border-color:var(--primary-text);background:#EEF4FC;}
-.bill-card__customer{min-height:61px;padding:18px 64px 10px 0;display:flex;flex-direction:column;justify-content:center;gap:4px;}
+.bill-card__copy.kebab-btn{position:absolute;top:8px;right:44px;z-index:20;border-color:transparent;width:32px;height:32px;}
+.bill-card__copy--solo.kebab-btn{right:12px;}
+.bill-card__customer{min-height:61px;padding:18px 50px 10px 0;display:flex;flex-direction:column;justify-content:center;gap:4px;}
 .bill-card__name{
   font-size:16px;
   line-height:1.25;
@@ -7242,6 +7244,7 @@ function renderBillsTable(){
     <article class="bill-card" data-invoice="${escapeHtml(b.invoice_no)}">
       <span class="bill-card__invoice">#${escapeHtml(b.invoice_no)}</span>
       ${isAdmin ? `<div class="bill-card__more user-actions-menu-wrap"><button class="kebab-btn" data-action="more" data-invoice="${escapeHtml(b.invoice_no)}" aria-label="More actions"><i class="fa-solid fa-ellipsis-vertical"></i></button></div>` : ''}
+      <button class="kebab-btn bill-card__copy${isAdmin ? '' : ' bill-card__copy--solo'}" data-action="copy" data-invoice="${escapeHtml(b.invoice_no)}" aria-label="Copy invoice ${escapeHtml(b.invoice_no)} to new bill"><i class="fa-regular fa-copy"></i></button>
       <button class="bill-card__print" data-action="reprint" data-invoice="${escapeHtml(b.invoice_no)}" aria-label="Print invoice ${escapeHtml(b.invoice_no)}"><i class="fa-solid fa-print"></i></button>
       <div class="bill-card__customer">
         <div class="bill-card__name"><i class="fa-solid fa-user"></i>${escapeHtml(b.customer_name || 'Walk-in customer')}</div>
@@ -7374,6 +7377,59 @@ async function reprintBill(invoiceNo){
     // normally again instead of thinking a preview is still in progress.
     isPreviousBillMode = false;
     draftBillSnapshot = null;
+  }
+}
+// Copies a saved bill into a fresh New Bill form (new invoice number + today's
+// date, everything else as saved) so it can be generated as-is or edited.
+async function copyBillToNew(invoiceNo){
+  const bill = billsCache.find(b => b.invoice_no === invoiceNo);
+  if (!bill) return;
+  showActionLoader('Loading Bill…');
+  try {
+    const { data: items, error } = await withAuthRetry(() => supabaseClient
+      .from('bill_items')
+      .select('item_name,description,serial,qty,price,amount')
+      .eq('invoice_no', invoiceNo));
+    if (error) throw error;
+    resetInvoice(false); // clean New Bill: fresh date, no invoice number, old draft cleared
+    state.customer = {
+      name: bill.customer_name || '',
+      address: bill.customer_address || '',
+      mobile: bill.customer_phone || ''
+    };
+    syncCustomerFieldsFromState();
+    state.notes = bill.notes || '';
+    el.invoiceNotes.value = state.notes;
+    // Show the saved on/off options as they were, without changing the user's saved preferences.
+    [['toggleNotesVisibility', 'includeNotesOnPdf', bill.include_notes ?? !!bill.notes],
+     ['toggleWatermark', 'showWatermark', bill.show_watermark ?? true],
+     ['toggleQrVisibility', 'showQr', bill.show_qr ?? true],
+     ['toggleSignatureVisibility', 'showSignature', bill.show_signature ?? true]
+    ].forEach(([toggleKey, stateKey, value]) => {
+      const toggle = el[toggleKey];
+      if (!toggle || toggle.disabled) return;
+      toggle.checked = !!value;
+      state[stateKey] = !!value;
+    });
+    updateNotesInputState();
+    state.products = (items || []).map((it, idx) => ({
+      id: idx + 1,
+      name: it.item_name,
+      description: it.description || '',
+      serial: it.serial || '',
+      qty: it.qty,
+      rate: it.price
+    }));
+    state.nextId = state.products.length + 1;
+    renderProducts();
+    updateSummary();
+    saveBillStateToLocalStorage();
+    switchView('newBill');
+  } catch (error) {
+    console.error(error);
+    showToast('Could not copy bill.', 'error');
+  } finally {
+    hideActionLoader();
   }
 }
 function setDeleteBillButtonState(isBusy){
@@ -7600,6 +7656,8 @@ function handleBillsTableClick(e){
   if (!invoiceNo) return;
   if (btn.dataset.action === 'reprint') {
     reprintBill(invoiceNo);
+  } else if (btn.dataset.action === 'copy') {
+    copyBillToNew(invoiceNo);
   } else if (btn.dataset.action === 'more') {
     toggleBillsMoreMenu(btn, invoiceNo);
   } else if (btn.dataset.action === 'deletebill') {
