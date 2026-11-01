@@ -893,20 +893,21 @@ body.dark-theme .confirm-icon--info{background:rgba(1,37,135,.4);}
 .modal--confirm .confirm-target{color:var(--primary-text);font-weight:700;overflow-wrap:anywhere;word-break:break-word;}
 /* ---------- Admin user info modal ---------- */
 .user-info-modal{max-width:430px; max-height:calc(100dvh - 32px);display:flex;flex-direction:column;overflow:hidden;}
-.user-info-modal .modal__body{flex:1 1 auto;min-height:0;overflow-y:auto; overscroll-behavior:contain;overflow-x: hidden;}
+.user-info-modal .modal__body{padding:0 20px;}
 .user-info-modal .modal__footer{padding:0 12px 12px;}
-.user-info-profile{display:flex;align-items:center;flex-direction:column;gap:10px;}
+.user-info-profile{display:flex;align-items:center;flex-direction:column;gap:8px;}
 .user-info-avatar{position:relative;width:76px;height:76px;flex:0 0 76px;border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--user-avatar-bg,#3F51B5);color:#fff;font-size:34px;font-weight:500;}
 .user-info-avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;}
 .user-info-name{font-size:16px;font-weight:700;text-align:center;overflow-wrap:anywhere;}
 .user-info-details{display:flex;flex-direction:column;gap:0;}
 .user-info-details>div{display:flex;flex-direction:column;align-items:stretch;gap:5px;padding:10px 0;border-top:1px solid var(--line);font-size:13px;min-width:0;}
-.user-info-details span{color:var(--primary-text);font-size:12px;font-weight:600;flex:none;}
-.user-info-details b{text-align:left;overflow-wrap:anywhere;word-break:break-word;font-weight:600;min-width:0;}
+.user-info-details span{color:var(--primary-text);font-size:12px;font-weight:700;flex:none;}
 .user-info-modal #userInfoTitle{display:flex;align-items:center;gap:8px;color:var(--primary-text);}
 .user-info-modal #userInfoTitle>i{color:var(--primary-text);}
 .user-info-details span i{width:15px;margin-right:5px;text-align:center;}
-.user-info-details b.badge{align-self:flex-start;text-align:left;overflow-wrap:anywhere;word-break:break-word;padding:0;border:0;border-radius:0;background:transparent!important;}
+.user-info-details b.badge{align-self:flex-start;text-align:left;overflow-wrap:anywhere;word-break:break-word;}
+.user-info-details>.user-info-split{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.user-info-split>div{display:flex;flex-direction:column;align-items:stretch;gap:4px;min-width:0;}
 .user-info-trigger{font-size:11px;}
 /* ---------- Confirm modal building blocks: chip, note, checklist ---------- */
 .confirm-note{font-weight:500; display:flex;align-items:flex-start;gap:6px;margin-top:6px;width:100%;padding:10px 12px;border:1px solid color-mix(in srgb, var(--primary-text) 26%, transparent);border-radius:var(--radius-sm);background:color-mix(in srgb, var(--primary) 10%, transparent);color:var(--primary-text);font-size:12px;line-height:1.5;text-align:left;}
@@ -3369,9 +3370,12 @@ body.dark-theme .profile-avatar-crop-modal{background:var(--surface);}
         <div><span><i class="fa-solid fa-fingerprint" aria-hidden="true"></i> User ID</span><b id="userInfoId"></b></div>
         <div><span><i class="fa-solid fa-envelope" aria-hidden="true"></i> Email</span><b id="userInfoEmail"></b></div>
         <div><span><i class="fa-solid fa-calendar-plus" aria-hidden="true"></i> Profile Created</span><b id="userInfoCreated"></b></div>
-        <div><span><i class="fa-solid fa-clock" aria-hidden="true"></i> Last Sign-in</span><b id="userInfoLastSignIn">Loading…</b></div>
-        <div><span><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Role</span><b id="userInfoRole"></b></div>
-        <div><span><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Status</span><b id="userInfoStatus"></b></div>
+        <div><span><i class="fa-solid fa-clock" aria-hidden="true"></i> Last Sign-in</span><b id="userInfoLastSignIn"></b></div>
+        <div><span><i class="fa-solid fa-bolt" aria-hidden="true"></i> Last Activity</span><b id="userInfoLastActivity"></b></div>
+        <div class="user-info-split">
+          <div><span><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Role</span><b id="userInfoRole"></b></div>
+          <div><span><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Status</span><b id="userInfoStatus"></b></div>
+        </div>
       </div>
     </div>
     <div class="modal__footer">
@@ -3861,6 +3865,70 @@ let pendingRestoreBillId = null;
 let isRestoreBillsMode = false;
 let supabaseClient = null;
 let currentSession = null;
+// ---- Last sign-in / last activity tracking ----
+// Sign-in: set by the explicit sign-in paths (password, Google, signup/OTP) and
+// consumed once in afterAuthResolved(), when the profile row is guaranteed to
+// exist. Restoring a saved session on page load does NOT count as a sign-in.
+let pendingSignInRecord = false;
+// Activity: pushed at most once per hour. The last push time is kept in
+// localStorage (shared by all tabs, survives restarts) and compared with the
+// last_activity_at already stored on the profile, so nothing is written
+// more often than ACTIVITY_PUSH_INTERVAL_MS no matter how much the user taps.
+const ACTIVITY_PUSH_INTERVAL_MS = 60 * 60 * 1000;
+const ACTIVITY_RETRY_AFTER_FAILURE_MS = 5 * 60 * 1000;
+const ACTIVITY_KEY_PREFIX = 'jas_last_activity_push_';
+let activityPushInFlight = false;
+let activityRetryNotBefore = 0;
+function readLastActivityPush(userId){
+  let local = 0;
+  try { local = Number(localStorage.getItem(ACTIVITY_KEY_PREFIX + userId)) || 0; } catch (err) {}
+  const fromProfile = currentProfile?.id === userId ? Date.parse(currentProfile.last_activity_at || '') || 0 : 0;
+  return Math.max(local, fromProfile);
+}
+function rememberActivityPush(userId, ms){
+  try { localStorage.setItem(ACTIVITY_KEY_PREFIX + userId, String(ms)); } catch (err) {}
+  if (currentProfile?.id === userId) currentProfile.last_activity_at = new Date(ms).toISOString();
+}
+async function recordSignIn(){
+  const userId = currentSession?.user?.id;
+  if (!userId || !supabaseClient) return;
+  const nowMs = Date.now();
+  const iso = new Date(nowMs).toISOString();
+  const { error } = await supabaseClient
+    .from('profiles')
+    .update({ last_sign_in_at: iso, last_activity_at: iso })
+    .eq('id', userId);
+  if (error) { console.error('Could not record sign-in:', error); return; }
+  rememberActivityPush(userId, nowMs);
+}
+async function maybePushActivity(){
+  const userId = currentSession?.user?.id;
+  if (!userId || !supabaseClient || currentProfile?.status !== 'approved') return;
+  if (activityPushInFlight) return;
+  const nowMs = Date.now();
+  if (nowMs < activityRetryNotBefore) return;
+  if (nowMs - readLastActivityPush(userId) < ACTIVITY_PUSH_INTERVAL_MS) return;
+  activityPushInFlight = true;
+  try {
+    const { error } = await supabaseClient
+      .from('profiles')
+      .update({ last_activity_at: new Date(nowMs).toISOString() })
+      .eq('id', userId);
+    if (error) throw error;
+    rememberActivityPush(userId, nowMs);
+  } catch (err) {
+    console.error('Could not update last activity:', err);
+    activityRetryNotBefore = Date.now() + ACTIVITY_RETRY_AFTER_FAILURE_MS;
+  } finally {
+    activityPushInFlight = false;
+  }
+}
+['pointerdown', 'keydown'].forEach(evt =>
+  document.addEventListener(evt, () => { maybePushActivity(); }, { capture: true, passive: true })
+);
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) maybePushActivity();
+});
 let currentProfile = null;   // { id, name, email, role, status }
 // Set right before a deliberate supabaseClient.auth.signOut() call (e.g. the
 // Logout button). Lets the SIGNED_OUT handler tell an intentional logout
@@ -4235,6 +4303,7 @@ function cacheElements(){
   el.userInfoEmail = document.getElementById('userInfoEmail');
   el.userInfoCreated = document.getElementById('userInfoCreated');
   el.userInfoLastSignIn = document.getElementById('userInfoLastSignIn');
+  el.userInfoLastActivity = document.getElementById('userInfoLastActivity');
   el.userInfoRole = document.getElementById('userInfoRole');
   el.userInfoStatus = document.getElementById('userInfoStatus');
   el.btnUserInfoDone = document.getElementById('btnUserInfoDone');
@@ -4360,6 +4429,10 @@ function formatDateTime(isoStr) {
   const ampm = hours >= 12 ? 'PM' : 'AM';
   hours = hours % 12 || 12;
   return `${pad(d.getDate())} ${months[d.getMonth()]} ${d.getFullYear()}, ${pad(hours)}:${pad(d.getMinutes())} ${ampm}`;
+}
+function formatDateTimeOrUnavailable(isoStr) {
+  const out = formatDateTime(isoStr);
+  return out === '—' ? 'Unavailable' : out;
 }
 function displayDateToISO(val) {
   return val ? swapDateParts(val) : null;
@@ -5013,78 +5086,6 @@ function createSupabaseClient(authStorage, detectSessionInUrl, storageKey = null
   supabaseClientCache.set(cacheKey, client);
   return client;
 }
-// Detects a stale/expired-access-token error coming back from a
-// Supabase/PostgREST query, as opposed to any other kind of failure
-// (network error, RLS rejection, bad filter, etc.). Used to decide
-// whether a failed data load is worth retrying after a session refresh.
-function isAuthError(error){
-  if (!error) return false;
-  const code = String(error.code || '').toUpperCase();
-  const msg = String(error.message || '').toLowerCase();
-  return code === 'PGRST301'
-    || code === '401'
-    || msg.includes('jwt')
-    || msg.includes('expired')
-    || msg.includes('invalid signature')
-    || msg.includes('not authenticated')
-    || msg.includes('unauthorized');
-}
-
-async function ensureFreshSession(){
-  if (!supabaseClient) return;
-  try {
-    const { data: { session } = {} } = await supabaseClient.auth.getSession();
-    // getSession() only refreshes once the token is (almost) expired by the
-    // client's own clock. Refresh proactively when under 5 minutes remain.
-    const msLeft = session?.expires_at ? session.expires_at * 1000 - Date.now() : 0;
-    if (session && msLeft < 5 * 60 * 1000) await forceSessionRefresh();
-  }
-  catch (err) { console.error('Session refresh check failed:', err); }
-}
-let forcedRefreshPromise = null;
-function forceSessionRefresh(){
-  if (!supabaseClient) return Promise.resolve();
-  if (forcedRefreshPromise) return forcedRefreshPromise;
-  forcedRefreshPromise = (async () => {
-    try { await supabaseClient.auth.refreshSession(); }
-    catch (err) { console.error('Forced session refresh failed:', err); }
-    finally { setTimeout(() => { forcedRefreshPromise = null; }, 1500); }
-  })();
-  return forcedRefreshPromise;
-}
-
-async function withAuthRetry(run){
-  let result = await run();
-  if (result?.error && isAuthError(result.error)) {
-    await forceSessionRefresh();
-    result = await run();
-  }
-  return result;
-}
-function startManualSessionRefresh(client){
-  if (!client || client._manualRefreshStarted) return;
-  client._manualRefreshStarted = true;
-  let timerId = null;
-  const check = () => {
-    if (document.visibilityState !== 'visible') return;
-    client.auth.getSession().catch(err => console.error('Session refresh check failed:', err));
-  };
-  const startTimer = () => {
-    if (timerId !== null) return;
-    check();
-    timerId = window.setInterval(check, 5 * 60 * 1000);
-  };
-  const stopTimer = () => {
-    if (timerId === null) return;
-    window.clearInterval(timerId);
-    timerId = null;
-  };
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') startTimer();
-    else stopTimer();
-  });
-  if (document.visibilityState === 'visible') startTimer();
-}
 function initSupabase(recoveryContext){
   // Password recovery lives in memory only for the current page lifetime —
   // nothing is written to any browser storage (persistSession: false), and
@@ -5096,10 +5097,10 @@ function initSupabase(recoveryContext){
     supabaseClient = createSupabaseClient(window.sessionStorage, true, RECOVERY_AUTH_STORAGE_KEY, false, false);
     return supabaseClient;
   }
-  // Normal logins always persist in localStorage. autoRefreshToken is off
-  // deliberately — see startManualSessionRefresh() for why and what
-  // replaces it.
-  supabaseClient = createSupabaseClient(window.localStorage, undefined, null, true, false);
+  // Normal logins always persist in localStorage, and supabase-js refreshes
+  // the access token automatically (autoRefreshToken: true). There is no
+  // manual refresh timer; nothing else should call refreshSession().
+  supabaseClient = createSupabaseClient(window.localStorage, undefined, null, true, true);
   return supabaseClient;
 }
 // Marks (in sessionStorage, so it survives the OAuth redirect round-trip but
@@ -5533,6 +5534,7 @@ async function handleLogin(){
       return;
     }
     currentSession = data.session;
+    pendingSignInRecord = true;
     clearPendingSignup();
     showActionLoader('Loading your account…');
     await afterAuthResolved();
@@ -5734,6 +5736,7 @@ async function handleRegister() {
     }
     if (data?.session) {
       currentSession = data.session;
+      pendingSignInRecord = true;
       clearPendingSignup();
       await afterAuthResolved();
       return;
@@ -5798,6 +5801,7 @@ async function handleVerifyEmail(){
       return;
     }
     currentSession = data?.session || null;
+    if (currentSession) pendingSignInRecord = true;
     clearPendingSignup();
     setVerificationOtp('');
     if (currentSession) {
@@ -6063,7 +6067,7 @@ async function handleLogout(){
 async function fetchOwnProfile(){
   const { data, error } = await supabaseClient
     .from('profiles')
-    .select('id,name,email,role,status,avatar_updated_at')
+    .select('id,name,email,role,status,avatar_updated_at,last_activity_at')
     .eq('id', currentSession.user.id)
     .single();
   if (error) {
@@ -6184,6 +6188,11 @@ async function afterAuthResolved(){
     return;
   }
   currentProfile = freshProfile;
+
+  if (pendingSignInRecord) {
+    pendingSignInRecord = false;
+    recordSignIn().catch(err => console.error('Could not record sign-in:', err));
+  }
 
   if (freshProfile.status === 'approved') {
     saveCachedProfile(freshProfile);
@@ -6328,13 +6337,10 @@ function switchView(view){
   if (view === 'newBill' && !isPreviousBillMode && !restoredDraft) {
     setTimeout(() => checkAndPromptForRestore(), 50);
   }
-  // Confirm/refresh the session right before firing these loads. If the
-  // app was backgrounded long enough for the access token to go stale,
-  // this closes the race where the query fires before the periodic
-  // background check (startManualSessionRefresh) gets to it.
-  if (view === 'previousBills') { ensureFreshSession().finally(() => loadBills()); }
+  // Load directly; supabase-js refreshes the token itself before each request.
+  if (view === 'previousBills') { loadBills(); }
   if (view === 'admin' && ['admin','super_admin'].includes(currentProfile.role)) {
-    ensureFreshSession().finally(() => { loadAdminStats(); loadPendingUsers(); loadAllUsers(); });
+    loadAdminStats(); loadPendingUsers(); loadAllUsers();
   }
 }
 /* ===================================================================
@@ -6791,7 +6797,7 @@ async function saveBillToSupabase(){
       price: p.rate,
     }))
   };
-  const { data: bill, error: billErr } = await withAuthRetry(() => supabaseClient.rpc('create_bill', billRow));
+  const { data: bill, error: billErr } = await supabaseClient.rpc('create_bill', billRow);
   if (billErr) throw billErr;
   return bill;
 }
@@ -6884,7 +6890,7 @@ async function openInvoiceQr(invoiceNo){
   el.invoiceQrSkeleton?.classList.remove('hide');
   showOverlay(el.invoiceQrModalOverlay);
   try{
-    const {data,error}=await withAuthRetry(() => supabaseClient.rpc('get_or_create_invoice_public_token',{p_invoice_no:invoiceNo}));
+    const {data,error}=await supabaseClient.rpc('get_or_create_invoice_public_token',{p_invoice_no:invoiceNo});
     if(error) throw error;
     if(!data) throw new Error('Token unavailable');
     const base=new URL(CONFIG.public_invoice_url || './invoice.html',location.href);
@@ -7192,13 +7198,7 @@ async function loadBills(resetToFirstPage){
     const result = await query;
     return result;
   };
-  let { data, error, count } = await runFetch();
-  if (error && isAuthError(error)) {
-    // Access token had likely gone stale in the background — refresh it
-    // and retry the whole fetch once before giving up.
-    await forceSessionRefresh();
-    ({ data, error, count } = await runFetch());
-  }
+  const { data, error, count } = await runFetch();
   // A newer loadBills() call was started while this one was in flight
   // (e.g. the user kept typing/changing filters) — its response is stale,
   // so drop it rather than let it overwrite more recent results.
@@ -7321,10 +7321,10 @@ async function reprintBill(invoiceNo){
   // during app startup while the invoice items are fetched.
   showActionLoader('Loading Bill…');
   try {
-    const { data: items, error } = await withAuthRetry(() => supabaseClient
+    const { data: items, error } = await supabaseClient
       .from('bill_items')
       .select('item_name,description,serial,qty,price,amount')
-      .eq('invoice_no', invoiceNo));
+      .eq('invoice_no', invoiceNo);
     if (error) throw error;
     // Load into state, then reuse the existing render + download pipeline (skip re-saving)
     state.customer = {
@@ -7386,10 +7386,10 @@ async function copyBillToNew(invoiceNo){
   if (!bill) return;
   showActionLoader('Loading Bill…');
   try {
-    const { data: items, error } = await withAuthRetry(() => supabaseClient
+    const { data: items, error } = await supabaseClient
       .from('bill_items')
       .select('item_name,description,serial,qty,price,amount')
-      .eq('invoice_no', invoiceNo));
+      .eq('invoice_no', invoiceNo);
     if (error) throw error;
     resetInvoice(false); // clean New Bill: fresh date, no invoice number, old draft cleared
     state.customer = {
@@ -7526,7 +7526,7 @@ async function deleteBill(){
   showActionLoader('Moving bill to Restore Bills…');
   try {
     const invoiceNo = pendingDeleteBillId;
-    const { error } = await withAuthRetry(() => supabaseClient.rpc('soft_delete_bill', { p_invoice_no: invoiceNo }));
+    const { error } = await supabaseClient.rpc('soft_delete_bill', { p_invoice_no: invoiceNo });
     if (error) {
       console.error(error);
       showToast(error.message || 'Could not delete bill.', 'error');
@@ -7563,7 +7563,7 @@ async function restoreBill(){
   showActionLoader('Restoring bill…');
   try {
     const invoiceNo = pendingRestoreBillId;
-    const { error } = await withAuthRetry(() => supabaseClient.rpc('restore_bill', { p_invoice_no: invoiceNo }));
+    const { error } = await supabaseClient.rpc('restore_bill', { p_invoice_no: invoiceNo });
     if (error) {
       console.error(error);
       showToast(error.message || 'Could not restore bill.', 'error');
@@ -7728,7 +7728,7 @@ function renderUserRow(user, { isSelf = false, showActions = false } = {}){
   const status = user?.status || '';
 
   return `
-    <div class="user-row" data-id="${escapeHtml(user.id || '')}" data-role="${escapeHtml(role)}" data-status="${escapeHtml(status)}" data-created-at="${escapeHtml(user?.created_at || '')}">
+    <div class="user-row" data-id="${escapeHtml(user.id || '')}" data-role="${escapeHtml(role)}" data-status="${escapeHtml(status)}" data-created-at="${escapeHtml(user?.created_at || '')}" data-last-sign-in-at="${escapeHtml(user?.last_sign_in_at || '')}" data-last-activity-at="${escapeHtml(user?.last_activity_at || '')}">
       <div class="user-row__info" data-initial="${escapeHtml(letter)}" style="--user-avatar-bg:${avatarColor};">
         ${avatarUrl ? `<img class="user-row__avatar-img" src="${escapeHtml(avatarUrl)}?v=${encodeURIComponent(String(avatarUpdatedAt))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}
         <b>${escapeHtml(name)} ${isSelf ? '<span style="color:var(--muted);font-weight:500;">(you)</span>' : ''}</b>
@@ -7761,12 +7761,12 @@ async function loadPendingUsers(){
   el.pendingUsersEmpty.classList.add('hide');
   el.pendingUsersList.innerHTML = '';
   const from = (pendingPage - 1) * USERS_PAGE_SIZE;
-  const { data, error, count } = await withAuthRetry(() => supabaseClient
+  const { data, error, count } = await supabaseClient
     .from('profiles')
-    .select('id,name,email,role,status,created_at', { count: 'exact' })
+    .select('id,name,email,role,status,created_at,last_sign_in_at,last_activity_at', { count: 'exact' })
     .eq('status', 'pending')
     .order('created_at', { ascending: true })
-    .range(from, from + USERS_PAGE_SIZE - 1));
+    .range(from, from + USERS_PAGE_SIZE - 1);
   if (requestId !== pendingUsersRequestSeq) return;
   el.pendingUsersLoading.classList.add('hide');
   if (error) {
@@ -7798,7 +7798,7 @@ async function loadAllUsers(resetToFirstPage = false){
   const runQuery = () => {
     let query = supabaseClient
       .from('profiles')
-      .select('id,name,email,role,status,created_at,avatar_updated_at', { count: 'exact' });
+      .select('id,name,email,role,status,created_at,avatar_updated_at,last_sign_in_at,last_activity_at', { count: 'exact' });
     if (term) {
       const safeTerm = term.replace(/[%,()]/g, ' ').trim();
       query = query.or(
@@ -7809,13 +7809,7 @@ async function loadAllUsers(resetToFirstPage = false){
     if (status) query = query.eq('status', status);
     return query.order('created_at', { ascending: false }).range(from, to);
   };
-  let { data, error, count } = await runQuery();
-  if (error && isAuthError(error)) {
-    // Access token had likely gone stale in the background — refresh it
-    // and retry once before giving up.
-    await forceSessionRefresh();
-    ({ data, error, count } = await runQuery());
-  }
+  const { data, error, count } = await runQuery();
   if (requestId !== allUsersRequestSeq) return;
   el.allUsersLoading.classList.add('hide');
   if (error) {
@@ -7852,15 +7846,7 @@ async function loadAdminStats(){
     supabaseClient.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'rejected')
   ]);
   try {
-    let results = await runQueries();
-    // HEAD (count-only) requests have an EMPTY response body, so a 401 has no
-    // code/message for isAuthError() - only result.status identifies it.
-    const isStale = r => r.error && (r.status === 401 || r.status === 403 || isAuthError(r.error));
-    for (let attempt = 0; attempt < 2 && results.some(isStale); attempt++) {
-      if (attempt > 0) await new Promise(res => setTimeout(res, 1200));
-      await forceSessionRefresh();
-      results = await runQueries();
-    }
+    const results = await runQueries();
     if (results.some(result => result.error)) {
       const failed = results.find(result => result.error);
       console.error('Could not load admin account stats.', failed?.status, failed?.error);
@@ -7882,6 +7868,29 @@ function renderAllUsersPagination(){
 function handleAllUsersPaginationClick(e){
   handlePaginationClick(e, USERS_PAGE_SIZE, usersTotalCount, () => usersPage, p => usersPage = p, loadAllUsers);
 }
+// admin_update_profile_access() needs BOTH role and status (direct UPDATE on
+// those columns is revoked), so the one that is not changing is taken from the
+// row on screen, or read from the table if the row is not rendered.
+async function getCurrentAccess(userId){
+  const row = document.querySelector(`.user-row[data-id="${CSS.escape(String(userId))}"]`);
+  let role = row?.dataset.role || '';
+  let status = row?.dataset.status || '';
+  if (!role || !status) {
+    const { data, error } = await supabaseClient.from('profiles').select('role,status').eq('id', userId).single();
+    if (error) throw error;
+    role = data.role;
+    status = data.status;
+  }
+  return { role, status };
+}
+async function updateProfileAccess(userId, role, status){
+  const { error } = await supabaseClient.rpc('admin_update_profile_access', {
+    p_user_id: userId,
+    p_role: role,
+    p_status: status
+  });
+  if (error) throw error;
+}
 async function setUserStatus(userId, status){
   const target = document.querySelector(`.user-row[data-id="${CSS.escape(String(userId))}"]`);
   if (target?.dataset.role?.toLowerCase() === 'super_admin') {
@@ -7890,11 +7899,8 @@ async function setUserStatus(userId, status){
   }
   showActionLoader(status === 'approved' ? 'Approving User' : 'Rejecting User');
   try {
-    const { error } = await withAuthRetry(() => supabaseClient
-      .from('profiles')
-      .update({ status })
-      .eq('id', userId));
-    if (error) throw error;
+    const { role } = await getCurrentAccess(userId);
+    await updateProfileAccess(userId, role, status);
     hideActionLoader();
     showToast(status === 'approved' ? 'User approved' : 'User rejected', 'success');
     loadAdminStats();
@@ -7916,11 +7922,8 @@ async function setUserRole(userId, role){
   }
   showActionLoader(role === 'admin' ? 'Making Admin' : 'Making Employee');
   try {
-    const { error } = await withAuthRetry(() => supabaseClient
-      .from('profiles')
-      .update({ role })
-      .eq('id', userId));
-    if (error) throw error;
+    const { status } = await getCurrentAccess(userId);
+    await updateProfileAccess(userId, role, status);
     hideActionLoader();
     showToast('Role updated', 'success');
     loadAllUsers();
@@ -8254,14 +8257,17 @@ async function openUserInfo(userId, trigger){
     email,
     role: row.dataset.role || '',
     status: row.dataset.status || '',
-    created_at: row.dataset.createdAt || ''
+    created_at: row.dataset.createdAt || '',
+    last_sign_in_at: row.dataset.lastSignInAt || '',
+    last_activity_at: row.dataset.lastActivityAt || ''
   };
   el.userInfoName.textContent = user.name || user.email || 'User';
   el.userInfoId.textContent = user.id;
   el.userInfoEmail.textContent = user.email || 'Not available';
   el.userInfoCreated.textContent = formatDateTime(user.created_at);
-  el.userInfoLastSignIn.textContent = 'Loading…';
-  el.userInfoRole.className = `badge badge--${['super_admin','employee'].includes(user.role.toLowerCase()) ? user.role.toLowerCase() : ''}`;
+  el.userInfoLastSignIn.textContent = formatDateTimeOrUnavailable(user.last_sign_in_at);
+  el.userInfoLastActivity.textContent = formatDateTimeOrUnavailable(user.last_activity_at);
+  el.userInfoRole.className = `badge badge--${['super_admin','admin','employee'].includes(user.role.toLowerCase()) ? user.role.toLowerCase() : ''}`;
   el.userInfoRole.textContent = user.role || 'Not available';
   el.userInfoStatus.className = `badge badge--${['approved','pending','rejected'].includes(user.status.toLowerCase()) ? user.status.toLowerCase() : 'employee'}`;
   el.userInfoStatus.textContent = user.status || 'Not available';
@@ -8279,16 +8285,6 @@ async function openUserInfo(userId, trigger){
     el.userInfoAvatar.appendChild(image);
   }
   showOverlay(el.userInfoModalOverlay);
-  try {
-    const { data, error } = await supabaseClient.functions.invoke('get-user-last-sign-in', {
-      body: { user_id: user.id }
-    });
-    if (error) throw error;
-    el.userInfoLastSignIn.textContent = formatDateTime(data?.last_sign_in_at);
-  } catch (error) {
-    console.error('Could not load user last sign-in:', error);
-    el.userInfoLastSignIn.textContent = 'Unavailable';
-  }
 }
 function closeUserInfo(){ hideOverlay(el.userInfoModalOverlay); }
 
@@ -10003,7 +9999,7 @@ async function init(){
   let activeNormalClient = null;
   let persistentNormalClient = null;
   if (oauthCallbackContext) {
-    const oauthClient = createSupabaseClient(window.localStorage, true, null, true, false);
+    const oauthClient = createSupabaseClient(window.localStorage, true, null, true, true);
     const clearOAuthPending = () => {
       try { window.sessionStorage.removeItem(OAUTH_PENDING_KEY); }
       catch (err) { /* ignore storage errors */ }
@@ -10015,7 +10011,6 @@ async function init(){
     }
     activeNormalClient = oauthClient;
     supabaseClient = oauthClient;
-    startManualSessionRefresh(activeNormalClient);
     // Google/Supabase report a failed OAuth attempt (consent denied, the
     // provider being unavailable, a misconfigured redirect URI, etc.) as an
     // error param appended to the callback URL, not as a thrown exception.
@@ -10043,6 +10038,7 @@ async function init(){
     clearOAuthPending();
     if (oauthSession) {
       currentSession = oauthSession;
+      pendingSignInRecord = true;
       clearPendingSignup();
       normalAuthResolved = true;
       showActionLoader('Loading your account…');
@@ -10074,7 +10070,7 @@ async function init(){
     return;
   }
   // Normal application load: inspect localStorage without parsing the URL.
-  const persistentClient = createSupabaseClient(window.localStorage, false, null, true, false);
+  const persistentClient = createSupabaseClient(window.localStorage, false, null, true, true);
   persistentNormalClient = persistentClient;
   if (!persistentClient) {
     showScreen('auth');
@@ -10082,7 +10078,6 @@ async function init(){
   }
   activeNormalClient = persistentClient;
   supabaseClient = persistentClient;
-  startManualSessionRefresh(activeNormalClient);
   const { data: { session: resolvedSession } = {} } = await persistentClient.auth.getSession();
   activeNormalClient.auth.onAuthStateChange((event, session) => {
     if (event === 'SIGNED_OUT') {

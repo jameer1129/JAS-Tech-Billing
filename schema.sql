@@ -57,6 +57,8 @@ create table if not exists public.profiles (
       status in ('pending', 'approved', 'rejected')
     ),
   created_at timestamptz not null default now(),
+  last_sign_in_at TIMESTAMPTZ DEFAULT NULL,
+  last_activity_at TIMESTAMPTZ DEFAULT NULL,
   avatar_updated_at TIMESTAMPTZ DEFAULT NULL;
 );
 -- ROLE CONSTRAINT MIGRATION
@@ -275,20 +277,29 @@ for select
 using (
   public.is_admin()
 );
-drop policy if exists
-  "profiles_update_admin"
-on public.profiles;
 create policy
-  "profiles_update_admin"
+  "profiles_update_own"
 on public.profiles
 for update
 using (
-  public.is_admin()
-  and role <> 'super_admin'
+  id = auth.uid()
 )
 with check (
-  role <> 'super_admin'
+  id = auth.uid()
 );
+-- Remove existing table-level UPDATE permissions
+REVOKE UPDATE ON TABLE public.profiles
+FROM PUBLIC, anon, authenticated;
+
+-- Allow only three profile columns to be updated directly
+GRANT UPDATE (
+    avatar_updated_at,
+    last_sign_in_at,
+    last_activity_at
+)
+ON TABLE public.profiles
+TO authenticated;
+
 -- 10. BILLS POLICIES
 --
 -- Approved users:
@@ -1313,6 +1324,67 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION public.admin_update_profile_access(
+    p_user_id UUID,
+    p_role TEXT,
+    p_status TEXT
+)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+    v_updated INTEGER;
+BEGIN
+    -- Verify approved Admin or Super Admin
+    IF NOT public.is_admin() THEN
+        RAISE EXCEPTION 'Only approved administrators can perform this action';
+    END IF;
+
+    -- Only admin and employee can be assigned
+    IF p_role IS NULL OR p_role NOT IN ('admin', 'employee') THEN
+        RAISE EXCEPTION 'Invalid role. Only admin or employee is allowed';
+    END IF;
+
+    -- Validate status
+    IF p_status IS NULL OR p_status NOT IN ('pending', 'approved', 'rejected') THEN
+        RAISE EXCEPTION 'Invalid status';
+    END IF;
+
+    -- Prevent changing own role/status
+    IF p_user_id IS NULL OR p_user_id = auth.uid() THEN
+        RAISE EXCEPTION 'You cannot change your own role or status';
+    END IF;
+
+    -- Update only Admin and Employee accounts
+    UPDATE public.profiles
+    SET
+        role = p_role,
+        status = p_status
+    WHERE id = p_user_id
+      AND role IN ('admin', 'employee');
+
+    GET DIAGNOSTICS v_updated = ROW_COUNT;
+
+    IF v_updated = 0 THEN
+        RAISE EXCEPTION 'User not found or insufficient permissions';
+    END IF;
+END;
+$$;
+
+ALTER FUNCTION public.admin_update_profile_access(UUID, TEXT, TEXT)
+OWNER TO postgres;
+
+REVOKE ALL ON FUNCTION
+public.admin_update_profile_access(UUID, TEXT, TEXT)
+FROM PUBLIC, anon;
+
+GRANT EXECUTE ON FUNCTION
+public.admin_update_profile_access(UUID, TEXT, TEXT)
+TO authenticated;
+
+
 
 -- 3. Restrict who can execute these functions
 REVOKE ALL ON FUNCTION public.soft_delete_bill(TEXT)
@@ -1849,235 +1921,6 @@ GRANT SELECT, UPDATE ON public.supabase_heartbeat TO service_role;
 --         error: error instanceof Error ? error.message : String(error),
 --       },
 --       { status: 500 }
---     );
---   }
--- });
-
--- get-user-last-sign-in edge function
-
--- import { createClient } from "npm:@supabase/supabase-js@2";
-
--- const corsHeaders = {
---   "Access-Control-Allow-Origin": "*",
---   "Access-Control-Allow-Headers":
---     "authorization, x-client-info, apikey, content-type",
---   "Access-Control-Allow-Methods": "POST, OPTIONS",
---   "Content-Type": "application/json",
--- };
-
--- const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
--- const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
--- const RAW_SECRET_KEYS = Deno.env.get("SUPABASE_SECRET_KEYS");
-
--- if (!SUPABASE_URL) {
---   throw new Error("SUPABASE_URL is required");
--- }
-
--- if (!ANON_KEY) {
---   throw new Error("SUPABASE_ANON_KEY is required");
--- }
-
--- if (!RAW_SECRET_KEYS) {
---   throw new Error("SUPABASE_SECRET_KEYS is required");
--- }
-
--- let secretKeys: Record<string, string>;
-
--- try {
---   secretKeys = JSON.parse(RAW_SECRET_KEYS);
--- } catch {
---   throw new Error("SUPABASE_SECRET_KEYS must contain valid JSON");
--- }
-
--- const ADMIN_KEY = secretKeys["default"];
-
--- if (!ADMIN_KEY) {
---   throw new Error("Default secret key is missing");
--- }
-
--- const supabaseAdmin = createClient(SUPABASE_URL, ADMIN_KEY, {
---   auth: {
---     autoRefreshToken: false,
---     persistSession: false,
---     detectSessionInUrl: false,
---   },
--- });
-
--- Deno.serve(async (req: Request) => {
---   if (req.method === "OPTIONS") {
---     return new Response(null, {
---       status: 204,
---       headers: corsHeaders,
---     });
---   }
-
---   if (req.method !== "POST") {
---     return Response.json(
---       { error: "Method not allowed" },
---       { status: 405, headers: corsHeaders },
---     );
---   }
-
---   try {
---     // Authenticate the signed-in caller.
---     const authHeader = req.headers.get("Authorization");
-
---     if (!authHeader?.startsWith("Bearer ")) {
---       return Response.json(
---         { error: "Unauthorized" },
---         { status: 401, headers: corsHeaders },
---       );
---     }
-
---     const supabaseCaller = createClient(SUPABASE_URL, ANON_KEY, {
---       global: {
---         headers: { Authorization: authHeader },
---       },
---       auth: {
---         autoRefreshToken: false,
---         persistSession: false,
---         detectSessionInUrl: false,
---       },
---     });
-
---     const {
---       data: { user: caller },
---       error: authError,
---     } = await supabaseCaller.auth.getUser();
-
---     if (authError || !caller) {
---       console.warn("Caller authentication failed:", authError?.message);
-
---       return Response.json(
---         { error: "Unauthorized" },
---         { status: 401, headers: corsHeaders },
---       );
---     }
-
---     // Verify caller's profile and permissions.
---     const { data: callerProfile, error: callerProfileError } =
---       await supabaseAdmin
---         .from("profiles")
---         .select("role, status")
---         .eq("id", caller.id)
---         .maybeSingle();
-
---     if (callerProfileError || !callerProfile) {
---       console.error("Caller profile lookup failed:", {
---         error: callerProfileError?.message ?? null,
---         profileFound: !!callerProfile,
---       });
-
---       return Response.json(
---         { error: "Could not verify caller permissions" },
---         { status: 500, headers: corsHeaders },
---       );
---     }
-
---     const callerRole = String(callerProfile.role ?? "").toLowerCase();
---     const callerStatus = String(callerProfile.status ?? "").toLowerCase();
-
---     console.log("Caller authorization check:", {
---       callerId: caller.id,
---       role: callerRole,
---       status: callerStatus,
---     });
-
---     if (
---       !["admin", "super_admin"].includes(callerRole) ||
---       callerStatus !== "approved"
---     ) {
---       return Response.json(
---         { error: "Forbidden" },
---         { status: 403, headers: corsHeaders },
---       );
---     }
-
---     // Validate requested user ID.
---     const body = await req.json().catch(() => null);
---     const userId =
---       typeof body?.user_id === "string" ? body.user_id : "";
-
---     const uuidPattern =
---       /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
---     if (!uuidPattern.test(userId)) {
---       return Response.json(
---         { error: "A valid user_id is required" },
---         { status: 400, headers: corsHeaders },
---       );
---     }
-
---     // Verify the target user's role.
---     const { data: targetProfile, error: targetProfileError } =
---       await supabaseAdmin
---         .from("profiles")
---         .select("role")
---         .eq("id", userId)
---         .maybeSingle();
-
---     if (targetProfileError) {
---       console.error(
---         "Target profile lookup failed:",
---         targetProfileError.message,
---       );
-
---       return Response.json(
---         { error: "Could not verify target user" },
---         { status: 500, headers: corsHeaders },
---       );
---     }
-
---     if (!targetProfile) {
---       return Response.json(
---         { error: "User not found" },
---         { status: 404, headers: corsHeaders },
---       );
---     }
-
---     // Only Super Admins may view a Super Admin's sign-in time.
---     // Super Admins may view their own and every other user's sign-in time.
---     const targetIsSuperAdmin =
---       String(targetProfile.role ?? "").toLowerCase() === "super_admin";
-
---     if (targetIsSuperAdmin && callerRole !== "super_admin") {
---       return Response.json(
---         { error: "Super Admin information is not available" },
---         { status: 403, headers: corsHeaders },
---       );
---     }
-
---     // Retrieve only the last sign-in timestamp.
---     const { data, error } =
---       await supabaseAdmin.auth.admin.getUserById(userId);
-
---     if (error || !data.user) {
---       console.error(
---         "Auth user lookup failed:",
---         error?.message ?? "User missing",
---       );
-
---       return Response.json(
---         { error: "Could not retrieve sign-in time" },
---         { status: 404, headers: corsHeaders },
---       );
---     }
-
---     return Response.json(
---       {
---         last_sign_in_at: data.user.last_sign_in_at ?? null,
---       },
---       { status: 200, headers: corsHeaders },
---     );
---   } catch (error) {
---     console.error(
---       "get-user-last-sign-in failed:",
---       error instanceof Error ? error.message : "Unknown error",
---     );
-
---     return Response.json(
---       { error: "Internal server error" },
---       { status: 500, headers: corsHeaders },
 --     );
 --   }
 -- });
