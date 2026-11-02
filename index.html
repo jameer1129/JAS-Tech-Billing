@@ -2742,12 +2742,19 @@ body.dark-theme .profile-avatar-crop-modal{background:var(--surface);}
 .rem-device__icon{width:44px;height:44px;flex:0 0 44px;border-radius:12px;display:grid;place-items:center;font-size:19px;background:rgba(1,37,135,.08);color:var(--primary-text);}
 body.dark-theme .rem-device__icon{background:rgba(1,37,135,.28);}
 .rem-device__icon--ok{background:rgba(31,146,84,.12);color:var(--success);}
-.rem-device__icon--off{background:rgba(107,114,128,.14);color:var(--muted);}
+body.dark-theme .rem-device__icon--ok{background:rgba(31,146,84,.15);}
+.rem-device__icon--off{background: rgba(244, 67, 54, .12);color:var(--danger);}
+body.dark-theme .rem-device__icon--off{background:rgba(244, 67, 54, .15);}
 .rem-device__text{min-width:0;flex:1;display:flex;flex-direction:column;gap:4px;}
 .rem-device__tag{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);}
 .rem-device__name{font-size:15px;font-weight:700;color:var(--text);overflow-wrap:anywhere;line-height:1.3;}
 .rem-device__sub{font-size:12.5px;color:var(--muted);font-weight:500;}
 .rem-device__sub--warn{color:var(--danger);font-weight:600;}
+.rem-device__sub-sep{margin:0 .15em;}
+@media(max-width:450px){
+  .rem-device__sub--split{display:flex;flex-direction:column;gap:2px;align-items:flex-start;}
+  .rem-device__sub-sep{display:none;}
+}
 .rem-device__action{padding:0 16px 16px;}
 .rem-device__action .btn{width:100%;min-height:46px;}
 .rem-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
@@ -6718,12 +6725,15 @@ function renderDeviceCard(){
   if (s.hasActive) {
     const ok = s.isThis && s.healthy;
     const sub = `Updated ${escapeHtml(formatDateTime(s.dev.updatedAt))}`;
+    const subHtml = (s.isThis && ok)
+    ? `<span class="rem-device__sub rem-device__sub--split"><span><i class="fa-solid fa-circle-check" style="color:var(--success)"></i> Active on this device</span><span class="rem-device__sub-sep"> · </span><span>${sub}</span></span>`
+    : `<span class="rem-device__sub">${sub}</span>`;
     rows += `<div class="rem-device__row">
-      <div class="rem-device__icon ${ok ? 'rem-device__icon--ok' : ''}"><i class="fa-solid ${deviceIconClass(s.dev.userAgent)}"></i></div>
+      <div class="rem-device__icon rem-device__icon--ok"><i class="fa-solid ${deviceIconClass(s.dev.userAgent)}"></i></div>
       <div class="rem-device__text">
         <span class="rem-device__tag">Currently activated device</span>
         <span class="rem-device__name">${escapeHtml(s.dev.label || deviceLabelFromUa(s.dev.userAgent))}</span>
-        <span class="rem-device__sub">${s.isThis ? (ok ? '<i class="fa-solid fa-circle-check" style="color:var(--success)"></i> Active on this device · ' : '') : ''}${sub}</span>
+        ${subHtml}
       </div></div>`;
   } else {
     rows += `<div class="rem-device__row">
