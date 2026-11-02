@@ -2466,6 +2466,7 @@ body.dark-theme .bill-card--skeleton::before{background:#151515;box-shadow:0 40p
   flex-direction:column;
   justify-content:space-between;
   border-radius:16px;
+  color:var(--primary-text);
 }
 .admin-stat::after{
   content:"";
@@ -2501,7 +2502,6 @@ body.dark-theme .bill-card--skeleton::before{background:#151515;box-shadow:0 40p
 .admin-stat--rejected{color:var(--danger);}
 .admin-stat--rejected .admin-stat__icon{color:var(--danger);background:rgba(214,69,69,.12);}
 .admin-stat--rejected .admin-stat__value{color:var(--danger);}
-body.dark-theme .admin-stat{background:var(--surface);}
 body.dark-theme .admin-stat__icon{background:rgba(23,105,255,.16);color:#5B9CFF;}
 body.dark-theme .admin-stat__value{color:#5B9CFF;}
 body.dark-theme .admin-stat--approved .admin-stat__icon{background:rgba(48,209,120,.16);color:#30D158;}
@@ -7198,7 +7198,7 @@ async function loadBills(resetToFirstPage){
     const result = await query;
     return result;
   };
-  const { data, error, count } = await runFetch();
+  const { data, error, count } = await retryOn401(runFetch);
   // A newer loadBills() call was started while this one was in flight
   // (e.g. the user kept typing/changing filters) — its response is stale,
   // so drop it rather than let it overwrite more recent results.
@@ -7728,7 +7728,7 @@ function renderUserRow(user, { isSelf = false, showActions = false } = {}){
   const status = user?.status || '';
 
   return `
-    <div class="user-row" data-id="${escapeHtml(user.id || '')}" data-role="${escapeHtml(role)}" data-status="${escapeHtml(status)}" data-created-at="${escapeHtml(user?.created_at || '')}" data-last-sign-in-at="${escapeHtml(user?.last_sign_in_at || '')}" data-last-activity-at="${escapeHtml(user?.last_activity_at || '')}">
+    <div class="user-row" data-id="${escapeHtml(user.id || '')}" data-role="${escapeHtml(role)}" data-status="${escapeHtml(status)}">
       <div class="user-row__info" data-initial="${escapeHtml(letter)}" style="--user-avatar-bg:${avatarColor};">
         ${avatarUrl ? `<img class="user-row__avatar-img" src="${escapeHtml(avatarUrl)}?v=${encodeURIComponent(String(avatarUpdatedAt))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}
         <b>${escapeHtml(name)} ${isSelf ? '<span style="color:var(--muted);font-weight:500;">(you)</span>' : ''}</b>
@@ -7761,12 +7761,12 @@ async function loadPendingUsers(){
   el.pendingUsersEmpty.classList.add('hide');
   el.pendingUsersList.innerHTML = '';
   const from = (pendingPage - 1) * USERS_PAGE_SIZE;
-  const { data, error, count } = await supabaseClient
+  const { data, error, count } = await retryOn401(() => supabaseClient
     .from('profiles')
-    .select('id,name,email,role,status,created_at,last_sign_in_at,last_activity_at', { count: 'exact' })
+    .select('id,name,email,role,status', { count: 'exact' })
     .eq('status', 'pending')
     .order('created_at', { ascending: true })
-    .range(from, from + USERS_PAGE_SIZE - 1);
+    .range(from, from + USERS_PAGE_SIZE - 1));
   if (requestId !== pendingUsersRequestSeq) return;
   el.pendingUsersLoading.classList.add('hide');
   if (error) {
@@ -7798,7 +7798,7 @@ async function loadAllUsers(resetToFirstPage = false){
   const runQuery = () => {
     let query = supabaseClient
       .from('profiles')
-      .select('id,name,email,role,status,created_at,avatar_updated_at,last_sign_in_at,last_activity_at', { count: 'exact' });
+      .select('id,name,email,role,status,avatar_updated_at', { count: 'exact' });
     if (term) {
       const safeTerm = term.replace(/[%,()]/g, ' ').trim();
       query = query.or(
@@ -7809,7 +7809,7 @@ async function loadAllUsers(resetToFirstPage = false){
     if (status) query = query.eq('status', status);
     return query.order('created_at', { ascending: false }).range(from, to);
   };
-  const { data, error, count } = await runQuery();
+  const { data, error, count } = await retryOn401(runQuery);
   if (requestId !== allUsersRequestSeq) return;
   el.allUsersLoading.classList.add('hide');
   if (error) {
@@ -7837,19 +7837,28 @@ function reloadAllUsersFromFilters(){
   clearTimeout(usersSearchDebounceTimer);
   loadAllUsers(true);
 }
+// Supabase sometimes rejects a brand-new token for about a second
+// ("JWT issued at future", 401). Read-only loads wait 2 s and try again.
+async function retryOn401(run){
+  let result = await run();
+  for (let i = 0; i < 2 && result?.status === 401; i++) {
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    result = await run();
+  }
+  return result;
+}
 async function loadAdminStats(){
   document.querySelectorAll('#viewAdmin .admin-stat').forEach(card => card.classList.add('is-loading'));
-  const runQueries = () => Promise.all([
-    supabaseClient.from('profiles').select('*', { count: 'exact', head: true }),
-    supabaseClient.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
-    supabaseClient.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-    supabaseClient.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'rejected')
-  ]);
+  const countUsers = status => () => {
+    const query = supabaseClient.from('profiles').select('*', { count: 'exact', head: true });
+    return status ? query.eq('status', status) : query;
+  };
   try {
-    const results = await runQueries();
+    const results = await Promise.all([null, 'approved', 'pending', 'rejected'].map(s => retryOn401(countUsers(s))));
     if (results.some(result => result.error)) {
       const failed = results.find(result => result.error);
       console.error('Could not load admin account stats.', failed?.status, failed?.error);
+      [el.adminTotalUsers, el.adminApprovedUsers, el.adminPendingUsers, el.adminRejectedUsers].forEach(node => { node.textContent = '–'; });
       showToast('Could not load admin account statistics.', 'error');
       return;
     }
@@ -7897,7 +7906,7 @@ async function setUserStatus(userId, status){
     showToast('Super Admin cannot be changed.', 'warning');
     return;
   }
-  showActionLoader(status === 'approved' ? 'Approving User' : 'Rejecting User');
+  showActionLoader(status === 'approved' ? 'Approving User…' : 'Rejecting User…');
   try {
     const { role } = await getCurrentAccess(userId);
     await updateProfileAccess(userId, role, status);
@@ -7920,7 +7929,7 @@ async function setUserRole(userId, role){
     showToast('Super Admin cannot be changed.', 'warning');
     return;
   }
-  showActionLoader(role === 'admin' ? 'Making Admin' : 'Making Employee');
+  showActionLoader(role === 'admin' ? 'Making Admin…' : 'Making Employee…');
   try {
     const { status } = await getCurrentAccess(userId);
     await updateProfileAccess(userId, role, status);
@@ -8240,6 +8249,7 @@ async function confirmRecoveryConflictLogout(){
     hideActionLoader();
   }
 }
+let userInfoRequestSeq = 0;
 async function openUserInfo(userId, trigger){
   const row = document.querySelector(`.user-row[data-id="${CSS.escape(String(userId))}"]`);
   if (!row) return;
@@ -8256,17 +8266,12 @@ async function openUserInfo(userId, trigger){
     name,
     email,
     role: row.dataset.role || '',
-    status: row.dataset.status || '',
-    created_at: row.dataset.createdAt || '',
-    last_sign_in_at: row.dataset.lastSignInAt || '',
-    last_activity_at: row.dataset.lastActivityAt || ''
+    status: row.dataset.status || ''
   };
   el.userInfoName.textContent = user.name || user.email || 'User';
   el.userInfoId.textContent = user.id;
   el.userInfoEmail.textContent = user.email || 'Not available';
-  el.userInfoCreated.textContent = formatDateTime(user.created_at);
-  el.userInfoLastSignIn.textContent = formatDateTimeOrUnavailable(user.last_sign_in_at);
-  el.userInfoLastActivity.textContent = formatDateTimeOrUnavailable(user.last_activity_at);
+  el.userInfoCreated.textContent = el.userInfoLastSignIn.textContent = el.userInfoLastActivity.textContent = 'Loading...';
   el.userInfoRole.className = `badge badge--${['super_admin','admin','employee'].includes(user.role.toLowerCase()) ? user.role.toLowerCase() : ''}`;
   el.userInfoRole.textContent = user.role || 'Not available';
   el.userInfoStatus.className = `badge badge--${['approved','pending','rejected'].includes(user.status.toLowerCase()) ? user.status.toLowerCase() : 'employee'}`;
@@ -8285,6 +8290,19 @@ async function openUserInfo(userId, trigger){
     el.userInfoAvatar.appendChild(image);
   }
   showOverlay(el.userInfoModalOverlay);
+
+  // These three are loaded only when the modal opens, not with the user lists.
+  const requestId = ++userInfoRequestSeq;
+  const { data, error } = await retryOn401(() => supabaseClient
+    .from('profiles')
+    .select('created_at,last_sign_in_at,last_activity_at')
+    .eq('id', user.id)
+    .maybeSingle());
+  if (requestId !== userInfoRequestSeq) return;
+  if (error) console.error('Could not load user info:', error);
+  el.userInfoCreated.textContent = formatDateTimeOrUnavailable(data?.created_at);
+  el.userInfoLastSignIn.textContent = formatDateTimeOrUnavailable(data?.last_sign_in_at);
+  el.userInfoLastActivity.textContent = formatDateTimeOrUnavailable(data?.last_activity_at);
 }
 function closeUserInfo(){ hideOverlay(el.userInfoModalOverlay); }
 
