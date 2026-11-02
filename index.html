@@ -7802,7 +7802,7 @@ async function loadAllUsers(resetToFirstPage = false){
     if (term) {
       const safeTerm = term.replace(/[%,()]/g, ' ').trim();
       query = query.or(
-        `name.ilike.${safeTerm}%,name.ilike.% ${safeTerm}%,email.ilike.${safeTerm}%,email.ilike.%@${safeTerm}%,email.ilike.%.${safeTerm}%,email.ilike.%+${safeTerm}%,email.ilike.%-${safeTerm}%,email.ilike.%\\_${safeTerm}%`
+        `name.ilike.${safeTerm}%,name.ilike.% ${safeTerm}%,email.ilike.${safeTerm}%`
       );
     }
     if (role) query = query.eq('role', role);
