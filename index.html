@@ -24,6 +24,13 @@
     }
   }catch(e){}
 })();
+// Notification tap: ./index.html?mode=reminders. Remembered for the whole
+// session so it still works if the user has to log in first.
+try {
+  if (new URLSearchParams(window.location.search).get('mode') === 'reminders') {
+    sessionStorage.setItem('jas_open_reminders', '1');
+  }
+} catch (e) {}
 if ('launchQueue' in window) {
   window.launchQueue.setConsumer(({ targetURL }) => {
     if (!targetURL || targetURL === window.location.href) return;
@@ -31,7 +38,7 @@ if ('launchQueue' in window) {
       const url = new URL(targetURL, window.location.href);
       if (
         url.origin === window.location.origin &&
-        url.searchParams.get('mode') === 'update-password'
+        ['update-password', 'reminders'].includes(url.searchParams.get('mode'))
       ) {
         window.location.replace(url.href);
       }
@@ -2724,6 +2731,78 @@ body.dark-theme .admin-skeleton-row::after{background:#151515;box-shadow:0 20px 
 .profile-avatar-crop-footer .btn{flex:1;min-height:42px;}
 body.dark-theme .profile-avatar-crop-modal{background:var(--surface);}
 @media(max-width:480px){.profile-avatar-crop-overlay{padding:12px;}.profile-avatar-crop-modal{border-radius:14px;}.profile-avatar-crop-stage{height:46vh;min-height:200px;margin:12px 12px 6px;}.profile-avatar-crop-header{padding:15px 16px;}.profile-avatar-crop-help{padding:12px 16px 0;}.profile-avatar-crop-footer{padding:12px 12px 14px;}.profile-avatar-crop-modal{max-height:calc(100dvh - 24px);}}
+
+/* =========================================================
+   REMINDERS TAB
+   ========================================================= */
+#viewReminders{max-width:1060px;}
+.rem-device{padding:0;overflow:hidden;}
+.rem-device__row{display:flex;align-items:center;gap:12px;padding:14px 16px;}
+.rem-device__row + .rem-device__row{border-top:1px solid var(--line);}
+.rem-device__icon{width:44px;height:44px;flex:0 0 44px;border-radius:12px;display:grid;place-items:center;font-size:19px;background:rgba(1,37,135,.08);color:var(--primary-text);}
+body.dark-theme .rem-device__icon{background:rgba(1,37,135,.28);}
+.rem-device__icon--ok{background:rgba(31,146,84,.12);color:var(--success);}
+.rem-device__icon--off{background:rgba(107,114,128,.14);color:var(--muted);}
+.rem-device__text{min-width:0;flex:1;display:flex;flex-direction:column;gap:4px;}
+.rem-device__tag{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);}
+.rem-device__name{font-size:15px;font-weight:700;color:var(--text);overflow-wrap:anywhere;line-height:1.3;}
+.rem-device__sub{font-size:12.5px;color:var(--muted);font-weight:500;}
+.rem-device__sub--warn{color:var(--danger);font-weight:600;}
+.rem-device__action{padding:0 16px 16px;}
+.rem-device__action .btn{width:100%;min-height:46px;}
+.rem-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.rem-head__title{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:750;color:var(--primary-text);}
+.rem-count{font-size:12px;font-weight:700;padding:3px 9px;border-radius:20px;background:rgba(1,37,135,.08);color:var(--primary-text);}
+body.dark-theme .rem-count{background:rgba(1,37,135,.28);}
+.rem-count.full{background:rgba(214,69,69,.12);color:var(--danger);}
+.rem-head .btn{min-height:44px;padding:9px 18px;}
+.rem-group{display:flex;flex-direction:column;gap:10px;}
+.rem-group__title{display:flex;align-items:center;gap:8px;margin:4px 2px 0;font-size:12.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
+.rem-group__title b{font-weight:700;padding:1px 8px;border-radius:20px;background:var(--line);color:var(--text);font-size:11px;}
+.rem-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;}
+.rem-card{display:flex;flex-direction:column;gap:10px;}
+.rem-card__top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+.rem-card__title{font-size:15.5px;font-weight:750;color:var(--text);overflow-wrap:anywhere;line-height:1.3;min-width:0;}
+.rem-card__desc{font-size:13px;color:var(--muted);overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:-4px;}
+.rem-card__meta{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;font-weight:600;color:var(--muted);}
+.rem-card__meta span{display:inline-flex;align-items:center;gap:6px;}
+.rem-card__meta .due{color:var(--warning);}
+.rem-card__meta .overdue{color:var(--danger);}
+.rem-card__actions{display:flex;gap:8px;padding-top:12px;border-top:1.5px solid var(--line);}
+.rem-card__actions .btn{flex:1 1 0;min-width:0;min-height:40px;padding:8px 10px;font-size:13px;}
+.rem-card__actions .btn--danger-ghost{color:var(--danger);border-color:color-mix(in srgb, var(--danger) 45%, var(--line));}
+.rem-card__actions .btn--danger-ghost:hover{color:var(--danger);border-color:var(--danger);background:rgba(214,69,69,.08);}
+.rem-badge{flex:0 0 auto;display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;}
+.rem-badge--active{background:rgba(1,37,135,.1);color:var(--primary-text);}
+.rem-badge--paused{background:rgba(214,69,69,.12);color:var(--danger);}
+.rem-badge--completed{background:rgba(31,146,84,.12);color:var(--success);}
+body.dark-theme .rem-badge--active{background:rgba(23,105,255,.16);color:#5B9CFF;}
+body.dark-theme .rem-badge--paused{background:rgba(255,69,58,.14);}
+body.dark-theme .rem-badge--completed{background:rgba(48,209,120,.14);}
+.rem-repeat .date-dropdown{position:static;margin-top:6px;box-shadow:none;}
+.rem-repeat .date-filter-btn{flex:none;min-height:46px;}
+.rem-repeat .date-filter-btn > span{flex:1 1 auto;text-align:left;}
+.rem-custom{display:none;}
+.rem-custom.show{display:block;}
+.rem-hint{font-size:12px;color:var(--muted);margin:-4px 2px 0;}
+.date-picker__nav:disabled{opacity:.25;cursor:not-allowed;}
+.date-picker__nav:disabled:hover{background:none;color:var(--muted);}
+.date-picker__day:disabled:not(.outside),.date-picker__month-btn:disabled{opacity:.3;cursor:not-allowed;}
+@media(max-width:760px){
+  .rem-grid{grid-template-columns:1fr;gap:12px;}
+}
+@media(max-width:560px){
+  .rem-head .btn{width:100%;}
+}
+/* Nav tabs: four tabs share the width on phones and the active one scrolls into view. */
+@media(max-width:640px){
+  .nav-tabs{gap:0;padding:0 4px;}
+  .nav-tab{flex:1 0 auto;justify-content:center;padding:13px 10px;font-size:12.5px;gap:5px;}
+}
+@media(max-width:380px){
+  .nav-tab{padding:13px 7px;font-size:12px;gap:4px;}
+  .nav-tab i{font-size:12px;}
+}
 </style>
 <link rel="stylesheet" href="./invoice-engine.css?v=6">
 <script src="./invoice-engine.js?v=6"></script>
@@ -3053,7 +3132,8 @@ body.dark-theme .profile-avatar-crop-modal{background:var(--surface);}
   </header>
   <nav class="nav-tabs">
     <button class="nav-tab active" data-view="newBill"><i class="fa-solid fa-file-invoice"></i> New Bill</button>
-    <button class="nav-tab" data-view="previousBills"><i class="fa-solid fa-clock-rotate-left"></i> Previous Bills</button>
+    <button class="nav-tab" data-view="previousBills"><i class="fa-solid fa-clock-rotate-left"></i> Bills</button>
+    <button class="nav-tab" data-view="reminders"><i class="fa-solid fa-bell"></i> Reminders</button>
     <button class="nav-tab hide" id="navAdminTab" data-view="admin"><i class="fa-solid fa-user-shield"></i> Admin</button>
   </nav>
   <!-- ========== VIEW: NEW BILL ========== -->
@@ -3265,6 +3345,28 @@ body.dark-theme .profile-avatar-crop-modal{background:var(--surface);}
       </div>
     </section>
   </main>
+  <!-- ========== VIEW: REMINDERS ========== -->
+  <main class="app-shell hide" id="viewReminders">
+    <section class="card rem-device" id="remDeviceCard" aria-live="polite"></section>
+    <div class="rem-head">
+      <div class="rem-head__title"><i class="fa-solid fa-bell" aria-hidden="true"></i> My Reminders <span class="rem-count" id="remCount">0 / 10</span></div>
+      <button type="button" class="btn btn--primary" id="btnCreateReminder"><i class="fa-solid fa-plus" aria-hidden="true"></i> Create Reminder</button>
+    </div>
+    <div id="remLoading" class="bills-loading-skeleton hide" aria-hidden="true">
+      <div class="bills-loading-skeleton__grid">
+        <div class="bill-card bill-card--skeleton"></div>
+        <div class="bill-card bill-card--skeleton"></div>
+        <div class="bill-card bill-card--skeleton"></div>
+        <div class="bill-card bill-card--skeleton"></div>
+      </div>
+    </div>
+    <div class="empty-state hide" id="remEmpty">
+      <i class="fa-regular fa-bell"></i>
+      <p>No reminders yet.</p>
+      <span>Tap “Create Reminder” to add your first one.</span>
+    </div>
+    <div class="rem-groups" id="remGroups" style="display:flex;flex-direction:column;gap:18px;"></div>
+  </main>
   <!-- ========== VIEW: ADMIN ========== -->
   <main class="app-shell admin-shell hide" id="viewAdmin">
     <section class="admin-stats" aria-label="User account summary">
@@ -3415,6 +3517,72 @@ body.dark-theme .profile-avatar-crop-modal{background:var(--surface);}
     <div class="modal__footer">
       <button class="btn btn--ghost" id="btnCancelProduct">Cancel</button>
       <button class="btn btn--primary" id="btnSaveProduct">Save</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay hide" id="reminderModalOverlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="reminderModalTitle">
+    <div class="modal__header">
+      <i class="fa-solid fa-bell" aria-hidden="true"></i>
+      <h3 id="reminderModalTitle">Create Reminder</h3>
+    </div>
+    <div class="modal__body">
+      <div class="field field--icon">
+        <i class="fa-solid fa-heading" aria-hidden="true"></i>
+        <input type="text" id="remTitle" name="cf-txt-r1a2" autocomplete="nope" autocorrect="off" spellcheck="false" data-lpignore="true" data-form-type="other" placeholder="Reminder title *" aria-label="Reminder title" maxlength="80">
+      </div>
+      <div class="field field--icon">
+        <i class="fa-solid fa-align-left" aria-hidden="true"></i>
+        <textarea id="remDesc" name="cf-txt-r3b4" autocomplete="nope" autocorrect="off" spellcheck="false" data-lpignore="true" data-form-type="other" placeholder="Description (optional)" aria-label="Description" maxlength="300" rows="2"></textarea>
+      </div>
+      <div class="field">
+        <div class="date-picker" id="remDatePicker">
+          <button type="button" class="date-picker__input field--icon" id="remDateInput" aria-haspopup="true" aria-expanded="false">
+            <span class="date-picker__text" id="remDateText"></span>
+            <i class="fa-regular fa-calendar"></i>
+          </button>
+        </div>
+        <input type="date" id="remDate" class="hide" tabindex="-1" aria-hidden="true">
+      </div>
+      <div class="rem-repeat" id="remRepeatWrap">
+        <button type="button" class="date-filter-btn" id="btnRemRepeat" aria-haspopup="listbox" aria-expanded="false"><i class="fa-solid fa-repeat"></i><span id="remRepeatLabel">Repeat: Off</span><i class="fa-solid fa-chevron-down caret"></i></button>
+        <div class="date-dropdown hide" id="remRepeatDropdown" role="listbox">
+          <button type="button" class="date-dropdown__item active" data-repeat="">Off</button>
+          <button type="button" class="date-dropdown__item" data-repeat="daily">Daily</button>
+          <button type="button" class="date-dropdown__item" data-repeat="weekly">Weekly</button>
+          <button type="button" class="date-dropdown__item" data-repeat="monthly">Monthly</button>
+          <button type="button" class="date-dropdown__item" data-repeat="yearly">Yearly</button>
+          <button type="button" class="date-dropdown__item" data-repeat="custom">Custom days…</button>
+        </div>
+      </div>
+      <div class="rem-custom" id="remCustomWrap">
+        <div class="field field--icon">
+          <i class="fa-solid fa-hashtag" aria-hidden="true"></i>
+          <input type="number" id="remCustomDays" name="cf-txt-r5c6" autocomplete="nope" data-lpignore="true" data-form-type="other" min="1" max="365" step="1" inputmode="numeric" placeholder="Repeat every how many days? (1–365)" aria-label="Custom repeat days">
+        </div>
+      </div>
+      <p class="rem-hint">Date must be tomorrow or later, within one year.</p>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--ghost" id="btnCancelReminder" type="button">Cancel</button>
+      <button class="btn btn--primary" id="btnSaveReminder" type="button">Save</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay modal--confirm hide" id="reminderDeleteModalOverlay">
+  <div class="modal" role="alertdialog" aria-modal="true">
+    <div class="modal__header">
+      <div class="confirm-icon confirm-icon--danger"><i class="fa-solid fa-trash-can"></i></div>
+      <h3>Delete Reminder</h3>
+    </div>
+    <div class="modal__body">
+      <p class="confirm-lead">Delete this reminder permanently?</p>
+      <p class="confirm-target" id="reminderDeleteName"></p>
+      <div class="confirm-note confirm-note--warning"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i><span>This can’t be undone or recovered.</span></div>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--ghost" id="btnCancelDeleteReminder" type="button">Cancel</button>
+      <button class="btn btn--danger" id="btnConfirmDeleteReminder" type="button">Delete</button>
     </div>
   </div>
 </div>
@@ -4125,6 +4293,31 @@ function cacheElements(){
   el.viewNewBill = document.getElementById('viewNewBill');
   el.viewPreviousBills = document.getElementById('viewPreviousBills');
   el.viewAdmin = document.getElementById('viewAdmin');
+  el.viewReminders = document.getElementById('viewReminders');
+  el.remDeviceCard = document.getElementById('remDeviceCard');
+  el.remCount = document.getElementById('remCount');
+  el.btnCreateReminder = document.getElementById('btnCreateReminder');
+  el.remLoading = document.getElementById('remLoading');
+  el.remEmpty = document.getElementById('remEmpty');
+  el.remGroups = document.getElementById('remGroups');
+  el.reminderModalOverlay = document.getElementById('reminderModalOverlay');
+  el.reminderModalTitle = document.getElementById('reminderModalTitle');
+  el.remTitle = document.getElementById('remTitle');
+  el.remDesc = document.getElementById('remDesc');
+  el.remDate = document.getElementById('remDate');
+  el.remDateInput = document.getElementById('remDateInput');
+  el.remDateText = document.getElementById('remDateText');
+  el.btnRemRepeat = document.getElementById('btnRemRepeat');
+  el.remRepeatLabel = document.getElementById('remRepeatLabel');
+  el.remRepeatDropdown = document.getElementById('remRepeatDropdown');
+  el.remCustomWrap = document.getElementById('remCustomWrap');
+  el.remCustomDays = document.getElementById('remCustomDays');
+  el.btnSaveReminder = document.getElementById('btnSaveReminder');
+  el.btnCancelReminder = document.getElementById('btnCancelReminder');
+  el.reminderDeleteModalOverlay = document.getElementById('reminderDeleteModalOverlay');
+  el.reminderDeleteName = document.getElementById('reminderDeleteName');
+  el.btnCancelDeleteReminder = document.getElementById('btnCancelDeleteReminder');
+  el.btnConfirmDeleteReminder = document.getElementById('btnConfirmDeleteReminder');
   el.customerName = document.getElementById('customerName');
   el.customerSuggestions = document.getElementById('customerSuggestions');
   el.customerAddress = document.getElementById('customerAddress');
@@ -4452,7 +4645,10 @@ function localDateToIso(d){
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 function createDatePicker(hiddenInput, triggerBtn, textEl, options = {}){
-  const { placeholder = 'Select date', allowClear = false } = options;
+  const { placeholder = 'Select date', allowClear = false, minDate = null, maxDate = null } = options;
+  // minDate/maxDate may be 'YYYY-MM-DD' strings or functions returning one; both optional.
+  const limit = (v) => (typeof v === 'function' ? v() : v) || '';
+  const inRange = (iso) => { const lo = limit(minDate), hi = limit(maxDate); return (!lo || iso >= lo) && (!hi || iso <= hi); };
   let overlay = null;
   let panel = null;
   let viewDate = new Date();
@@ -4500,9 +4696,11 @@ function closePanel(){
   }
   // Shared by buildDaysView/buildMonthsView: identical footer in both panels.
   function buildFooterHtml(){
+    const showToday = inRange(localDateToIso(new Date()));
+    if (!showToday && !allowClear) return '';
     return `
       <div class="date-picker__footer">
-        <button type="button" class="date-picker__today-btn" data-action="today">Today</button>
+        ${showToday ? `<button type="button" class="date-picker__today-btn" data-action="today">Today</button>` : ''}
         ${allowClear ? `<button type="button" class="date-picker__clear-btn" data-action="clear">Clear</button>` : ''}
       </div>`;
   }
@@ -4524,17 +4722,20 @@ function closePanel(){
       const classes = ['date-picker__day'];
       if (iso === today) classes.push('today');
       if (iso === selectedIso) classes.push('selected');
-      daysHtml += `<button type="button" class="${classes.join(' ')}" data-iso="${iso}">${d}</button>`;
+      daysHtml += `<button type="button" class="${classes.join(' ')}" data-iso="${iso}"${inRange(iso) ? '' : ' disabled'}>${d}</button>`;
     }
     const trailing = (7 - ((startOffset + daysInMonth) % 7)) % 7;
+    const loLimit = limit(minDate), hiLimit = limit(maxDate);
+    const prevOff = loLimit && localDateToIso(new Date(year, month, 0)) < loLimit ? ' disabled' : '';
+    const nextOff = hiLimit && localDateToIso(new Date(year, month + 1, 1)) > hiLimit ? ' disabled' : '';
     for (let d = 1; d <= trailing; d++) {
       daysHtml += `<button type="button" class="date-picker__day outside" disabled>${d}</button>`;
     }
     return `
       <div class="date-picker__header">
-        <button type="button" class="date-picker__nav" data-nav="prev" aria-label="Previous month"><i class="fa-solid fa-chevron-left"></i></button>
+        <button type="button" class="date-picker__nav" data-nav="prev" aria-label="Previous month"${prevOff}><i class="fa-solid fa-chevron-left"></i></button>
         <button type="button" class="date-picker__title" data-action="show-months">${DATE_PICKER_MONTH_NAMES[month]} ${year}</button>
-        <button type="button" class="date-picker__nav" data-nav="next" aria-label="Next month"><i class="fa-solid fa-chevron-right"></i></button>
+        <button type="button" class="date-picker__nav" data-nav="next" aria-label="Next month"${nextOff}><i class="fa-solid fa-chevron-right"></i></button>
       </div>
       <div class="date-picker__weekdays">${DATE_PICKER_WEEKDAYS.map(w => `<span>${w}</span>`).join('')}</div>
       <div class="date-picker__days">${daysHtml}</div>
@@ -4543,19 +4744,25 @@ function closePanel(){
   function buildMonthsView(){
     const year = viewDate.getFullYear();
     const now = new Date();
+    const loLimit = limit(minDate), hiLimit = limit(maxDate);
+    const prevYearOff = loLimit && `${year - 1}-12-31` < loLimit ? ' disabled' : '';
+    const nextYearOff = hiLimit && `${year + 1}-01-01` > hiLimit ? ' disabled' : '';
     const selectedIso = getSelectedIso();
     const selectedDate = selectedIso ? isoToLocalDate(selectedIso) : null;
     const monthsHtml = DATE_PICKER_MONTH_NAMES.map((name, idx) => {
       const classes = ['date-picker__month-btn'];
       if (selectedDate && selectedDate.getFullYear() === year && selectedDate.getMonth() === idx) classes.push('selected');
       else if (now.getFullYear() === year && now.getMonth() === idx) classes.push('today');
-      return `<button type="button" class="${classes.join(' ')}" data-month="${idx}">${name.slice(0, 3)}</button>`;
+      const mStart = localDateToIso(new Date(year, idx, 1));
+      const mEnd = localDateToIso(new Date(year, idx + 1, 0));
+      const mOff = (loLimit && mEnd < loLimit) || (hiLimit && mStart > hiLimit) ? ' disabled' : '';
+      return `<button type="button" class="${classes.join(' ')}" data-month="${idx}"${mOff}>${name.slice(0, 3)}</button>`;
     }).join('');
     return `
       <div class="date-picker__header">
-        <button type="button" class="date-picker__nav" data-nav="prev-year" aria-label="Previous year"><i class="fa-solid fa-chevron-left"></i></button>
+        <button type="button" class="date-picker__nav" data-nav="prev-year" aria-label="Previous year"${prevYearOff}><i class="fa-solid fa-chevron-left"></i></button>
         <span class="date-picker__title date-picker__title--static">${year}</span>
-        <button type="button" class="date-picker__nav" data-nav="next-year" aria-label="Next year"><i class="fa-solid fa-chevron-right"></i></button>
+        <button type="button" class="date-picker__nav" data-nav="next-year" aria-label="Next year"${nextYearOff}><i class="fa-solid fa-chevron-right"></i></button>
       </div>
       <div class="date-picker__months">${monthsHtml}</div>
       ${buildFooterHtml()}`;
@@ -4586,7 +4793,9 @@ function closePanel(){
     if (overlay) { closePanel(); return; }
     if (_openDatePickerClose) _openDatePickerClose();
     const selectedIso = getSelectedIso();
-    viewDate = selectedIso ? isoToLocalDate(selectedIso) : new Date();
+    const loStart = limit(minDate);
+    const todayIsoNow = localDateToIso(new Date());
+    viewDate = selectedIso ? isoToLocalDate(selectedIso) : (loStart && todayIsoNow < loStart ? isoToLocalDate(loStart) : new Date());
     panelView = 'days';
     overlay = document.createElement('div');
     overlay.className = 'date-picker__overlay';
@@ -6279,7 +6488,16 @@ function enterApp(){
   showScreen('app');
   scheduleHtml2PdfWarmup();
   const savedView = getAppStorage().getItem(prefKeyFor('jas_last_view'));
-  const initialView = savedView || 'newBill';
+  let openReminders = false;
+  try {
+    openReminders = sessionStorage.getItem('jas_open_reminders') === '1';
+    sessionStorage.removeItem('jas_open_reminders');
+  } catch (e) {}
+  if (new URLSearchParams(window.location.search).get('mode') === 'reminders') {
+    openReminders = true;
+    try { window.history.replaceState({}, document.title, window.location.pathname); } catch (e) {}
+  }
+  const initialView = openReminders ? 'reminders' : (savedView || 'newBill');
   switchView(initialView);
   // Always initialize the form, then restore if needed
   if (initialView === 'newBill') {
@@ -6288,6 +6506,593 @@ function enterApp(){
     updateSummary();
   }
 }
+/* ===================================================================
+   REMINDERS
+   Table: public.reminders (see schema.sql). Push device lives on
+   profiles.push_id (Web Push subscription) + profiles.device_data
+   ({label, updatedAt, userAgent, fingerprint}). One device at a time.
+   =================================================================== */
+const REMINDER_LIMIT = 10;
+const REMINDER_MAX_DAYS = 365;
+const DEVICE_FP_LS_KEY = 'jas_device_fingerprint';
+let reminders = [];
+let remindersOwner = null;
+let remindersLoaded = false;
+let editingReminderId = null;
+let pendingDeleteReminderId = null;
+let reminderRepeatValue = '';
+let reminderDatePicker = null;
+let reminderBusy = false;
+let deviceState = { status: 'loading' };
+let deviceLoadToken = 0;
+
+/* ---------- date helpers (calendar dates only, IST like app_today()) ---------- */
+function appTodayIso(){ return new Date(Date.now() + 19800000).toISOString().slice(0, 10); }
+function isoToUtcMs(iso){ const [y, m, d] = iso.split('-').map(Number); return Date.UTC(y, m - 1, d); }
+function utcMsToIso(ms){ return new Date(ms).toISOString().slice(0, 10); }
+function addDaysIso(iso, n){ return utcMsToIso(isoToUtcMs(iso) + n * 86400000); }
+function addMonthsIso(iso, n){
+  const [y, m, d] = iso.split('-').map(Number);
+  const first = new Date(Date.UTC(y, m - 1 + n, 1));
+  const dim = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + 1, 0)).getUTCDate();
+  return utcMsToIso(Date.UTC(first.getUTCFullYear(), first.getUTCMonth(), Math.min(d, dim)));
+}
+function daysBetweenIso(fromIso, toIso){ return Math.round((isoToUtcMs(toIso) - isoToUtcMs(fromIso)) / 86400000); }
+// First occurrence strictly AFTER today. Always counted from the original date so
+// monthly/yearly never drift (31 Jan -> 28 Feb -> 31 Mar).
+function nextReminderDate(baseIso, repeater, todayIso){
+  if (!repeater || baseIso > todayIso) return baseIso;
+  const stepDays = repeater === 'daily' ? 1 : repeater === 'weekly' ? 7 : /^\d+$/.test(repeater) ? parseInt(repeater, 10) : 0;
+  if (stepDays) {
+    const diff = daysBetweenIso(baseIso, todayIso);
+    return addDaysIso(baseIso, (Math.floor(diff / stepDays) + 1) * stepDays);
+  }
+  const stepMonths = repeater === 'monthly' ? 1 : repeater === 'yearly' ? 12 : 0;
+  if (!stepMonths) return baseIso;
+  for (let k = 1; k < 2000; k++) {
+    const candidate = addMonthsIso(baseIso, k * stepMonths);
+    if (candidate > todayIso) return candidate;
+  }
+  return baseIso;
+}
+function repeaterText(rep){
+  if (!rep) return '';
+  if (/^\d+$/.test(rep)) return rep === '1' ? 'Every day' : `Every ${rep} days`;
+  return `Repeats ${rep}`;
+}
+
+/* ---------- device helpers ---------- */
+function parseUserAgent(ua){
+  ua = ua || '';
+  let os = 'Unknown OS';
+  if (/Android/i.test(ua)) os = 'Android';
+  else if (/iPhone|iPad|iPod/i.test(ua)) os = 'iOS';
+  else if (/Windows/i.test(ua)) os = 'Windows';
+  else if (/CrOS/i.test(ua)) os = 'ChromeOS';
+  else if (/Mac OS X|Macintosh/i.test(ua)) os = 'macOS';
+  else if (/Linux/i.test(ua)) os = 'Linux';
+  let browser = 'Browser';
+  if (/EdgA?\/|Edg\//.test(ua)) browser = 'Edge';
+  else if (/OPR\/|Opera/.test(ua)) browser = 'Opera';
+  else if (/SamsungBrowser/.test(ua)) browser = 'Samsung Internet';
+  else if (/Firefox|FxiOS/.test(ua)) browser = 'Firefox';
+  else if (/CriOS|Chrome\//.test(ua)) browser = 'Chrome';
+  else if (/Safari\//.test(ua)) browser = 'Safari';
+  let type = 'desktop';
+  if (/iPad/i.test(ua) || (/Android/i.test(ua) && !/Mobile/i.test(ua))) type = 'tablet';
+  else if (/Mobi|iPhone|iPod|Android/i.test(ua)) type = 'mobile';
+  return { os, browser, type };
+}
+function deviceLabelFromUa(ua){ const p = parseUserAgent(ua); return `${p.browser} on ${p.os}`; }
+function deviceIconClass(ua){
+  const t = parseUserAgent(ua).type;
+  return t === 'mobile' ? 'fa-mobile-screen-button' : t === 'tablet' ? 'fa-tablet-screen-button' : 'fa-laptop';
+}
+// The fingerprint lives in localStorage. Logout clears localStorage, so the
+// real safety net is the push endpoint: it belongs to this browser's service
+// worker, survives localStorage.clear(), and is compared in loadDeviceState().
+function readFingerprint(){
+  try { return localStorage.getItem(DEVICE_FP_LS_KEY) || null; } catch (e) { return null; }
+}
+function writeFingerprint(id){
+  try { localStorage.setItem(DEVICE_FP_LS_KEY, id); } catch (e) {}
+}
+function pushSupport(){
+  const standalone = window.matchMedia?.('(display-mode: standalone)').matches || navigator.standalone;
+  const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+    return { ok: false, reason: ios && !standalone
+      ? 'On iPhone/iPad, add this app to the Home Screen first to enable notifications.'
+      : 'This browser does not support push notifications.' };
+  }
+  if (!CONFIG?.push?.vapidPublicKey) return { ok: false, reason: 'Push is not configured yet (missing VAPID public key).' };
+  return { ok: true };
+}
+function urlB64ToUint8Array(b64){
+  const padding = '='.repeat((4 - b64.length % 4) % 4);
+  const raw = atob((b64 + padding).replace(/-/g, '+').replace(/_/g, '/'));
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+function sameBytes(buf, bytes){
+  if (!buf) return true;
+  const a = new Uint8Array(buf);
+  return a.length === bytes.length && a.every((v, i) => v === bytes[i]);
+}
+async function swReady(){
+  return Promise.race([
+    navigator.serviceWorker.ready,
+    new Promise((_, rej) => setTimeout(() => rej(new Error('Service worker is not ready yet. Please try again.')), 8000))
+  ]);
+}
+async function getCurrentSubscription(){
+  const reg = await swReady();
+  return reg.pushManager.getSubscription();
+}
+async function obtainSubscription(){
+  const reg = await swReady();
+  const keyBytes = urlB64ToUint8Array(CONFIG.push.vapidPublicKey);
+  let sub = await reg.pushManager.getSubscription();
+  if (sub && !sameBytes(sub.options?.applicationServerKey, keyBytes)) { await sub.unsubscribe(); sub = null; }
+  if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes });
+  return sub;
+}
+async function saveDeviceToProfile(sub, fingerprint){
+  const userId = currentSession?.user?.id;
+  const device_data = {
+    label: deviceLabelFromUa(navigator.userAgent),
+    updatedAt: new Date().toISOString(),
+    userAgent: navigator.userAgent,
+    fingerprint
+  };
+  // Replaces whatever device was stored before: only one device receives pushes.
+  const { data, error } = await supabaseClient.from('profiles')
+    .update({ push_id: sub.toJSON(), device_data })
+    .eq('id', userId).select('id');
+  if (error) throw error;
+  if (!data || !data.length) throw new Error('Profile could not be updated.');
+  return device_data;
+}
+
+/* ---------- device card ---------- */
+async function loadDeviceState(){
+  const userId = currentSession?.user?.id;
+  if (!userId) return;
+  const token = ++deviceLoadToken;
+  deviceState = { status: 'loading' };
+  renderDeviceCard();
+  const support = pushSupport();
+  const permission = 'Notification' in window ? Notification.permission : 'unsupported';
+  let row = null;
+  try {
+    const { data, error } = await supabaseClient.from('profiles').select('push_id,device_data').eq('id', userId).single();
+    if (error) throw error;
+    row = data;
+  } catch (err) {
+    console.error('Could not load device:', err);
+    if (token === deviceLoadToken) { deviceState = { status: 'error' }; renderDeviceCard(); }
+    return;
+  }
+  let dev = row.device_data || null;
+  const push = row.push_id || null;
+  const hasActive = !!(dev && push && push.endpoint);
+  let isThis = false;
+  let healthy = false;
+  if (hasActive) {
+    const stored = readFingerprint();
+    let sub = null;
+    if (support.ok) { try { sub = await getCurrentSubscription(); } catch (e) {} }
+    const byFingerprint = !!(stored && dev.fingerprint && stored === dev.fingerprint);
+    const byEndpoint = !!(sub && sub.endpoint === push.endpoint);
+    isThis = byFingerprint || byEndpoint;
+    // Local fingerprint was lost or changed: adopt the one saved on the server.
+    if (isThis && dev.fingerprint && stored !== dev.fingerprint) writeFingerprint(dev.fingerprint);
+    if (isThis && support.ok && permission === 'granted') {
+      try {
+        // Browser rotated or dropped the subscription: silently fetch a fresh one and store it.
+        if (!sub || sub.endpoint !== push.endpoint) {
+          const fresh = await obtainSubscription();
+          dev = await saveDeviceToProfile(fresh, dev.fingerprint || stored || crypto.randomUUID());
+        }
+        healthy = true;
+      } catch (err) { console.warn('Silent push re-sync failed:', err); }
+    }
+  }
+  if (token !== deviceLoadToken) return;
+  deviceState = { status: 'ready', support, permission, dev, hasActive, isThis, healthy };
+  renderDeviceCard();
+}
+function renderDeviceCard(){
+  const box = el.remDeviceCard;
+  if (!box) return;
+  const s = deviceState;
+  if (s.status === 'loading') { box.innerHTML = '<div class="bill-card bill-card--skeleton"></div>'; return; }
+  if (s.status === 'error') {
+    box.innerHTML = `<div class="rem-device__row"><div class="rem-device__icon rem-device__icon--off"><i class="fa-solid fa-triangle-exclamation"></i></div>
+      <div class="rem-device__text"><span class="rem-device__name">Could not load device</span><span class="rem-device__sub">Check your connection and try again.</span></div></div>
+      <div class="rem-device__action"><button class="btn btn--outline" type="button" data-device-action="reload"><i class="fa-solid fa-rotate"></i> Retry</button></div>`;
+    return;
+  }
+  const thisUa = navigator.userAgent;
+  const blocked = s.permission === 'denied';
+  let rows = '';
+  if (s.hasActive) {
+    const ok = s.isThis && s.healthy;
+    const sub = `Updated ${escapeHtml(formatDateTime(s.dev.updatedAt))}`;
+    rows += `<div class="rem-device__row">
+      <div class="rem-device__icon ${ok ? 'rem-device__icon--ok' : ''}"><i class="fa-solid ${deviceIconClass(s.dev.userAgent)}"></i></div>
+      <div class="rem-device__text">
+        <span class="rem-device__tag">Currently activated device</span>
+        <span class="rem-device__name">${escapeHtml(s.dev.label || deviceLabelFromUa(s.dev.userAgent))}</span>
+        <span class="rem-device__sub">${s.isThis ? (ok ? '<i class="fa-solid fa-circle-check" style="color:var(--success)"></i> Active on this device · ' : '') : ''}${sub}</span>
+      </div></div>`;
+  } else {
+    rows += `<div class="rem-device__row">
+      <div class="rem-device__icon rem-device__icon--off"><i class="fa-solid fa-bell-slash"></i></div>
+      <div class="rem-device__text">
+        <span class="rem-device__tag">Currently activated device</span>
+        <span class="rem-device__name">No device activated</span>
+        <span class="rem-device__sub">Enable notifications to receive reminders.</span>
+      </div></div>`;
+  }
+  if (!s.isThis) {
+    const warn = !s.support.ok ? s.support.reason : blocked ? 'Notifications are blocked in this browser’s site settings.' : 'Not receiving reminders';
+    rows += `<div class="rem-device__row">
+      <div class="rem-device__icon"><i class="fa-solid ${deviceIconClass(thisUa)}"></i></div>
+      <div class="rem-device__text">
+        <span class="rem-device__tag">This device</span>
+        <span class="rem-device__name">${escapeHtml(deviceLabelFromUa(thisUa))}</span>
+        <span class="rem-device__sub ${(!s.support.ok || blocked) ? 'rem-device__sub--warn' : ''}">${escapeHtml(warn)}</span>
+      </div></div>`;
+  } else if (!s.healthy) {
+    const warn = !s.support.ok ? s.support.reason : blocked ? 'Notifications are blocked in this browser’s site settings.' : 'Notifications are off on this device. Enable again to continue receiving reminders.';
+    rows += `<div class="rem-device__row"><div class="rem-device__text"><span class="rem-device__sub rem-device__sub--warn">${escapeHtml(warn)}</span></div></div>`;
+  }
+  let action = '';
+  if (s.support.ok && !blocked) {
+    action = (s.isThis && s.healthy)
+      ? `<button class="btn btn--outline" type="button" data-device-action="enable"><i class="fa-solid fa-rotate"></i> Refresh on this device</button>`
+      : `<button class="btn btn--primary" type="button" data-device-action="enable"><i class="fa-solid fa-bell"></i> Enable on this device</button>`;
+  }
+  box.innerHTML = rows + (action ? `<div class="rem-device__action">${action}</div>` : '');
+}
+async function enableOnThisDevice(btn){
+  const support = pushSupport();
+  if (!support.ok) { showToast(support.reason, 'warning', 4000); return; }
+  if (Notification.permission === 'denied') {
+    showToast('Notifications are blocked. Allow them in the browser’s site settings, then try again.', 'warning', 4500);
+    return;
+  }
+  const wasActive = !!(deviceState.isThis && deviceState.healthy);
+  if (btn) btn.disabled = true;
+  let loaderShown = false;
+  try {
+    if (Notification.permission !== 'granted') {
+      const result = await Notification.requestPermission();
+      if (result !== 'granted') { showToast('Notification permission was not granted.', 'warning'); return; }
+    }
+    showActionLoader(wasActive ? 'Refreshing this device…' : 'Enabling notifications…');
+    loaderShown = true;
+    // Same browser as before: reuse its fingerprint; otherwise mint a new one.
+    let fingerprint = readFingerprint();
+    if (!fingerprint) fingerprint = crypto.randomUUID();
+    const sub = await obtainSubscription();
+    await saveDeviceToProfile(sub, fingerprint);
+    writeFingerprint(fingerprint);
+    showToast(wasActive ? 'This device was refreshed.' : 'Reminders will now be sent to this device.', 'success');
+  } catch (err) {
+    console.error('Enable push failed:', err);
+    showToast(err?.message || 'Could not enable notifications on this device.', 'error', 4000);
+  } finally {
+    if (loaderShown) hideActionLoader();
+    await loadDeviceState();
+  }
+}
+
+/* ---------- reminders list ---------- */
+function resetRemindersView(){
+  reminders = []; remindersLoaded = false; remindersOwner = null;
+}
+async function loadRemindersView(){
+  const userId = currentSession?.user?.id;
+  if (!userId) return;
+  if (remindersOwner !== userId) { reminders = []; remindersLoaded = false; remindersOwner = userId; }
+  loadDeviceState();
+  await loadReminders();
+}
+async function loadReminders(){
+  const userId = currentSession?.user?.id;
+  if (!userId) return;
+  if (!remindersLoaded) {
+    el.remLoading.classList.remove('hide');
+    el.remEmpty.classList.add('hide');
+    el.remGroups.innerHTML = '';
+  }
+  const { data, error } = await supabaseClient.from('reminders').select('*')
+    .eq('user_id', userId).order('remember_date', { ascending: true }).limit(50);
+  el.remLoading.classList.add('hide');
+  if (error) {
+    console.error('Could not load reminders:', error);
+    showToast('Could not load reminders. Please try again.', 'error');
+    return;
+  }
+  reminders = data || [];
+  remindersLoaded = true;
+  renderReminders();
+}
+function reminderDueInfo(r, today){
+  if (r.status !== 'active') return null;
+  const diff = daysBetweenIso(today, r.remember_date);
+  if (diff === 0) return { cls: 'due', text: 'Due today', due: true };
+  if (diff < 0) return { cls: 'overdue', text: `Overdue by ${-diff} day${-diff === 1 ? '' : 's'}`, due: true };
+  return { cls: '', text: diff === 1 ? 'Tomorrow' : `In ${diff} days`, due: false };
+}
+function reminderCardHtml(r, today){
+  const due = reminderDueInfo(r, today);
+  const id = escapeHtml(r.id);
+  const badge = {
+    active: '<span class="rem-badge rem-badge--active"><i class="fa-solid fa-circle-play"></i> Active</span>',
+    paused: '<span class="rem-badge rem-badge--paused"><i class="fa-solid fa-circle-pause"></i> Paused</span>',
+    completed: '<span class="rem-badge rem-badge--completed"><i class="fa-solid fa-circle-check"></i> Completed</span>'
+  }[r.status] || '';
+  const btn = (action, cls, icon, label) =>
+    `<button type="button" class="btn ${cls}" data-rem-action="${action}" data-id="${id}"><i class="fa-solid ${icon}" aria-hidden="true"></i> ${label}</button>`;
+  const edit = btn('edit', 'btn--outline', 'fa-pen', 'Edit');
+  let actions = '';
+  if (r.status === 'paused') actions = btn('resume', 'btn--primary', 'fa-play', 'Resume');
+  else if (r.status === 'completed') actions = edit + btn('delete', 'btn--ghost btn--danger-ghost', 'fa-trash-can', 'Delete');
+  else {
+    actions = edit + (due?.due ? btn('complete', 'btn--success', 'fa-check', 'Complete') : btn('delete', 'btn--ghost btn--danger-ghost', 'fa-trash-can', 'Delete'));
+    if (r.repeater) actions += btn('pause', 'btn--ghost', 'fa-pause', 'Pause');
+  }
+  const meta = [`<span><i class="fa-regular fa-calendar"></i> ${escapeHtml(formatDateForDisplay(r.remember_date))}</span>`];
+  if (r.repeater) meta.push(`<span><i class="fa-solid fa-repeat"></i> ${escapeHtml(repeaterText(r.repeater))}</span>`);
+  if (due) meta.push(`<span class="${due.cls}"><i class="fa-regular fa-clock"></i> ${escapeHtml(due.text)}</span>`);
+  if (r.status === 'completed' && r.last_activity) meta.push(`<span><i class="fa-solid fa-check"></i> Done ${escapeHtml(formatDateForDisplay(r.last_activity))}</span>`);
+  return `<article class="bill-card rem-card">
+    <div class="rem-card__top"><div class="rem-card__title">${escapeHtml(r.title)}</div>${badge}</div>
+    ${r.description ? `<div class="rem-card__desc">${escapeHtml(r.description)}</div>` : ''}
+    <div class="rem-card__meta">${meta.join('')}</div>
+    <div class="rem-card__actions">${actions}</div>
+  </article>`;
+}
+function renderReminders(){
+  const today = appTodayIso();
+  el.remCount.textContent = `${reminders.length} / ${REMINDER_LIMIT}`;
+  el.remCount.classList.toggle('full', reminders.length >= REMINDER_LIMIT);
+  el.remEmpty.classList.toggle('hide', reminders.length > 0);
+  const byDate = (a, b) => a.remember_date.localeCompare(b.remember_date);
+  const groups = [
+    ['Active', 'fa-circle-play', reminders.filter(r => r.status === 'active').sort(byDate)],
+    ['Paused', 'fa-circle-pause', reminders.filter(r => r.status === 'paused').sort(byDate)],
+    ['Completed', 'fa-circle-check', reminders.filter(r => r.status === 'completed').sort((a, b) => (b.last_activity || '').localeCompare(a.last_activity || ''))]
+  ];
+  el.remGroups.innerHTML = groups.filter(g => g[2].length).map(([name, icon, list]) => `
+    <section class="rem-group"><div class="rem-group__title"><i class="fa-solid ${icon}"></i> ${name} <b>${list.length}</b></div>
+    <div class="rem-grid">${list.map(r => reminderCardHtml(r, today)).join('')}</div></section>`).join('');
+}
+function replaceReminder(row){
+  const i = reminders.findIndex(r => r.id === row.id);
+  if (i >= 0) reminders[i] = row; else reminders.push(row);
+}
+async function runReminderAction(action, id, btn){
+  if (reminderBusy) return;
+  const r = reminders.find(x => x.id === id);
+  if (!r) return;
+  if (action === 'edit') { openReminderModal(r); return; }
+  if (action === 'delete') { openReminderDelete(r); return; }
+  const today = appTodayIso();
+  let patch = null, okMsg = '';
+  if (action === 'complete') {
+    if (r.remember_date > today) { showToast('This reminder is not due yet.', 'info'); return; }
+    patch = r.repeater
+      ? { remember_date: nextReminderDate(r.remember_date, r.repeater, today), last_activity: today }
+      : { status: 'completed', last_activity: today };
+    okMsg = r.repeater ? 'Done. Next reminder scheduled.' : 'Marked as completed.';
+  } else if (action === 'pause') {
+    patch = { status: 'paused' }; okMsg = 'Reminder paused.';
+  } else if (action === 'resume') {
+    patch = { status: 'active', remember_date: nextReminderDate(r.remember_date, r.repeater, today) };
+    okMsg = 'Reminder resumed.';
+  }
+  if (!patch) return;
+  reminderBusy = true;
+  if (btn) btn.disabled = true;
+  showActionLoader(action === 'complete' ? 'Completing reminder…' : action === 'pause' ? 'Pausing reminder…' : 'Resuming reminder…');
+  try {
+    const { data, error } = await supabaseClient.from('reminders').update(patch).eq('id', id).select().single();
+    if (error) throw error;
+    replaceReminder(data);
+    renderReminders();
+    showToast(okMsg, 'success');
+  } catch (err) {
+    console.error(err);
+    showToast(err?.message || 'Could not update the reminder.', 'error');
+    if (btn) btn.disabled = false;
+  } finally { hideActionLoader(); reminderBusy = false; }
+}
+
+/* ---------- create / edit modal ---------- */
+function setReminderRepeat(value){
+  reminderRepeatValue = value;
+  const labels = { '': 'Repeat: Off', daily: 'Repeat: Daily', weekly: 'Repeat: Weekly', monthly: 'Repeat: Monthly', yearly: 'Repeat: Yearly', custom: 'Repeat: Custom days' };
+  el.remRepeatLabel.textContent = labels[value] || labels[''];
+  el.btnRemRepeat.classList.toggle('active', value !== '');
+  el.remRepeatDropdown.querySelectorAll('.date-dropdown__item').forEach(i => i.classList.toggle('active', i.dataset.repeat === value));
+  el.remCustomWrap.classList.toggle('show', value === 'custom');
+}
+function closeReminderRepeatDropdown(){
+  el.remRepeatDropdown.classList.add('hide');
+  el.btnRemRepeat.setAttribute('aria-expanded', 'false');
+}
+function openReminderModal(r){
+  if (!r && reminders.length >= REMINDER_LIMIT) {
+    showToast(`You can have at most ${REMINDER_LIMIT} reminders. Delete one to add another.`, 'warning', 3500);
+    return;
+  }
+  editingReminderId = r ? r.id : null;
+  el.reminderModalTitle.textContent = r ? 'Edit Reminder' : 'Create Reminder';
+  el.btnSaveReminder.textContent = r ? 'Update' : 'Save';
+  el.remTitle.value = r ? r.title : '';
+  el.remDesc.value = r ? (r.description || '') : '';
+  el.remCustomDays.value = '';
+  [el.remTitle, el.remCustomDays].forEach(i => i.classList.remove('input-error'));
+  el.remDateInput.classList.remove('input-error');
+  reminderDatePicker.setValue(r ? r.remember_date : '', false);
+  if (r && r.repeater && /^\d+$/.test(r.repeater)) { setReminderRepeat('custom'); el.remCustomDays.value = r.repeater; }
+  else setReminderRepeat(r && r.repeater ? r.repeater : '');
+  closeReminderRepeatDropdown();
+  showOverlay(el.reminderModalOverlay);
+  setTimeout(() => el.remTitle.focus(), 50);
+}
+function closeReminderModal(){
+  if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+  reminderDatePicker?.close();
+  closeReminderRepeatDropdown();
+  hideOverlay(el.reminderModalOverlay);
+  editingReminderId = null;
+}
+async function saveReminder(){
+  if (reminderBusy) return;
+  const title = el.remTitle.value.trim();
+  const description = el.remDesc.value.trim();
+  const date = el.remDate.value;
+  const today = appTodayIso();
+  const minDate = addDaysIso(today, 1);
+  const maxDate = addDaysIso(today, REMINDER_MAX_DAYS);
+  let repeater = reminderRepeatValue || null;
+  let valid = true;
+  if (!markError(el.remTitle, title !== '')) valid = false;
+  if (repeater === 'custom') {
+    const raw = el.remCustomDays.value.trim();
+    const n = Number(raw);
+    const okDays = /^\d+$/.test(raw) && n >= 1 && n <= 365;
+    if (!markError(el.remCustomDays, okDays)) valid = false;
+    else repeater = String(n);
+  }
+  if (!date) { el.remDateInput.classList.add('input-error'); valid = false; } else el.remDateInput.classList.remove('input-error');
+  if (!valid) { showToast('Please fix the highlighted fields.', 'warning'); return; }
+  const existing = editingReminderId ? reminders.find(r => r.id === editingReminderId) : null;
+  const dateChanged = !existing || existing.remember_date !== date;
+  const reactivating = !!existing && existing.status === 'completed' && (dateChanged || !!repeater);
+  // A date that is kept as-is (due/overdue reminder being edited) is allowed;
+  // any new or changed date must be tomorrow .. today + 365.
+  if (dateChanged || reactivating) {
+    if (date < minDate) { showToast('Reminder date must be tomorrow or later.', 'warning'); el.remDateInput.classList.add('input-error'); return; }
+    if (date > maxDate) { showToast('Reminder date cannot be more than one year ahead.', 'warning'); el.remDateInput.classList.add('input-error'); return; }
+  }
+  reminderBusy = true;
+  el.btnSaveReminder.disabled = true;
+  showActionLoader(existing ? 'Updating reminder…' : 'Saving reminder…');
+  try {
+    if (existing) {
+      const patch = { title, description, remember_date: date, repeater };
+      if (reactivating) { patch.status = 'active'; patch.last_activity = null; }
+      const { data, error } = await supabaseClient.from('reminders').update(patch).eq('id', existing.id).select().single();
+      if (error) throw error;
+      replaceReminder(data);
+      showToast('Reminder updated.', 'success');
+    } else {
+      if (reminders.length >= REMINDER_LIMIT) throw new Error(`You can have at most ${REMINDER_LIMIT} reminders.`);
+      const { data, error } = await supabaseClient.from('reminders')
+        .insert({ user_id: currentSession.user.id, title, description, remember_date: date, repeater })
+        .select().single();
+      if (error) throw error;
+      replaceReminder(data);
+      showToast('Reminder created.', 'success');
+    }
+    renderReminders();
+    closeReminderModal();
+  } catch (err) {
+    console.error(err);
+    showToast(err?.message || 'Could not save the reminder.', 'error', 3500);
+  } finally {
+    hideActionLoader();
+    reminderBusy = false;
+    el.btnSaveReminder.disabled = false;
+  }
+}
+function openReminderDelete(r){
+  pendingDeleteReminderId = r.id;
+  el.reminderDeleteName.textContent = `"${r.title}"`;
+  showOverlay(el.reminderDeleteModalOverlay);
+}
+function closeReminderDeleteModal(){
+  hideOverlay(el.reminderDeleteModalOverlay);
+  pendingDeleteReminderId = null;
+}
+async function confirmDeleteReminder(){
+  if (reminderBusy || !pendingDeleteReminderId) return;
+  const id = pendingDeleteReminderId;
+  reminderBusy = true;
+  el.btnConfirmDeleteReminder.disabled = true;
+  showActionLoader('Deleting reminder…');
+  try {
+    const { error } = await supabaseClient.from('reminders').delete().eq('id', id);
+    if (error) throw error;
+    reminders = reminders.filter(r => r.id !== id);
+    renderReminders();
+    closeReminderDeleteModal();
+    showToast('Reminder deleted.', 'success');
+  } catch (err) {
+    console.error(err);
+    showToast(err?.message || 'Could not delete the reminder.', 'error');
+  } finally {
+    hideActionLoader();
+    reminderBusy = false;
+    el.btnConfirmDeleteReminder.disabled = false;
+  }
+}
+function bindReminderEvents(){
+  reminderDatePicker = createDatePicker(el.remDate, el.remDateInput, el.remDateText, {
+    placeholder: 'Remember date *',
+    minDate: () => addDaysIso(appTodayIso(), 1),
+    maxDate: () => addDaysIso(appTodayIso(), REMINDER_MAX_DAYS)
+  });
+  el.remDate.addEventListener('change', () => el.remDateInput.classList.remove('input-error'));
+  el.btnCreateReminder.addEventListener('click', () => openReminderModal(null));
+  el.btnSaveReminder.addEventListener('click', saveReminder);
+  el.btnCancelReminder.addEventListener('click', closeReminderModal);
+  el.btnCancelDeleteReminder.addEventListener('click', closeReminderDeleteModal);
+  el.btnConfirmDeleteReminder.addEventListener('click', confirmDeleteReminder);
+  el.remTitle.addEventListener('input', () => el.remTitle.classList.remove('input-error'));
+  el.remCustomDays.addEventListener('input', () => {
+    el.remCustomDays.value = el.remCustomDays.value.replace(/\D/g, '').slice(0, 3);
+    el.remCustomDays.classList.remove('input-error');
+  });
+  el.btnRemRepeat.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const willOpen = el.remRepeatDropdown.classList.contains('hide');
+    el.remRepeatDropdown.classList.toggle('hide', !willOpen);
+    el.btnRemRepeat.setAttribute('aria-expanded', String(willOpen));
+  });
+  el.remRepeatDropdown.addEventListener('click', (e) => {
+    const item = e.target.closest('[data-repeat]');
+    if (!item) return;
+    setReminderRepeat(item.dataset.repeat);
+    closeReminderRepeatDropdown();
+    if (item.dataset.repeat === 'custom') setTimeout(() => el.remCustomDays.focus(), 50);
+  });
+  el.reminderModalOverlay.addEventListener('click', (e) => {
+    if (!e.target.closest('#remRepeatWrap')) closeReminderRepeatDropdown();
+  });
+  el.remGroups.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-rem-action]');
+    if (btn) runReminderAction(btn.dataset.remAction, btn.dataset.id, btn);
+  });
+  el.remDeviceCard.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-device-action]');
+    if (!btn) return;
+    if (btn.dataset.deviceAction === 'reload') loadDeviceState();
+    else enableOnThisDevice(btn);
+  });
+  if ('serviceWorker' in navigator) {
+    // Tapping a push notification asks an already-open window to show the Reminders tab.
+    navigator.serviceWorker.addEventListener('message', (e) => {
+      if (e.data && e.data.type === 'OPEN_REMINDERS' && currentProfile) switchView('reminders');
+    });
+  }
+}
+
 function updateNavIndicator(view, animate = true){
   const nav = document.querySelector('.nav-tabs');
   if (!nav) return;
@@ -6297,6 +7102,9 @@ function updateNavIndicator(view, animate = true){
   if (!animate) nav.classList.add('nav-tabs--no-motion');
   nav.style.setProperty('--nav-indicator-x', `${tab.offsetLeft}px`);
   nav.style.setProperty('--nav-indicator-width', `${tab.offsetWidth}px`);
+  if (nav.scrollWidth > nav.clientWidth) {
+    nav.scrollTo({ left: Math.max(0, tab.offsetLeft - (nav.clientWidth - tab.offsetWidth) / 2), behavior: animate ? 'smooth' : 'auto' });
+  }
 
   if (!animate) {
     requestAnimationFrame(() => nav.classList.remove('nav-tabs--no-motion'));
@@ -6304,7 +7112,7 @@ function updateNavIndicator(view, animate = true){
 }
 
 function switchView(view){
-  const allowedViews = ['newBill', 'previousBills', 'admin'];
+  const allowedViews = ['newBill', 'previousBills', 'reminders', 'admin'];
   if (!allowedViews.includes(view)) view = 'newBill';
   if (view === 'admin' && (!currentProfile || !['admin','super_admin'].includes(currentProfile.role))) {
     view = 'newBill';
@@ -6314,6 +7122,7 @@ function switchView(view){
   updateNavIndicator(view);
   el.viewNewBill.classList.toggle('hide', view !== 'newBill');
   el.viewPreviousBills.classList.toggle('hide', view !== 'previousBills');
+  el.viewReminders.classList.toggle('hide', view !== 'reminders');
   el.viewAdmin.classList.toggle('hide', view !== 'admin');
   // enterApp() only calls initInvoiceMeta() when the *saved last view* is
   // 'newBill'. If the app instead booted into Previous Bills (or Admin) as
@@ -6339,6 +7148,7 @@ function switchView(view){
   }
   // Load directly; supabase-js refreshes the token itself before each request.
   if (view === 'previousBills') { loadBills(); }
+  if (view === 'reminders') { loadRemindersView(); }
   if (view === 'admin' && ['admin','super_admin'].includes(currentProfile.role)) {
     loadAdminStats(); loadPendingUsers(); loadAllUsers();
   }
@@ -8856,8 +9666,8 @@ async function preparePwaEntry(){
   const urlParams = new URLSearchParams(window.location.search);
   const isPasswordResetLink = urlParams.get('mode') === 'update-password';
 
-  // Reset links: never show Open App or Install App.
-  if (isPasswordResetLink) return;
+  // Reset links and notification links: never show Open App or Install App.
+  if (isPasswordResetLink || urlParams.get('mode') === 'reminders') return;
 
   // Don't show the Open App / Install App prompt on top of (or right as)
   // the boot loader disappears -- wait for auth/data resolution to
@@ -9051,6 +9861,8 @@ function registerPwaServiceWorker(){
 function getDismissibleOverlays(){
   return [
     [el.productModalOverlay, closeProductModal],
+    [el.reminderModalOverlay, closeReminderModal],
+    [el.reminderDeleteModalOverlay, closeReminderDeleteModal],
     [el.deleteModalOverlay, closeDeleteModal],
     [el.previewModalOverlay, closePreviewModal],
     [el.resetModalOverlay, closeResetModal],
@@ -9860,6 +10672,7 @@ async function init(){
     return;
   }
   bindEvents();
+  bindReminderEvents();
   // Check after the app is initialized so the installed-app prompt does not
   // compete with the first-install or update flows.
   setTimeout(() => { preparePwaEntry().catch((error) => console.warn('PWA install check failed:', error)); }, 500);

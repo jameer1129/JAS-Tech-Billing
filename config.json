@@ -37,6 +37,9 @@
     "url": "https://tdytfzqtaxijlbmfnxee.supabase.co",
     "anonKey": "sb_publishable_n2QoEQ5WiIzdC2RTGZMmQA_yrpAvGvI"
   },
+   "push": {
+    "vapidPublicKey": "BCvpqboxPkUSnhwiPD3TFMmuagd6Dq5uTlclf99_DmfazBPeFXEYeWMFzwLPSOQQj5RXb5xMTAdwYKBgPFJEaII"
+  },
   "display": {
     "showWatermark": true,
     "showQr": true,

@@ -1,11 +1,10 @@
-
 /* =========================================================
    JAS TECH BILLING — service-worker.js
    Cache First Strategy
    Safe Activation Handoff
    ========================================================= */
 
-const CACHE_NAME = "v3.1.4";
+const CACHE_NAME = "v3.2.0";
 const CLAIM_DELAY_MS = 2000;
 
 const STATIC_ASSETS = [
@@ -95,6 +94,60 @@ self.addEventListener("message", (event) => {
   if (event.data?.type === "GET_VERSION") {
     event.source.postMessage(CACHE_NAME);
   }
+});
+
+/* =========================================================
+   WEB PUSH — reminders
+   Payload (JSON) is sent by the heartbeat edge function:
+   { title, body, tag, url }
+   ========================================================= */
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { body: event.data ? event.data.text() : "" };
+  }
+
+  const title = data.title || "JAS Tech Reminder";
+  const options = {
+    body: data.body || "You have a reminder due.",
+    icon: "./assets/icons/app-icon.png",
+    badge: "./assets/icons/app-icon.png",
+    tag: data.tag || "jas-reminder",
+    renotify: true,
+    data: { url: data.url || "./index.html?mode=reminders" },
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+
+  const target = new URL(
+    event.notification.data?.url || "./index.html?mode=reminders",
+    self.registration.scope
+  ).href;
+
+  event.waitUntil(
+    (async () => {
+      const windows = await self.clients.matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      });
+
+      for (const client of windows) {
+        if (client.url.startsWith(self.registration.scope)) {
+          await client.focus();
+          client.postMessage({ type: "OPEN_REMINDERS" });
+          return;
+        }
+      }
+
+      await self.clients.openWindow(target);
+    })()
+  );
 });
 
 self.addEventListener("install", (event) => {

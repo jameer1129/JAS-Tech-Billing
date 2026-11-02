@@ -17,7 +17,8 @@ create table if not exists public.profiles (
     check (role in ('super_admin', 'admin', 'employee')), status text not null default 'pending'
     check (status in ('pending', 'approved', 'rejected')),
   created_at timestamptz not null default now(), last_sign_in_at TIMESTAMPTZ DEFAULT NULL,
-  last_activity_at TIMESTAMPTZ DEFAULT NULL, avatar_updated_at timestamptz default null );
+  last_activity_at TIMESTAMPTZ DEFAULT NULL, avatar_updated_at timestamptz default null ),
+  push_id JSONB DEFAULT NULL, device_data JSONB DEFAULT NULL;
 
 -- Table: one invoice header per saved bill, including customer details, totals, creator, soft-delete time, and public token.
 create table if not exists public.bills (
@@ -47,11 +48,155 @@ create table if not exists public.bill_items (
 create table if not exists public.supabase_heartbeat (
   id integer primary key default 1 check (id = 1), last_ping text,
   users_status text, users_checked integer, users_deleted integer, users_failed integer,
-  users_error text, bills_status text, bills_purged integer, bills_error text );
+  users_error text, bills_status text, bills_purged integer, bills_error text ),
+  reminders_status    text,     -- success | partial | failed
+  reminders_due       integer,  -- reminders that were due this run
+  reminders_sent      integer,  -- pushes delivered to the push service
+  reminders_failed    integer,  -- pushes that failed
+  reminders_no_device integer,  -- due, but the user has no active device
+  reminders_cleared   integer,  -- dead devices removed from profiles
+  reminders_error     text;
 
 insert into public.supabase_heartbeat (id)
 values (1)
 on conflict (id) do nothing;
+
+
+CREATE TABLE IF NOT EXISTS public.reminders (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    user_id UUID NOT NULL
+        REFERENCES auth.users(id)
+        ON DELETE CASCADE,
+
+    title TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+
+    remember_date DATE NOT NULL,
+
+    -- NULL = repeater OFF
+    -- daily, weekly, monthly, yearly
+    -- Numeric string 1-365 = custom day interval
+    repeater TEXT DEFAULT NULL,
+
+    -- Only active or paused
+    status TEXT NOT NULL DEFAULT 'active'
+        CHECK (status IN ('active', 'paused', 'completed')),
+
+    -- Updated when the user clicks Completed
+    last_activity DATE DEFAULT NULL,
+
+    CONSTRAINT reminders_repeater_valid CHECK (
+        repeater IS NULL
+        OR repeater IN ('daily', 'weekly', 'monthly', 'yearly')
+        OR repeater ~ '^(?:[1-9]|[1-9][0-9]|[1-2][0-9]{2}|3[0-5][0-9]|36[0-5])$'
+    )
+);
+
+ALTER TABLE public.reminders ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "reminders_select_own"
+ON public.reminders
+FOR SELECT
+TO authenticated
+USING (
+    user_id = auth.uid()
+    AND public.is_approved()
+);
+
+CREATE POLICY "reminders_insert_own"
+ON public.reminders
+FOR INSERT
+TO authenticated
+WITH CHECK (
+    user_id = auth.uid()
+    AND public.is_approved()
+);
+
+CREATE POLICY "reminders_update_own"
+ON public.reminders
+FOR UPDATE
+TO authenticated
+USING (
+    user_id = auth.uid()
+    AND public.is_approved()
+)
+WITH CHECK (
+    user_id = auth.uid()
+    AND public.is_approved()
+);
+
+CREATE POLICY "reminders_delete_own"
+ON public.reminders
+FOR DELETE
+TO authenticated
+USING (
+    user_id = auth.uid()
+    AND public.is_approved()
+);
+
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON public.reminders
+TO authenticated;
+
+
+CREATE OR REPLACE FUNCTION public.check_reminder_limit()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    reminder_count INTEGER;
+BEGIN
+    -- Validate reminder date: tomorrow or later only
+    IF NEW.remember_date <= CURRENT_DATE THEN
+        RAISE EXCEPTION
+            'Reminder date must be tomorrow or a future date.';
+    END IF;
+
+    IF NEW.remember_date > public.app_today() + 365 THEN
+        RAISE EXCEPTION
+            'Reminder date cannot be more than one year in the future.';
+    END IF;
+
+    -- Lock user to prevent concurrent reminder limit bypass
+    PERFORM pg_advisory_xact_lock(
+        hashtext(NEW.user_id::TEXT)
+    );
+
+    -- Count existing reminders for this user
+    SELECT COUNT(*)
+    INTO reminder_count
+    FROM public.reminders
+    WHERE user_id = NEW.user_id;
+
+    -- Maximum 10 reminders per user
+    IF reminder_count >= 10 THEN
+        RAISE EXCEPTION
+            'Maximum 10 reminders allowed per user.';
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+-- Existing trigger remains unchanged
+CREATE OR REPLACE TRIGGER reminders_limit_trigger
+BEFORE INSERT ON public.reminders
+FOR EACH ROW
+EXECUTE FUNCTION public.check_reminder_limit();
+
+CREATE OR REPLACE FUNCTION public.app_today()
+RETURNS DATE
+LANGUAGE SQL
+STABLE
+AS $$
+    SELECT (now() AT TIME ZONE 'Asia/Kolkata')::date;
+$$;
+
+-- Heartbeat needs to read due reminders
+GRANT SELECT ON public.reminders TO service_role;
 
 -- FUNCTIONS
 revoke all on public.supabase_heartbeat from anon, authenticated;
@@ -188,7 +333,12 @@ REVOKE UPDATE ON TABLE public.profiles
 FROM PUBLIC, anon, authenticated;
 
 GRANT UPDATE (
-  avatar_updated_at, last_sign_in_at, last_activity_at )
+    avatar_updated_at,
+    last_sign_in_at,
+    last_activity_at,
+    push_id,
+    device_data
+)
 ON TABLE public.profiles
 TO authenticated;
 
