@@ -181,6 +181,9 @@ BEGIN
 END;
 $$;
 
+GRANT UPDATE ON public.profiles TO service_role;
+GRANT UPDATE ON public.reminders TO service_role;
+
 -- Existing trigger remains unchanged
 CREATE OR REPLACE TRIGGER reminders_limit_trigger
 BEFORE INSERT ON public.reminders
@@ -1184,28 +1187,54 @@ where public_token is not null;
 
 -- clean up  edge function to delete unverified users and soft-deleted bills older than 7 days
 -- import { createClient } from "npm:@supabase/supabase-js@2";
+-- import webpush from "npm:web-push@3.6.7";
+
 -- const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+
 -- if (!SUPABASE_URL) {
 --   throw new Error("SUPABASE_URL is required");
 -- }
+
+-- // --------------------------------------------------
+-- // Publishable key
+-- // Used to authenticate the GitHub request
+-- // --------------------------------------------------
+
 -- const rawPublishableKeys = Deno.env.get("SUPABASE_PUBLISHABLE_KEYS");
+
 -- if (!rawPublishableKeys) {
 --   throw new Error("SUPABASE_PUBLISHABLE_KEYS is required");
 -- }
+
 -- const publishableKeys = JSON.parse(rawPublishableKeys);
 -- const PUBLISHABLE_KEY = publishableKeys["default"];
+
 -- if (!PUBLISHABLE_KEY) {
 --   throw new Error("Default publishable key is missing");
 -- }
+
+-- // --------------------------------------------------
+-- // Secret/admin key
+-- // Automatically provided by Supabase
+-- // --------------------------------------------------
+
 -- const rawSecretKeys = Deno.env.get("SUPABASE_SECRET_KEYS");
+
 -- if (!rawSecretKeys) {
 --   throw new Error("SUPABASE_SECRET_KEYS is required");
 -- }
+
 -- const secretKeys = JSON.parse(rawSecretKeys);
 -- const ADMIN_KEY = secretKeys["default"];
+
 -- if (!ADMIN_KEY) {
 --   throw new Error("Default secret key is missing");
 -- }
+
+-- // --------------------------------------------------
+-- // Admin client
+-- // --------------------------------------------------
+
 -- const supabaseAdmin = createClient(SUPABASE_URL, ADMIN_KEY, {
 --   auth: {
 --     autoRefreshToken: false,
@@ -1213,20 +1242,312 @@ where public_token is not null;
 --     detectSessionInUrl: false,
 --   },
 -- });
+
+-- // --------------------------------------------------
+-- // Web Push (VAPID) — reminders
+-- //
+-- // Secrets to add in Supabase → Edge Functions → Secrets:
+-- //   VAPID_PUBLIC_KEY   (same value as config.json → push.vapidPublicKey)
+-- //   VAPID_PRIVATE_KEY
+-- //   VAPID_SUBJECT      (e.g. mailto:jastechhyd@gmail.com)
+-- //
+-- // Missing keys never crash the function: reminders are reported
+-- // as "failed" and the heartbeat + cleanup still run.
+-- // --------------------------------------------------
+
+-- const VAPID_PUBLIC_KEY = Deno.env.get("VAPID_PUBLIC_KEY") ?? "";
+-- const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
+-- const VAPID_SUBJECT =
+--   Deno.env.get("VAPID_SUBJECT") ?? "mailto:jastechhyd@gmail.com";
+
+-- const PUSH_ENABLED = !!(VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY);
+
+-- if (PUSH_ENABLED) {
+--   webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+-- }
+
+-- // --------------------------------------------------
+-- // Production cleanup settings
+-- //
+-- // 1. Unverified users older than 7 days are deleted.
+-- // 2. Soft-deleted bills older than 7 days are permanently deleted.
+-- // 3. Due reminders are pushed to the user's active device.
+-- // 4. Active reminders overdue by MORE than 7 days are paused
+-- //    (no push). The user resumes them from the Reminders tab.
+-- // --------------------------------------------------
+
 -- const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 -- const USER_RETENTION_MS = SEVEN_DAYS_MS;
 -- const BILL_RETENTION_MS = SEVEN_DAYS_MS;
+
+-- // Pushes are sent while a reminder is 0..7 days overdue.
+-- // On day 8 (overdue > 7) the reminder is paused instead.
+-- // Keep in sync with REMINDER_AUTO_PAUSE_DAYS in index.html.
+-- const OVERDUE_PAUSE_DAYS = 7;
+
+-- // How many expired bills are purged per database round trip
 -- const BILL_PURGE_BATCH = 200;
+
+-- // This function runs every 12 hours (GitHub workflow). A push that cannot be
+-- // delivered (device offline) expires after 12 hours, so it never arrives
+-- // late or on top of the next run's push.
+-- const PUSH_TTL_SECONDS = 12 * 60 * 60;
+
+-- // Max reminders handled per run
+-- const REMINDER_BATCH = 1000;
+
 -- type Status = "success" | "partial" | "failed";
+
+-- // --------------------------------------------------
+-- // Reminder push
+-- //
+-- // A reminder is due when ALL are true:
+-- //   status = 'active'
+-- //   remember_date <= app_today()          (IST calendar date)
+-- //   last_activity IS NULL OR last_activity < remember_date
+-- //
+-- // Due reminders are then split by how late they are:
+-- //   overdue 0..7 days  -> push notification
+-- //   overdue > 7 days   -> status set to 'paused', NO push
+-- //
+-- // Never throws: any problem is returned in the result so it cannot
+-- // block the heartbeat, user cleanup or bill cleanup.
+-- // --------------------------------------------------
+
+-- type ReminderPushResult = {
+--   status: Status;
+--   today: string | null;
+--   dueCount: number; // reminders that were eligible for a push
+--   sentCount: number;
+--   noDeviceCount: number;
+--   failedCount: number;
+--   clearedDevices: number;
+--   pausedCount: number; // auto-paused because overdue > 7 days
+--   error: string | null;
+-- };
+
+-- async function sendDueReminderPushes(): Promise<ReminderPushResult> {
+--   const result: ReminderPushResult = {
+--     status: "success",
+--     today: null,
+--     dueCount: 0,
+--     sentCount: 0,
+--     noDeviceCount: 0,
+--     failedCount: 0,
+--     clearedDevices: 0,
+--     pausedCount: 0,
+--     error: null,
+--   };
+
+--   try {
+--     // IST date, the same function the database trigger uses
+--     const { data: today, error: todayError } = await supabaseAdmin.rpc(
+--       "app_today"
+--     );
+
+--     if (todayError || !today) {
+--       return {
+--         ...result,
+--         status: "failed",
+--         error: `app_today failed: ${todayError?.message ?? "no value"}`,
+--       };
+--     }
+
+--     result.today = String(today);
+--     const todayIso = result.today;
+
+--     const { data: rows, error: remindersError } = await supabaseAdmin
+--       .from("reminders")
+--       .select("id,user_id,title,description,remember_date,last_activity")
+--       .eq("status", "active")
+--       .lte("remember_date", todayIso)
+--       .limit(REMINDER_BATCH);
+
+--     if (remindersError) {
+--       return {
+--         ...result,
+--         status: "failed",
+--         error: `Reminder lookup failed: ${remindersError.message}`,
+--       };
+--     }
+
+--     // Column-to-column comparison (last_activity < remember_date) is done here
+--     const due = (rows ?? []).filter(
+--       (r) => !r.last_activity || r.last_activity < r.remember_date
+--     );
+
+--     const daysOverdue = (r: { remember_date: string }) =>
+--       Math.round(
+--         (Date.parse(todayIso) - Date.parse(r.remember_date)) / 86400000
+--       );
+
+--     // Overdue by MORE than 7 days -> pause, never push (day 8 onwards)
+--     const toPause = due.filter((r) => daysOverdue(r) > OVERDUE_PAUSE_DAYS);
+--     const toPush = due.filter((r) => daysOverdue(r) <= OVERDUE_PAUSE_DAYS);
+
+--     // Runs even if push keys are missing, so overdue reminders still pause.
+--     if (toPause.length) {
+--       const { data: paused, error: pauseError } = await supabaseAdmin
+--         .from("reminders")
+--         .update({ status: "paused" })
+--         .in(
+--           "id",
+--           toPause.map((r) => r.id)
+--         )
+--         .eq("status", "active")
+--         .select("id");
+
+--       if (pauseError) {
+--         console.error("Auto-pause failed:", pauseError);
+--         result.status = "partial";
+--         result.error = `Auto-pause failed: ${pauseError.message}`;
+--       } else {
+--         result.pausedCount = paused?.length ?? 0;
+--       }
+--     }
+
+--     result.dueCount = toPush.length;
+
+--     if (!toPush.length) {
+--       return result;
+--     }
+
+--     if (!PUSH_ENABLED) {
+--       return {
+--         ...result,
+--         status: "failed",
+--         error: "VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY are not configured",
+--       };
+--     }
+
+--     const userIds = [...new Set(toPush.map((r) => r.user_id as string))];
+
+--     const { data: profiles, error: profilesError } = await supabaseAdmin
+--       .from("profiles")
+--       .select("id,push_id")
+--       .in("id", userIds)
+--       .not("push_id", "is", null);
+
+--     if (profilesError) {
+--       return {
+--         ...result,
+--         status: "failed",
+--         error: `Device lookup failed: ${profilesError.message}`,
+--       };
+--     }
+
+--     const subscriptions = new Map<string, unknown>(
+--       (profiles ?? []).map((p) => [p.id as string, p.push_id])
+--     );
+
+--     const deadUsers = new Set<string>();
+
+--     for (const r of toPush) {
+--       const subscription = subscriptions.get(r.user_id);
+
+--       if (!subscription) {
+--         result.noDeviceCount++;
+--         continue;
+--       }
+
+--       const overdueDays = daysOverdue(r);
+
+--       // Day 7 overdue is the last push; tell the user what happens next
+--       const body =
+--         r.description ||
+--         (overdueDays > 0
+--           ? `Overdue by ${overdueDays} day${overdueDays === 1 ? "" : "s"}`
+--           : "Due today");
+
+--       const payload = JSON.stringify({
+--         title: r.title,
+--         body:
+--           overdueDays === OVERDUE_PAUSE_DAYS
+--             ? `${body} · Last reminder. It will be paused tomorrow.`
+--             : body,
+--         // Same tag per reminder: a repeat push replaces, never stacks
+--         tag: `reminder-${r.id}`,
+--         url: "./index.html?mode=reminders",
+--       });
+
+--       try {
+--         await webpush.sendNotification(
+--           subscription as webpush.PushSubscription,
+--           payload,
+--           { TTL: PUSH_TTL_SECONDS, urgency: "high" }
+--         );
+--         result.sentCount++;
+--       } catch (error) {
+--         const code = (error as { statusCode?: number }).statusCode;
+
+--         // 404 / 410 = the browser deleted this subscription for good
+--         if (code === 404 || code === 410) {
+--           deadUsers.add(r.user_id);
+--         }
+
+--         result.failedCount++;
+--         console.error("Push failed:", code, error);
+--       }
+--     }
+
+--     // A dead subscription can never receive anything. Clear it so the
+--     // Reminders tab shows "No device activated" and the user can enable again.
+--     if (deadUsers.size) {
+--       const { error: clearError } = await supabaseAdmin
+--         .from("profiles")
+--         .update({ push_id: null, device_data: null })
+--         .in("id", [...deadUsers]);
+
+--       if (clearError) {
+--         console.error("Could not clear dead devices:", clearError);
+--       } else {
+--         result.clearedDevices = deadUsers.size;
+--       }
+--     }
+
+--     if (result.failedCount > 0) {
+--       result.status = result.sentCount > 0 ? "partial" : "failed";
+--     }
+
+--     return result;
+--   } catch (error) {
+--     console.error("Reminder push error:", error);
+--     return {
+--       ...result,
+--       status: "failed",
+--       error: error instanceof Error ? error.message : String(error),
+--     };
+--   }
+-- }
+
+-- // --------------------------------------------------
+-- // Edge Function
+-- // --------------------------------------------------
+
 -- Deno.serve(async (req: Request) => {
+--   // ------------------------------------------------
+--   // POST only
+--   // ------------------------------------------------
+
 --   if (req.method !== "POST") {
 --     return Response.json({ error: "Method not allowed" }, { status: 405 });
 --   }
+
+--   // ------------------------------------------------
+--   // Authenticate GitHub request
+--   // ------------------------------------------------
+
 --   const apiKey = req.headers.get("apikey");
+
 --   if (apiKey !== PUBLISHABLE_KEY) {
 --     return Response.json({ error: "Unauthorized" }, { status: 401 });
 --   }
+
 --   try {
+--     // =================================================
+--     // 1. UPDATE HEARTBEAT (ping time)
+--     // =================================================
+
 --     const indianTime = new Date().toLocaleString("en-IN", {
 --       timeZone: "Asia/Kolkata",
 --       day: "2-digit",
@@ -1237,64 +1558,95 @@ where public_token is not null;
 --       second: "2-digit",
 --       hour12: true,
 --     });
+
 --     const { data: heartbeatData, error: heartbeatError } = await supabaseAdmin
 --       .from("supabase_heartbeat")
 --       .update({ last_ping: indianTime })
 --       .eq("id", 1)
 --       .select("id, last_ping")
 --       .single();
+
 --     if (heartbeatError) {
 --       console.error("Heartbeat update error:", heartbeatError);
+
 --       return Response.json(
 --         { error: "Heartbeat update failed" },
 --         { status: 500 }
 --       );
 --     }
+
+--     // =================================================
+--     // 2. DELETE UNVERIFIED USERS OLDER THAN 7 DAYS
+--     //
+--     // Runs in its own try/catch so a failure here never
+--     // blocks the bill cleanup below.
+--     // =================================================
+
 --     const cutoff = new Date(Date.now() - USER_RETENTION_MS);
+
 --     const deleted: string[] = [];
+
 --     const failed: {
 --       id: string;
 --       email: string | null;
 --       error: string;
 --     }[] = [];
+
 --     let checkedCount = 0;
 --     let unverifiedCount = 0;
 --     let usersError: string | null = null;
+
 --     try {
 --       let page = 1;
 --       const perPage = 1000;
+
+--       // Collect first, delete after the scan. Deleting while paging shifts
+--       // the remaining users up a page, so some accounts would be skipped.
 --       const usersToDelete: { id: string; email: string | null }[] = [];
+
 --       while (true) {
 --         const { data, error } = await supabaseAdmin.auth.admin.listUsers({
 --           page,
 --           perPage,
 --         });
+
 --         if (error) {
 --           throw error;
 --         }
+
 --         const users = data.users;
+
 --         if (!users.length) {
 --           break;
 --         }
+
 --         checkedCount += users.length;
+
 --         for (const user of users) {
 --           const isUnverified = !user.email_confirmed_at;
 --           const isOlderThanSevenDays = new Date(user.created_at) < cutoff;
+
 --           if (isUnverified) {
 --             unverifiedCount++;
 --           }
+
+--           // DELETE ONLY: email unverified AND account older than 7 days
 --           if (isUnverified && isOlderThanSevenDays) {
 --             usersToDelete.push({ id: user.id, email: user.email ?? null });
 --           }
 --         }
+
 --         if (users.length < perPage) {
 --           break;
 --         }
+
 --         page++;
 --       }
+
 --       for (const u of usersToDelete) {
 --         const { error: deleteError } =
 --           await supabaseAdmin.auth.admin.deleteUser(u.id);
+
 --         if (deleteError) {
 --           failed.push({
 --             id: u.id,
@@ -1309,14 +1661,27 @@ where public_token is not null;
 --       usersError = error instanceof Error ? error.message : String(error);
 --       console.error("User cleanup error:", error);
 --     }
+
 --     const usersStatus: Status = usersError
 --       ? "failed"
 --       : failed.length > 0
 --       ? "partial"
 --       : "success";
+
+--     // =================================================
+--     // 3. PERMANENTLY DELETE SOFT-DELETED BILLS OLDER THAN 7 DAYS
+--     //
+--     // Bills moved to "Restore Bills" have deleted_at set.
+--     // Once deleted_at is older than 7 days they can no longer be
+--     // restored, so the bill and its items are removed for good.
+--     // A failure here never blocks the heartbeat or user cleanup.
+--     // =================================================
+
 --     const billCutoff = new Date(Date.now() - BILL_RETENTION_MS);
+
 --     const purgedBills: string[] = [];
 --     let billsError: string | null = null;
+
 --     while (true) {
 --       const { data: expired, error: expiredError } = await supabaseAdmin
 --         .from("bills")
@@ -1324,44 +1689,79 @@ where public_token is not null;
 --         .not("deleted_at", "is", null)
 --         .lt("deleted_at", billCutoff.toISOString())
 --         .limit(BILL_PURGE_BATCH);
+
 --       if (expiredError) {
 --         billsError = `Lookup failed: ${expiredError.message}`;
 --         console.error("Bill purge lookup error:", expiredError);
 --         break;
 --       }
+
 --       if (!expired || !expired.length) {
 --         break;
 --       }
+
 --       const invoiceNos = expired.map((b) => b.invoice_no);
+
+--       // Items first, so this also works if bill_items has no ON DELETE CASCADE
 --       const { error: itemsError } = await supabaseAdmin
 --         .from("bill_items")
 --         .delete()
 --         .in("invoice_no", invoiceNos);
+
 --       if (itemsError) {
 --         billsError = `Items delete failed: ${itemsError.message}`;
 --         console.error("Bill items purge error:", itemsError);
 --         break;
 --       }
+
 --       const { error: billsDeleteError } = await supabaseAdmin
 --         .from("bills")
 --         .delete()
 --         .in("invoice_no", invoiceNos)
 --         .not("deleted_at", "is", null);
+
 --       if (billsDeleteError) {
 --         billsError = `Bills delete failed: ${billsDeleteError.message}`;
 --         console.error("Bill purge error:", billsDeleteError);
 --         break;
 --       }
+
 --       purgedBills.push(...invoiceNos);
+
 --       if (expired.length < BILL_PURGE_BATCH) {
 --         break;
 --       }
 --     }
+
 --     const billsStatus: Status = billsError
 --       ? purgedBills.length > 0
 --         ? "partial"
 --         : "failed"
 --       : "success";
+
+--     // =================================================
+--     // 4. PAUSE OVERDUE REMINDERS + PUSH DUE REMINDERS
+--     //
+--     // Active reminders overdue by more than 7 days are paused
+--     // (no push). All other due reminders get one Web Push to the
+--     // single device saved in profiles.push_id. Notifications expire
+--     // after 12 hours (TTL), matching this function's 12-hour schedule.
+--     // A failure here never blocks the steps above.
+--     // =================================================
+
+--     const reminders = await sendDueReminderPushes();
+
+--     // =================================================
+--     // 5. SAVE LAST STATUS TO THE HEARTBEAT TABLE
+--     //
+--     // Requires the columns added by the SQL migration.
+--     // A failure here is logged and reported, never thrown.
+--     // Also saves the reminder push counts (due / sent / failed /
+--     // no device / cleared devices), so these columns must exist too.
+--     // (Auto-paused count is reported in the response and logs only,
+--     // so no new column is needed.)
+--     // =================================================
+
 --     const { error: statusError } = await supabaseAdmin
 --       .from("supabase_heartbeat")
 --       .update({
@@ -1373,11 +1773,24 @@ where public_token is not null;
 --         bills_status: billsStatus,
 --         bills_purged: purgedBills.length,
 --         bills_error: billsError,
+--         reminders_status: reminders.status,
+--         reminders_due: reminders.dueCount,
+--         reminders_sent: reminders.sentCount,
+--         reminders_failed: reminders.failedCount,
+--         reminders_no_device: reminders.noDeviceCount,
+--         reminders_cleared: reminders.clearedDevices,
+--         reminders_error: reminders.error,
 --       })
 --       .eq("id", 1);
+
 --     if (statusError) {
 --       console.error("Heartbeat status update error:", statusError);
 --     }
+
+--     // =================================================
+--     // 6. LOG RESULT
+--     // =================================================
+
 --     console.log(
 --       JSON.stringify({
 --         heartbeat: heartbeatData,
@@ -1393,14 +1806,28 @@ where public_token is not null;
 --         purgedBillsCount: purgedBills.length,
 --         purgedBills,
 --         billsError,
+--         reminders,
 --         statusSaved: !statusError,
 --       })
 --     );
---     const allOk = usersStatus === "success" && billsStatus === "success";
+
+--     // =================================================
+--     // 7. RETURN RESULT
+--     //
+--     // 500 if any part failed, so the GitHub run is flagged.
+--     // =================================================
+
+--     const allOk =
+--       usersStatus === "success" &&
+--       billsStatus === "success" &&
+--       reminders.status === "success";
+
 --     return Response.json(
 --       {
 --         success: allOk,
+
 --         heartbeat: heartbeatData,
+
 --         cleanup: {
 --           mode: "PRODUCTION - 7 days",
 --           status: usersStatus,
@@ -1414,6 +1841,7 @@ where public_token is not null;
 --           failed,
 --           error: usersError,
 --         },
+
 --         billCleanup: {
 --           mode: "PRODUCTION - 7 days",
 --           status: billsStatus,
@@ -1422,6 +1850,13 @@ where public_token is not null;
 --           purged: purgedBills,
 --           error: billsError,
 --         },
+
+--         reminderPush: {
+--           ttlSeconds: PUSH_TTL_SECONDS,
+--           overduePauseDays: OVERDUE_PAUSE_DAYS,
+--           ...reminders,
+--         },
+
 --         statusSaved: !statusError,
 --         statusSaveError: statusError?.message ?? null,
 --       },
@@ -1429,6 +1864,7 @@ where public_token is not null;
 --     );
 --   } catch (error) {
 --     console.error("Combined heartbeat/cleanup error:", error);
+
 --     return Response.json(
 --       {
 --         success: false,
@@ -1438,7 +1874,6 @@ where public_token is not null;
 --     );
 --   }
 -- });
-
 -- ============================================================
 -- GITHUB ACTIONS WORKFLOW
 -- GitHub Actions workflow: invokes supabase-heartbeat every 12 hours and supports manual workflow_dispatch.

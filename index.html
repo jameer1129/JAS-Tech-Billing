@@ -2721,6 +2721,35 @@ body.dark-theme .rem-count{background:rgba(1,37,135,.28);}
 .btn--warn-outline:hover{background:rgba(255,151,0,.1);}
 .confirm-icon--warning{background:color-mix(in srgb, var(--warning) 15%, transparent);color:var(--warning);border:1px solid color-mix(in srgb, var(--warning) 25%, transparent);}
 .rem-card__actions .btn--danger-ghost:hover{color:var(--danger);border-color:var(--danger);background:rgba(214,69,69,.08);}
+.rem-card__hint{font-size:12px;font-weight:600;color:var(--muted);display:flex;gap:6px;align-items:flex-start;line-height:1.35;margin-top:-2px;}
+.rem-card__hint i{margin-top:2px;}
+.rem-card__hint--warn{color:var(--warning);}
+.rem-card__hint--danger{color:var(--danger);}
+/* Complete button: draws the eye (pulse ring + fill sweep + bouncing tick) */
+.rem-card__actions .btn[data-rem-action="complete"]{position:relative;overflow:hidden;isolation:isolate;animation:remCompletePulse 2.2s ease-out infinite;}
+.rem-card__actions .btn[data-rem-action="complete"]::after{content:"";position:absolute;top:0;bottom:0;left:0;width:45%;z-index:-1;pointer-events:none;background:linear-gradient(100deg,transparent,rgba(255,255,255,.42),transparent);transform:translateX(-130%);animation:remCompleteSweep 2.2s ease-in-out infinite;}
+.rem-card__actions .btn[data-rem-action="complete"] i{display:inline-block;animation:remCompleteTick 2.2s ease-in-out infinite;}
+.rem-card__actions .btn[data-rem-action="complete"]:active{transform:scale(.95);}
+@keyframes remCompletePulse{
+  0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--success) 55%,transparent);}
+  70%{box-shadow:0 0 0 10px transparent;}
+  100%{box-shadow:0 0 0 0 transparent;}
+}
+@keyframes remCompleteSweep{
+  0%,15%{transform:translateX(-130%);}
+  60%,100%{transform:translateX(330%);}
+}
+@keyframes remCompleteTick{
+  0%,55%,100%{transform:scale(1) rotate(0);}
+  65%{transform:scale(1.45) rotate(-12deg);}
+  75%{transform:scale(.95) rotate(6deg);}
+  85%{transform:scale(1.12) rotate(0);}
+}
+@media(prefers-reduced-motion:reduce){
+  .rem-card__actions .btn[data-rem-action="complete"],
+  .rem-card__actions .btn[data-rem-action="complete"]::after,
+  .rem-card__actions .btn[data-rem-action="complete"] i{animation:none;}
+}
 .rem-badge{flex:0 0 auto;display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;}
 .rem-badge--active{background:rgba(1,37,135,.1);color:var(--primary-text);}
 .rem-badge--paused{background:rgba(214,69,69,.12);color:var(--danger);}
@@ -6563,6 +6592,9 @@ function enterApp(){
    =================================================================== */
 const REMINDER_LIMIT = 10;
 const REMINDER_MAX_DAYS = 365;
+// Must match OVERDUE_PAUSE_DAYS in the edge function: an active reminder that is
+// overdue by MORE than this many days is paused automatically (no more pushes).
+const REMINDER_AUTO_PAUSE_DAYS = 7;
 const DEVICE_FP_LS_KEY = 'jas_device_fingerprint';
 let reminders = [];
 let remindersOwner = null;
@@ -6916,10 +6948,22 @@ function reminderCardHtml(r, today){
   if (r.repeater) meta.push(`<span><i class="fa-solid fa-repeat"></i> ${escapeHtml(repeaterText(r.repeater))}</span>`);
   if (due) meta.push(`<span class="${due.cls}"><i class="fa-regular fa-clock"></i> ${escapeHtml(due.text)}</span>`);
   if (r.status === 'completed' && r.last_activity) meta.push(`<span><i class="fa-solid fa-check"></i> Done ${escapeHtml(formatDateForDisplay(r.last_activity))}</span>`);
+  let hint = '';
+  if (r.status === 'active' && due?.due) {
+    const overdue = -daysBetweenIso(today, r.remember_date);
+    if (overdue > REMINDER_AUTO_PAUSE_DAYS) hint = ['danger', 'fa-circle-pause', 'Overdue for more than 7 days. This will be paused automatically.'];
+    else if (overdue === REMINDER_AUTO_PAUSE_DAYS) hint = ['danger', 'fa-triangle-exclamation', 'Last reminder. It will be paused tomorrow if not completed.'];
+    else if (overdue > 0) hint = ['warn', 'fa-circle-info', `Auto-pause after ${REMINDER_AUTO_PAUSE_DAYS} days overdue.`];
+  } else if (r.status === 'paused') {
+    const late = daysBetweenIso(r.remember_date, today);
+    if (late > REMINDER_AUTO_PAUSE_DAYS) hint = ['danger', 'fa-circle-pause', `Paused: was overdue by ${late} days, so notifications stopped. Tap Resume to start again.`];
+  }
+  const hintHtml = hint ? `<div class="rem-card__hint rem-card__hint--${hint[0]}"><i class="fa-solid ${hint[1]}" aria-hidden="true"></i><span>${escapeHtml(hint[2])}</span></div>` : '';
   return `<article class="bill-card rem-card">
     <div class="rem-card__top"><div class="rem-card__title">${escapeHtml(r.title)}</div>${badge}</div>
     ${r.description ? `<div class="rem-card__desc">${escapeHtml(r.description)}</div>` : ''}
     <div class="rem-card__meta">${meta.join('')}</div>
+    ${hintHtml}
     <div class="rem-card__actions">${actions}</div>
   </article>`;
 }
@@ -6961,8 +7005,13 @@ async function runReminderAction(action, id, btn){
   } else if (action === 'pause') {
     patch = { status: 'paused' }; okMsg = 'Reminder paused.';
   } else if (action === 'resume') {
-    patch = { status: 'active', remember_date: nextReminderDate(r.remember_date, r.repeater, today) };
-    okMsg = 'Reminder resumed.';
+    // Repeating: next future occurrence. One-time: a past date becomes today so it
+    // is not paused again at once by the 7-day overdue rule.
+    const resumeDate = r.repeater
+      ? nextReminderDate(r.remember_date, r.repeater, today)
+      : (r.remember_date < today ? today : r.remember_date);
+    patch = { status: 'active', remember_date: resumeDate };
+    okMsg = resumeDate === today ? 'Reminder resumed. It is due today.' : 'Reminder resumed.';
   }
   if (!patch) return;
   reminderBusy = true;

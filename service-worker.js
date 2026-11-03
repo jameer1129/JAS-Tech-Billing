@@ -4,8 +4,13 @@
    Safe Activation Handoff
    ========================================================= */
 
-const CACHE_NAME = "v3.2.0";
+// IMPORTANT: change this on EVERY release (v3.2.2, v3.2.3 ...).
+const CACHE_NAME = "v3.2.1";
 const CLAIM_DELAY_MS = 2000;
+
+// The single HTML page of the app. Every navigation is served from this
+// entry, whatever the query string is (?mode=reminders, ?mode=update-password ...).
+const APP_SHELL = "./index.html";
 
 const STATIC_ASSETS = [
   "./index.html",
@@ -21,7 +26,6 @@ const STATIC_ASSETS = [
   "./assets/icons/app-icon.png",
   "./assets/icons/app-icon-maskable.png",
   "./assets/icons/whatsapp-qr.jpeg",
-  "./assets/icons/reminder-badge.png",
 ];
 
 const CDN_HOSTS = [
@@ -50,7 +54,7 @@ async function precacheCdn(cache) {
   await Promise.allSettled(
     CDN_SCRIPTS.map(async (url) => {
       const response = await fetch(
-        new Request(url, { mode: "no-cors" })
+        new Request(url, { mode: "no-cors", cache: "reload" })
       );
       await cache.put(url, response);
     })
@@ -58,7 +62,7 @@ async function precacheCdn(cache) {
 
   await Promise.allSettled(
     CDN_STYLESHEETS.map(async (url) => {
-      const response = await fetch(url);
+      const response = await fetch(url, { cache: "reload" });
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
@@ -94,6 +98,9 @@ async function precacheCdn(cache) {
 self.addEventListener("message", (event) => {
   if (event.data?.type === "GET_VERSION") {
     event.source.postMessage(CACHE_NAME);
+  }
+  if (event.data?.type === "SKIP_WAITING") {
+    self.skipWaiting();
   }
 });
 
@@ -155,9 +162,11 @@ self.addEventListener("notificationclick", (event) => {
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(async (cache) => {
+      // cache: "reload" skips the browser HTTP cache so the NEW version's
+      // files are stored, never an old copy.
       await Promise.allSettled(
         STATIC_ASSETS.map((asset) =>
-          cache.add(asset).catch((error) => {
+          cache.add(new Request(asset, { cache: "reload" })).catch((error) => {
             console.warn(
               `Service worker failed to cache "${asset}":`,
               error
@@ -232,6 +241,34 @@ function cacheFirst(request) {
   });
 }
 
+/**
+ * APP SHELL
+ * Always answer page navigations with the precached index.html and ignore
+ * the query string. This way ./index.html?mode=reminders (notification tap)
+ * behaves exactly like a normal app open, and is never stored as a separate
+ * (possibly stale) cache entry.
+ */
+async function serveAppShell() {
+  const cache = await caches.open(CACHE_NAME);
+
+  const cached = await cache.match(APP_SHELL, { ignoreSearch: true });
+  if (cached) {
+    return cached;
+  }
+
+  try {
+    const response = await fetch(new Request(APP_SHELL, { cache: "reload" }));
+
+    if (response && response.ok) {
+      await cache.put(APP_SHELL, response.clone());
+    }
+
+    return response;
+  } catch {
+    return Response.error();
+  }
+}
+
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
 
@@ -290,7 +327,7 @@ self.addEventListener("fetch", (event) => {
   }
 
   // =========================================================
-  // HTML + NAVIGATION + CONFIG — CACHE FIRST
+  // HTML + NAVIGATION + CONFIG
   // =========================================================
   if (
     event.request.mode === "navigate" ||
@@ -306,29 +343,18 @@ self.addEventListener("fetch", (event) => {
       return;
     }
 
-    event.respondWith(
-      cacheFirst(event.request).then(async (response) => {
-        if (response && response.ok) {
-          return response;
-        }
+    // Page navigations (including notification taps with ?mode=...)
+    // are served from the precached index.html, query string ignored.
+    if (
+      event.request.mode === "navigate" ||
+      url.pathname.endsWith("/index.html")
+    ) {
+      event.respondWith(serveAppShell());
+      return;
+    }
 
-        const isNavigationOrHtml =
-          event.request.mode === "navigate" ||
-          url.pathname.endsWith(".html");
-
-        if (!isNavigationOrHtml) {
-          return response;
-        }
-
-        const cache = await caches.open(CACHE_NAME);
-
-        return (
-          (await cache.match("./index.html")) ||
-          response
-        );
-      })
-    );
-
+    // config.json and any other .html file — normal cache first.
+    event.respondWith(cacheFirst(event.request));
     return;
   }
 
