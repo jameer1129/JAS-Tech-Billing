@@ -5,7 +5,7 @@
    ========================================================= */
 
 // IMPORTANT: change this on EVERY release (v3.2.2, v3.2.3 ...).
-const CACHE_NAME = "v3.2.1";
+const CACHE_NAME = "v3.2.2";
 const CLAIM_DELAY_MS = 2000;
 
 // The single HTML page of the app. Every navigation is served from this
