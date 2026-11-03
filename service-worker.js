@@ -4,7 +4,7 @@
    Safe Activation Handoff
    ========================================================= */
 
-const CACHE_NAME = "v3.2.1";
+const CACHE_NAME = "v3.2.2";   // ← bump this on every real release
 const CLAIM_DELAY_MS = 2000;
 
 const STATIC_ASSETS = [
@@ -90,16 +90,19 @@ async function precacheCdn(cache) {
   );
 }
 
+/* ---------- Message handler ---------- */
 self.addEventListener("message", (event) => {
   if (event.data?.type === "GET_VERSION") {
     event.source.postMessage(CACHE_NAME);
+  }
+  // User pressed "Update" → activate the waiting worker
+  if (event.data?.type === "SKIP_WAITING") {
+    self.skipWaiting();
   }
 });
 
 /* =========================================================
    WEB PUSH — reminders
-   Payload (JSON) is sent by the heartbeat edge function:
-   { title, body, tag, url }
    ========================================================= */
 self.addEventListener("push", (event) => {
   let data = {};
@@ -109,7 +112,6 @@ self.addEventListener("push", (event) => {
     data = { body: event.data ? event.data.text() : "" };
   }
 
-  // Every notification is labelled as a reminder.
   const title = data.title ? `🔔 Reminder: ${data.title}` : "🔔 JAS Tech Reminder";
   const options = {
     body: data.body || "You have a reminder due.",
@@ -151,6 +153,7 @@ self.addEventListener("notificationclick", (event) => {
   );
 });
 
+/* ---------- Install (NO automatic skipWaiting) ---------- */
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(async (cache) => {
@@ -173,10 +176,11 @@ self.addEventListener("install", (event) => {
       });
     })
   );
-
-  self.skipWaiting();
+  // IMPORTANT: do NOT call self.skipWaiting() here.
+  // Activation is now controlled by the page via SKIP_WAITING message.
 });
 
+/* ---------- Activate ---------- */
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
@@ -200,10 +204,6 @@ self.addEventListener("activate", (event) => {
 
 /**
  * CACHE FIRST
- * 1. Check cache.
- * 2. Return cached response when available.
- * 3. Otherwise fetch from network.
- * 4. Cache successful or opaque responses.
  */
 function cacheFirst(request) {
   return caches.open(CACHE_NAME).then(async (cache) => {
@@ -242,11 +242,7 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(event.request.url);
 
-  // =========================================================
   // PUBLIC PROFILE AVATARS — CACHE FIRST
-  // =========================================================
-  // Only cache images from the public profile-avatars bucket.
-  // Other Supabase requests remain network-only.
   if (
     (url.hostname === "supabase.co" ||
       url.hostname.endsWith(".supabase.co")) &&
@@ -262,9 +258,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // =========================================================
   // SUPABASE — OTHER REQUESTS NETWORK ONLY
-  // =========================================================
   if (
     url.hostname === "supabase.co" ||
     url.hostname.endsWith(".supabase.co")
@@ -272,25 +266,19 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // =========================================================
   // CDN SCRIPTS / STYLES / FONTS — CACHE FIRST
-  // =========================================================
   if (CDN_HOSTS.includes(url.hostname)) {
     event.respondWith(cacheFirst(event.request));
     return;
   }
 
-  // =========================================================
   // MANIFEST.JSON — CACHE FIRST
-  // =========================================================
   if (url.pathname.endsWith("manifest.json")) {
     event.respondWith(cacheFirst(event.request));
     return;
   }
 
-  // =========================================================
   // HTML + NAVIGATION + CONFIG — CACHE FIRST
-  // =========================================================
   if (
     event.request.mode === "navigate" ||
     url.pathname.endsWith(".html") ||
@@ -331,9 +319,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // =========================================================
   // JAVASCRIPT + CSS — CACHE FIRST
-  // =========================================================
   if (
     url.origin === self.location.origin &&
     (url.pathname.endsWith(".js") ||
@@ -345,9 +331,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // =========================================================
   // FONTS — CACHE FIRST (SAME ORIGIN)
-  // =========================================================
   if (
     url.origin === self.location.origin &&
     (event.request.destination === "font" ||
@@ -357,9 +341,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // =========================================================
   // IMAGES — CACHE FIRST
-  // =========================================================
   if (
     event.request.destination === "image" ||
     /\.(png|jpg|jpeg|gif|svg|webp|ico)$/i.test(
@@ -370,9 +352,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // =========================================================
   // EVERYTHING ELSE — NETWORK ONLY
-  // =========================================================
   event.respondWith(
     fetch(event.request).catch(() => Response.error())
   );
