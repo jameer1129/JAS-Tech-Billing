@@ -2736,6 +2736,8 @@ body.dark-theme .profile-avatar-crop-modal{background:var(--surface);}
    REMINDERS TAB
    ========================================================= */
 #viewReminders{max-width:1060px;}
+#viewReminders > .card{padding:0;background:transparent;border:none;box-shadow:none;}
+.rem-page{display:flex;flex-direction:column;gap:16px;}
 .rem-device{padding:0;overflow:hidden;}
 .rem-device__row{display:flex;align-items:center;gap:12px;padding:14px 16px;}
 .rem-device__row + .rem-device__row{border-top:1px solid var(--line);}
@@ -3354,6 +3356,7 @@ body.dark-theme .rem-badge--completed{background:rgba(48,209,120,.14);}
   </main>
   <!-- ========== VIEW: REMINDERS ========== -->
   <main class="app-shell hide" id="viewReminders">
+   <div class="card rem-page">
     <section class="card rem-device" id="remDeviceCard" aria-live="polite"></section>
     <div class="rem-head">
       <div class="rem-head__title"><i class="fa-solid fa-bell" aria-hidden="true"></i> My Reminders <span class="rem-count" id="remCount">0 / 10</span></div>
@@ -3373,6 +3376,7 @@ body.dark-theme .rem-badge--completed{background:rgba(48,209,120,.14);}
       <span>Tap “Create Reminder” to add your first one.</span>
     </div>
     <div class="rem-groups" id="remGroups" style="display:flex;flex-direction:column;gap:18px;"></div>
+   </div>
   </main>
   <!-- ========== VIEW: ADMIN ========== -->
   <main class="app-shell admin-shell hide" id="viewAdmin">
@@ -6665,13 +6669,17 @@ async function loadDeviceState(){
   const userId = currentSession?.user?.id;
   if (!userId) return;
   const token = ++deviceLoadToken;
+  const startedAt = performance.now();
   deviceState = { status: 'loading' };
   renderDeviceCard();
   const support = pushSupport();
   const permission = 'Notification' in window ? Notification.permission : 'unsupported';
+  // Ask the browser for its push subscription while the profile request is in flight.
+  const subPromise = support.ok ? getCurrentSubscription().catch(() => null) : Promise.resolve(null);
   let row = null;
   try {
-    const { data, error } = await supabaseClient.from('profiles').select('push_id,device_data').eq('id', userId).single();
+    const { data, error } = await retryOn401(() =>
+      supabaseClient.from('profiles').select('push_id,device_data').eq('id', userId).single());
     if (error) throw error;
     row = data;
   } catch (err) {
@@ -6686,8 +6694,7 @@ async function loadDeviceState(){
   let healthy = false;
   if (hasActive) {
     const stored = readFingerprint();
-    let sub = null;
-    if (support.ok) { try { sub = await getCurrentSubscription(); } catch (e) {} }
+    let sub = await subPromise;
     const byFingerprint = !!(stored && dev.fingerprint && stored === dev.fingerprint);
     const byEndpoint = !!(sub && sub.endpoint === push.endpoint);
     isThis = byFingerprint || byEndpoint;
@@ -6704,6 +6711,8 @@ async function loadDeviceState(){
       } catch (err) { console.warn('Silent push re-sync failed:', err); }
     }
   }
+  const wait = Math.max(0, 350 - (performance.now() - startedAt));
+  if (wait) await new Promise(resolve => setTimeout(resolve, wait));
   if (token !== deviceLoadToken) return;
   deviceState = { status: 'ready', support, permission, dev, hasActive, isThis, healthy };
   renderDeviceCard();
@@ -6805,20 +6814,22 @@ function resetRemindersView(){
 async function loadRemindersView(){
   const userId = currentSession?.user?.id;
   if (!userId) return;
-  if (remindersOwner !== userId) { reminders = []; remindersLoaded = false; remindersOwner = userId; }
+  // Every visit to the tab starts from the skeleton, like Bills and Admin.
+  reminders = []; remindersLoaded = false; remindersOwner = userId;
   loadDeviceState();
   await loadReminders();
 }
 async function loadReminders(){
   const userId = currentSession?.user?.id;
   if (!userId) return;
-  if (!remindersLoaded) {
-    el.remLoading.classList.remove('hide');
-    el.remEmpty.classList.add('hide');
-    el.remGroups.innerHTML = '';
-  }
-  const { data, error } = await supabaseClient.from('reminders').select('*')
-    .eq('user_id', userId).order('remember_date', { ascending: true }).limit(50);
+  const startedAt = performance.now();
+  el.remLoading.classList.remove('hide');
+  el.remEmpty.classList.add('hide');
+  el.remGroups.innerHTML = '';
+  const { data, error } = await retryOn401(() => supabaseClient.from('reminders').select('*')
+    .eq('user_id', userId).order('remember_date', { ascending: true }).limit(50));
+  const wait = Math.max(0, 350 - (performance.now() - startedAt));
+  if (wait) await new Promise(resolve => setTimeout(resolve, wait));
   el.remLoading.classList.add('hide');
   if (error) {
     console.error('Could not load reminders:', error);
@@ -7092,7 +7103,7 @@ function bindReminderEvents(){
   el.remDeviceCard.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-device-action]');
     if (!btn) return;
-    if (btn.dataset.deviceAction === 'reload') loadDeviceState();
+    if (btn.dataset.deviceAction === 'reload') { deviceState = { status: 'loading' }; loadDeviceState(); }
     else enableOnThisDevice(btn);
   });
   if ('serviceWorker' in navigator) {

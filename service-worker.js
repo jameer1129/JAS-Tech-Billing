@@ -4,7 +4,7 @@
    Safe Activation Handoff
    ========================================================= */
 
-const CACHE_NAME = "v3.2.0";
+const CACHE_NAME = "v3.2.1";
 const CLAIM_DELAY_MS = 2000;
 
 const STATIC_ASSETS = [
@@ -21,6 +21,7 @@ const STATIC_ASSETS = [
   "./assets/icons/app-icon.png",
   "./assets/icons/app-icon-maskable.png",
   "./assets/icons/whatsapp-qr.jpeg",
+  "./assets/icons/reminder-badge.png",
 ];
 
 const CDN_HOSTS = [
@@ -109,11 +110,13 @@ self.addEventListener("push", (event) => {
     data = { body: event.data ? event.data.text() : "" };
   }
 
-  const title = data.title || "JAS Tech Reminder";
+  // Every notification is labelled as a reminder.
+  const title = data.title ? `Reminder: ${data.title}` : "JAS Tech Reminder";
   const options = {
     body: data.body || "You have a reminder due.",
     icon: "./assets/icons/app-icon.png",
-    badge: "./assets/icons/app-icon.png",
+    // Small status-bar icon: must be white-on-transparent or Android shows a plain square.
+    badge: "./assets/icons/reminder-badge.png",
     tag: data.tag || "jas-reminder",
     renotify: true,
     data: { url: data.url || "./index.html?mode=reminders" },
