@@ -10068,12 +10068,6 @@ async function applyPwaUpdate(){
   await new Promise(r => setTimeout(r, 1000));
 
   sessionStorage.setItem('jas_pwa_updated', '1');
-
-  // ★ FIX: tell the waiting service worker to activate
-  if (registration.waiting) {
-    registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-  }
-
   reloadAfterPwaUpdate(registration);
 }
 
