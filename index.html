@@ -108,8 +108,6 @@ to {opacity:0;transform:translateY(6px);}}
 @keyframes fadeOut{from{opacity:1;}to{opacity:0;}}
 
 @media(prefers-reduced-motion:no-preference){.auth-shell{animation:riseIn .45s ease-out both;}
-.app-shell>.card{animation:riseIn .35s ease-out both;}
-.admin-stat{animation:riseIn .35s ease-out both;}
 /* ---- Popup motion: rises up from the bottom, drops back down on close ----
    The slide and the fade are separate animations so the popup stays fully
    visible while it travels down, and only the dark backdrop fades (fading the
@@ -1320,69 +1318,7 @@ body.dark-theme .theme-option.active{background:color-mix(in srgb,var(--primary)
 .app-bar__hamburger{display:none!important;}
 .app-bar{padding:10px 16px;}
 .app-bar__title h1{letter-spacing:2px;}
-}/* ---------- Secondary nav tabs ---------- */
-.nav-tabs{
-  display:flex;
-  gap:4px;
-  padding:0 12px;
-  position:fixed;
-  top:64px;
-  left:0;
-  right:0;
-  width:100%;
-  min-height:48px;
-  z-index:45;
-  overflow-x:auto;
-  overflow-y:hidden;
-  background:transparent;
-  border-bottom:1px solid var(--line);
-  backdrop-filter:blur(18px);
-  box-shadow:var(--shadow-sm);
-  scrollbar-width:none;
 }
-.nav-tabs.nav-tabs--no-motion::before{transition:none!important;}
-.nav-tabs::before{
-  content:"";
-  position:absolute;
-  left:0;
-  bottom:0;
-  width:var(--nav-indicator-width,0px);
-  height:100%;
-  transform:translateX(var(--nav-indicator-x,0px));
-  background:linear-gradient(to top,rgba(1,37,135,.25),transparent 72%);
-  border-bottom:3px solid var(--primary-text);
-  pointer-events:none;
-  z-index:0;
-  transition:transform .34s cubic-bezier(.22,.61,.36,1),width .34s cubic-bezier(.22,.61,.36,1);
-  will-change:transform,width;
-}
-.nav-tabs::-webkit-scrollbar{display:none;}
-body.dark-theme .nav-tabs::before{
-  background:linear-gradient(to top,rgba(82,120,216,.3),transparent 72%);
-}
-#appScreen > .nav-tabs ~ .app-shell{padding-top:132px;}
-
-@media(max-width:640px){#appScreen > .nav-tabs ~ #viewNewBill.app-shell{padding:110px 18px 24px;}
-
-}.nav-tab{
-  position:relative;
-  z-index:1;
-  border:none;
-  background:transparent;
-  color:var(--muted);
-  font-weight:600;
-  font-size:13px;
-  padding:13px 16px;
-  cursor:pointer;
-  white-space:nowrap;
-  display:flex;
-  align-items:center;
-  gap:7px;
-  transition:color .15s ease;
-}
-.nav-tab:hover{color:var(--primary-text);}
-.nav-tab.active{color:var(--primary-text);background:transparent;}
-
 /* ---------- Boot loader ---------- */
 .boot-loader{
   position:fixed;
@@ -2163,7 +2099,7 @@ body.dark-theme #viewNewBill .nb-section--summary .summary-row + .summary-row{bo
 body.dark-theme .pdf-option__switch-track{background:#3A3A40;}
 
 /* ---------- Responsive ---------- */
-@media(max-width:640px){#viewNewBill{padding-left:0 !important;padding-right:0 !important;}
+@media(max-width:640px){#viewNewBill{padding-left:0 !important;padding-right:0 !important;padding-top: calc(var(--app-bar-h, 64px) + 0px) !important;}
 #viewNewBill > .nb-all-card{width:100%;border-left:0;border-right:0;border-radius:0;}
 #viewNewBill > .nb-all-card > .nb-section{padding-left:18px !important;padding-right:18px !important;}
 
@@ -2239,7 +2175,7 @@ body.dark-theme .pdf-option__switch-track{background:#3A3A40;}
   outline:none;
   box-shadow:none !important;
 }
-.bills-filter-row{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;animation:fadeIn .35s ease;}
+.bills-filter-row{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;}
 .date-filter-btn{
   width:100%;
   display:flex;
@@ -2582,7 +2518,7 @@ body.dark-theme .admin-empty__icon::before{background:rgba(23,105,255,.14);}
   align-items:center;
   justify-content:center;
 }
-.admin-user-filters{display:flex;gap:10px;padding:0 18px 10px;animation:fadeIn .35s ease;}
+.admin-user-filters{display:flex;gap:10px;padding:0 18px 10px;}
 .admin-user-filter-wrap{position:relative;flex:1;min-width:0;}
 .admin-user-filter-wrap .date-dropdown{top:calc(100% + 6px);}
 .admin-user-filter-wrap .date-dropdown__item{padding:10px 14px;}
@@ -2807,14 +2743,89 @@ body.dark-theme .rem-badge--completed{background:rgba(48,209,120,.14);}
 @media(max-width:560px){
   .rem-head .btn{width:100%;}
 }
-/* Nav tabs: four tabs share the width on phones and the active one scrolls into view. */
-@media(max-width:640px){
-  .nav-tabs{gap:0;padding:0 4px;}
-  .nav-tab{flex:1 0 auto;justify-content:center;padding:13px 10px;font-size:12.5px;gap:5px;}
+/* =========================================================
+   NAV TABS — one bottom bar on every screen size
+   Phones: edge-to-edge bar.  PC / tablet: centred floating dock.
+   ========================================================= */
+.nav-tabs{
+  display:flex;position:fixed;left:0;right:0;bottom:0;width:100%;
+  gap:0;padding:8px 6px calc(8px + env(safe-area-inset-bottom,0px));
+  z-index:45;overflow:visible;
+  border-top:1px solid var(--line);
+  background:color-mix(in srgb,var(--surface) 65%,transparent);
+  -webkit-backdrop-filter:blur(20px) saturate(1.5);backdrop-filter:blur(20px) saturate(1.5);
+  box-shadow:0 -6px 20px rgba(15,23,42,.08);
 }
-@media(max-width:380px){
-  .nav-tab{padding:13px 7px;font-size:12px;gap:4px;}
-  .nav-tab i{font-size:12px;}
+body.dark-theme .nav-tabs{box-shadow:0 -6px 20px rgba(0,0,0,.55);}
+body.kb-open .nav-tabs{display:none;}
+.nav-tabs.nav-tabs--no-motion::before{transition:none!important;}
+/* sliding pill behind the active icon */
+.nav-tabs::before{
+  content:"";position:absolute;left:0;top:8px;width:64px;height:32px;border-radius:16px;
+  background:rgba(1,37,135,.12);pointer-events:none;z-index:0;will-change:transform;
+  transform:translateX(calc(var(--nav-indicator-cx,0px) - 32px));
+  transition:transform .42s cubic-bezier(.34,1.25,.5,1);
+}
+body.dark-theme .nav-tabs::before{background:rgba(82,120,216,.24);}
+.nav-tab{
+  position:relative;z-index:1;border:none;background:transparent;color:var(--muted);
+  flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+  gap:4px;padding:0;font-size:11.5px;font-weight:600;cursor:pointer;white-space:nowrap;
+  -webkit-tap-highlight-color:transparent;transition:color .15s ease;
+}
+.nav-tab:hover{color:var(--primary-text);}
+.nav-tab.active{color:var(--primary-text);font-weight:700;}
+.nav-tab__icon{position:relative;display:inline-flex;align-items:center;justify-content:center;width:64px;height:32px;transition:transform .18s ease;}
+.nav-tab__icon > i{font-size:18px;}
+.nav-tab:active .nav-tab__icon{transform:scale(.9);}
+.nav-tab__label{line-height:1.2;white-space:nowrap;}
+.nav-tab.short .nav-long{display:none;}
+.nav-dot{
+  position:absolute;top:4px;left:calc(50% + 5px);width:9px;height:9px;border-radius:50%;
+  background:var(--danger);box-shadow:0 0 0 2px var(--surface);
+  display:none;pointer-events:none;
+}
+.nav-tab.has-alert .nav-dot{display:block;animation:navDotGlow 1.7s ease-out infinite;}
+.nav-tab.has-alert .nav-tab__icon > i{animation:navBellRing 3.2s ease-in-out infinite;transform-origin:50% 12%;}
+/* only when the user taps/swipes to a tab, never when the bar first appears */
+.nav-tab.pop .nav-tab__icon > i{animation:navIconPop .38s cubic-bezier(.34,1.56,.64,1);}
+@keyframes navDotGlow{
+  0%{box-shadow:0 0 0 2px var(--surface),0 0 0 0 var(--danger);}
+  70%{box-shadow:0 0 0 2px var(--surface),0 0 0 9px transparent;}
+  100%{box-shadow:0 0 0 2px var(--surface),0 0 0 0 transparent;}
+}
+@keyframes navBellRing{
+  0%,60%,100%{transform:rotate(0);}
+  66%{transform:rotate(16deg);}72%{transform:rotate(-14deg);}78%{transform:rotate(10deg);}84%{transform:rotate(-6deg);}90%{transform:rotate(0);}
+}
+@keyframes navIconPop{0%{transform:scale(.78);}55%{transform:scale(1.16);}100%{transform:scale(1);}}
+
+/* Content clears the header above and the bar below */
+#appScreen > .nav-tabs ~ .app-shell{padding-top:calc(var(--app-bar-h,64px) + 18px);padding-bottom:calc(84px + env(safe-area-inset-bottom,0px));}
+
+/* PC / tablet: floating dock, fixed size, centred, like the old iOS dock */
+@media(min-width:641px){
+  .nav-tabs{
+    left:0;right:0;margin:0 auto;bottom:14px;
+    width:min(520px,calc(100% - 32px));
+    padding:8px;
+    border:1px solid var(--line);border-radius:24px;
+    box-shadow:0 10px 34px rgba(15,23,42,.18);
+  }
+  body.dark-theme .nav-tabs{box-shadow:0 10px 34px rgba(0,0,0,.6);}
+  .nav-tab{font-size:12px;}
+  #appScreen > .nav-tabs ~ .app-shell{padding-bottom:calc(104px + env(safe-area-inset-bottom,0px));}
+}
+
+/* Tab switch: the new page slides in from the side its tab sits on (all screen sizes). */
+@keyframes viewInNext{from{opacity:0;transform:translateX(30px);}to{opacity:1;transform:none;}}
+@keyframes viewInPrev{from{opacity:0;transform:translateX(-30px);}to{opacity:1;transform:none;}}
+.app-shell.view-enter-next > .card,.app-shell.view-enter-next > .admin-stats{animation:viewInNext .34s cubic-bezier(.22,.61,.36,1) both;}
+.app-shell.view-enter-prev > .card,.app-shell.view-enter-prev > .admin-stats{animation:viewInPrev .34s cubic-bezier(.22,.61,.36,1) both;}
+#appScreen{overflow-x:clip;}
+@media(prefers-reduced-motion:reduce){
+  .nav-tab.has-alert .nav-dot,.nav-tab.has-alert .nav-tab__icon > i,.nav-tab.pop .nav-tab__icon > i{animation:none!important;}
+  .app-shell.view-enter-next > .card,.app-shell.view-enter-prev > .card,.app-shell.view-enter-next > .admin-stats,.app-shell.view-enter-prev > .admin-stats{animation:none!important;}
 }
 </style>
 <link rel="stylesheet" href="./invoice-engine.css?v=6">
@@ -3144,10 +3155,10 @@ body.dark-theme .rem-badge--completed{background:rgba(48,209,120,.14);}
     </div>
   </header>
   <nav class="nav-tabs">
-    <button class="nav-tab active" data-view="newBill"><i class="fa-solid fa-file-invoice"></i> New Bill</button>
-    <button class="nav-tab" data-view="previousBills"><i class="fa-solid fa-clock-rotate-left"></i> Bills</button>
-    <button class="nav-tab" data-view="reminders"><i class="fa-solid fa-bell"></i> Reminders</button>
-    <button class="nav-tab hide" id="navAdminTab" data-view="admin"><i class="fa-solid fa-user-shield"></i> Admin</button>
+    <button class="nav-tab active" data-view="newBill"><span class="nav-tab__icon"><i class="fa-solid fa-file-circle-plus"></i></span><span class="nav-tab__label">New Bill</span></button>
+    <button class="nav-tab" data-view="previousBills"><span class="nav-tab__icon"><i class="fa-solid fa-clock-rotate-left"></i></span><span class="nav-tab__label"><span class="nav-long">Previous </span>Bills</span></button>
+    <button class="nav-tab" data-view="reminders"><span class="nav-tab__icon"><i class="fa-solid fa-bell"></i><span class="nav-dot" aria-hidden="true"></span></span><span class="nav-tab__label">Reminders</span></button>
+    <button class="nav-tab hide" id="navAdminTab" data-view="admin"><span class="nav-tab__icon"><i class="fa-solid fa-user-shield"></i></span><span class="nav-tab__label">Admin</span></button>
   </nav>
   <!-- ========== VIEW: NEW BILL ========== -->
   <main class="app-shell" id="viewNewBill">
@@ -6534,7 +6545,9 @@ function enterApp(){
     try { window.history.replaceState({}, document.title, window.location.pathname); } catch (e) {}
   }
   const initialView = openReminders ? 'reminders' : (savedView || 'newBill');
+  setDueReminderCount(0);
   switchView(initialView);
+  refreshDueReminderCount();
   // Always initialize the form, then restore if needed
   if (initialView === 'newBill') {
     initInvoiceMeta();
@@ -6912,6 +6925,7 @@ function reminderCardHtml(r, today){
 }
 function renderReminders(){
   const today = appTodayIso();
+  setDueReminderCount(reminders.filter(r => r.status === 'active' && r.remember_date <= today).length);
   el.remCount.textContent = `${reminders.length} / ${REMINDER_LIMIT}`;
   el.remCount.classList.toggle('full', reminders.length >= REMINDER_LIMIT);
   el.remEmpty.classList.toggle('hide', reminders.length > 0);
@@ -7130,6 +7144,42 @@ async function confirmDeleteReminder(){
   }
 }
 function bindReminderEvents(){
+  // Keep page content below the real header height (it differs per phone / font size).
+  const barEl = document.querySelector('.app-bar');
+  if (barEl && 'ResizeObserver' in window) {
+    new ResizeObserver(() => {
+      const h = barEl.offsetHeight;
+      if (h) document.documentElement.style.setProperty('--app-bar-h', `${h}px`);
+    }).observe(barEl);
+  }
+  // The tab bar can be measured as 0 while the app screen is still hidden. Re-place the
+  // pill the moment the bar (or any tab, e.g. Admin) gets its real size, without motion,
+  // so nothing slides or pops when the bar first appears.
+  const navEl = document.querySelector('.nav-tabs');
+  if (navEl && 'ResizeObserver' in window) {
+    const navObserver = new ResizeObserver(() => {
+      fitNavLabels();
+      if (navActiveView) updateNavIndicator(navActiveView, false);
+    });
+    navObserver.observe(navEl);
+    navEl.querySelectorAll('.nav-tab').forEach(t => navObserver.observe(t));
+  }
+  // The dot also has to notice a new day and changes made on other devices.
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && currentSession) refreshDueReminderCount();
+  });
+  setInterval(() => { if (!document.hidden && currentSession) refreshDueReminderCount(); }, 10 * 60 * 1000);
+  // Phones: hide the bottom bar while the keyboard is open so it never floats above it.
+  const phone = window.matchMedia('(max-width:640px)');
+  document.addEventListener('focusin', (e) => {
+    if (phone.matches && e.target instanceof Element && e.target.matches('input,textarea,select')) document.body.classList.add('kb-open');
+  });
+  document.addEventListener('focusout', () => {
+    setTimeout(() => {
+      const a = document.activeElement;
+      if (!(a instanceof Element && a.matches('input,textarea,select'))) document.body.classList.remove('kb-open');
+    }, 120);
+  });
   reminderDatePicker = createDatePicker(el.remDate, el.remDateInput, el.remDateText, {
     placeholder: 'Remember date *',
     minDate: () => addDaysIso(appTodayIso(), 1),
@@ -7182,6 +7232,38 @@ function bindReminderEvents(){
   }
 }
 
+let navActiveView = null;
+// "Previous Bills" while the tab is wide enough, otherwise just "Bills".
+function fitNavLabels(){
+  document.querySelectorAll('.nav-tab').forEach(tab => {
+    const long = tab.querySelector('.nav-long');
+    if (!long || !tab.clientWidth) return;
+    tab.classList.remove('short');
+    const label = tab.querySelector('.nav-tab__label');
+    if (label.getBoundingClientRect().width > tab.clientWidth - 6) tab.classList.add('short');
+  });
+}
+let dueReminderCount = 0;
+// Red glowing dot on the Reminders tab while something is due today or overdue.
+// Hidden while the Reminders tab itself is open.
+function updateReminderAlertDot(){
+  const tab = document.querySelector('.nav-tab[data-view="reminders"]');
+  if (!tab) return;
+  const show = dueReminderCount > 0 && navActiveView !== 'reminders';
+  tab.classList.toggle('has-alert', show);
+  tab.title = dueReminderCount > 0 ? `${dueReminderCount} reminder${dueReminderCount === 1 ? '' : 's'} due` : '';
+}
+function setDueReminderCount(n){ dueReminderCount = n; updateReminderAlertDot(); }
+async function refreshDueReminderCount(){
+  const userId = currentSession?.user?.id;
+  if (!userId || !navigator.onLine) return;
+  try {
+    const { count, error } = await retryOn401(() => supabaseClient.from('reminders')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId).eq('status', 'active').lte('remember_date', appTodayIso()));
+    if (!error && typeof count === 'number') setDueReminderCount(count);
+  } catch (e) { /* the dot is a hint only */ }
+}
 function updateNavIndicator(view, animate = true){
   const nav = document.querySelector('.nav-tabs');
   if (!nav) return;
@@ -7191,9 +7273,7 @@ function updateNavIndicator(view, animate = true){
   if (!animate) nav.classList.add('nav-tabs--no-motion');
   nav.style.setProperty('--nav-indicator-x', `${tab.offsetLeft}px`);
   nav.style.setProperty('--nav-indicator-width', `${tab.offsetWidth}px`);
-  if (nav.scrollWidth > nav.clientWidth) {
-    nav.scrollTo({ left: Math.max(0, tab.offsetLeft - (nav.clientWidth - tab.offsetWidth) / 2), behavior: animate ? 'smooth' : 'auto' });
-  }
+  nav.style.setProperty('--nav-indicator-cx', `${tab.offsetLeft + tab.offsetWidth / 2}px`);
 
   if (!animate) {
     requestAnimationFrame(() => nav.classList.remove('nav-tabs--no-motion'));
@@ -7207,12 +7287,34 @@ function switchView(view){
     view = 'newBill';
   }
   getAppStorage().setItem(prefKeyFor('jas_last_view'), view);
+  const navOrder = Array.from(document.querySelectorAll('.nav-tab')).filter(t => !t.classList.contains('hide')).map(t => t.dataset.view);
+  const fromIdx = navOrder.indexOf(navActiveView);
+  const toIdx = navOrder.indexOf(view);
+  const enterClass = fromIdx >= 0 && toIdx >= 0 && fromIdx !== toIdx ? (toIdx > fromIdx ? 'view-enter-next' : 'view-enter-prev') : '';
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.view === view));
+  if (navActiveView !== null && navActiveView !== view) {
+    const popTab = document.querySelector(`.nav-tab[data-view="${view}"]`);
+    if (popTab) {
+      popTab.classList.remove('pop');
+      void popTab.offsetWidth;
+      popTab.classList.add('pop');
+      setTimeout(() => popTab.classList.remove('pop'), 450);
+    }
+  }
   updateNavIndicator(view);
   el.viewNewBill.classList.toggle('hide', view !== 'newBill');
   el.viewPreviousBills.classList.toggle('hide', view !== 'previousBills');
   el.viewReminders.classList.toggle('hide', view !== 'reminders');
   el.viewAdmin.classList.toggle('hide', view !== 'admin');
+  const shownView = { newBill: el.viewNewBill, previousBills: el.viewPreviousBills, reminders: el.viewReminders, admin: el.viewAdmin }[view];
+  ['view-enter-next', 'view-enter-prev'].forEach(c => shownView.classList.remove(c));
+  if (enterClass) {
+    void shownView.offsetWidth;
+    shownView.classList.add(enterClass);
+    setTimeout(() => shownView.classList.remove(enterClass), 420);
+  }
+  navActiveView = view;
+  updateReminderAlertDot();
   // enterApp() only calls initInvoiceMeta() when the *saved last view* is
   // 'newBill'. If the app instead booted into Previous Bills (or Admin) as
   // the remembered last view, the date input is never initialized, and it
