@@ -6730,6 +6730,22 @@ async function swReady(){
     new Promise((_, rej) => setTimeout(() => rej(new Error('Service worker is not ready yet. Please try again.')), 8000))
   ]);
 }
+async function getRealPermission(){
+  if (!('Notification' in window)) return 'unsupported';
+  const seen = [Notification.permission];                    // may be stale on mobile
+  try {
+    const st = await navigator.permissions.query({ name: 'notifications' });
+    seen.push(st.state === 'prompt' ? 'default' : st.state); // fresh from browser
+  } catch (e) {}
+  try {
+    const reg = await swReady();
+    const ps = await reg.pushManager.permissionState({ userVisibleOnly: true });
+    seen.push(ps === 'prompt' ? 'default' : ps);             // fresh from browser
+  } catch (e) {}
+  if (seen.includes('denied')) return 'denied';
+  if (seen.includes('default')) return 'default';
+  return 'granted';
+}
 async function getCurrentSubscription(){
   const reg = await swReady();
   return reg.pushManager.getSubscription();
@@ -6768,7 +6784,7 @@ async function loadDeviceState(){
   deviceState = { status: 'loading' };
   renderDeviceCard();
   const support = pushSupport();
-  const permission = 'Notification' in window ? Notification.permission : 'unsupported';
+  const permission = await getRealPermission();
   // Ask the browser for its push subscription while the profile request is in flight.
   const subPromise = support.ok ? getCurrentSubscription().catch(() => null) : Promise.resolve(null);
   let row = null;
@@ -6872,15 +6888,17 @@ function renderDeviceCard(){
 async function enableOnThisDevice(btn){
   const support = pushSupport();
   if (!support.ok) { showToast(support.reason, 'warning', 4000); return; }
-  if (Notification.permission === 'denied') {
+  const perm = await getRealPermission();
+  if (perm === 'denied') {
     showToast('Notifications are blocked. Allow them in the browser’s site settings, then try again.', 'warning', 4500);
+    await loadDeviceState();
     return;
   }
   const wasActive = !!(deviceState.isThis && deviceState.healthy);
   if (btn) btn.disabled = true;
   let loaderShown = false;
   try {
-    if (Notification.permission !== 'granted') {
+    if (perm !== 'granted') {
       const result = await Notification.requestPermission();
       if (result !== 'granted') { showToast('Notification permission was not granted.', 'warning'); return; }
     }
