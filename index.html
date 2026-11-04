@@ -27,9 +27,11 @@
 // Notification tap: ./index.html?mode=reminders. Remembered for the whole
 // session so it still works if the user has to log in first.
 try {
-  if (new URLSearchParams(window.location.search).get('mode') === 'reminders') {
-    sessionStorage.setItem('jas_open_reminders', '1');
-  }
+  const launchMode = new URLSearchParams(window.location.search).get('mode');
+  if (launchMode === 'reminders') sessionStorage.setItem('jas_open_reminders', '1');
+  // Opened from a notification or a password-reset link: no "Update Available"
+  // popup for this browser session (also survives reloads, where ?mode= is gone).
+  if (launchMode === 'reminders' || launchMode === 'update-password') sessionStorage.setItem('jas_link_launch', '1');
 } catch (e) {}
 if ('launchQueue' in window) {
   window.launchQueue.setConsumer(({ targetURL }) => {
@@ -556,6 +558,7 @@ body.dark-theme .prod-stat--amt{background:rgba(23,105,255,.14);}
 }
 .date-picker__input:hover{border-color:var(--primary-text);}
 .date-picker__input.open,.date-picker__input:focus-visible{border-color:var(--primary-text);box-shadow:0 0 0 3px var(--focus-ring);}
+.date-picker__input.input-error,.date-picker__input.field--icon.input-error{border-color:var(--danger) !important;box-shadow:0 0 0 3px rgba(214,69,69,.14) !important;}
 .date-picker__input .date-picker__text.placeholder{color:var(--muted);font-weight:400;}
 .date-picker__input.field--icon{justify-content:flex-start;padding-left:40px;}
 .date-picker__input.field--icon .date-picker__text{padding:0;}
@@ -5121,6 +5124,11 @@ function validateField(elInput, type = 'text') {
   if (type === 'rate' && (isNaN(val) || val === '' || Number(val) < 0)) return false;
   return true;
 }
+// Red-border every invalid field first, then put the cursor in the first one.
+function focusFirstInvalid(inputs){
+  const first = inputs.find(i => i && i.classList.contains('input-error'));
+  if (first) setTimeout(() => first.focus(), 0);
+}
 function markError(elInput, isValid) {
   if (!isValid) {
     elInput.classList.add('input-error');
@@ -5618,6 +5626,21 @@ function handleOnline(){
 }
 
 let suppressBootLoaderHide = false;
+// While the reset-password screen is open, closing or reloading the tab asks Chrome's
+// own "Leave site? Changes you made may not be saved" confirmation, because the
+// recovery session lives only in this tab. Our own redirects switch it off first.
+let allowResetPageUnload = false;
+window.addEventListener('beforeunload', (event) => {
+  if (allowResetPageUnload) return;
+  if (!el.resetPasswordScreen || el.resetPasswordScreen.classList.contains('hide')) return;
+  event.preventDefault();
+  event.returnValue = '';
+});
+function leaveResetPage(){
+  allowResetPageUnload = true;
+  try { sessionStorage.removeItem('jas_link_launch'); } catch (e) {}
+}
+
 function showScreen(name){
   bootDeadline = null;
   // Only the direct classList.add('hide') — not hideOverlay() — because
@@ -6315,6 +6338,7 @@ async function handleResetPassword(){
       }
       // Reload so the temporary recovery context disappears. Same-account
       // recovery returns directly to the already-authenticated app.
+      leaveResetPage();
       window.location.replace(window.location.origin + window.location.pathname);
     }, 1500);
   }, () => showToast('Failed to update password. Please try again.', 'error', AUTH_TOAST_DURATION_MS));
@@ -7089,7 +7113,14 @@ async function saveReminder(){
     else repeater = String(n);
   }
   if (!date) { el.remDateInput.classList.add('input-error'); valid = false; } else el.remDateInput.classList.remove('input-error');
-  if (!valid) { showToast('Please fix the highlighted fields.', 'warning'); return; }
+  if (!valid) {
+    showToast('Please fix the highlighted fields.', 'warning');
+    // Title first, then custom days; the date field opens its calendar instead of a cursor.
+    if (el.remTitle.classList.contains('input-error')) el.remTitle.focus();
+    else if (el.remCustomDays.classList.contains('input-error')) el.remCustomDays.focus();
+    else if (el.remDateInput.classList.contains('input-error')) el.remDateInput.click();
+    return;
+  }
   const existing = editingReminderId ? reminders.find(r => r.id === editingReminderId) : null;
   const dateChanged = !existing || existing.remember_date !== date;
   // A date that is kept as-is (due/overdue reminder being edited) is allowed;
@@ -7257,6 +7288,7 @@ function bindReminderEvents(){
     const item = e.target.closest('[data-repeat]');
     if (!item) return;
     setReminderRepeat(item.dataset.repeat);
+    el.remCustomDays.classList.remove('input-error');
     closeReminderRepeatDropdown();
     if (item.dataset.repeat === 'custom') setTimeout(() => el.remCustomDays.focus(), 50);
   });
@@ -9065,6 +9097,7 @@ function openChangePasswordModal(){
   el.changePwCurrent.value = '';
   el.changePwNew.value = '';
   el.changePwConfirm.value = '';
+  [el.changePwCurrent, el.changePwNew, el.changePwConfirm].forEach(i => i.classList.remove('input-error'));
   showOverlay(el.changePasswordModalOverlay);
   setTimeout(() => el.changePwCurrent.focus(), 50);
 }
@@ -9075,9 +9108,23 @@ async function handleChangePassword(){
   const currentPw = el.changePwCurrent.value;
   const newPw = el.changePwNew.value;
   const confirmPw = el.changePwConfirm.value;
-  if (!currentPw) return (hideActionLoader(), showToast('Enter your current password.', 'warning', AUTH_TOAST_DURATION_MS));
+  const pwFields = [el.changePwCurrent, el.changePwNew, el.changePwConfirm];
+  pwFields.forEach(i => i.classList.remove('input-error'));
+  // Every empty required field turns red at once; the cursor goes to the first one.
+  const emptyPw = pwFields.filter(i => !i.value);
+  if (emptyPw.length) {
+    emptyPw.forEach(i => markError(i, false));
+    focusFirstInvalid(pwFields);
+    return (hideActionLoader(), showToast('Please fill the highlighted fields.', 'warning', AUTH_TOAST_DURATION_MS));
+  }
   const pwErr = validateNewPassword(newPw, confirmPw, 'New password');
-  if (pwErr) return (hideActionLoader(), showToast(pwErr, 'warning', AUTH_TOAST_DURATION_MS));
+  if (pwErr) {
+    // Rules about the new password mark that field; confirm/mismatch messages mark the confirm field.
+    const target = /^Confirm|do not match/i.test(pwErr) ? el.changePwConfirm : el.changePwNew;
+    markError(target, false);
+    focusFirstInvalid([target]);
+    return (hideActionLoader(), showToast(pwErr, 'warning', AUTH_TOAST_DURATION_MS));
+  }
 
   await withGuardedSubmit(el.btnConfirmChangePw, 'Updating password…', async () => {
     const email = (currentSession?.user?.email || currentProfile?.email || '').trim().toLowerCase();
@@ -9106,6 +9153,8 @@ async function handleChangePassword(){
       });
       if (verifyError) {
         hideActionLoader(); showToast('Current password is incorrect.', 'warning', AUTH_TOAST_DURATION_MS);
+        markError(el.changePwCurrent, false);
+        focusFirstInvalid([el.changePwCurrent]);
         return;
       }
 
@@ -9986,7 +10035,17 @@ async function dismissPwaUpdateAsLater(){
   await hideOverlay(el.pwaUpdateModalOverlay);
 }
 
+function isLinkLaunchSession(){
+  try {
+    if (sessionStorage.getItem('jas_link_launch') === '1') return true;
+    const mode = new URLSearchParams(window.location.search).get('mode');
+    return mode === 'reminders' || mode === 'update-password';
+  } catch (e) { return false; }
+}
+
 function showPwaUpdateModal(registration){
+  // Opened through a notification or reset link: never interrupt with an update popup.
+  if (isLinkLaunchSession()) return;
   // Never compete with the first-install flow.
   if (!registration || pwaUpdateReloading || pwaUpdateModalVisible || pwaEntryModalVisible || pwaInstallInProgress || deferredPwaInstallPrompt) return;
   pwaUpdateRegistration = registration;
@@ -10218,6 +10277,7 @@ function bindEvents(){
     clearPasswordRecoveryPending();
     showActionLoader('Please wait…');
     try { await supabaseClient.auth.signOut({ scope: 'local' }); } catch (err) { console.error(err); }
+    leaveResetPage();
     window.location.replace(window.location.origin + window.location.pathname);
   });
   el.btnPendingLogout.addEventListener('click', openLogoutConfirm);
@@ -10827,7 +10887,7 @@ function bindEvents(){
     overlay.addEventListener('click', e => { if(e.target === overlay) close(); });
   });
   window.addEventListener('resize', () => { if(!el.previewModalOverlay.classList.contains('hide')) handlePreviewLayoutScaling(); });
-  [el.customerName, el.prodName, el.prodQty, el.prodRate].forEach(input => {
+  [el.customerName, el.prodName, el.prodQty, el.prodRate, el.changePwCurrent, el.changePwNew, el.changePwConfirm].forEach(input => {
     input.addEventListener('input', () => input.classList.remove('input-error'));
   });
   document.addEventListener('keydown', e => {
