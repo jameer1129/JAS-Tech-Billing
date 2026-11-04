@@ -6829,7 +6829,7 @@ function renderDeviceCard(){
   if (s.hasActive) {
     const ok = s.isThis && s.healthy;
     const sub = `Updated ${escapeHtml(formatDateTime(s.dev.updatedAt))}`;
-    const subHtml = (s.isThis && ok)
+    const subHtml = (ok)
     ? `<span class="rem-device__sub rem-device__sub--split"><span><i class="fa-solid fa-circle-check" style="color:var(--success)"></i> Active on this device</span><span class="rem-device__sub-sep"> · </span><span>${sub}</span></span>`
     : `<span class="rem-device__sub">${sub}</span>`;
     rows += `<div class="rem-device__row">
