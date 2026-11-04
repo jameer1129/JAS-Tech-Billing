@@ -6828,6 +6828,23 @@ async function loadDeviceState(){
   deviceState = { status: 'ready', support, permission, dev, hasActive, isThis, healthy };
   renderDeviceCard();
 }
+function notifHelpHtml(){
+  const standalone = window.matchMedia?.('(display-mode: standalone)').matches || navigator.standalone;
+  const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  let title, steps;
+  if (ios) {
+    title = 'How to turn on notifications';
+    steps = ['Open your phone <b>Settings</b>.', 'Tap <b>Notifications</b> and find this app.', 'Turn on <b>Allow Notifications</b>.', 'Come back here and reload.'];
+  } else if (standalone) {
+    title = 'How to turn on notifications';
+    steps = ['Long-press the app icon and tap <b>App info</b>.', 'Tap <b>Notifications</b> and turn them <b>on</b>.', 'Close the app fully, then open it again.'];
+  } else {
+    title = 'How to turn on notifications';
+    steps = ['Tap the <b>lock / settings icon</b> next to the address bar.', 'Open <b>Permissions</b> (or Site settings) &rarr; <b>Notifications</b>.', 'Choose <b>Allow</b>, then reload this page.'];
+  }
+  return `<details class="rem-device__help" style="margin-top:8px"><summary class="rem-device__sub" style="cursor:pointer"><i class="fa-solid fa-circle-question"></i> ${title}</summary>
+    <ol class="rem-device__sub" style="margin:6px 0 0;padding-left:20px;line-height:1.6">${steps.map(t => `<li>${t}</li>`).join('')}</ol></details>`;
+}
 function renderDeviceCard(){
   const box = el.remDeviceCard;
   if (!box) return;
@@ -6883,7 +6900,12 @@ function renderDeviceCard(){
       ? `<button class="btn btn--outline" type="button" data-device-action="enable"><i class="fa-solid fa-rotate"></i> Refresh on this device</button>`
       : `<button class="btn btn--primary" type="button" data-device-action="enable"><i class="fa-solid fa-bell"></i> Enable on this device</button>`;
   }
-  box.innerHTML = rows + (action ? `<div class="rem-device__action">${action}</div>` : '');
+  // Android Chrome does not report app-level notification changes until the app restarts.
+  const androidNote = (/Android/i.test(navigator.userAgent) && s.isThis && s.healthy)
+    ? `<div class="rem-device__row"><div class="rem-device__text"><span class="rem-device__sub"><i class="fa-solid fa-circle-info"></i> If you turn notifications off in your phone’s app settings, this status may not update until you fully close the app and open it again.</span></div></div>`
+    : '';
+  const helpHtml = blocked ? `<div class="rem-device__row"><div class="rem-device__text"><span class="rem-device__sub"><i class="fa-solid fa-circle-info"></i> Once you turn notifications on in settings, you will start getting reminders. This status will update after you fully close the app and open it again.</span>${notifHelpHtml()}</div></div>` : '';
+  box.innerHTML = rows + helpHtml + androidNote + (action ? `<div class="rem-device__action">${action}</div>` : '');
 }
 async function enableOnThisDevice(btn){
   const support = pushSupport();
