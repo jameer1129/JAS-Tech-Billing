@@ -118,6 +118,8 @@ self.addEventListener("push", (event) => {
     tag: data.tag || "jas-reminder",
     renotify: true,
     data: { url: data.url || "./index.html?mode=reminders" },
+    requireInteraction:true,
+    vibrate:[200, 100, 200],
   };
 
   event.waitUntil(self.registration.showNotification(title, options));
