@@ -3587,7 +3587,7 @@ body.dark-theme .nav-tabs::before{background:rgba(82,120,216,.24);}
     <div class="modal__body">
       <div class="field field--icon">
         <i class="fa-solid fa-heading" aria-hidden="true"></i>
-        <input type="text" id="remTitle" name="cf-txt-r1a2" autocomplete="nope" autocorrect="off" spellcheck="false" data-lpignore="true" data-form-type="other" placeholder="Reminder title *" aria-label="Reminder title" maxlength="80">
+        <input type="text" id="remTitle" name="cf-txt-r1a2" autocomplete="nope" autocapitalize="words" autocorrect="off" spellcheck="false" data-lpignore="true" data-form-type="other" placeholder="Reminder title *" aria-label="Reminder title" maxlength="80">
       </div>
       <div class="field field--icon">
         <i class="fa-solid fa-align-left" aria-hidden="true"></i>
@@ -4093,7 +4093,7 @@ function scheduleHtml2PdfWarmup(){
   try { InvoiceEngine.configure(CONFIG); InvoiceEngine.warmup(getCurrentInvoiceEngineData()); }
   catch (e) { InvoiceEngine.warmup(); }
 }
-const MAX_NETWORK_WAIT_MS = 20000;
+const MAX_NETWORK_WAIT_MS = 30000;
 let bootDeadline = null;
 const MIN_NETWORK_WAIT_MS = 3000;
 function nextNetworkTimeoutMs(){
@@ -7096,7 +7096,8 @@ function closeReminderModal(){
 }
 async function saveReminder(){
   if (reminderBusy) return;
-  const title = el.remTitle.value.trim();
+  // Same Title Case rule as the customer and product fields.
+  const title = applyTitleCaseToField(el.remTitle);
   const description = el.remDesc.value.trim();
   const date = el.remDate.value;
   const today = appTodayIso();
@@ -7274,6 +7275,7 @@ function bindReminderEvents(){
   el.btnCancelDoneReminder.addEventListener('click', closeReminderDoneModal);
   el.btnConfirmDoneReminder.addEventListener('click', confirmDoneReminder);
   el.remTitle.addEventListener('input', () => el.remTitle.classList.remove('input-error'));
+  el.remTitle.addEventListener('blur', () => applyTitleCaseToField(el.remTitle));
   el.remCustomDays.addEventListener('input', () => {
     el.remCustomDays.value = el.remCustomDays.value.replace(/\D/g, '').slice(0, 3);
     el.remCustomDays.classList.remove('input-error');

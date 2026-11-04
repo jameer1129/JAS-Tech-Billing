@@ -4,7 +4,7 @@
    Safe Activation Handoff
    ========================================================= */
 
-const CACHE_NAME = "v3.2.4";
+const CACHE_NAME = "v3.2.0";
 const CLAIM_DELAY_MS = 2000;
 
 const STATIC_ASSETS = [
