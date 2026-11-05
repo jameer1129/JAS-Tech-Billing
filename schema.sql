@@ -46,16 +46,23 @@ create table if not exists public.bill_items (
 
 -- Table: singleton service-role status row for scheduled heartbeat and cleanup reporting.
 create table if not exists public.supabase_heartbeat (
-  id integer primary key default 1 check (id = 1), last_ping text,
-  users_status text, users_checked integer, users_deleted integer, users_failed integer,
-  users_error text, bills_status text, bills_purged integer, bills_error text ),
-  reminders_status    text,     -- success | partial | failed
-  reminders_due       integer,  -- reminders that were due this run
-  reminders_sent      integer,  -- pushes delivered to the push service
-  reminders_failed    integer,  -- pushes that failed
-  reminders_no_device integer,  -- due, but the user has no active device
-  reminders_cleared   integer,  -- dead devices removed from profiles
-  reminders_error     text;
+ id                integer primary key default 1 check (id = 1),
+  last_ping         text,
+
+  users_status      text,      -- success | partial | failed
+  users_purged      integer,
+  users_error       text,
+
+  bills_status      text,
+  bills_purged      integer,
+  bills_error       text,
+
+  reminders_status  text,
+  reminders_sent    integer,   -- pushes delivered
+  reminders_failed  integer,   -- real failures only (not 404/410)
+  reminders_cleared integer,   -- dead devices removed (user turned off notifications)
+  reminders_paused integer;
+  reminders_error   text,
 
 insert into public.supabase_heartbeat (id)
 values (1)

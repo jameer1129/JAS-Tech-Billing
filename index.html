@@ -2784,8 +2784,9 @@ body.dark-theme .rem-badge--completed{background:rgba(48,209,120,.14);}
   gap:0;padding:8px 6px calc(8px + env(safe-area-inset-bottom,0px));
   z-index:45;overflow:visible;
   border-top:1px solid var(--line);
-  background:color-mix(in srgb,var(--surface) 65%,transparent);
-  -webkit-backdrop-filter:blur(20px) saturate(1.5);backdrop-filter:blur(20px) saturate(1.5);
+  background:color-mix(in srgb,var(--surface) 60%,transparent);
+  backdrop-filter:blur(20px) saturate(1.5);
+  -webkit-backdrop-filter:blur(20px) saturate(1.5);
   box-shadow:0 -6px 20px rgba(15,23,42,.08);
 }
 body.dark-theme .nav-tabs{box-shadow:0 -6px 20px rgba(0,0,0,.55);}
@@ -2806,7 +2807,8 @@ body.dark-theme .nav-tabs::before{background:rgba(82,120,216,.24);}
   -webkit-tap-highlight-color:transparent;transition:color .15s ease;
 }
 .nav-tab:hover{color:var(--primary-text);}
-.nav-tab.active{color:var(--primary-text);font-weight:700;}
+.nav-tab.active .nav-tab__icon{color:var(--primary-text);}
+.nav-tab.active .nav-tab__label{color:var(--text);font-weight:700;}
 .nav-tab__icon{position:relative;display:inline-flex;align-items:center;justify-content:center;width:64px;height:32px;transition:transform .18s ease;}
 .nav-tab__icon > i{font-size:18px;}
 .nav-tab:active .nav-tab__icon{transform:scale(.9);}
@@ -6840,7 +6842,7 @@ function notifHelpHtml(){
     steps = ['Long-press the app icon and tap <b>App info</b>.', 'Tap <b>Notifications</b> and turn them <b>on</b>.', 'Close the app fully, then open it again.'];
   } else {
     title = 'How to turn on notifications';
-    steps = ['Tap the <b>lock / settings icon</b> next to the address bar.', 'Open <b>Permissions</b> (or Site settings) &rarr; <b>Notifications</b>.', 'Choose <b>Allow</b>, then reload this page.'];
+    steps = ['Tap the <b>control / settings icon</b> next to the address bar.', 'Open <b>Permissions</b> (or Site settings) &rarr; <b>Notifications</b>.', 'Choose <b>Allow</b>, then reload this page.'];
   }
   return `<details class="rem-device__help" style="margin-top:8px"><summary class="rem-device__sub" style="cursor:pointer"><i class="fa-solid fa-circle-question"></i> ${title}</summary>
     <ol class="rem-device__sub" style="margin:6px 0 0;padding-left:20px;line-height:1.6">${steps.map(t => `<li>${t}</li>`).join('')}</ol></details>`;
@@ -6901,11 +6903,11 @@ function renderDeviceCard(){
       : `<button class="btn btn--primary" type="button" data-device-action="enable"><i class="fa-solid fa-bell"></i> Enable on this device</button>`;
   }
   // Android Chrome does not report app-level notification changes until the app restarts.
-  const androidNote = (/Android/i.test(navigator.userAgent) && s.isThis && s.healthy)
-    ? `<div class="rem-device__row"><div class="rem-device__text"><span class="rem-device__sub"><i class="fa-solid fa-circle-info"></i> If you turn notifications off in your phone’s app settings, this status may not update until you fully close the app and open it again.</span></div></div>`
-    : '';
-  const helpHtml = blocked ? `<div class="rem-device__row"><div class="rem-device__text"><span class="rem-device__sub"><i class="fa-solid fa-circle-info"></i> Once you turn notifications on in settings, you will start getting reminders. This status will update after you fully close the app and open it again.</span>${notifHelpHtml()}</div></div>` : '';
-  box.innerHTML = rows + helpHtml + androidNote + (action ? `<div class="rem-device__action">${action}</div>` : '');
+const showAndroidNote = /Android/i.test(navigator.userAgent) && s.isThis && (s.healthy || blocked);
+const helpHtml = (showAndroidNote || blocked)
+  ? `<div class="rem-device__row"><div class="rem-device__text">${showAndroidNote ? '<span class="rem-device__sub"><i class="fa-solid fa-circle-info"></i> Notification status may update only after restarting the app when settings are changed.</span>' : ''}${blocked ? notifHelpHtml() : ''}</div></div>`
+  : '';
+  box.innerHTML = rows +  helpHtml + (action ? `<div class="rem-device__action">${action}</div>` : '');
 }
 async function enableOnThisDevice(btn){
   const support = pushSupport();
