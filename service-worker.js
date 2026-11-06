@@ -4,7 +4,7 @@
    Safe Activation Handoff
    ========================================================= */
 
-const CACHE_NAME = "v3.2.1";
+const CACHE_NAME = "v3.2.0";
 const CLAIM_DELAY_MS = 2000;
 
 const STATIC_ASSETS = [
@@ -41,9 +41,39 @@ const CDN_SCRIPTS = [
 const CDN_STYLESHEETS = [
   "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.3.1/css/all.min.css",
   "https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;750;800&display=swap",
-  "https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css",
-  "https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.css"
+  "https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css"
 ];
+
+// Files the app cannot start without. If any of these fail to download because
+// of a network problem during install, the install must FAIL so the previous
+// working version (and its cache) stays in use. Otherwise a half-filled new
+// cache replaces the old one and the next app start has to wait on the network
+// (the "loading... then Connection Trouble" problem). A 404 is skipped so a
+// missing optional file can never block updates forever.
+const CRITICAL_ASSETS = [
+  "./index.html",
+  "./config.json",
+  "./invoice-engine.js",
+  "./invoice-engine.css",
+  "./manifest.json",
+];
+
+async function cacheCriticalAssets(cache) {
+  await Promise.all(
+    CRITICAL_ASSETS.map(async (asset) => {
+      const response = await fetch(new Request(asset, { cache: "reload" }));
+      if (response.ok) {
+        await cache.put(asset, response);
+        return;
+      }
+      if (response.status === 404) {
+        console.warn(`Service worker: "${asset}" not found (404), skipping.`);
+        return;
+      }
+      throw new Error(`HTTP ${response.status} for ${asset}`);
+    })
+  );
+}
 
 async function precacheCdn(cache) {
   await Promise.allSettled(
@@ -156,6 +186,9 @@ self.addEventListener("notificationclick", (event) => {
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(async (cache) => {
+      // Throws (aborting the install) if a core file could not be downloaded.
+      await cacheCriticalAssets(cache);
+
       await Promise.allSettled(
         STATIC_ASSETS.map((asset) =>
           cache.add(asset).catch((error) => {
@@ -173,6 +206,13 @@ self.addEventListener("install", (event) => {
           error
         );
       });
+
+      // The app cannot log in without supabase-js. If it did not get cached,
+      // abort the install so the old working cache is kept and the browser
+      // retries the install later.
+      if (!(await cache.match(CDN_SCRIPTS[0]))) {
+        throw new Error("supabase-js was not cached; aborting install.");
+      }
     })
   );
 
@@ -308,7 +348,20 @@ self.addEventListener("fetch", (event) => {
     }
 
     event.respondWith(
-      cacheFirst(event.request).then(async (response) => {
+      (async () => {
+        // Navigations such as "/" or "index.html?mode=reminders" never match
+        // the cached "./index.html" key exactly, so they used to go to the
+        // network first and could hang on a weak connection. Serve the cached
+        // app shell right away instead (the page reads its own URL params).
+        if (event.request.mode === "navigate") {
+          const shellCache = await caches.open(CACHE_NAME);
+          const shell =
+            (await shellCache.match(event.request, { ignoreSearch: true })) ||
+            (await shellCache.match("./index.html"));
+          if (shell) return shell;
+        }
+        return cacheFirst(event.request);
+      })().then(async (response) => {
         if (response && response.ok) {
           return response;
         }

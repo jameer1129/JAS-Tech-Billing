@@ -339,7 +339,7 @@ body.dark-theme .btn--ghost:hover{background: #1A202C;}
 .badge--pending{background:rgba(232,137,0,.13);color:#E88900;}
 .badge--approved{background:rgba(31,146,84,.12);color:var(--success);}
 .badge--rejected{background:rgba(214,69,69,.12);color:var(--danger);}
-body.dark-theme .badge--admin{background:rgba(23,105,255,.16);color:#5B9CFF;}
+body.dark-theme .badge--admin{background:rgba(23,105,255,.18);color:#5B9CFF;}
 body.dark-theme .badge--employee{background:rgba(107, 114, 128, 0.2);color:var(--muted);}
 body.dark-theme .badge--pending{background:rgba(255,176,32,.13);color:#ffb120de;}
 body.dark-theme .badge--approved{background:rgba(48,209,120,.14);color:var(--success);}
@@ -1224,7 +1224,7 @@ html.pop-open,body.pop-open{overflow:hidden!important;}
   margin-top:4px;
   font-size:11.5px;color:var(--primary-text);font-weight:700;text-transform:uppercase;letter-spacing:.5px;
 }
-body.dark-theme .drawer__user-role{background: rgba(23, 105, 255, .15);border-color: rgba(23, 105, 255, .25);}  
+body.dark-theme .drawer__user-role{background: rgba(23, 105, 255, .18);border-color: rgba(23, 105, 255, .25);}  
 .drawer__divider{height:1px;background:var(--line);margin:0 20px 6px;}
 .drawer__body{flex:1;padding:8px 16px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;}
 .drawer__item{
@@ -1834,7 +1834,7 @@ body.dark-theme .auth-hero-icon__ring--two{border:1px solid rgba(23, 105, 255, .
   pointer-events:none;
   z-index:1;
 }
-body.dark-theme .field--icon > i{background:rgba(23, 105, 255, .16);}
+body.dark-theme .field--icon > i{background:rgba(23, 105, 255, .18);}
 .field--icon input,.field--icon textarea{
   border:0 !important;
   border-radius:0 !important;
@@ -1879,7 +1879,7 @@ body.dark-theme .field--icon > i{background:rgba(23, 105, 255, .16);}
   font-size:13px;
   box-shadow:var(--shadow-sm);
 }
-body.dark-theme #viewNewBill .card__heading i{background:rgba(23,105,255,.16);}
+body.dark-theme #viewNewBill .card__heading i{background:rgba(23,105,255,.18);}
 /* ---------- Bill To — grouped fields ---------- */
 #viewNewBill .customer-fields{gap:0;width:100%;border:1.5px solid var(--line);border-radius:14px;overflow:visible;background:var(--surface);}
 #viewNewBill .customer-fields .field{margin:0;width:100%;position:relative;border-radius:0;}
@@ -2448,7 +2448,7 @@ body.dark-theme .bill-card--skeleton::before{background:#151515;box-shadow:0 40p
 .admin-stat--rejected{color:var(--danger);}
 .admin-stat--rejected .admin-stat__icon{color:var(--danger);background:rgba(214,69,69,.12);}
 .admin-stat--rejected .admin-stat__value{color:var(--danger);}
-body.dark-theme .admin-stat__icon{background:rgba(23,105,255,.16);color:#5B9CFF;}
+body.dark-theme .admin-stat__icon{background:rgba(23,105,255,.18);color:#5B9CFF;}
 body.dark-theme .admin-stat__value{color:#5B9CFF;}
 body.dark-theme .admin-stat--approved .admin-stat__icon{background:rgba(48,209,120,.16);color:#30D158;}
 body.dark-theme .admin-stat--approved .admin-stat__value{color:#30D158;}
@@ -2476,7 +2476,7 @@ body.dark-theme .admin-stat--rejected .admin-stat__value{color:#FF6259;}
   font-size:13px;
   box-shadow:var(--shadow-sm);
 }
-body.dark-theme #viewAdmin .admin-panel .card__heading i{background:rgba(23,105,255,.16);}
+body.dark-theme #viewAdmin .admin-panel .card__heading i{background:rgba(23,105,255,.18);}
 /* ---------- Empty state ---------- */
 .admin-empty{
   margin:0 18px 18px;
@@ -2757,7 +2757,7 @@ body.dark-theme .rem-count{background:rgba(1,37,135,.28);}
 .rem-badge--active{background:rgba(1,37,135,.1);color:var(--primary-text);}
 .rem-badge--paused{background:rgba(214,69,69,.12);color:var(--danger);}
 .rem-badge--completed{background:rgba(31,146,84,.12);color:var(--success);}
-body.dark-theme .rem-badge--active{background:rgba(23,105,255,.16);color:#5B9CFF;}
+body.dark-theme .rem-badge--active{background:rgba(23,105,255,.18);color:#5B9CFF;}
 body.dark-theme .rem-badge--paused{background:rgba(255,69,58,.14);}
 body.dark-theme .rem-badge--completed{background:rgba(48,209,120,.14);}
 .rem-repeat .date-dropdown{position:static;margin-top:6px;box-shadow:none;}
@@ -3548,6 +3548,7 @@ body.dark-theme .nav-tabs::before{background:rgba(82,120,216,.24);}
 <div class="modal-overlay hide" id="productModalOverlay">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div class="modal__header">
+      <i class="fa-solid fa-file-invoice"></i>
       <h3 id="modalTitle">Add Product</h3>
     </div>
     <div class="modal__body">
@@ -4214,12 +4215,28 @@ function closeAllAppOverlaysForSessionExpiry(){
 // 400). Rather than bouncing to the login screen the instant SIGNED_OUT
 // fires, give the sibling attempt a brief window to land, then re-check for
 // a real session before deciding.
+// A network/server failure while checking the session means "cannot verify
+// right now", NOT "logged out". Only a real auth rejection (invalid/revoked
+// refresh token) should send the user to the login screen.
+function isTransientAuthError(err){
+  if (!err) return false;
+  if (err.name === 'AuthRetryableFetchError') return true;
+  if (err.name === 'AbortError' || err instanceof TypeError) return true;
+  const status = err.status;
+  return status === 0 || status === undefined && /fetch|network|timeout|abort/i.test(err.message || '') || status >= 500;
+}
 async function handlePossiblySpuriousSignOut(client){
   if (signOutVerificationTimer) clearTimeout(signOutVerificationTimer);
   signOutVerificationTimer = setTimeout(async () => {
     signOutVerificationTimer = null;
     try {
-      const { data: { session } = {} } = await client.auth.getSession();
+      const { data: { session } = {}, error: verifyError } = await client.auth.getSession();
+      if (!session && isTransientAuthError(verifyError) && !intentionalSignOut) {
+        // Connection trouble, not a real sign-out. Keep the saved login and
+        // show the retry screen; the app reloads when the connection returns.
+        showOfflineScreen(navigator.onLine ? 'server' : 'offline');
+        return;
+      }
       if (session) {
         // The sibling refresh attempt succeeded after all — this SIGNED_OUT
         // was spurious. Recover silently, no visible interruption.
@@ -4602,23 +4619,44 @@ function setupAutoSaveListeners(){
     }
   });
 }
-async function loadConfig(){
+// config.json is a small same-origin file, so it should answer almost
+// instantly. After a long idle (or on a weak connection) the first request can
+// hang on a dead connection / sleeping service worker. Instead of waiting the
+// full 30s and showing "Connection Trouble", give it a short first try, retry
+// once, and as a last resort use the last good copy saved on this device.
+const CONFIG_CACHE_KEY = 'jas_config_cache';
+const CONFIG_FETCH_TIMEOUT_MS = 10000;
+async function fetchConfigOnce(){
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), CONFIG_FETCH_TIMEOUT_MS);
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), nextNetworkTimeoutMs());
-    let response;
-    try {
-      response = await fetch('./config.json', { signal: controller.signal });
-    } finally {
-      clearTimeout(timeoutId);
-    }
+    const response = await fetch('./config.json', { signal: controller.signal });
     if (!response.ok) throw new Error(`Failed to load config.json: ${response.status}`);
-    CONFIG = await response.json();
-  } catch (error) {
-    console.error('Could not load config.json:', error);
+    return await response.json();
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+async function loadConfig(){
+  let loaded = null;
+  for (let attempt = 0; attempt < 2 && !loaded; attempt++) {
+    try { loaded = await fetchConfigOnce(); }
+    catch (error) { console.warn(`config.json attempt ${attempt + 1} failed:`, error); }
+  }
+  if (loaded) {
+    try { localStorage.setItem(CONFIG_CACHE_KEY, JSON.stringify(loaded)); } catch (e) {}
+  } else {
+    try {
+      const raw = localStorage.getItem(CONFIG_CACHE_KEY);
+      if (raw) loaded = JSON.parse(raw);
+    } catch (e) { loaded = null; }
+  }
+  if (!loaded) {
+    console.error('Could not load config.json');
     CONFIG = null;
     return false;
   }
+  CONFIG = loaded;
   applyConfig();
   return true;
 }
@@ -5557,12 +5595,12 @@ const SERVER_PROBE_TIMEOUT_MS = 3000;
 let serverProbeInFlight = null;
 // One shared probe, so several requests failing at once don't each fire their
 // own and keep the loader up longer.
-function probeServer(origin){
+function probeServer(origin, timeoutMs = SERVER_PROBE_TIMEOUT_MS){
   if (serverProbeInFlight) return serverProbeInFlight;
   serverProbeInFlight = (async () => {
     if (!navigator.onLine) return false;
     const controller = new AbortController();
-    const t = setTimeout(() => controller.abort(), SERVER_PROBE_TIMEOUT_MS);
+    const t = setTimeout(() => controller.abort(), timeoutMs);
     try {
       await nativeFetch(origin + '/auth/v1/health', { mode: 'no-cors', cache: 'no-store', signal: controller.signal });
       return true;
@@ -6905,7 +6943,7 @@ function renderDeviceCard(){
   // Android Chrome does not report app-level notification changes until the app restarts.
 const showAndroidNote = /Android/i.test(navigator.userAgent) && s.isThis && (s.healthy || blocked);
 const helpHtml = (showAndroidNote || blocked)
-  ? `<div class="rem-device__row"><div class="rem-device__text">${showAndroidNote ? '<span class="rem-device__sub"><i class="fa-solid fa-circle-info"></i> Notification status may update only after restarting the app when settings are changed.</span>' : ''}${blocked ? notifHelpHtml() : ''}</div></div>`
+  ? `<div class="rem-device__row"><div class="rem-device__text">${showAndroidNote ? '<span class="rem-device__sub"><i class="fa-solid fa-circle-info"></i> If you change the notification settings, the status may update only after restarting the app.</span>' : ''}${blocked ? notifHelpHtml() : ''}</div></div>`
   : '';
   box.innerHTML = rows +  helpHtml + (action ? `<div class="rem-device__action">${action}</div>` : '');
 }
@@ -11254,7 +11292,7 @@ async function init(){
   }
   activeNormalClient = persistentClient;
   supabaseClient = persistentClient;
-  const { data: { session: resolvedSession } = {} } = await persistentClient.auth.getSession();
+  const { data: { session: resolvedSession } = {}, error: initSessionError } = await persistentClient.auth.getSession();
   activeNormalClient.auth.onAuthStateChange((event, session) => {
     if (event === 'SIGNED_OUT') {
       handlePossiblySpuriousSignOut(activeNormalClient);
@@ -11274,6 +11312,11 @@ async function init(){
     clearPendingSignup();
     normalAuthResolved = true;
     await afterAuthResolved();
+  } else if (isTransientAuthError(initSessionError)) {
+    // Token refresh failed because of a network/server problem. The saved
+    // login is still in localStorage, so do NOT show the login page.
+    showOfflineScreen(navigator.onLine ? 'server' : 'offline');
+    return;
   } else {
     const pending = getPendingSignup();
     if (pending.email) {
@@ -11316,7 +11359,10 @@ document.addEventListener('DOMContentLoaded', () => {
       // Unknown server (cold start while offline): just reload. Otherwise only
       // reload once the server actually answers, so a failed retry stays on
       // this screen instead of bouncing through the loader again.
-      const ok = origin ? await probeServer(origin) : true;
+      // Use a longer probe than the automatic 3s one: on a weak connection a
+      // healthy server can take longer than 3s to answer, which made Retry
+      // wrongly report "still can't reach the server".
+      const ok = origin ? await probeServer(origin, 10000) : true;
       if (ok) { window.location.reload(); return; }
       btn.disabled = false;
       btn.innerHTML = originalHtml;
