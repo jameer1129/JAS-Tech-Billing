@@ -2707,8 +2707,8 @@ body.dark-theme .rem-count{background:rgba(1,37,135,.28);}
 .rem-group{display:flex;flex-direction:column;gap:10px;}
 .rem-group__title{display:flex;align-items:center;gap:8px;margin:4px 2px 0;font-size:12.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
 .rem-group__title b{font-weight:700;padding:1px 8px;border-radius:20px;background:var(--line);color:var(--text);font-size:11px;}
-.rem-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;}
-.rem-card{display:flex;flex-direction:column;gap:10px;}
+.rem-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:stretch;}
+.rem-card{display:flex;flex-direction:column;gap:10px;align-self:stretch;height:100%;}
 .rem-card__top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
 .rem-card__title{font-size:15.5px;font-weight:750;color:var(--text);overflow-wrap:anywhere;line-height:1.3;min-width:0;}
 .rem-card__desc{font-size:13px;color:var(--muted);overflow-wrap:anywhere;display:-webkit-box;line-clamp:2;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:-4px;}
@@ -2716,8 +2716,9 @@ body.dark-theme .rem-count{background:rgba(1,37,135,.28);}
 .rem-card__meta span{display:inline-flex;align-items:center;gap:6px;}
 .rem-card__meta .due{color:var(--warning);}
 .rem-card__meta .overdue{color:var(--danger);}
-.rem-card__actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;padding-top:12px;border-top:1.5px solid var(--line);}
-.rem-card__actions .btn{min-width:0;min-height:40px;padding:8px 8px;font-size:13px;}
+.rem-card__actions{display:flex;flex-wrap:wrap;gap:8px;padding-top:12px;border-top:1.5px solid var(--line);margin-top:auto;}
+.rem-card__actions .btn{flex:1 1 84px;min-width:0;min-height:40px;padding:8px 10px;font-size:13px;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;gap:6px;}
+.rem-card__actions .btn[data-rem-action="done"],.rem-card__actions .btn[data-rem-action="complete"],.rem-card__actions .btn[data-rem-action="resume"],.rem-card__actions .btn[data-rem-action="delete"]{flex:1 1 100px;}
 .rem-card__actions .btn--danger-ghost{color:var(--danger);border-color:color-mix(in srgb, var(--danger) 45%, var(--line));}
 .btn--warning{background:var(--warning);color:#FFFFFF;}
 .btn--warn-outline{background:var(--surface);color:var(--warning);border:1.5px solid var(--warning);}
@@ -7033,7 +7034,7 @@ function reminderCardHtml(r, today){
   const btn = (action, cls, icon, label) =>
     `<button type="button" class="btn ${cls}" data-rem-action="${action}" data-id="${id}"><i class="fa-solid ${icon}" aria-hidden="true"></i> ${label}</button>`;
   const edit = btn('edit', 'btn--outline', 'fa-pen', 'Edit');
-  const done = btn('done', 'btn--warn-outline', 'fa-circle-check', 'Done');
+  const done = btn('done', 'btn--warn-outline', 'fa-circle-check', 'Finished');
   let actions = '';
   if (r.status === 'completed') {
     // Finished reminders are final: no edit, no restore, only delete.
@@ -7043,10 +7044,12 @@ function reminderCardHtml(r, today){
   } else {
     // Active. Due or overdue: Complete replaces Done. Not due yet: Done is available.
     const isDue = !!due?.due;
+    // Order: Edit, Pause, Done/Complete. Buttons share a flex-wrap row, so when space is tight
+    // the last button (Done/Complete) wraps alone onto its own row and stretches full width.
     actions = edit;
+    if (r.repeater) actions += btn('pause', 'btn--ghost', 'fa-pause', 'Pause');
     if (isDue) actions += btn('complete', 'btn--success', 'fa-check', 'Complete');
     else actions += done;
-    if (r.repeater) actions += btn('pause', 'btn--ghost', 'fa-pause', 'Pause');
   }
   const meta = [`<span><i class="fa-regular fa-calendar"></i> ${escapeHtml(formatDateForDisplay(r.remember_date))}</span>`];
   if (r.repeater) meta.push(`<span><i class="fa-solid fa-repeat"></i> ${escapeHtml(repeaterText(r.repeater))}</span>`);
