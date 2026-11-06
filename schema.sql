@@ -147,6 +147,7 @@ ON public.reminders
 TO authenticated;
 
 
+
 CREATE OR REPLACE FUNCTION public.check_reminder_limit()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -157,38 +158,54 @@ DECLARE
     reminder_count INTEGER;
     today_date DATE := public.app_today();
 BEGIN
-    -- Validate reminder date: tomorrow or later only
-    IF NEW.remember_date <= today_date THEN
-        RAISE EXCEPTION
-            'Reminder date must be tomorrow or a future date.';
+    -- Validate date on INSERT or when remember_date changes
+    IF TG_OP = 'INSERT'
+       OR NEW.remember_date IS DISTINCT FROM OLD.remember_date
+    THEN
+        IF NEW.remember_date <= today_date THEN
+            RAISE EXCEPTION
+                'Reminder date must be tomorrow or a future date.';
+        END IF;
+
+        IF NEW.remember_date > today_date + 365 THEN
+            RAISE EXCEPTION
+                'Reminder date cannot be more than one year in the future.';
+        END IF;
     END IF;
 
-    -- Maximum one year in the future
-    IF NEW.remember_date > today_date + 365 THEN
-        RAISE EXCEPTION
-            'Reminder date cannot be more than one year in the future.';
-    END IF;
+    -- Enforce reminder limit only on INSERT
+    IF TG_OP = 'INSERT' THEN
 
-    -- Lock user to prevent concurrent reminder limit bypass
-    PERFORM pg_advisory_xact_lock(
-        hashtext(NEW.user_id::TEXT)
-    );
+        PERFORM pg_advisory_xact_lock(
+            hashtext(NEW.user_id::TEXT)
+        );
 
-    -- Count existing reminders for this user
-    SELECT COUNT(*)
-    INTO reminder_count
-    FROM public.reminders
-    WHERE user_id = NEW.user_id;
+        SELECT COUNT(*)
+        INTO reminder_count
+        FROM public.reminders
+        WHERE user_id = NEW.user_id;
 
-    -- Maximum 10 reminders per user
-    IF reminder_count >= 10 THEN
-        RAISE EXCEPTION
-            'Maximum 10 reminders allowed per user.';
+        IF reminder_count >= 10 THEN
+            RAISE EXCEPTION
+                'Maximum 10 reminders allowed per user.';
+        END IF;
+
     END IF;
 
     RETURN NEW;
 END;
 $$;
+
+-- Replace the existing trigger
+DROP TRIGGER IF EXISTS reminders_limit_trigger
+ON public.reminders;
+
+CREATE TRIGGER reminders_limit_trigger
+BEFORE INSERT OR UPDATE
+ON public.reminders
+FOR EACH ROW
+EXECUTE FUNCTION public.check_reminder_limit();
+
 
 
 GRANT UPDATE ON public.profiles TO service_role;
