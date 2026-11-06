@@ -155,14 +155,16 @@ SET search_path = public
 AS $$
 DECLARE
     reminder_count INTEGER;
+    today_date DATE := public.app_today();
 BEGIN
     -- Validate reminder date: tomorrow or later only
-    IF NEW.remember_date <= CURRENT_DATE THEN
+    IF NEW.remember_date <= today_date THEN
         RAISE EXCEPTION
             'Reminder date must be tomorrow or a future date.';
     END IF;
 
-    IF NEW.remember_date > public.app_today() + 365 THEN
+    -- Maximum one year in the future
+    IF NEW.remember_date > today_date + 365 THEN
         RAISE EXCEPTION
             'Reminder date cannot be more than one year in the future.';
     END IF;
@@ -187,6 +189,7 @@ BEGIN
     RETURN NEW;
 END;
 $$;
+
 
 GRANT UPDATE ON public.profiles TO service_role;
 GRANT UPDATE ON public.reminders TO service_role;
@@ -1190,57 +1193,23 @@ where public_token is not null;
 --   }
 -- });
 
--- Heartbeat, unverified-user and expired-bill cleanup
+-- Heartbeat, unverified-user and expired-bill, notificaton push cleanup
 
--- clean up  edge function to delete unverified users and soft-deleted bills older than 7 days
 -- import { createClient } from "npm:@supabase/supabase-js@2";
 -- import webpush from "npm:web-push@3.6.7";
 
 -- const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-
--- if (!SUPABASE_URL) {
---   throw new Error("SUPABASE_URL is required");
--- }
-
--- // --------------------------------------------------
--- // Publishable key
--- // Used to authenticate the GitHub request
--- // --------------------------------------------------
+-- if (!SUPABASE_URL) throw new Error("SUPABASE_URL is required");
 
 -- const rawPublishableKeys = Deno.env.get("SUPABASE_PUBLISHABLE_KEYS");
-
--- if (!rawPublishableKeys) {
---   throw new Error("SUPABASE_PUBLISHABLE_KEYS is required");
--- }
-
--- const publishableKeys = JSON.parse(rawPublishableKeys);
--- const PUBLISHABLE_KEY = publishableKeys["default"];
-
--- if (!PUBLISHABLE_KEY) {
---   throw new Error("Default publishable key is missing");
--- }
-
--- // --------------------------------------------------
--- // Secret/admin key
--- // Automatically provided by Supabase
--- // --------------------------------------------------
+-- if (!rawPublishableKeys) throw new Error("SUPABASE_PUBLISHABLE_KEYS is required");
+-- const PUBLISHABLE_KEY = JSON.parse(rawPublishableKeys)["default"];
+-- if (!PUBLISHABLE_KEY) throw new Error("Default publishable key is missing");
 
 -- const rawSecretKeys = Deno.env.get("SUPABASE_SECRET_KEYS");
-
--- if (!rawSecretKeys) {
---   throw new Error("SUPABASE_SECRET_KEYS is required");
--- }
-
--- const secretKeys = JSON.parse(rawSecretKeys);
--- const ADMIN_KEY = secretKeys["default"];
-
--- if (!ADMIN_KEY) {
---   throw new Error("Default secret key is missing");
--- }
-
--- // --------------------------------------------------
--- // Admin client
--- // --------------------------------------------------
+-- if (!rawSecretKeys) throw new Error("SUPABASE_SECRET_KEYS is required");
+-- const ADMIN_KEY = JSON.parse(rawSecretKeys)["default"];
+-- if (!ADMIN_KEY) throw new Error("Default secret key is missing");
 
 -- const supabaseAdmin = createClient(SUPABASE_URL, ADMIN_KEY, {
 --   auth: {
@@ -1250,104 +1219,60 @@ where public_token is not null;
 --   },
 -- });
 
--- // --------------------------------------------------
--- // Web Push (VAPID) — reminders
--- //
--- // Secrets to add in Supabase → Edge Functions → Secrets:
--- //   VAPID_PUBLIC_KEY   (same value as config.json → push.vapidPublicKey)
--- //   VAPID_PRIVATE_KEY
--- //   VAPID_SUBJECT      (e.g. mailto:jastechhyd@gmail.com)
--- //
--- // Missing keys never crash the function: reminders are reported
--- // as "failed" and the heartbeat + cleanup still run.
--- // --------------------------------------------------
-
+-- // ---------------- Web Push (VAPID) ----------------
 -- const VAPID_PUBLIC_KEY = Deno.env.get("VAPID_PUBLIC_KEY") ?? "";
 -- const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
 -- const VAPID_SUBJECT =
 --   Deno.env.get("VAPID_SUBJECT") ?? "mailto:jastechhyd@gmail.com";
-
 -- const PUSH_ENABLED = !!(VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY);
 
 -- if (PUSH_ENABLED) {
 --   webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 -- }
 
--- // --------------------------------------------------
--- // Production cleanup settings
--- //
--- // 1. Unverified users older than 7 days are deleted.
--- // 2. Soft-deleted bills older than 7 days are permanently deleted.
--- // 3. Due reminders are pushed to the user's active device.
--- // 4. Active reminders overdue by MORE than 7 days are paused
--- //    (no push). The user resumes them from the Reminders tab.
--- // --------------------------------------------------
-
+-- // ---------------- Settings ----------------
 -- const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 -- const USER_RETENTION_MS = SEVEN_DAYS_MS;
 -- const BILL_RETENTION_MS = SEVEN_DAYS_MS;
-
--- // Pushes are sent while a reminder is 0..7 days overdue.
--- // On day 8 (overdue > 7) the reminder is paused instead.
--- // Keep in sync with REMINDER_AUTO_PAUSE_DAYS in index.html.
--- const OVERDUE_PAUSE_DAYS = 7;
-
--- // How many expired bills are purged per database round trip
+-- const OVERDUE_PAUSE_DAYS = 7; // keep in sync with index.html
 -- const BILL_PURGE_BATCH = 200;
-
--- // This function runs every 12 hours (GitHub workflow). A push that cannot be
--- // delivered (device offline) expires after 12 hours, so it never arrives
--- // late or on top of the next run's push.
 -- const PUSH_TTL_SECONDS = 12 * 60 * 60;
-
--- // Max reminders handled per run
 -- const REMINDER_BATCH = 1000;
+-- const PUSH_CONCURRENCY = 10;
 
 -- type Status = "success" | "partial" | "failed";
 
--- // --------------------------------------------------
--- // Reminder push
--- //
--- // A reminder is due when ALL are true:
--- //   status = 'active'
--- //   remember_date <= app_today()          (IST calendar date)
--- //   last_activity IS NULL OR last_activity < remember_date
--- //
--- // Due reminders are then split by how late they are:
--- //   overdue 0..7 days  -> push notification
--- //   overdue > 7 days   -> status set to 'paused', NO push
--- //
--- // Never throws: any problem is returned in the result so it cannot
--- // block the heartbeat, user cleanup or bill cleanup.
--- // --------------------------------------------------
-
+-- // ---------------- Reminders: auto-pause + push ----------------
 -- type ReminderPushResult = {
 --   status: Status;
 --   today: string | null;
---   dueCount: number; // reminders that were eligible for a push
+--   pausedCount: number;
+--   dueCount: number;
 --   sentCount: number;
 --   noDeviceCount: number;
---   failedCount: number;
---   clearedDevices: number;
---   pausedCount: number; // auto-paused because overdue > 7 days
+--   failedCount: number; // REAL failures only (never 404/410)
+--   clearedDevices: number; // dead devices (user turned off / reset notifications)
 --   error: string | null;
 -- };
+
+-- function shiftIsoDate(iso: string, days: number): string {
+--   return new Date(Date.parse(iso) + days * 86400000).toISOString().slice(0, 10);
+-- }
 
 -- async function sendDueReminderPushes(): Promise<ReminderPushResult> {
 --   const result: ReminderPushResult = {
 --     status: "success",
 --     today: null,
+--     pausedCount: 0,
 --     dueCount: 0,
 --     sentCount: 0,
 --     noDeviceCount: 0,
 --     failedCount: 0,
 --     clearedDevices: 0,
---     pausedCount: 0,
 --     error: null,
 --   };
 
 --   try {
---     // IST date, the same function the database trigger uses
 --     const { data: today, error: todayError } = await supabaseAdmin.rpc(
 --       "app_today"
 --     );
@@ -1360,14 +1285,34 @@ where public_token is not null;
 --       };
 --     }
 
---     result.today = String(today);
---     const todayIso = result.today;
+--     const todayIso = String(today);
+--     result.today = todayIso;
+--     const pauseBefore = shiftIsoDate(todayIso, -OVERDUE_PAUSE_DAYS);
 
+--     // 1. auto-pause
+--     const { data: paused, error: pauseError } = await supabaseAdmin
+--       .from("reminders")
+--       .update({ status: "paused" })
+--       .eq("status", "active")
+--       .lt("remember_date", pauseBefore)
+--       .select("id");
+
+--     if (pauseError) {
+--       console.error("Auto-pause failed:", pauseError);
+--       result.status = "partial";
+--       result.error = `Auto-pause failed: ${pauseError.message}`;
+--     } else {
+--       result.pausedCount = paused?.length ?? 0;
+--     }
+
+--     // 2. push
 --     const { data: rows, error: remindersError } = await supabaseAdmin
 --       .from("reminders")
 --       .select("id,user_id,title,description,remember_date,last_activity")
 --       .eq("status", "active")
+--       .gte("remember_date", pauseBefore)
 --       .lte("remember_date", todayIso)
+--       .order("remember_date", { ascending: true })
 --       .limit(REMINDER_BATCH);
 
 --     if (remindersError) {
@@ -1378,46 +1323,12 @@ where public_token is not null;
 --       };
 --     }
 
---     // Column-to-column comparison (last_activity < remember_date) is done here
 --     const due = (rows ?? []).filter(
 --       (r) => !r.last_activity || r.last_activity < r.remember_date
 --     );
+--     result.dueCount = due.length;
 
---     const daysOverdue = (r: { remember_date: string }) =>
---       Math.round(
---         (Date.parse(todayIso) - Date.parse(r.remember_date)) / 86400000
---       );
-
---     // Overdue by MORE than 7 days -> pause, never push (day 8 onwards)
---     const toPause = due.filter((r) => daysOverdue(r) > OVERDUE_PAUSE_DAYS);
---     const toPush = due.filter((r) => daysOverdue(r) <= OVERDUE_PAUSE_DAYS);
-
---     // Runs even if push keys are missing, so overdue reminders still pause.
---     if (toPause.length) {
---       const { data: paused, error: pauseError } = await supabaseAdmin
---         .from("reminders")
---         .update({ status: "paused" })
---         .in(
---           "id",
---           toPause.map((r) => r.id)
---         )
---         .eq("status", "active")
---         .select("id");
-
---       if (pauseError) {
---         console.error("Auto-pause failed:", pauseError);
---         result.status = "partial";
---         result.error = `Auto-pause failed: ${pauseError.message}`;
---       } else {
---         result.pausedCount = paused?.length ?? 0;
---       }
---     }
-
---     result.dueCount = toPush.length;
-
---     if (!toPush.length) {
---       return result;
---     }
+--     if (!due.length) return result;
 
 --     if (!PUSH_ENABLED) {
 --       return {
@@ -1427,7 +1338,7 @@ where public_token is not null;
 --       };
 --     }
 
---     const userIds = [...new Set(toPush.map((r) => r.user_id as string))];
+--     const userIds = [...new Set(due.map((r) => r.user_id as string))];
 
 --     const { data: profiles, error: profilesError } = await supabaseAdmin
 --       .from("profiles")
@@ -1448,19 +1359,24 @@ where public_token is not null;
 --     );
 
 --     const deadUsers = new Set<string>();
+--     const failureMessages: string[] = [];
 
---     for (const r of toPush) {
+--     const sendOne = async (r: (typeof due)[number]) => {
 --       const subscription = subscriptions.get(r.user_id);
 
 --       if (!subscription) {
 --         result.noDeviceCount++;
---         continue;
+--         return;
 --       }
 
---       const overdueDays = daysOverdue(r);
+--       // A device already found dead earlier in this run: skip, don't push again
+--       if (deadUsers.has(r.user_id)) return;
 
---       // Day 7 overdue is the last push; tell the user what happens next
---       const body =
+--       const overdueDays = Math.round(
+--         (Date.parse(todayIso) - Date.parse(r.remember_date)) / 86400000
+--       );
+
+--       const base =
 --         r.description ||
 --         (overdueDays > 0
 --           ? `Overdue by ${overdueDays} day${overdueDays === 1 ? "" : "s"}`
@@ -1469,10 +1385,9 @@ where public_token is not null;
 --       const payload = JSON.stringify({
 --         title: r.title,
 --         body:
---           overdueDays === OVERDUE_PAUSE_DAYS
---             ? `${body} · Last reminder. It will be paused tomorrow.`
---             : body,
---         // Same tag per reminder: a repeat push replaces, never stacks
+--           overdueDays >= OVERDUE_PAUSE_DAYS
+--             ? `${base} · Last reminder. It will be paused tomorrow.`
+--             : base,
 --         tag: `reminder-${r.id}`,
 --         url: "./index.html?mode=reminders",
 --       });
@@ -1487,18 +1402,25 @@ where public_token is not null;
 --       } catch (error) {
 --         const code = (error as { statusCode?: number }).statusCode;
 
---         // 404 / 410 = the browser deleted this subscription for good
 --         if (code === 404 || code === 410) {
+--           // Normal: user turned off / reset notifications, or browser removed
+--           // the subscription. NOT a failure. Device is cleared below.
 --           deadUsers.add(r.user_id);
+--           console.log(`Dead subscription (${code}) for user ${r.user_id}`);
+--         } else {
+--           // Real failure: push service down, bad VAPID keys, network, etc.
+--           result.failedCount++;
+--           failureMessages.push(`${code ?? "error"}`);
+--           console.error("Push failed:", code, error);
 --         }
-
---         result.failedCount++;
---         console.error("Push failed:", code, error);
 --       }
+--     };
+
+--     for (let i = 0; i < due.length; i += PUSH_CONCURRENCY) {
+--       await Promise.all(due.slice(i, i + PUSH_CONCURRENCY).map(sendOne));
 --     }
 
---     // A dead subscription can never receive anything. Clear it so the
---     // Reminders tab shows "No device activated" and the user can enable again.
+--     // Clear dead devices so the Reminders tab shows "No device activated"
 --     if (deadUsers.size) {
 --       const { error: clearError } = await supabaseAdmin
 --         .from("profiles")
@@ -1507,13 +1429,19 @@ where public_token is not null;
 
 --       if (clearError) {
 --         console.error("Could not clear dead devices:", clearError);
+--         result.status = "partial";
+--         result.error = `Clear devices failed: ${clearError.message}`;
 --       } else {
 --         result.clearedDevices = deadUsers.size;
 --       }
 --     }
 
+--     // Only REAL push failures affect status
 --     if (result.failedCount > 0) {
 --       result.status = result.sentCount > 0 ? "partial" : "failed";
+--       result.error = `${result.failedCount} push(es) failed (${[
+--         ...new Set(failureMessages),
+--       ].join(", ")})`;
 --     }
 
 --     return result;
@@ -1527,78 +1455,22 @@ where public_token is not null;
 --   }
 -- }
 
--- // --------------------------------------------------
--- // Edge Function
--- // --------------------------------------------------
-
+-- // ---------------- Edge Function ----------------
 -- Deno.serve(async (req: Request) => {
---   // ------------------------------------------------
---   // POST only
---   // ------------------------------------------------
-
 --   if (req.method !== "POST") {
 --     return Response.json({ error: "Method not allowed" }, { status: 405 });
 --   }
 
---   // ------------------------------------------------
---   // Authenticate GitHub request
---   // ------------------------------------------------
-
---   const apiKey = req.headers.get("apikey");
-
---   if (apiKey !== PUBLISHABLE_KEY) {
+--   if (req.headers.get("apikey") !== PUBLISHABLE_KEY) {
 --     return Response.json({ error: "Unauthorized" }, { status: 401 });
 --   }
 
 --   try {
---     // =================================================
---     // 1. UPDATE HEARTBEAT (ping time)
---     // =================================================
 
---     const indianTime = new Date().toLocaleString("en-IN", {
---       timeZone: "Asia/Kolkata",
---       day: "2-digit",
---       month: "short",
---       year: "numeric",
---       hour: "2-digit",
---       minute: "2-digit",
---       second: "2-digit",
---       hour12: true,
---     });
-
---     const { data: heartbeatData, error: heartbeatError } = await supabaseAdmin
---       .from("supabase_heartbeat")
---       .update({ last_ping: indianTime })
---       .eq("id", 1)
---       .select("id, last_ping")
---       .single();
-
---     if (heartbeatError) {
---       console.error("Heartbeat update error:", heartbeatError);
-
---       return Response.json(
---         { error: "Heartbeat update failed" },
---         { status: 500 }
---       );
---     }
-
---     // =================================================
 --     // 2. DELETE UNVERIFIED USERS OLDER THAN 7 DAYS
---     //
---     // Runs in its own try/catch so a failure here never
---     // blocks the bill cleanup below.
---     // =================================================
-
 --     const cutoff = new Date(Date.now() - USER_RETENTION_MS);
-
 --     const deleted: string[] = [];
-
---     const failed: {
---       id: string;
---       email: string | null;
---       error: string;
---     }[] = [];
-
+--     const failed: { id: string; email: string | null; error: string }[] = [];
 --     let checkedCount = 0;
 --     let unverifiedCount = 0;
 --     let usersError: string | null = null;
@@ -1606,9 +1478,6 @@ where public_token is not null;
 --     try {
 --       let page = 1;
 --       const perPage = 1000;
-
---       // Collect first, delete after the scan. Deleting while paging shifts
---       // the remaining users up a page, so some accounts would be skipped.
 --       const usersToDelete: { id: string; email: string | null }[] = [];
 
 --       while (true) {
@@ -1616,50 +1485,30 @@ where public_token is not null;
 --           page,
 --           perPage,
 --         });
-
---         if (error) {
---           throw error;
---         }
+--         if (error) throw error;
 
 --         const users = data.users;
-
---         if (!users.length) {
---           break;
---         }
+--         if (!users.length) break;
 
 --         checkedCount += users.length;
 
 --         for (const user of users) {
 --           const isUnverified = !user.email_confirmed_at;
---           const isOlderThanSevenDays = new Date(user.created_at) < cutoff;
-
---           if (isUnverified) {
---             unverifiedCount++;
---           }
-
---           // DELETE ONLY: email unverified AND account older than 7 days
---           if (isUnverified && isOlderThanSevenDays) {
+--           if (isUnverified) unverifiedCount++;
+--           if (isUnverified && new Date(user.created_at) < cutoff) {
 --             usersToDelete.push({ id: user.id, email: user.email ?? null });
 --           }
 --         }
 
---         if (users.length < perPage) {
---           break;
---         }
-
+--         if (users.length < perPage) break;
 --         page++;
 --       }
 
 --       for (const u of usersToDelete) {
 --         const { error: deleteError } =
 --           await supabaseAdmin.auth.admin.deleteUser(u.id);
-
 --         if (deleteError) {
---           failed.push({
---             id: u.id,
---             email: u.email,
---             error: deleteError.message,
---           });
+--           failed.push({ id: u.id, email: u.email, error: deleteError.message });
 --         } else {
 --           deleted.push(u.email ?? u.id);
 --         }
@@ -1669,23 +1518,18 @@ where public_token is not null;
 --       console.error("User cleanup error:", error);
 --     }
 
+--     if (!usersError && failed.length > 0) {
+--       usersError = `${failed.length} user(s) could not be deleted`;
+--     }
+
 --     const usersStatus: Status = usersError
---       ? "failed"
---       : failed.length > 0
---       ? "partial"
+--       ? deleted.length > 0 || checkedCount > 0 && failed.length > 0
+--         ? "partial"
+--         : "failed"
 --       : "success";
 
---     // =================================================
---     // 3. PERMANENTLY DELETE SOFT-DELETED BILLS OLDER THAN 7 DAYS
---     //
---     // Bills moved to "Restore Bills" have deleted_at set.
---     // Once deleted_at is older than 7 days they can no longer be
---     // restored, so the bill and its items are removed for good.
---     // A failure here never blocks the heartbeat or user cleanup.
---     // =================================================
-
+--     // 3. PURGE SOFT-DELETED BILLS OLDER THAN 7 DAYS
 --     const billCutoff = new Date(Date.now() - BILL_RETENTION_MS);
-
 --     const purgedBills: string[] = [];
 --     let billsError: string | null = null;
 
@@ -1702,14 +1546,10 @@ where public_token is not null;
 --         console.error("Bill purge lookup error:", expiredError);
 --         break;
 --       }
-
---       if (!expired || !expired.length) {
---         break;
---       }
+--       if (!expired || !expired.length) break;
 
 --       const invoiceNos = expired.map((b) => b.invoice_no);
 
---       // Items first, so this also works if bill_items has no ON DELETE CASCADE
 --       const { error: itemsError } = await supabaseAdmin
 --         .from("bill_items")
 --         .delete()
@@ -1734,10 +1574,7 @@ where public_token is not null;
 --       }
 
 --       purgedBills.push(...invoiceNos);
-
---       if (expired.length < BILL_PURGE_BATCH) {
---         break;
---       }
+--       if (expired.length < BILL_PURGE_BATCH) break;
 --     }
 
 --     const billsStatus: Status = billsError
@@ -1746,45 +1583,35 @@ where public_token is not null;
 --         : "failed"
 --       : "success";
 
---     // =================================================
---     // 4. PAUSE OVERDUE REMINDERS + PUSH DUE REMINDERS
---     //
---     // Active reminders overdue by more than 7 days are paused
---     // (no push). All other due reminders get one Web Push to the
---     // single device saved in profiles.push_id. Notifications expire
---     // after 12 hours (TTL), matching this function's 12-hour schedule.
---     // A failure here never blocks the steps above.
---     // =================================================
-
+--     // 4. REMINDERS
 --     const reminders = await sendDueReminderPushes();
 
---     // =================================================
---     // 5. SAVE LAST STATUS TO THE HEARTBEAT TABLE
---     //
---     // Requires the columns added by the SQL migration.
---     // A failure here is logged and reported, never thrown.
---     // Also saves the reminder push counts (due / sent / failed /
---     // no device / cleared devices), so these columns must exist too.
---     // (Auto-paused count is reported in the response and logs only,
---     // so no new column is needed.)
---     // =================================================
+--     // 1. HEARTBEAT
+--     const indianTime = new Date().toLocaleString("en-IN", {
+--       timeZone: "Asia/Kolkata",
+--       day: "2-digit",
+--       month: "short",
+--       year: "numeric",
+--       hour: "2-digit",
+--       minute: "2-digit",
+--       second: "2-digit",
+--       hour12: true,
+--     });
 
+--     // 5. SAVE SIMPLE STATUS
 --     const { error: statusError } = await supabaseAdmin
 --       .from("supabase_heartbeat")
 --       .update({
+--         last_ping: indianTime,
 --         users_status: usersStatus,
---         users_checked: checkedCount,
---         users_deleted: deleted.length,
---         users_failed: failed.length,
+--         users_purged: deleted.length,
 --         users_error: usersError,
 --         bills_status: billsStatus,
 --         bills_purged: purgedBills.length,
 --         bills_error: billsError,
 --         reminders_status: reminders.status,
---         reminders_due: reminders.dueCount,
 --         reminders_sent: reminders.sentCount,
 --         reminders_failed: reminders.failedCount,
---         reminders_no_device: reminders.noDeviceCount,
 --         reminders_cleared: reminders.clearedDevices,
 --         reminders_error: reminders.error,
 --       })
@@ -1794,84 +1621,56 @@ where public_token is not null;
 --       console.error("Heartbeat status update error:", statusError);
 --     }
 
---     // =================================================
---     // 6. LOG RESULT
---     // =================================================
-
+--     // 6. LOG
 --     console.log(
 --       JSON.stringify({
---         heartbeat: heartbeatData,
+--         heartbeat: indianTime,
 --         usersStatus,
 --         checkedCount,
 --         unverifiedCount,
 --         deletedCount: deleted.length,
---         deleted,
 --         failedCount: failed.length,
---         failed,
 --         usersError,
 --         billsStatus,
 --         purgedBillsCount: purgedBills.length,
---         purgedBills,
 --         billsError,
 --         reminders,
 --         statusSaved: !statusError,
 --       })
 --     );
 
---     // =================================================
---     // 7. RETURN RESULT
---     //
---     // 500 if any part failed, so the GitHub run is flagged.
---     // =================================================
-
---     const allOk =
---       usersStatus === "success" &&
---       billsStatus === "success" &&
---       reminders.status === "success";
+--     // 7. RESULT
+--     // 500 (GitHub run fails) ONLY when a section is truly "failed".
+--     // "partial" and dead devices (410) return 200.
+--     const hasFailure =
+--       usersStatus === "failed" ||
+--       billsStatus === "failed" ||
+--       reminders.status === "failed";
 
 --     return Response.json(
 --       {
---         success: allOk,
-
---         heartbeat: heartbeatData,
-
---         cleanup: {
---           mode: "PRODUCTION - 7 days",
+--         success: !hasFailure,
+--         heartbeat: indianTime,
+--         users: {
 --           status: usersStatus,
---           checkedAt: new Date().toISOString(),
---           cutoff: cutoff.toISOString(),
---           checkedCount,
---           unverifiedCount,
---           deletedCount: deleted.length,
---           deleted,
---           failedCount: failed.length,
---           failed,
+--           checked: checkedCount,
+--           unverified: unverifiedCount,
+--           deleted: deleted.length,
+--           failed: failed.length,
 --           error: usersError,
 --         },
-
---         billCleanup: {
---           mode: "PRODUCTION - 7 days",
+--         bills: {
 --           status: billsStatus,
---           cutoff: billCutoff.toISOString(),
---           purgedCount: purgedBills.length,
---           purged: purgedBills,
+--           purged: purgedBills.length,
 --           error: billsError,
 --         },
-
---         reminderPush: {
---           ttlSeconds: PUSH_TTL_SECONDS,
---           overduePauseDays: OVERDUE_PAUSE_DAYS,
---           ...reminders,
---         },
-
+--         reminders,
 --         statusSaved: !statusError,
---         statusSaveError: statusError?.message ?? null,
 --       },
---       { status: allOk ? 200 : 500 }
+--       { status: hasFailure ? 500 : 200 }
 --     );
 --   } catch (error) {
 --     console.error("Combined heartbeat/cleanup error:", error);
-
 --     return Response.json(
 --       {
 --         success: false,
