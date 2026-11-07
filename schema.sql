@@ -1,6 +1,6 @@
 -- JAS TECH BILLING — DOCUMENTED SUPABASE SCHEMA
--- Inventory: 4 tables, 12 database functions, 9 RLS policies,
--- 5 explicit indexes (plus automatic primary-key indexes), and 3 separately deployed Edge Functions.
+-- Inventory: 5 tables (including reminders), database functions, RLS policies,
+-- explicit indexes (plus automatic primary-key indexes), and 3 separately deployed Edge Functions.
 --
 -- TABLES
 -- profiles: one application profile per Supabase Auth user; stores role, approval, and activity/avatar timestamps.
@@ -17,8 +17,25 @@ create table if not exists public.profiles (
     check (role in ('super_admin', 'admin', 'employee')), status text not null default 'pending'
     check (status in ('pending', 'approved', 'rejected')),
   created_at timestamptz not null default now(), last_sign_in_at TIMESTAMPTZ DEFAULT NULL,
-  last_activity_at TIMESTAMPTZ DEFAULT NULL, avatar_updated_at timestamptz default null ),
-  push_id JSONB DEFAULT NULL, device_data JSONB DEFAULT NULL;
+  last_activity_at TIMESTAMPTZ DEFAULT NULL, avatar_updated_at timestamptz default null ,
+  push_id JSONB DEFAULT NULL, device_data JSONB DEFAULT NULL);
+
+-- Define approval helper before any RLS policy references it.
+-- (The later CREATE OR REPLACE definition is retained for compatibility with the original script.)
+create or replace function public.is_approved()
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1
+    from public.profiles
+    where id = auth.uid()
+      and status = 'approved'
+  );
+$$;
 
 -- Table: one invoice header per saved bill, including customer details, totals, creator, soft-delete time, and public token.
 create table if not exists public.bills (
@@ -61,8 +78,8 @@ create table if not exists public.supabase_heartbeat (
   reminders_sent    integer,   -- pushes delivered
   reminders_failed  integer,   -- real failures only (not 404/410)
   reminders_cleared integer,   -- dead devices removed (user turned off notifications)
-  reminders_paused integer;
-  reminders_error   text,
+  reminders_paused integer,
+  reminders_error   text);
 
 insert into public.supabase_heartbeat (id)
 values (1)
@@ -86,11 +103,11 @@ CREATE TABLE IF NOT EXISTS public.reminders (
     -- Numeric string 1-365 = custom day interval
     repeater TEXT DEFAULT NULL,
 
-    -- Only active or paused
+    -- Status values: active, paused, completed
     status TEXT NOT NULL DEFAULT 'active'
         CHECK (status IN ('active', 'paused', 'completed')),
 
-    -- Updated when the user clicks Completed
+    -- Date of the last user completion action
     last_activity DATE DEFAULT NULL,
 
     CONSTRAINT reminders_repeater_valid CHECK (
@@ -102,6 +119,8 @@ CREATE TABLE IF NOT EXISTS public.reminders (
 
 ALTER TABLE public.reminders ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "reminders_select_own" ON public.reminders;
+
 CREATE POLICY "reminders_select_own"
 ON public.reminders
 FOR SELECT
@@ -111,6 +130,8 @@ USING (
     AND public.is_approved()
 );
 
+DROP POLICY IF EXISTS "reminders_insert_own" ON public.reminders;
+
 CREATE POLICY "reminders_insert_own"
 ON public.reminders
 FOR INSERT
@@ -119,6 +140,8 @@ WITH CHECK (
     user_id = auth.uid()
     AND public.is_approved()
 );
+
+DROP POLICY IF EXISTS "reminders_update_own" ON public.reminders;
 
 CREATE POLICY "reminders_update_own"
 ON public.reminders
@@ -132,6 +155,8 @@ WITH CHECK (
     user_id = auth.uid()
     AND public.is_approved()
 );
+
+DROP POLICY IF EXISTS "reminders_delete_own" ON public.reminders;
 
 CREATE POLICY "reminders_delete_own"
 ON public.reminders
@@ -211,11 +236,8 @@ EXECUTE FUNCTION public.check_reminder_limit();
 GRANT UPDATE ON public.profiles TO service_role;
 GRANT UPDATE ON public.reminders TO service_role;
 
--- Existing trigger remains unchanged
-CREATE OR REPLACE TRIGGER reminders_limit_trigger
-BEFORE INSERT ON public.reminders
-FOR EACH ROW
-EXECUTE FUNCTION public.check_reminder_limit();
+-- Keep the trigger on INSERT and UPDATE so the date validation also runs on edits.
+-- The trigger was already created above; do not replace it with INSERT-only behavior.
 
 CREATE OR REPLACE FUNCTION public.app_today()
 RETURNS DATE
@@ -472,7 +494,7 @@ as $$
   declare
   new_bill public.bills%rowtype;
   item jsonb;
-  v_invoice_date date := current_date;
+  v_invoice_date date := (now() AT TIME ZONE 'Asia/Kolkata')::date;
   last_no text;
   seq integer := -1;
   hex_seq text;
@@ -560,11 +582,11 @@ as $$
         item_price :=
         coalesce(
         (item->>'price')::numeric, 0 );
-        if item_qty <= 0 then
+        if item_qty IS NULL OR item_qty <= 0 then
           raise exception
           'Item quantity must be greater than zero.';
         end if;
-      if item_price < 0 then
+      if item_price IS NULL OR item_price < 0 then
         raise exception
         'Item price cannot be negative.';
       end if;
