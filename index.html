@@ -10727,6 +10727,12 @@ function bindEvents(){
       if (currentSession) saveBillStateToLocalStorage();
     });
   }
+  // Mouse wheel must never change a focused number box (service charge, rate):
+  // scrolling over it just releases focus and the page scrolls normally.
+  document.addEventListener('wheel', (e) => {
+    const t = e.target;
+    if (t instanceof HTMLInputElement && t.type === 'number' && document.activeElement === t) t.blur();
+  }, { passive: true });
   [el.prodQty, el.prodRate].forEach(input => {
     input.addEventListener('focus', () => input.select());
   });
