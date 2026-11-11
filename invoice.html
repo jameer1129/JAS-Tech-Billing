@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#012587">
-<title>JAS Tech - Invoice</title>
+<title>J.Ali - Invoice</title>
 <link rel="icon" href="assets/icons/app-icon.png">
 <link rel="apple-touch-icon" href="assets/icons/app-icon.png">
-<link rel="stylesheet" href="./invoice-engine.css?v=6">
+<link rel="stylesheet" href="./invoice-engine.css?v=7">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -163,14 +163,14 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js" defer></script>
-<script src="./invoice-engine.js?v=6"></script>
+<script src="./invoice-engine.js?v=7"></script>
 </head>
 <body>
 <main class="customer-shell" aria-live="polite">
   <!-- 1. LOADING -->
   <section class="state active" id="stateLoading">
     <div class="brand-wrap">
-      <img class="brand-mark" src="assets/logo/horizontal-logo.png" alt="JAS Tech">
+      <img class="brand-mark" src="assets/logo/horizontal-logo.png" alt="J.Ali">
     </div>
     <div class="card-stage">
       <div class="invoice-card">
@@ -190,14 +190,14 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
     <p>Please wait while we retrieve your invoice.</p>
     <div class="info-box">
       <div class="info-icon"><i class="fa-solid fa-lock"></i></div>
-      <div>This is a secure invoice link <br> from JAS Tech...</div>
+      <div>This is a secure invoice link <br> from J.Ali...</div>
     </div>
   </section>
 
   <!-- 2. INVOICE READY -->
   <section class="state" id="stateInvoice">
     <div class="brand-wrap">
-      <img class="brand-mark" src="assets/logo/horizontal-logo.png" alt="JAS Tech">
+      <img class="brand-mark" src="assets/logo/horizontal-logo.png" alt="J.Ali">
     </div>
     <div class="card-stage">
       <div class="invoice-card">
@@ -258,7 +258,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
   <!-- 4. DOWNLOAD SUCCESS -->
   <section class="state" id="stateSuccess">
     <div class="brand-wrap">
-      <img class="brand-mark" src="assets/logo/horizontal-logo.png" alt="JAS Tech">
+      <img class="brand-mark" src="assets/logo/horizontal-logo.png" alt="J.Ali">
     </div>
     <div id="successStage">
       <div class="card-stage">
@@ -288,7 +288,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
   <!-- 5. ERROR -->
   <section class="state" id="stateError">
     <div class="brand-wrap">
-      <img class="brand-mark" src="assets/logo/horizontal-logo.png" alt="JAS Tech">
+      <img class="brand-mark" src="assets/logo/horizontal-logo.png" alt="J.Ali">
     </div>
     <div class="card-stage">
       <div class="invoice-card">
@@ -309,7 +309,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
     <button class="customer-btn" id="btnRetry"><i class="fa-solid fa-arrow-rotate-left"></i>Try Again</button>
     <div class="info-box">
       <div class="info-icon" style="font-size:24px;"><i class="fa-solid fa-circle-info"></i></div>
-      <div><strong>Need help?</strong>Contact JAS Tech for support.</div>
+      <div><strong>Need help?</strong>Contact J.Ali for support.</div>
     </div>
   </section>
 </main>
@@ -402,6 +402,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
       dateStr:formatBillDate(data.bill_date),
       customer:{name:data.customer_name||'',address:data.customer_address||'',mobile:data.customer_phone||''},
       products:(data.items||[]).map(i=>({name:i.item_name||'',description:i.description||'',serial:i.serial||'',qty:i.qty,rate:i.price})),
+      serviceCharge:data.service_charge,
       notes:data.notes==null?null:data.notes,
       includeNotesOnPdf:data.include_notes!==false,
       showWatermark:data.show_watermark!==false,
@@ -549,7 +550,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
     }else{
       /* CONFIG_ERROR, SERVER_ERROR and anything unexpected */
       if(title)title.textContent='Unable to open invoice';
-      if(message)message.textContent='We could not open this invoice right now. Please contact JAS Tech for support.';
+      if(message)message.textContent='We could not open this invoice right now. Please contact J.Ali for support.';
       if(retry)retry.innerHTML='<i class="fa-solid fa-arrow-rotate-left"></i>Retry';
     }
 

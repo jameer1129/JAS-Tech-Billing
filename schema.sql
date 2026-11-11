@@ -1,4 +1,4 @@
--- JAS TECH BILLING — DOCUMENTED SUPABASE SCHEMA
+-- J.Ali TECH BILLING — DOCUMENTED SUPABASE SCHEMA
 -- Inventory: 5 tables (including reminders), database functions, RLS policies,
 -- explicit indexes (plus automatic primary-key indexes), and 3 separately deployed Edge Functions.
 --
@@ -49,15 +49,17 @@ create table if not exists public.bills (
     references public.profiles(id)
     on delete set null, created_by_name text default '',
   created_at timestamptz not null default now(), deleted_at timestamptz default null,
-  public_token text );
+  public_token text,
+  -- NULL = no service charge (treated as OFF). A number (>= 0) = printed on the bill and included in total.
+  service_charge numeric(12,2) default null
+    check (service_charge is null or service_charge >= 0) );
 
 -- Table: invoice product/service rows linked to the parent bill through invoice_no.
 create table if not exists public.bill_items (
   invoice_no text not null
     references public.bills(invoice_no)
     on delete cascade, item_name text not null, description text default '', serial text default '',
-  qty numeric not null default 1
-    check (qty > 0), price numeric not null default 0
+  qty text not null default '', price numeric not null default 0
     check (price >= 0), amount numeric not null default 0
     check (amount >= 0) );
 
@@ -482,10 +484,27 @@ to authenticated;
 -- FUNCTIONS
 
 -- Creates an invoice and its line items atomically, calculates totals, and generates the official daily hexadecimal invoice number.
+-- Quantity is free text ("5", "23 liters", ""): public.parse_qty() reads the first number for the maths.
+-- Rule (same as invoice-engine.js): no usable quantity (empty / words only / 0) bills as ONE unit.
+create or replace function public.parse_qty(q text)
+returns numeric
+language sql
+immutable
+as $$
+  select coalesce(
+    nullif(substring(replace(coalesce(q, ''), ',', '') from '[0-9]+(?:\.[0-9]+)?'), '')::numeric,
+    0
+  );
+$$;
+
+drop function if exists public.create_bill(
+  text, text, text, date, text, boolean, boolean, boolean, boolean, text, jsonb );
+
 create or replace function public.create_bill(
   customer_name text, customer_phone text, customer_address text, bill_date date,
   notes text, include_notes boolean, show_watermark boolean, show_qr boolean,
-  show_signature boolean, created_by_name text, items jsonb )
+  show_signature boolean, created_by_name text, items jsonb,
+  service_charge numeric default null )
 returns public.bills
 language plpgsql
 security definer
@@ -501,6 +520,7 @@ as $$
   v_invoice_no text;
   calculated_total numeric(12,2) := 0;
   item_qty numeric;
+  item_qty_text text;
   item_price numeric;
   item_amount numeric;
   begin
@@ -576,16 +596,20 @@ as $$
       select value
       from jsonb_array_elements(items)
       loop
+        item_qty_text :=
+        trim(coalesce(item->>'qty', ''));
+        if char_length(item_qty_text) > 30 then
+          raise exception
+          'Item quantity text is too long (max 30 characters).';
+        end if;
         item_qty :=
-        coalesce(
-        (item->>'qty')::numeric, 0 );
+        public.parse_qty(item_qty_text);
+        if item_qty <= 0 then
+          item_qty := 1;
+        end if;
         item_price :=
         coalesce(
         (item->>'price')::numeric, 0 );
-        if item_qty IS NULL OR item_qty <= 0 then
-          raise exception
-          'Item quantity must be greater than zero.';
-        end if;
       if item_price IS NULL OR item_price < 0 then
         raise exception
         'Item price cannot be negative.';
@@ -597,13 +621,17 @@ as $$
     calculated_total
     + item_amount;
   end loop;
+  if service_charge is not null and service_charge < 0 then
+    raise exception
+    'Service charge cannot be negative.';
+  end if;
   calculated_total :=
   round(
-  calculated_total, 2 );
+  calculated_total + coalesce(service_charge, 0), 2 );
   insert into public.bills (
   invoice_no, customer_name, customer_phone, customer_address,
-  bill_date, notes, include_notes, show_watermark, show_qr, show_signature, total, created_by,
-  created_by_name )
+  bill_date, notes, include_notes, show_watermark, show_qr, show_signature, total, service_charge,
+  created_by, created_by_name )
   values (
   v_invoice_no, coalesce(
   customer_name, ''
@@ -621,7 +649,7 @@ as $$
   show_qr, true
   ), coalesce(
   show_signature, true
-  ), calculated_total, auth.uid(), coalesce(
+  ), calculated_total, round(service_charge, 2), auth.uid(), coalesce(
   created_by_name, ''
   ) )
   returning *
@@ -630,8 +658,13 @@ as $$
     select value
     from jsonb_array_elements(items)
     loop
+      item_qty_text :=
+      trim(coalesce(item->>'qty', ''));
       item_qty :=
-      (item->>'qty')::numeric;
+      public.parse_qty(item_qty_text);
+      if item_qty <= 0 then
+        item_qty := 1;
+      end if;
       item_price :=
       (item->>'price')::numeric;
       item_amount :=
@@ -646,7 +679,7 @@ as $$
       item->>'description', ''
       ), coalesce(
       item->>'serial', ''
-      ), item_qty, item_price, item_amount );
+      ), item_qty_text, item_price, item_amount );
     end loop;
   return new_bill;
   end;
@@ -654,12 +687,12 @@ $$;
 
 revoke execute
 on function public.create_bill(
-  text, text, text, date, text, boolean, boolean, boolean, boolean, text, jsonb )
+  text, text, text, date, text, boolean, boolean, boolean, boolean, text, jsonb, numeric )
 from public, anon;
 
 grant execute
 on function public.create_bill(
-  text, text, text, date, text, boolean, boolean, boolean, boolean, text, jsonb )
+  text, text, text, date, text, boolean, boolean, boolean, boolean, text, jsonb, numeric )
 to authenticated;
 
 -- Checks Auth email existence and confirmation status for the check-email Edge Function; executable only by service_role.
@@ -838,7 +871,8 @@ as $$
   'customer_address', coalesce(v_bill.customer_address, ''), 'bill_date', v_bill.bill_date,
   'notes', coalesce(v_bill.notes, ''), 'include_notes', v_bill.include_notes,
   'show_watermark', v_bill.show_watermark, 'show_qr', v_bill.show_qr,
-  'show_signature', v_bill.show_signature, 'total', v_bill.total, 'items', v_items );
+  'show_signature', v_bill.show_signature, 'total', v_bill.total,
+  'service_charge', v_bill.service_charge, 'items', v_items );
   end;
 $$;
 

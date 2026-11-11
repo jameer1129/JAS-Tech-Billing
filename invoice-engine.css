@@ -138,7 +138,7 @@
 }
 .inv-table thead th:nth-child(2),.inv-table tbody td:nth-child(2){text-align:left;}
 .inv-table thead th.idx{width:45px;}
-.inv-table thead th.col-qty{width:70px;}
+.inv-table thead th.col-qty{width:90px;}
 .inv-table thead th.col-rate{width:115px;}
 .inv-table thead th.col-amt{width:125px;}
 .inv-table tbody td{
@@ -201,6 +201,7 @@
   font-weight:700;
   text-transform:uppercase;
 }
+.inv-summary__row.service-charge{color:var(--inv-primary);}
 .inv-summary__row span, .inv-summary__row b{word-break:break-word;overflow-wrap:break-word;}
 .inv-summary__total{
   background:var(--inv-primary);

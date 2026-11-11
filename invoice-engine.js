@@ -1,4 +1,4 @@
-/* JAS Tech — shared invoice engine. Used by index.html and invoice.html. */
+/* J.Ali — shared invoice engine. Used by index.html and invoice.html. */
 (function(){
   'use strict';
 
@@ -106,6 +106,7 @@
       dateStr:formatInvoiceDate(d.dateStr),
       customer:{name:d.customer?.name||'',address:d.customer?.address||'',mobile:d.customer?.mobile||''},
       products:Array.isArray(d.products)?d.products:[],
+      serviceCharge:toServiceCharge(d.serviceCharge),
       notes:d.notes==null?null:String(d.notes),
       includeNotesOnPdf:d.includeNotesOnPdf!==false,
       showWatermark:d.showWatermark!==false,
@@ -113,13 +114,43 @@
       showSignature:d.showSignature!==false
     };
   }
-  function calculateTotals(products){
-    let totalItems=products.length,totalQty=0,grandTotal=0;
+  /* ---- Quantity: free text ("5", "23 liters", "2.5 m", "") ----
+     The FIRST number in the text is used for maths; the words are display only.
+     "1,000 kg" -> 1000. Empty / words only / 0 -> 0 (no usable quantity).
+     Keep this rule identical to public.parse_qty() in schema.sql. */
+  function parseQtyNumber(raw){
+    if(raw==null)return 0;
+    const m=String(raw).replace(/,/g,'').match(/\d+(?:\.\d+)?/);
+    return m?(Number(m[0])||0):0;
+  }
+  /* A line with no usable quantity (empty, 0, or only words) is billed as ONE unit,
+     so its rate still counts. Set to false if such lines should bill as 0 instead. */
+  const BILL_MISSING_QTY_AS_ONE=true;
+  function lineAmount(p){
+    const q=parseQtyNumber(p.qty);
+    const units=q>0?q:(BILL_MISSING_QTY_AS_ONE?1:0);
+    return roundMoney(units*(Number(p.rate)||0));
+  }
+  /* What the QTY column shows: the text as typed, or "-" when there is no number. */
+  function formatQtyDisplay(raw){
+    const text=String(raw==null?'':raw).trim();
+    return parseQtyNumber(text)>0?text:'-';
+  }
+  /* Service charge: a number >= 0 means "on"; anything else (null, '', text, negative) means "off". */
+  function toServiceCharge(v){
+    if(v==null||v==='')return null;
+    const n=Number(v);
+    return (Number.isFinite(n)&&n>=0)?roundMoney(n):null;
+  }
+  function calculateTotals(products,serviceCharge){
+    let totalItems=products.length,totalQty=0,itemsTotal=0;
     for(const p of products){
-      totalQty+=Number(p.qty)||0;
-      grandTotal+=roundMoney((Number(p.qty)||0)*(Number(p.rate)||0));
+      totalQty+=parseQtyNumber(p.qty);
+      itemsTotal+=lineAmount(p);
     }
-    return {totalItems,totalQty,grandTotal:roundMoney(grandTotal)};
+    itemsTotal=roundMoney(itemsTotal);
+    const sc=toServiceCharge(serviceCharge);
+    return {totalItems,totalQty:roundMoney(totalQty),itemsTotal,serviceCharge:sc,grandTotal:roundMoney(itemsTotal+(sc||0))};
   }
   function buildProductMetaHtml(p){
     const bits=[];
@@ -128,7 +159,7 @@
     return bits.length?`<div class="prod-meta">${bits.join('')}</div>`:'';
   }
   function buildInvRowHtml(p,idx){
-    return `<tr><td class="idx">${idx}.</td><td><div class="prod-name">${escapeHtml(p.name)}</div>${buildProductMetaHtml(p)}</td><td class="num" style="text-align:center;font-weight:500;">${escapeHtml(p.qty)}</td><td class="num">${formatCurrency(p.rate,false)}</td><td class="num">${formatCurrency(roundMoney((Number(p.qty)||0)*(Number(p.rate)||0)),false)}</td></tr>`;
+    return `<tr><td class="idx">${idx}.</td><td><div class="prod-name">${escapeHtml(p.name)}</div>${buildProductMetaHtml(p)}</td><td class="num" style="text-align:center;font-weight:500;">${escapeHtml(formatQtyDisplay(p.qty))}</td><td class="num">${formatCurrency(p.rate,false)}</td><td class="num">${formatCurrency(lineAmount(p),false)}</td></tr>`;
   }
   function measureBlocks(blocksObj){
     const temp=document.createElement('div');
@@ -161,7 +192,7 @@
     const root=document.getElementById(targetContainerId);
     if(!root)throw new Error('Invoice render target not found.');
     const d=normalizeData(data),c=CONFIG||{};
-    const {totalItems,totalQty,grandTotal}=calculateTotals(d.products);
+    const {totalItems,totalQty,serviceCharge,grandTotal}=calculateTotals(d.products,d.serviceCharge);
 
     const page1HeaderHtml=`<div class="inv-header"><img src="${escapeHtml(assetSrc(c.assets?.horizontalLogo||''))}" class="inv-header__logo" crossOrigin="anonymous" alt="${escapeHtml(c.company?.name||'')}"><div class="inv-header__right"><div class="inv-header__ribbon"><span class="inv-header__ribbon-text">INVOICE</span><span class="inv-header__ribbon-stripe"></span><span class="inv-header__ribbon-stripe"></span></div><div class="inv-header__meta"><div class="row"><span class="k">Invoice No.</span><span class="sep">:</span><span class="v">${escapeHtml(d.invoiceNumber)}</span></div><div class="row"><span class="k">Date</span><span class="sep">:</span><span class="v">${escapeHtml(d.dateStr)}</span></div></div></div></div><hr class="inv-divider"><div class="inv-customer"><div class="inv-customer__icon"><i class="fa-solid fa-user"></i></div><div class="inv-customer__details"><div class="inv-customer__label">BILL TO</div><div class="inv-customer__name">${escapeHtml(d.customer.name)}</div>${d.customer.address?`<div class="inv-customer__address">${escapeHtml(d.customer.address)}</div>`:''}${d.customer.mobile?`<div class="inv-customer__line">Mobile: ${escapeHtml(d.customer.mobile)}</div>`:''}</div></div>`;
 
@@ -174,7 +205,7 @@
     const showNotes=c.display?.showNotes!==false&&notesText&&d.includeNotesOnPdf;
     const notesHtml=showNotes?`<div class="inv-notes"><div class="inv-notes__label"><i class="fa-solid fa-clipboard-list" style="font-size:16px"></i> NOTES</div><div class="inv-notes__text">${escapeHtml(notesText)}</div></div>`:'';
 
-    const summaryHtml=`<div class="inv-summary">${c.display?.showTotalItems?`<div class="inv-summary__row"><span>TOTAL ITEMS</span><b>${totalItems}</b></div>`:''}${c.display?.showTotalQuantity?`<div class="inv-summary__row"><span>TOTAL QUANTITY</span><b>${totalQty}</b></div>`:''}<div class="inv-summary__total"><span class="label" style="font-size:16px;">GRAND TOTAL</span><span class="value">${formatCurrency(grandTotal,true)}</span></div></div>`;
+    const summaryHtml=`<div class="inv-summary">${c.display?.showTotalItems?`<div class="inv-summary__row"><span>TOTAL ITEMS</span><b>${totalItems}</b></div>`:''}${c.display?.showTotalQuantity?`<div class="inv-summary__row"><span>TOTAL QUANTITY</span><b>${totalQty}</b></div>`:''}${serviceCharge!==null?`<div class="inv-summary__row service-charge"><span>SERVICE CHARGE</span><b>${formatCurrency(serviceCharge,true)}</b></div>`:''}<div class="inv-summary__total"><span class="label" style="font-size:16px;">GRAND TOTAL</span><span class="value">${formatCurrency(grandTotal,true)}</span></div></div>`;
 
     const watermarkHtml=d.showWatermark&&c.display?.showWatermark!==false?`<img src="${escapeHtml(assetSrc(c.assets?.watermark||''))}" class="inv-watermark" crossOrigin="anonymous" alt="Watermark Background">`:'';
 
@@ -353,7 +384,7 @@
     const invoiceNumber=normalizeData(data).invoiceNumber;
     const opt={
       margin:0,
-      filename:`${CONFIG.invoice?.filePrefix||'JAS_Invoice_'}${invoiceNumber}.pdf`,
+      filename:`${CONFIG.invoice?.filePrefix||'J.Ali_Invoice_'}${invoiceNumber}.pdf`,
       image:{type:'jpeg',quality:0.95},
       html2canvas:{
         scale:3,
@@ -412,6 +443,11 @@
     generatePdfBlob,
     fitInvoiceToSinglePage,
     formatCurrency,
+    calculateTotals,
+    parseQtyNumber,
+    lineAmount,
+    formatQtyDisplay,
+    toServiceCharge,
     escapeHtml,
     normalizeData,
     formatInvoiceDate,

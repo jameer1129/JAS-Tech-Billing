@@ -2067,6 +2067,8 @@ body.dark-theme #viewNewBill .nb-section--summary .summary-row + .summary-row{bo
   color:var(--text);
 }
 .pdf-option + .pdf-option{border-top:1px solid var(--line);}
+.pdf-option-extra{padding:0 0 12px;}
+.pdf-option-extra .field{margin:0;}
 .pdf-option__icon{
   width:38px;
   height:38px;
@@ -2863,8 +2865,8 @@ body.dark-theme .nav-tabs::before{background:rgba(82,120,216,.24);}
   .app-shell.view-enter-next > .card,.app-shell.view-enter-prev > .card,.app-shell.view-enter-next > .admin-stats,.app-shell.view-enter-prev > .admin-stats{animation:none!important;}
 }
 </style>
-<link rel="stylesheet" href="./invoice-engine.css?v=6">
-<script src="./invoice-engine.js?v=6"></script>
+<link rel="stylesheet" href="./invoice-engine.css?v=7">
+<script src="./invoice-engine.js?v=7"></script>
 </head>
 <body>
 <!-- ================= OFFLINE UI ================= -->
@@ -3299,6 +3301,23 @@ body.dark-theme .nav-tabs::before{background:rgba(82,120,216,.24);}
             <span class="pdf-option__switch-track"></span>
           </span>
         </div>
+        <div class="pdf-option hide" id="serviceChargeToggleWrap">
+          <span class="pdf-option__icon"><i class="fa-solid fa-hand-holding-dollar"></i></span>
+          <span class="pdf-option__copy">
+            <span class="pdf-option__title">Service Charge</span>
+            <span class="pdf-option__description">Add a service charge to the grand total</span>
+          </span>
+          <span class="pdf-option__switch">
+            <input type="checkbox" id="toggleServiceCharge">
+            <span class="pdf-option__switch-track"></span>
+          </span>
+        </div>
+        <div class="pdf-option-extra hide" id="serviceChargeInputWrap">
+          <div class="field field--icon">
+            <i class="fa-solid fa-indian-rupee-sign" aria-hidden="true"></i>
+            <input type="number" id="serviceChargeInput" name="cf-txt-sc01" autocomplete="nope" autocorrect="off" spellcheck="false" data-lpignore="true" data-form-type="other" min="0" max="9999999999" step="0.01" placeholder="Service charge amount *" aria-label="Service charge amount" inputmode="decimal">
+          </div>
+        </div>
       </div>
     </section>
     <section class="nb-section nb-section--notes" id="notesCardWrap">
@@ -3312,6 +3331,7 @@ body.dark-theme .nav-tabs::before{background:rgba(82,120,216,.24);}
       <div class="summary-grid">
         <div class="summary-row"><span>Total Items</span><b id="totalItems">0</b></div>
         <div class="summary-row"><span>Total Quantity</span><b id="totalQty">0</b></div>
+        <div class="summary-row hide" id="serviceChargeRow"><span>Service Charge</span><b id="serviceChargeValue">₹0</b></div>
         <div class="summary-total"><span class="label">Grand Total</span><span class="value" id="grandTotal">₹0</span></div>
       </div>
     </section>
@@ -3568,7 +3588,7 @@ body.dark-theme .nav-tabs::before{background:rgba(82,120,216,.24);}
       <div class="field-group field-group--pair">
         <div class="field field--icon">
           <i class="fa-solid fa-boxes-stacked"></i>
-          <input type="number" id="prodQty" name="cf-txt-p7n8" autocomplete="nope" autocorrect="off" spellcheck="false" data-lpignore="true" data-form-type="other" min="1" max="99999999" step="1" value="1" placeholder="Quantity *" aria-label="Quantity" inputmode="numeric">
+          <input type="text" id="prodQty" name="cf-txt-p7n8" autocomplete="nope" autocorrect="off" spellcheck="false" data-lpignore="true" data-form-type="other" maxlength="30" value="1" placeholder="Qty (e.g. 5 or 23 liters)" aria-label="Quantity" inputmode="text">
         </div>
         <div class="field field--icon">
           <i class="fa-solid fa-indian-rupee-sign" aria-hidden="true"></i>
@@ -3942,7 +3962,7 @@ body.dark-theme .nav-tabs::before{background:rgba(82,120,216,.24);}
     </div>
     <div class="modal__body">
       <p class="confirm-lead">Your feedback has been sent.</p>
-      <p>We read every message. Thanks for helping us improve JAS Billing.</p>
+      <p>We read every message. Thanks for helping us improve J.Ali Billing.</p>
     </div>
     <div class="modal__footer">
       <button class="btn btn--primary" id="btnFeedbackThanksClose" type="button"><i class="fa-solid fa-check"></i>Done</button>
@@ -4050,7 +4070,7 @@ body.dark-theme .nav-tabs::before{background:rgba(82,120,216,.24);}
       <h3 id="pwaEntryModalTitle">Billing</h3>
     </div>
     <div class="modal__body">
-      <p id="pwaEntryModalMessage">Install JAS Billing for quick access.</p>
+      <p id="pwaEntryModalMessage">Install J.Ali Billing for quick access.</p>
     </div>
     <div class="modal__footer">
       <button type="button" class="btn btn--ghost" id="btnPwaEntryContinue">Continue Here</button>
@@ -4322,6 +4342,8 @@ const state = {
   showWatermark: true,
   showQr: true,
   showSignature: true,
+  serviceChargeOn: false, // never remembered between sessions: always starts OFF (only a draft Restore brings it back)
+  serviceCharge: '',      // raw text of the amount box
   products: [],
   nextId: 1
 };
@@ -4437,6 +4459,12 @@ function cacheElements(){
   el.toggleWatermark = document.getElementById('toggleWatermark');
   el.toggleQrVisibility = document.getElementById('toggleQrVisibility');
   el.toggleSignatureVisibility = document.getElementById('toggleSignatureVisibility');
+  el.toggleServiceCharge = document.getElementById('toggleServiceCharge');
+  el.serviceChargeToggleWrap = document.getElementById('serviceChargeToggleWrap');
+  el.serviceChargeInputWrap = document.getElementById('serviceChargeInputWrap');
+  el.serviceChargeInput = document.getElementById('serviceChargeInput');
+  el.serviceChargeRow = document.getElementById('serviceChargeRow');
+  el.serviceChargeValue = document.getElementById('serviceChargeValue');
   el.totalItems = document.getElementById('totalItems');
   el.totalQty = document.getElementById('totalQty');
   el.grandTotal = document.getElementById('grandTotal');
@@ -4975,21 +5003,48 @@ function applyRestoredInvoiceDate(candidateIso){
 function roundMoney(value) {
   return Math.round((Number(value) + Number.EPSILON) * 100) / 100;
 }
-function calculateTotals(products) {
-  let totalQty = 0;
-  let grandTotal = 0;
-  for (const p of products) {
-    const qty = Number(p.qty) || 0;
-    const rate = Number(p.rate) || 0;
-    const amount = roundMoney(qty * rate);
-    totalQty += qty;
-    grandTotal += amount;
+// Quantity is free text ("5", "23 liters", ""): the shared engine reads the number
+// out of it, so the app, the PDF and the public invoice page always agree.
+function calculateTotals(products, serviceCharge) {
+  return InvoiceEngine.calculateTotals(products, serviceCharge);
+}
+// Service charge to use for the current bill: a number when the option is ON and
+// filled in, otherwise null (= treated as OFF).
+function getActiveServiceCharge(){
+  if (!state.serviceChargeOn) return null;
+  return InvoiceEngine.toServiceCharge(state.serviceCharge);
+}
+function isServiceChargeEnabledByConfig(){
+  return CONFIG?.display?.showServiceCharge === true;
+}
+function isViewingPreviousBill(){
+  return isPreviousBillMode || loadedBillForPrint !== null;
+}
+// Shows/hides the Service Charge option (config), and mirrors state into the controls.
+function syncServiceChargeUI(){
+  if (!el.toggleServiceCharge || !el.serviceChargeInput) return;
+  const enabled = isServiceChargeEnabledByConfig();
+  if (!enabled && !isViewingPreviousBill()) {
+    state.serviceChargeOn = false;
+    state.serviceCharge = '';
   }
-  return {
-    totalItems: products.length,
-    totalQty,
-    grandTotal: roundMoney(grandTotal)
-  };
+  el.serviceChargeToggleWrap.classList.toggle('hide', !enabled);
+  el.toggleServiceCharge.disabled = !enabled;
+  el.toggleServiceCharge.checked = enabled && !!state.serviceChargeOn;
+  el.serviceChargeInput.value = state.serviceCharge === '' || state.serviceCharge == null ? '' : state.serviceCharge;
+  el.serviceChargeInputWrap.classList.toggle('hide', !(enabled && state.serviceChargeOn));
+  markError(el.serviceChargeInput, true);
+}
+// ON but empty/invalid -> red box and the PDF is NOT generated.
+function validateServiceCharge(){
+  if (isViewingPreviousBill() || !isServiceChargeEnabledByConfig() || !state.serviceChargeOn) return true;
+  const ok = getActiveServiceCharge() !== null;
+  markError(el.serviceChargeInput, ok);
+  if (!ok) {
+    showToast('Enter the service charge amount, or turn Service Charge off.', 'warning');
+    el.serviceChargeInput.focus();
+  }
+  return ok;
 }
 function formatCurrency(amount, includeSymbol = true){
   const symbol = includeSymbol ? (CONFIG.invoice.currencySymbol || '₹') : '';
@@ -5161,7 +5216,7 @@ function showToast(message, type, duration = TOAST_DURATION_MS){
 function validateField(elInput, type = 'text') {
   const val = elInput.value.trim();
   if (type === 'text' && val === '') return false;
-  if (type === 'qty' && (isNaN(val) || Number(val) <= 0)) return false;
+  // qty is free text and optional ("", "5", "23 liters"), so it never fails validation
   if (type === 'rate' && (isNaN(val) || val === '' || Number(val) < 0)) return false;
   return true;
 }
@@ -7519,7 +7574,7 @@ function openProductModal(product){
   el.prodName.value = product ? product.name : '';
   el.prodDesc.value = product ? (product.description || '') : '';
   el.prodSerial.value = product ? (product.serial || '') : '';
-  el.prodQty.value = product ? product.qty : 1;
+  el.prodQty.value = product ? String(product.qty ?? '') : '1';
   el.prodRate.value = product ? product.rate : '';
   [el.prodName, el.prodQty, el.prodRate].forEach(inp => inp.classList.remove('input-error'));
   showOverlay(el.productModalOverlay);
@@ -7536,12 +7591,11 @@ function saveProduct(){
     name: el.prodName.value.trim(),
     description: el.prodDesc.value.trim(),
     serial: el.prodSerial.value.trim(),
-    qty: parseFloat(el.prodQty.value),
+    qty: el.prodQty.value.trim(), // free text: "5", "23 liters" or empty
     rate: parseFloat(el.prodRate.value)
   };
   let isValid = true;
   if (!markError(el.prodName, input.name !== '')) isValid = false;
-  if (!markError(el.prodQty, !isNaN(input.qty) && input.qty > 0)) isValid = false;
   if (!markError(el.prodRate, !isNaN(input.rate) && input.rate >= 0 && el.prodRate.value.trim() !== '')) isValid = false;
   if (!isValid) {
     showToast('Please fix the highlighted fields.', 'warning');
@@ -7601,6 +7655,8 @@ function saveBillStateToLocalStorage(){
     invoiceDateValue: el.invoiceDate.value, // Single source of truth for the invoice date
     notes: state.notes,
     products: state.products,
+    serviceChargeOn: !!state.serviceChargeOn,
+    serviceCharge: state.serviceCharge == null ? '' : String(state.serviceCharge),
     timestamp: Date.now()
   };
   try {
@@ -7648,6 +7704,9 @@ function restoreBillStateFromLocalStorage(){
   // as an object instead of an array) would otherwise pass `|| []`
   // unchanged and later crash calculateTotals()'s `for...of` loop.
   state.products = Array.isArray(saved.products) ? saved.products : [];
+  // Service charge is only brought back by an explicit Restore (never by a plain reload).
+  state.serviceChargeOn = isServiceChargeEnabledByConfig() && saved.serviceChargeOn === true;
+  state.serviceCharge = (saved.serviceCharge == null) ? '' : String(saved.serviceCharge);
   // Watermark/QR/Signature/Notes toggle state comes from jas_pref_* via
   // syncDisplayToggleState() — not restored from the bill snapshot.
   // Recalculate nextId based on existing products
@@ -7691,7 +7750,9 @@ function normalizeBillForComparison(bill) {
       customer: { name: '', address: '', mobile: '' },
       invoiceDateValue: '',
       notes: '',
-      products: []
+      products: [],
+      serviceChargeOn: false,
+      serviceCharge: ''
     };
   }
   return {
@@ -7708,10 +7769,12 @@ function normalizeBillForComparison(bill) {
           name: String(p.name || ''),
           description: String(p.description || ''),
           serial: String(p.serial || ''),
-          qty: Number(p.qty) || 0,
+          qty: String(p.qty ?? '').trim(),
           rate: Number(p.rate) || 0
         }))
-      : []
+      : [],
+    serviceChargeOn: bill.serviceChargeOn === true,
+    serviceCharge: String(bill.serviceCharge ?? '')
   };
 }
 function billStatesAreEqual(current, saved) {
@@ -7723,7 +7786,9 @@ function getCurrentBillStateForComparison() {
     customer: state.customer,
     invoiceDateValue: el.invoiceDate.value,
     notes: state.notes,
-    products: state.products
+    products: state.products,
+    serviceChargeOn: !!state.serviceChargeOn,
+    serviceCharge: state.serviceCharge
   };
 }
 function checkAndPromptForRestore(){
@@ -7766,6 +7831,8 @@ function resetInvoice(showeToast=true, clearAutosave=true){
   state.customer = { name: '', address: '', mobile: '' };
   state.products = [];
   state.nextId = 1;
+  state.serviceChargeOn = false;
+  state.serviceCharge = '';
   state.notes = CONFIG.invoice.defaultNotes || '';
   syncCustomerFieldsFromState();
   el.customerName.classList.remove('input-error');
@@ -7807,17 +7874,21 @@ function renderProducts(){
             <div class="prod-name">${escapeHtml(p.name)}</div>
             ${metaHtml}
           </div>
-          <div class="prod-stat"><span class="prod-stat__label">Qty</span><b>${p.qty}</b></div>
+          <div class="prod-stat"><span class="prod-stat__label">Qty</span><b>${escapeHtml(InvoiceEngine.formatQtyDisplay(p.qty))}</b></div>
           <div class="prod-stat"><span class="prod-stat__label">Rate</span><b>${formatCurrency(p.rate)}</b></div>
-          <div class="prod-stat prod-stat--amt"><span class="prod-stat__label">Amount</span><b>${formatCurrency(p.qty * p.rate)}</b></div>
+          <div class="prod-stat prod-stat--amt"><span class="prod-stat__label">Amount</span><b>${formatCurrency(InvoiceEngine.lineAmount(p))}</b></div>
         </div>
       </article>`;
   }).join('');
 }
 function updateSummary(){
-  const { totalItems, totalQty, grandTotal } = calculateTotals(state.products);
+  const { totalItems, totalQty, serviceCharge, grandTotal } = calculateTotals(state.products, getActiveServiceCharge());
   el.totalItems.textContent = totalItems;
   el.totalQty.textContent = totalQty;
+  if (el.serviceChargeRow) {
+    el.serviceChargeRow.classList.toggle('hide', serviceCharge === null);
+    if (serviceCharge !== null) el.serviceChargeValue.textContent = formatCurrency(serviceCharge);
+  }
   el.grandTotal.textContent = formatCurrency(grandTotal);
 }
 function formatServiceLabel(text) {
@@ -7840,6 +7911,7 @@ function getCurrentInvoiceEngineData(){
     products: (state.products || []).map(p => ({
       name: p.name || '', description: p.description || '', serial: p.serial || '', qty: p.qty, rate: p.rate
     })),
+    serviceCharge: getActiveServiceCharge(),
     notes: state.notes,
     includeNotesOnPdf: state.includeNotesOnPdf,
     showWatermark: state.showWatermark,
@@ -7881,6 +7953,7 @@ function openPreviewModal(){
     showToast('Add at least one product to generate preview PDF.', 'warning');
     return;
   }
+  if (!validateServiceCharge()) return;
   showOverlay(el.previewModalOverlay);
   renderInvoiceTemplate('previewScaleContainer');
   fitInvoiceToSinglePage();
@@ -7931,6 +8004,8 @@ function restoreDraftAfterPreviousBill(){
   state.showQr = draft.showQr;
   state.showSignature = draft.showSignature;
   state.includeNotesOnPdf = draft.includeNotesOnPdf;
+  state.serviceChargeOn = !!draft.serviceChargeOn;
+  state.serviceCharge = draft.serviceCharge == null ? '' : String(draft.serviceCharge);
   syncCustomerFieldsFromState();
   el.customerName.classList.remove('input-error');
   syncDisplayToggleState();
@@ -7944,7 +8019,6 @@ function restoreDraftAfterPreviousBill(){
    SUPABASE: BILLS
    =================================================================== */
 async function saveBillToSupabase(){
-  const { totalItems, totalQty, grandTotal } = calculateTotals(state.products);
   const billRow = {
     customer_name: state.customer.name || '',
     customer_phone: state.customer.mobile || '',
@@ -7955,12 +8029,13 @@ async function saveBillToSupabase(){
     show_watermark: state.showWatermark,
     show_qr: state.showQr,
     show_signature: state.showSignature,
+    service_charge: getActiveServiceCharge(), // null when the option is off -> stored as NULL
     created_by_name: currentProfile.name || currentProfile.email,
     items: state.products.map((p, idx) => ({
       item_name: p.name,
       description: p.description || '',
       serial: p.serial || '',
-      qty: p.qty,
+      qty: String(p.qty ?? '').trim(),
       price: p.rate,
     }))
   };
@@ -8070,7 +8145,7 @@ async function openInvoiceQr(invoiceNo){
     });
     el.invoiceQrCanvas.style.width = '280px';
     el.invoiceQrCanvas.style.height = '280px';
-    // Add the JAS Tech logo in the center of the QR.
+    // Add the J.Ali logo in the center of the QR.
     // The logo is embedded so the QR keeps working when the app is deployed
     // without requiring a separate image request.
     const qrCtx = el.invoiceQrCanvas.getContext('2d');
@@ -8189,6 +8264,7 @@ function openSaveChoiceModal(){
     showToast('Add at least one product before downloading.', 'warning');
     return;
   }
+  if (!validateServiceCharge()) return;
   showOverlay(el.saveChoiceModalOverlay);
 }
 function closeSaveChoiceModal(){
@@ -8221,7 +8297,7 @@ async function handleSaveChoice(saveToDb){
   let didSave = false;
   try {
     if (saveToDb) {
-      const { grandTotal } = calculateTotals(state.products);
+      const { grandTotal } = calculateTotals(state.products, getActiveServiceCharge());
       if (Math.abs(grandTotal) > MAX_BILL_TOTAL) {
         showToast(`Total exceeds ${formatCurrency(MAX_BILL_TOTAL)} and can't be saved. Downloading without saving instead.`, 'warning');
       } else {
@@ -8320,7 +8396,7 @@ async function loadBills(resetToFirstPage){
   const runFetch = async () => {
     let query = supabaseClient
       .from('bills')
-      .select('invoice_no,customer_name,customer_phone,customer_address,bill_date,notes,include_notes,show_watermark,show_qr,show_signature,total,created_by,created_by_name,created_at,deleted_at', { count: 'exact' });
+      .select('invoice_no,customer_name,customer_phone,customer_address,bill_date,notes,include_notes,show_watermark,show_qr,show_signature,service_charge,total,created_by,created_by_name,created_at,deleted_at', { count: 'exact' });
     // Active history and Restore Bills share the existing search/sort/pagination UI.
     query = isRestoreBillsMode
       ? query.not('deleted_at', 'is', null)
@@ -8480,6 +8556,8 @@ async function reprintBill(invoiceNo){
       showQr: state.showQr,
       showSignature: state.showSignature,
       includeNotesOnPdf: state.includeNotesOnPdf,
+      serviceChargeOn: state.serviceChargeOn,
+      serviceCharge: state.serviceCharge,
       invoiceDateValue: el.invoiceDate.value
     };
   }
@@ -8507,6 +8585,10 @@ async function reprintBill(invoiceNo){
     state.showWatermark = bill.show_watermark ?? true;
     state.showQr = bill.show_qr ?? true;
     state.showSignature = bill.show_signature ?? true;
+    // service_charge NULL (older bills) = no service charge; any number = print it.
+    const savedServiceCharge = InvoiceEngine.toServiceCharge(bill.service_charge);
+    state.serviceChargeOn = savedServiceCharge !== null;
+    state.serviceCharge = savedServiceCharge === null ? '' : String(savedServiceCharge);
     state.products = (items || []).map((it, idx) => ({
       id: idx + 1,
       name: it.item_name,
@@ -8579,6 +8661,10 @@ async function copyBillToNew(invoiceNo){
       state[stateKey] = !!value;
     });
     updateNotesInputState();
+    const copiedServiceCharge = InvoiceEngine.toServiceCharge(bill.service_charge);
+    state.serviceChargeOn = isServiceChargeEnabledByConfig() && copiedServiceCharge !== null;
+    state.serviceCharge = state.serviceChargeOn ? String(copiedServiceCharge) : '';
+    syncServiceChargeUI();
     state.products = (items || []).map((it, idx) => ({
       id: idx + 1,
       name: it.item_name,
@@ -9922,6 +10008,8 @@ function syncDisplayToggleState(){
   if (toggleWraps.qr) toggleWraps.qr.style.display = qrEnabledByConfig ? '' : 'none';
   if (toggleWraps.signature) toggleWraps.signature.style.display = signatureEnabledByConfig ? '' : 'none';
   updateNotesInputState();
+  syncServiceChargeUI();
+  if (el.grandTotal) updateSummary();
 }
 let deferredPwaInstallPrompt = null;
 let pwaEntryModalVisible = false;
@@ -9961,8 +10049,8 @@ function showPwaEntryModal(mode){
   pwaEntryModalVisible = true;
 
   el.pwaEntryModalMessage.textContent = isOpenMode
-    ? 'JAS Billing is already installed on this device. Open the app for a better experience.'
-    : 'Install JAS Billing for quick access and a better app experience.';
+    ? 'J.Ali Billing is already installed on this device. Open the app for a better experience.'
+    : 'Install J.Ali Billing for quick access and a better app experience.';
 
   el.btnPwaEntryAction.innerHTML = isOpenMode
     ? '<i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i> Open App'
@@ -10617,6 +10705,26 @@ function bindEvents(){
       }
       state.showSignature = e.target.checked;
       getAppStorage().setItem(prefKeyFor('jas_pref_signature'), e.target.checked);
+    });
+  }
+  if (el.toggleServiceCharge) {
+    el.toggleServiceCharge.addEventListener('change', (e) => {
+      if (e.target.disabled) {
+        e.target.checked = false;
+        return;
+      }
+      state.serviceChargeOn = e.target.checked;
+      el.serviceChargeInputWrap.classList.toggle('hide', !state.serviceChargeOn);
+      markError(el.serviceChargeInput, true);
+      if (state.serviceChargeOn) setTimeout(() => el.serviceChargeInput.focus(), 50);
+      updateSummary();
+      if (currentSession) saveBillStateToLocalStorage();
+    });
+    el.serviceChargeInput.addEventListener('input', (e) => {
+      state.serviceCharge = e.target.value;
+      markError(el.serviceChargeInput, true);
+      updateSummary();
+      if (currentSession) saveBillStateToLocalStorage();
     });
   }
   [el.prodQty, el.prodRate].forEach(input => {

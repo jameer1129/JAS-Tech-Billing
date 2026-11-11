@@ -46,7 +46,8 @@
     "showSignature": true,
     "showNotes": true,
     "showTotalItems": true,
-    "showTotalQuantity": true
+    "showTotalQuantity": true,
+    "showServiceCharge": true
   },
   "invoice": {
     "currencySymbol": "₹",
