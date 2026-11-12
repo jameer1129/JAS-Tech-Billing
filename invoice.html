@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#012587">
-<title>J.Ali - Invoice</title>
+<title>Invoice</title>
 <link rel="icon" href="assets/icons/app-icon.png">
 <link rel="apple-touch-icon" href="assets/icons/app-icon.png">
 <link rel="stylesheet" href="./invoice-engine.css?v=8">
@@ -170,7 +170,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
   <!-- 1. LOADING -->
   <section class="state active" id="stateLoading">
     <div class="brand-wrap">
-      <img class="brand-mark" src="assets/logo/horizontal-logo.png" alt="J.Ali">
+      <img class="brand-mark" src="assets/logo/horizontal-logo.png" alt="" data-company-alt>
     </div>
     <div class="card-stage">
       <div class="invoice-card">
@@ -190,14 +190,14 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
     <p>Please wait while we retrieve your invoice.</p>
     <div class="info-box">
       <div class="info-icon"><i class="fa-solid fa-lock"></i></div>
-      <div>This is a secure invoice link <br> from J.Ali...</div>
+      <div>This is a secure invoice link <br> from <span data-company>the company</span>...</div>
     </div>
   </section>
 
   <!-- 2. INVOICE READY -->
   <section class="state" id="stateInvoice">
     <div class="brand-wrap">
-      <img class="brand-mark" src="assets/logo/horizontal-logo.png" alt="J.Ali">
+      <img class="brand-mark" src="assets/logo/horizontal-logo.png" alt="" data-company-alt>
     </div>
     <div class="card-stage">
       <div class="invoice-card">
@@ -258,7 +258,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
   <!-- 4. DOWNLOAD SUCCESS -->
   <section class="state" id="stateSuccess">
     <div class="brand-wrap">
-      <img class="brand-mark" src="assets/logo/horizontal-logo.png" alt="J.Ali">
+      <img class="brand-mark" src="assets/logo/horizontal-logo.png" alt="" data-company-alt>
     </div>
     <div id="successStage">
       <div class="card-stage">
@@ -288,7 +288,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
   <!-- 5. ERROR -->
   <section class="state" id="stateError">
     <div class="brand-wrap">
-      <img class="brand-mark" src="assets/logo/horizontal-logo.png" alt="J.Ali">
+      <img class="brand-mark" src="assets/logo/horizontal-logo.png" alt="" data-company-alt>
     </div>
     <div class="card-stage">
       <div class="invoice-card">
@@ -309,7 +309,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
     <button class="customer-btn" id="btnRetry"><i class="fa-solid fa-arrow-rotate-left"></i>Try Again</button>
     <div class="info-box">
       <div class="info-icon" style="font-size:24px;"><i class="fa-solid fa-circle-info"></i></div>
-      <div><strong>Need help?</strong>Contact J.Ali for support.</div>
+      <div><strong>Need help?</strong>Contact <span data-company>the company</span> for support.</div>
     </div>
   </section>
 </main>
@@ -319,6 +319,14 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
   'use strict';
   let CONFIG=null, invoiceData=null, progressTimer=null, lastErrorCode='';
   const $=id=>document.getElementById(id);
+  const DEFAULT_COMPANY='the company';
+  function companyName(){return (CONFIG&&typeof CONFIG.companyName==='string'&&CONFIG.companyName.trim())||DEFAULT_COMPANY;}
+  function applyCompanyName(){
+    const name=companyName();
+    document.querySelectorAll('[data-company]').forEach(el=>{el.textContent=name;});
+    document.querySelectorAll('[data-company-alt]').forEach(el=>{el.alt=name;});
+    document.title=(name===DEFAULT_COMPANY?'':name+' - ')+'Invoice';
+  }
   const reduceMotion=window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const RING_C=691.15;
   const states=['stateLoading','stateInvoice','stateGenerating','stateSuccess','stateError'];
@@ -357,6 +365,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
     try{json=await r.json();}catch(e){throw codedError('CONFIG_ERROR','Configuration file is invalid.');}
     if(!json||!json.supabase||!json.supabase.url||!json.supabase.anonKey)throw codedError('CONFIG_ERROR','Configuration is incomplete.');
     CONFIG=json;
+    applyCompanyName();
     try{InvoiceEngine.configure(CONFIG);}catch(e){throw codedError('CONFIG_ERROR','Configuration could not be applied.');}
   }
 
@@ -550,7 +559,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
     }else{
       /* CONFIG_ERROR, SERVER_ERROR and anything unexpected */
       if(title)title.textContent='Unable to open invoice';
-      if(message)message.textContent='We could not open this invoice right now. Please contact J.Ali for support.';
+      if(message)message.textContent='We could not open this invoice right now. Please contact '+companyName()+' for support.';
       if(retry)retry.innerHTML='<i class="fa-solid fa-arrow-rotate-left"></i>Retry';
     }
 

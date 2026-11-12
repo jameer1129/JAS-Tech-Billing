@@ -1,6 +1,5 @@
-# JAS Tech Billing
-
-JAS Tech Billing is an **online invoicing web app** built with plain HTML, CSS and JavaScript (single-file, no build step, no framework). It runs entirely in the browser and uses **Supabase** as its backend for authentication, user approval, and bill storage — an internet connection is required to log in, save invoices, and load previous bills.
+# Billing
+ Billing is an **online invoicing web app** built with plain HTML, CSS and JavaScript (single-file, no build step, no framework). It runs entirely in the browser and uses **Supabase** as its backend for authentication, user approval, and bill storage — an internet connection is required to log in, save invoices, and load previous bills.
 
 ## Key Features
 
@@ -82,7 +81,7 @@ The app registers `service-worker.js` automatically on load. It does **not** mak
 ## File Structure
 
 ```
-JAS-Tech-Billing/
+Billing/
 ├─ index.html            # Single-file app (UI + logic)
 ├─ config.json            # Company and app configuration
 ├─ manifest.json           # PWA metadata (installable app icon/name)
@@ -107,4 +106,4 @@ If you want feature changes or help with the Supabase backend, open an issue or 
 
 ## License
 
-This repository contains code developed for **JAS Tech**. For licensing or redistribution, contact the project owner.
+This repository contains code developed for **JAS TECH**. For licensing or redistribution, contact the project owner.

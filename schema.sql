@@ -1,4 +1,4 @@
--- J.Ali TECH BILLING — DOCUMENTED SUPABASE SCHEMA
+-- BILLING — DOCUMENTED SUPABASE SCHEMA
 -- Inventory: 5 tables (including reminders), database functions, RLS policies,
 -- explicit indexes (plus automatic primary-key indexes), and 3 separately deployed Edge Functions.
 --

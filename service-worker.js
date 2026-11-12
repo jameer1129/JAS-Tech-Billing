@@ -1,5 +1,5 @@
 /* =========================================================
-   JAS TECH BILLING — service-worker.js
+   BILLING — service-worker.js
    Cache First Strategy
    Safe Activation Handoff
    ========================================================= */
@@ -140,7 +140,7 @@ self.addEventListener("push", (event) => {
   }
 
   // Every notification is labelled as a reminder.
-  const title = data.title ? `🔔 Reminder: ${data.title}` : "🔔 JAS Tech Reminder";
+  const title = data.title ? `🔔 Reminder: ${data.title}` : "🔔 Reminder";
   const options = {
     body: data.body || "You have a reminder due.",
     icon: "./assets/icons/app-icon.png",

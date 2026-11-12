@@ -1,4 +1,4 @@
-/* J.Ali — shared invoice engine. Used by index.html and invoice.html. */
+/* Shared invoice engine. Used by index.html and invoice.html. */
 (function(){
   'use strict';
 
@@ -416,7 +416,7 @@
     const invoiceNumber=normalizeData(data).invoiceNumber;
     const opt={
       margin:0,
-      filename:`${CONFIG.invoice?.filePrefix||'J.Ali_Invoice_'}${invoiceNumber}.pdf`,
+      filename:`${CONFIG.invoice?.filePrefix||'Invoice_'}${invoiceNumber}.pdf`,
       image:{type:'jpeg',quality:0.95},
       html2canvas:{
         scale:3,

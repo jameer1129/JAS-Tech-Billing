@@ -3962,7 +3962,7 @@ body.dark-theme .nav-tabs::before{background:rgba(82,120,216,.24);}
     </div>
     <div class="modal__body">
       <p class="confirm-lead">Your feedback has been sent.</p>
-      <p>We read every message. Thanks for helping us improve J.Ali Billing.</p>
+      <p>We read every message. Thanks for helping.</p>
     </div>
     <div class="modal__footer">
       <button class="btn btn--primary" id="btnFeedbackThanksClose" type="button"><i class="fa-solid fa-check"></i>Done</button>
@@ -4070,7 +4070,7 @@ body.dark-theme .nav-tabs::before{background:rgba(82,120,216,.24);}
       <h3 id="pwaEntryModalTitle">Billing</h3>
     </div>
     <div class="modal__body">
-      <p id="pwaEntryModalMessage">Install J.Ali Billing for quick access.</p>
+      <p id="pwaEntryModalMessage">Install Billing for quick access.</p>
     </div>
     <div class="modal__footer">
       <button type="button" class="btn btn--ghost" id="btnPwaEntryContinue">Continue Here</button>
@@ -8145,9 +8145,6 @@ async function openInvoiceQr(invoiceNo){
     });
     el.invoiceQrCanvas.style.width = '280px';
     el.invoiceQrCanvas.style.height = '280px';
-    // Add the J.Ali logo in the center of the QR.
-    // The logo is embedded so the QR keeps working when the app is deployed
-    // without requiring a separate image request.
     const qrCtx = el.invoiceQrCanvas.getContext('2d');
     if (!qrCtx) throw new Error('QR canvas context unavailable');
 
@@ -10049,8 +10046,8 @@ function showPwaEntryModal(mode){
   pwaEntryModalVisible = true;
 
   el.pwaEntryModalMessage.textContent = isOpenMode
-    ? 'J.Ali Billing is already installed on this device. Open the app for a better experience.'
-    : 'Install J.Ali Billing for quick access and a better app experience.';
+    ? `${CONFIG.company.name} Billing is already installed on this device. Open the app for a better experience.`
+    : `Install ${CONFIG.company.name} Billing for quick access and a better app experience.`;
 
   el.btnPwaEntryAction.innerHTML = isOpenMode
     ? '<i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i> Open App'
