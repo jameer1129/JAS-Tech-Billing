@@ -95,6 +95,35 @@
     const symbol=includeSymbol?((CONFIG&&CONFIG.invoice&&CONFIG.invoice.currencySymbol)||'₹'):'';
     return symbol+' '+(Number(amount)||0).toLocaleString('en-IN',{maximumFractionDigits:2,minimumFractionDigits:2});
   }
+  /* Address opened (in a new tab) when the QR is tapped. config.scanner.linkUrl, or
+     the QR image itself when it is empty. linkEnabled:false turns the link off. */
+  function getQrLinkUrl(c,ctx){
+    const sc=(c&&c.scanner)||{};
+    if(sc.linkEnabled===false)return '';
+    const raw=String(sc.linkUrl||'').trim()||String((c&&c.assets&&c.assets.scannerQr)||'').trim();
+    if(!raw)return '';
+    try{
+      const u=new URL(raw,location.href);
+      if(!/^https?:$/.test(u.protocol))return '';
+      /* A custom page (e.g. payment.html) gets the bill amount and invoice number;
+         the plain QR-image fallback is left untouched. */
+      if(String(sc.linkUrl||'').trim()&&ctx){
+        const amt=Number(ctx.amount);
+        if(sc.linkAmountParam&&Number.isFinite(amt)&&amt>0)u.searchParams.set(sc.linkAmountParam,String(roundMoney(amt)));
+        if(sc.linkInvoiceParam&&ctx.invoiceNumber)u.searchParams.set(sc.linkInvoiceParam,String(ctx.invoiceNumber));
+      }
+      return u.href;
+    }catch(e){return '';}
+  }
+  /* Where the QR sits on its page, so the PDF can get a clickable area exactly over it. */
+  function measureQrLink(root,url){
+    if(!url)return null;
+    const qr=root.querySelector('.qr-block'),page=qr&&qr.closest('.invoice-page');
+    if(!page)return null;
+    const pages=Array.from(root.querySelectorAll('.invoice-page')),r=qr.getBoundingClientRect(),pr=page.getBoundingClientRect();
+    if(!r.width||!r.height)return null;
+    return {url,pageIndex:pages.indexOf(page),x:r.left-pr.left,y:r.top-pr.top,w:r.width,h:r.height};
+  }
   function formatServiceLabel(text){
     const words=String(text||'').split(' ');
     return words.length>1?escapeHtml(words[0])+'<br>'+escapeHtml(words.slice(1).join(' ')):escapeHtml(text);
@@ -198,8 +227,9 @@
 
     const qrVisible=c.display?.showQr!==false&&d.showQr;
     const signatureVisible=c.display?.showSignature!==false&&d.showSignature;
+    const qrLinkUrl=getQrLinkUrl(c,{amount:grandTotal,invoiceNumber:d.invoiceNumber});
 
-    const footerHtml=`<div class="inv-footer"><div class="inv-footer-details"><div class="contact-block"><div><i class="fa-solid fa-location-dot"></i> <span>${(c.company?.addressLines||[]).map(escapeHtml).join('<br>')}</span></div><div><i class="fa-solid fa-phone"></i> <span>${escapeHtml(c.company?.phone||'')}</span></div><div><i class="fa-solid fa-envelope"></i> <span>${escapeHtml(c.company?.email||'')}</span></div></div>${qrVisible?`<div class="qr-block"><img src="${escapeHtml(assetSrc(c.assets?.scannerQr||''))}" crossOrigin="anonymous" alt="QR Code"><span>${escapeHtml(c.scanner?.scannerCaption||'')}</span></div>`:''}${signatureVisible?`<div class="sign-block"><div class="for-line">${escapeHtml(c.signatureBlock?.forLine||'')}</div><img src="${escapeHtml(assetSrc(c.assets?.signature||''))}" crossOrigin="anonymous" alt="Signature"><div class="auth-line">${escapeHtml(c.signatureBlock?.authLine||'')}</div></div>`:''}</div><div class="inv-services">${(c.services||[]).map((s,i)=>`${i>0?'<span class="inv-services__sep"></span>':''}<div class="inv-services__item"><i class="fa-solid ${escapeHtml(s.icon)}"></i> <div>${formatServiceLabel(s.label)}</div></div>`).join('')}</div><div class="inv-thanks-container"><div class="inv-thanks-line left"></div><div class="inv-thanks">${escapeHtml(c.footer?.thankYouMessage||'')}</div><div class="inv-thanks-line right"></div></div><div class="inv-copy">${escapeHtml(c.footer?.copyrightLine||'')}</div></div>`;
+    const footerHtml=`<div class="inv-footer"><div class="inv-footer-details"><div class="contact-block"><div><i class="fa-solid fa-location-dot"></i> <span>${(c.company?.addressLines||[]).map(escapeHtml).join('<br>')}</span></div><div><i class="fa-solid fa-phone"></i> <span>${escapeHtml(c.company?.phone||'')}</span></div><div><i class="fa-solid fa-envelope"></i> <span>${escapeHtml(c.company?.email||'')}</span></div></div>${qrVisible?`${qrLinkUrl?`<a class="qr-block" href="${escapeHtml(qrLinkUrl)}" target="_blank" rel="noopener noreferrer">`:'<div class="qr-block">'}<img src="${escapeHtml(assetSrc(c.assets?.scannerQr||''))}" crossOrigin="anonymous" alt="QR Code"><span ><i class="fa-solid fa-hand-pointer"></i> ${escapeHtml(c.scanner?.scannerCaption||'')}</span>${qrLinkUrl?'</a>':'</div>'}`:''}${signatureVisible?`<div class="sign-block"><div class="for-line">${escapeHtml(c.signatureBlock?.forLine||'')}</div><img src="${escapeHtml(assetSrc(c.assets?.signature||''))}" crossOrigin="anonymous" alt="Signature"><div class="auth-line">${escapeHtml(c.signatureBlock?.authLine||'')}</div></div>`:''}</div><div class="inv-services">${(c.services||[]).map((s,i)=>`${i>0?'<span class="inv-services__sep"></span>':''}<div class="inv-services__item"><i class="fa-solid ${escapeHtml(s.icon)}"></i> <div>${formatServiceLabel(s.label)}</div></div>`).join('')}</div><div class="inv-thanks-container"><div class="inv-thanks-line left"></div><div class="inv-thanks">${escapeHtml(c.footer?.thankYouMessage||'')}</div><div class="inv-thanks-line right"></div></div><div class="inv-copy">${escapeHtml(c.footer?.copyrightLine||'')}</div></div>`;
 
     const notesText=d.notes===null?(c.invoice?.defaultNotes||''):String(d.notes||'').trim();
     const showNotes=c.display?.showNotes!==false&&notesText&&d.includeNotesOnPdf;
@@ -381,6 +411,8 @@
       }catch(e){inlineCss='';}
     }
 
+    const qrData=normalizeData(data);
+    const qrLink=measureQrLink(root,getQrLinkUrl(CONFIG||{},{amount:calculateTotals(qrData.products,qrData.serviceCharge).grandTotal,invoiceNumber:qrData.invoiceNumber}));
     const invoiceNumber=normalizeData(data).invoiceNumber;
     const opt={
       margin:0,
@@ -416,7 +448,15 @@
     };
 
     const html2pdfFn=await loadHtml2Pdf();
-    const blob=await html2pdfFn().set(opt).from(wrapper).outputPdf('blob');
+    /* Add the clickable QR area on the page that holds the QR (the last page). */
+    const blob=await html2pdfFn().set(opt).from(wrapper).toPdf().get('pdf').then(pdf=>{
+      if(!qrLink)return;
+      try{
+        const pg=Math.min(Math.max(qrLink.pageIndex+1,1),pdf.internal.getNumberOfPages());
+        pdf.setPage(pg);
+        pdf.link(qrLink.x,qrLink.y,qrLink.w,qrLink.h,{url:qrLink.url});
+      }catch(e){console.warn('QR link not added:',e);}
+    }).outputPdf('blob');
     return {blob,filename:opt.filename};
   }
 

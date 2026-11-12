@@ -31,7 +31,7 @@
     "mainLogo": "assets/logo/logo.png",
     "watermark": "assets/logo/main-logo.png",
     "signature": "assets/signature/signature.png",
-    "scannerQr": "assets/icons/whatsapp-qr.jpeg"
+    "scannerQr": "assets/icons/pay-qr.png"
   },
   "supabase": {
     "url": "https://tdytfzqtaxijlbmfnxee.supabase.co",
@@ -60,7 +60,25 @@
     "authLine": "Authorized Signature"
   },
   "scanner": {
-    "scannerCaption": "Scan to Connect"
+    "scannerCaption": "Click to Pay",
+    "linkEnabled": true,
+    "linkUrl": "./payment.html",
+    "linkAmountParam": "amount",
+    "linkInvoiceParam": "inv"
+  },
+  "payment": {
+    "pageTitle": "Payment Portal",
+    "payeeName": "JAS Tech",
+    "upiId": "9030985832@ibl",
+    "qrLogo": "assets/logo/logo-qr.png",
+    "bank": {
+      "accountName": "Shaik Jameer Ali",
+      "accountNumber": "41015414580",
+      "ifsc": "SBIN0003264",
+      "bankName": "State Bank of India",
+      "branch": "VETAPALEM",
+      "accountType": "Savings"
+    }
   },
   "services": [
     {

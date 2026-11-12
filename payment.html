@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#000000">
+<title>Payment Portal</title>
+<link rel="icon" href="assets/icons/app-icon.png">
+<link rel="apple-touch-icon" href="assets/icons/app-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.3.1/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js" defer></script>
+<style>
+/* ==========================================================
+   PAYMENT PAGE — strict black & white theme
+   Mobile first; centred card on laptops.
+   ========================================================== */
+:root{
+  --bg:#000;
+  --surface:#0a0a0a;
+  --surface-2:#141414;
+  --line:#262626;
+  --line-strong:#3a3a3a;
+  --text:#fff;
+  --muted:#a3a3a3;
+  --faint:#737373;
+  --radius:16px;
+  color-scheme:dark;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html{height:100%;}
+body{
+  min-height:100%;
+  background:var(--bg);
+  color:var(--text);
+  font-family:"Roboto",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:15px;
+  line-height:1.45;
+  padding:max(16px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) max(20px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left));
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;
+}
+button,input{font:inherit;color:inherit;}
+button{cursor:pointer;background:none;border:none;}
+:focus-visible{outline:2px solid #fff;outline-offset:2px;}
+.hide{display:none !important;}
+
+.card{
+  width:100%;
+  max-width:480px;
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:22px;
+  padding:22px 18px 18px;
+  margin:auto;
+}
+
+/* ---------- Brand ---------- */
+.brand{text-align:center;padding-bottom:18px;border-bottom:1px solid var(--line);}
+.brand__plate{
+  display:inline-flex;align-items:center;justify-content:center;
+  background:#fff;border-radius:12px;padding:6px 14px;max-width:100%;
+}
+.brand__plate img{display:block;height:50px;max-width:250px;object-fit:contain;}
+.brand__name{font-size:20px;font-weight:700;letter-spacing:.2px;}
+.brand__sub{margin-top:8px;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:500;}
+
+/* ---------- Amount ---------- */
+.amount{margin-top:18px;border:1px solid var(--line);background:var(--surface-2);border-radius:var(--radius);padding:16px;}
+.amount__top{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.amount__label{font-size:13px;color:var(--muted);font-weight:500;}
+.badge{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:11px;font-weight:600;letter-spacing:.3px;
+  padding:3px 10px;border-radius:999px;
+  background:#fff;color:#000;white-space:nowrap;
+}
+.badge--ghost{background:#1d1d1d;color:var(--muted);border:1px solid var(--line-strong);}
+.amount__row{display:flex;align-items:center;gap:6px;margin-top:10px;border-bottom:2px solid var(--line-strong);padding-bottom:6px;transition:border-color .15s;}
+.amount__row:focus-within{border-color:#fff;}
+.amount__row.is-error{border-color:#fff;border-bottom-style:dashed;}
+.amount__symbol{font-size:34px;font-weight:600;line-height:1;}
+.amount__input{
+  flex:1;min-width:0;width:100%;
+  background:none;border:none;outline:none;
+  font-size:40px;font-weight:700;letter-spacing:.3px;line-height:1.15;
+  caret-color:#fff;
+}
+.amount__input::placeholder{color:var(--faint);font-weight:500;}
+.amount__hint{margin-top:10px;font-size:12px;color:var(--muted);min-height:18px;}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
+.chip{
+  display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--muted);
+  border:1px solid var(--line-strong);border-radius:999px;padding:4px 11px;
+}
+.chip b{color:#fff;font-weight:600;}
+
+/* ---------- Methods ---------- */
+.section-title{margin:22px 2px 10px;font-size:13px;font-weight:600;color:var(--muted);letter-spacing:.4px;}
+.methods{display:flex;flex-direction:column;gap:10px;}
+.method{border:1px solid var(--line);border-radius:var(--radius);background:var(--surface-2);overflow:hidden;}
+.method__head{
+  width:100%;display:flex;align-items:center;gap:12px;text-align:left;
+  padding:14px 14px;min-height:60px;
+}
+.method__icon{width:22px;text-align:center;font-size:18px;flex-shrink:0;}
+.method__copy{flex:1;min-width:0;}
+.method__title{display:block;font-weight:600;font-size:15px;}
+.method__desc{display:block;font-size:12px;color:var(--muted);margin-top:1px;}
+.method__chev{font-size:13px;color:var(--muted);transition:transform .2s;flex-shrink:0;}
+.method.is-open .method__chev{transform:rotate(90deg);}
+.method.is-disabled{opacity:.55;}
+.method.is-disabled .method__head{cursor:not-allowed;}
+.method.is-disabled .method__title,.method.is-disabled .method__icon{color:var(--muted);}
+.method__body{display:none;padding:2px 14px 16px;border-top:1px solid var(--line);}
+.method.is-open .method__body{display:block;}
+.method__note{margin-top:12px;font-size:12px;color:var(--muted);text-align:center;}
+
+/* ---------- QR ---------- */
+.qr{display:flex;flex-direction:column;align-items:center;gap:12px;padding-top:16px;}
+.qr__plate{
+  width:min(100%,300px);aspect-ratio:1/1;
+  background:#fff;border-radius:18px;padding:10px;
+  display:flex;align-items:center;justify-content:center;position:relative;
+}
+.qr__canvas{width:100% !important;height:100% !important;display:block;border-radius:8px;}
+.qr__empty{
+  position:absolute;inset:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+  text-align:center;color:#555;font-size:13px;padding:16px;background:#fff;border-radius:10px;
+}
+.qr__empty i{font-size:34px;color:#bbb;}
+.qr__caption{font-size:12px;color:var(--muted);text-align:center;}
+.skeleton{
+  position:absolute;inset:10px;border-radius:10px;
+  background:linear-gradient(90deg,#eee 25%,#f7f7f7 50%,#eee 75%);background-size:200% 100%;
+  animation:shimmer 1.2s infinite linear;
+}
+@keyframes shimmer{to{background-position:-200% 0;}}
+
+/* ---------- Buttons ---------- */
+.btn{
+  width:100%;display:flex;align-items:center;justify-content:center;gap:10px;
+  min-height:50px;padding:12px 18px;border-radius:14px;font-weight:600;font-size:16px;
+  transition:transform .08s,opacity .15s,background .15s;
+}
+.btn:active{transform:scale(.985);}
+.btn--primary{background:#fff;color:#000;}
+.btn--primary:hover{background:#e6e6e6;}
+.btn--primary:disabled{background:#2a2a2a;color:#777;cursor:not-allowed;}
+.btn--outline{border:1px solid var(--line-strong);color:#fff;}
+.btn--outline:hover{background:#151515;}
+.upi-pay{margin-top:14px;}
+
+/* ---------- Bank ---------- */
+.bank{list-style:none;margin-top:6px;}
+.bank__row{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);}
+.bank__row:last-child{border-bottom:none;}
+.bank__info{flex:1;min-width:0;}
+.bank__k{display:block;font-size:11px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);font-weight:500;}
+.bank__v{display:block;font-size:16px;font-weight:600;word-break:break-all;margin-top:1px;user-select:all;-webkit-user-select:all;}
+.copy{
+  flex-shrink:0;width:42px;height:42px;border-radius:12px;border:1px solid var(--line-strong);
+  display:flex;align-items:center;justify-content:center;font-size:15px;transition:background .15s;
+}
+.copy:hover{background:#1c1c1c;}
+.copy.is-copied{background:#fff;color:#000;border-color:#fff;}
+.bank__all{margin-top:12px;min-height:44px;font-size:14px;}
+
+/* ---------- Footer ---------- */
+.secure{margin-top:18px;text-align:center;font-size:12px;color:var(--faint);}
+.thanks{margin-top:4px;text-align:center;font-size:13px;color:var(--muted);}
+.done{margin-top:18px;}
+
+/* ---------- Toast ---------- */
+.toast{
+  position:fixed;left:50%;bottom:max(24px,env(safe-area-inset-bottom));transform:translate(-50%,20px);
+  background:#fff;color:#000;font-weight:600;font-size:14px;padding:10px 18px;border-radius:999px;
+  opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:50;max-width:90vw;text-align:center;
+}
+.toast.show{opacity:1;transform:translate(-50%,0);}
+
+/* ---------- Error / loading ---------- */
+.state{display:flex;flex-direction:column;align-items:center;padding:36px 8px 10px;color:var(--muted);}
+.state i{font-size:34px;color:#fff;margin-bottom:14px;display:block;}
+.state h1{font-size:18px;color:#fff;margin-bottom:6px;}
+
+/* ---------- Laptop / large screens ---------- */
+@media (min-width:700px){
+  body{padding-top:40px;padding-bottom:40px;font-size:16px;}
+  .card{max-width:540px;padding:30px 28px 24px;border-radius:26px;}
+  .amount{padding:20px;}
+  .amount__input{font-size:46px;}
+  .method__head{padding:16px;}
+  .method__body{padding:4px 16px 18px;}
+}
+@media (max-width:699px){
+  body{padding:max(14px,env(safe-area-inset-top)) 0 max(20px,env(safe-area-inset-bottom));background:#000;}
+  .card{
+    max-width:none;
+    background:transparent;
+    border:none;
+    border-radius:0;
+    padding:6px max(16px,env(safe-area-inset-right)) 0 max(16px,env(safe-area-inset-left));
+  }
+}
+@media (max-width:360px){
+  .amount__input{font-size:34px;}
+  .amount__symbol{font-size:28px;}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important;}}
+</style>
+</head>
+<body>
+
+<main class="card" id="app">
+  <div class="state" id="stateLoading">
+    <i class="fa-solid fa-circle-notch fa-spin"></i>
+    <h1>Loading payment details…</h1>
+  </div>
+
+  <div class="state hide" id="stateError">
+    <i class="fa-solid fa-triangle-exclamation"></i>
+    <h1>Payment page unavailable</h1>
+    <p id="errorMessage">Could not load the payment details. Please try again.</p>
+  </div>
+
+  <div id="content" class="hide">
+    <header class="brand">
+      <div class="brand__plate hide" id="brandPlate"><img id="brandLogo" alt=""></div>
+      <div class="brand__name hide" id="brandName"></div>
+      <div class="brand__sub" id="brandSub">Payment Portal</div>
+    </header>
+
+    <section class="amount" aria-label="Payment amount">
+      <div class="amount__top">
+        <span class="amount__label">Payment Amount</span>
+        <span class="badge" id="amountBadge">Editable</span>
+      </div>
+      <div class="amount__row" id="amountRow">
+        <span class="amount__symbol" aria-hidden="true">₹</span>
+        <input class="amount__input" id="amountInput" type="text" inputmode="decimal" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="0.00" maxlength="13" aria-label="Amount in rupees">
+      </div>
+      <div class="amount__hint" id="amountHint">The amount can be edited if necessary.</div>
+      <div class="chips hide" id="chips">
+        <span class="chip hide" id="invChip"><i class="fa-solid fa-file-invoice"></i> Invoice <b id="invValue"></b></span>
+        <span class="chip hide" id="payeeChip"><i class="fa-solid fa-store"></i> <b id="payeeValue"></b></span>
+      </div>
+    </section>
+
+    <h2 class="section-title">Choose Payment Method</h2>
+
+    <div class="methods">
+      <!-- Scan & Pay -->
+      <div class="method" id="mScan">
+        <button class="method__head" type="button" aria-expanded="false" aria-controls="bScan" data-toggle="mScan">
+          <span class="method__icon"><i class="fa-solid fa-qrcode"></i></span>
+          <span class="method__copy">
+            <span class="method__title">Scan &amp; Pay</span>
+            <span class="method__desc" id="scanDesc">Scan the QR code with any UPI app.</span>
+          </span>
+          <i class="fa-solid fa-chevron-right method__chev"></i>
+        </button>
+        <div class="method__body" id="bScan">
+          <div class="qr">
+            <div class="qr__plate">
+              <canvas class="qr__canvas hide" id="qrCanvas" width="560" height="560" aria-label="UPI payment QR code"></canvas>
+              <div class="skeleton hide" id="qrSkeleton"></div>
+              <div class="qr__empty" id="qrEmpty"><i class="fa-solid fa-qrcode"></i><span id="qrEmptyText">Enter an amount to show the QR code.</span></div>
+            </div>
+            <div class="qr__caption" id="qrCaption">Scan using any UPI app</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- UPI apps -->
+      <div class="method" id="mUpi">
+        <button class="method__head" type="button" aria-expanded="false" aria-controls="bUpi" data-toggle="mUpi">
+          <span class="method__icon"><i class="fa-solid fa-mobile-screen-button"></i></span>
+          <span class="method__copy">
+            <span class="method__title">Pay via UPI Apps</span>
+            <span class="method__desc" id="upiDesc">Open your UPI app on this phone.</span>
+          </span>
+          <i class="fa-solid fa-chevron-right method__chev" id="upiChev"></i>
+        </button>
+        <div class="method__body" id="bUpi">
+          <button class="btn btn--primary upi-pay" id="btnUpiPay" type="button" disabled>
+            <i class="fa-solid fa-bolt"></i><span id="upiPayLabel">Pay</span>
+          </button>
+          <p class="method__note">Opens Google Pay, PhonePe, Paytm or any UPI app installed on your phone.</p>
+        </div>
+      </div>
+
+      <!-- Bank transfer -->
+      <div class="method" id="mBank">
+        <button class="method__head" type="button" aria-expanded="false" aria-controls="bBank" data-toggle="mBank">
+          <span class="method__icon"><i class="fa-solid fa-building-columns"></i></span>
+          <span class="method__copy">
+            <span class="method__title">Bank Transfer</span>
+            <span class="method__desc" id="bankDesc">Show bank account details.</span>
+          </span>
+          <i class="fa-solid fa-chevron-right method__chev" id="bankChev"></i>
+        </button>
+        <div class="method__body" id="bBank">
+          <ul class="bank" id="bankList"></ul>
+          <button class="btn btn--outline bank__all" id="btnCopyAll" type="button"><i class="fa-regular fa-copy"></i> Copy all details</button>
+        </div>
+      </div>
+    </div>
+
+    <p class="secure"><i class="fa-solid fa-lock"></i> Securely verify the payment with your payment provider.</p>
+    <p class="thanks" id="thanksLine"></p>
+
+    <button class="btn btn--primary done" id="btnDone" type="button"><i class="fa-solid fa-check"></i> Done</button>
+  </div>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  'use strict';
+  const $=id=>document.getElementById(id);
+  const MAX_AMOUNT=10000000;      /* ₹1 crore safety cap */
+  const UPI_SOFT_LIMIT=100000;    /* show a gentle hint above this */
+  const UPI_REGEX=/^[A-Za-z0-9._-]{2,256}@[A-Za-z][A-Za-z0-9.-]{1,63}$/;
+
+  let CONFIG=null, amount=null, invoiceNo='', payeeName='', upiId='';
+  let qrToken=0, qrTimer=null, logoPromise=null, toastTimer=null;
+
+  const inr=new Intl.NumberFormat('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const fmt=n=>'₹'+inr.format(n);
+  const round2=n=>Math.round((n+Number.EPSILON)*100)/100;
+
+  /* ---------- Helpers ---------- */
+  function isMobileDevice(){
+    const ua=navigator.userAgent||'';
+    if(/Android|iPhone|iPad|iPod/i.test(ua))return true;
+    return /Macintosh/.test(ua)&&navigator.maxTouchPoints>1;   /* iPadOS */
+  }
+  function toast(msg){
+    const t=$('toast');
+    t.textContent=msg;t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer=setTimeout(()=>t.classList.remove('show'),1600);
+  }
+  function showError(msg){
+    $('stateLoading').classList.add('hide');
+    $('content').classList.add('hide');
+    $('errorMessage').textContent=msg;
+    $('stateError').classList.remove('hide');
+  }
+  function parseAmount(raw){
+    const n=parseFloat(String(raw==null?'':raw).replace(/,/g,''));
+    if(!Number.isFinite(n)||n<=0)return null;
+    return round2(Math.min(n,MAX_AMOUNT));
+  }
+  async function copyText(text){
+    try{
+      if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(text);return true;}
+    }catch(e){}
+    try{    /* fallback for older browsers / http */
+      const ta=document.createElement('textarea');
+      ta.value=text;ta.setAttribute('readonly','');
+      ta.style.cssText='position:fixed;top:0;left:0;opacity:0;';
+      document.body.appendChild(ta);ta.select();ta.setSelectionRange(0,text.length);
+      const ok=document.execCommand('copy');
+      document.body.removeChild(ta);
+      return ok;
+    }catch(e){return false;}
+  }
+
+  /* ---------- UPI link ---------- */
+  function buildUpiUri(amt){
+    const p=['pa='+encodeURIComponent(upiId)];
+    if(payeeName)p.push('pn='+encodeURIComponent(payeeName));
+    p.push('am='+encodeURIComponent(amt.toFixed(2)));
+    p.push('cu=INR');
+    p.push('tn='+encodeURIComponent(invoiceNo?('Invoice '+invoiceNo):'Payment'));
+    return 'upi://pay?'+p.join('&');
+  }
+
+  /* ---------- QR with logo in the middle (same styling as the invoice QR in index.html) ---------- */
+  function loadLogo(){
+    if(logoPromise)return logoPromise;
+    const src=(CONFIG.payment&&CONFIG.payment.qrLogo)||'assets/logo/logo-qr.png';
+    logoPromise=new Promise(resolve=>{
+      const img=new Image();
+      img.decoding='async';
+      img.onload=()=>resolve(img);
+      img.onerror=()=>resolve(null);     /* QR still works without the logo */
+      img.src=src;
+    });
+    return logoPromise;
+  }
+  async function drawQr(text){
+    const canvas=$('qrCanvas');
+    /* 'H' level so the QR still scans with the logo covering its centre */
+    await QRCode.toCanvas(canvas,text,{width:560,margin:1,errorCorrectionLevel:'H'});
+    const logo=await loadLogo();
+    if(!logo)return;
+    const ctx=canvas.getContext('2d');
+    if(!ctx)return;
+    const qrSize=canvas.width;
+    const logoSize=Math.round(qrSize*0.22);
+    const logoPadding=7,qrMargin=12,borderWidth=2;
+    const logoPlateSize=logoSize+logoPadding*2;
+    const outerPlateSize=logoPlateSize+qrMargin*2;
+    const c=qrSize/2,logoR=logoSize/2,plateR=logoPlateSize/2,outerR=outerPlateSize/2;
+    ctx.save();
+    ctx.fillStyle='#fff';                       /* 1. white clearance */
+    ctx.beginPath();ctx.arc(c,c,outerR,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#fff';                       /* 2. white logo plate */
+    ctx.beginPath();ctx.arc(c,c,plateR,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#000';                     /* 3. circular border */
+    ctx.lineWidth=borderWidth;
+    ctx.beginPath();ctx.arc(c,c,plateR,0,Math.PI*2);ctx.stroke();
+    ctx.save();                                 /* 4. circular logo */
+    ctx.beginPath();ctx.arc(c,c,logoR,0,Math.PI*2);ctx.clip();
+    ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+    ctx.drawImage(logo,c-logoR,c-logoR,logoSize,logoSize);
+    ctx.restore();
+    ctx.restore();
+  }
+  function setQrState(mode,msg){
+    /* mode: 'empty' | 'loading' | 'ready' */
+    $('qrEmpty').classList.toggle('hide',mode!=='empty');
+    $('qrSkeleton').classList.toggle('hide',mode!=='loading');
+    $('qrCanvas').classList.toggle('hide',mode!=='ready');
+    if(msg)$('qrEmptyText').textContent=msg;
+  }
+  async function renderQr(){
+    const token=++qrToken;
+    if(!upiId){setQrState('empty','UPI payment is not set up yet. Please use bank transfer.');return;}
+    if(!amount){setQrState('empty','Enter an amount to show the QR code.');return;}
+    if(!window.QRCode||!QRCode.toCanvas){setQrState('empty','QR generator unavailable. Please refresh.');return;}
+    setQrState('loading');
+    try{
+      await drawQr(buildUpiUri(amount));
+      if(token!==qrToken)return;               /* a newer amount arrived */
+      setQrState('ready');
+      $('qrCaption').textContent='Scan using any UPI app to pay '+fmt(amount);
+    }catch(err){
+      console.error('QR error:',err);
+      if(token===qrToken)setQrState('empty','Could not create the QR code. Please try again.');
+    }
+  }
+  function scheduleQr(){
+    clearTimeout(qrTimer);
+    qrTimer=setTimeout(renderQr,220);
+  }
+
+  /* ---------- Amount ---------- */
+  function refreshAmountUi(){
+    const row=$('amountRow');
+    row.classList.remove('is-error');
+    const hint=$('amountHint');
+    hint.textContent=amount
+      ? (amount>UPI_SOFT_LIMIT?'Amounts above ₹1,00,000 may exceed your UPI app or bank limit.':'The amount can be edited if necessary.')
+      : 'Enter the amount you want to pay.';
+    $('upiPayLabel').textContent=amount?('Pay '+fmt(amount)):'Pay';
+    $('btnUpiPay').disabled=!(amount&&upiId);
+  }
+  function onAmountInput(e){
+    let v=e.target.value.replace(/[^\d.]/g,'');
+    const dot=v.indexOf('.');
+    if(dot!==-1)v=v.slice(0,dot+1)+v.slice(dot+1).replace(/\./g,'').slice(0,2);
+    v=v.replace(/^0+(?=\d)/,'');
+    if(parseFloat(v)>MAX_AMOUNT)v=String(MAX_AMOUNT);
+    if(v!==e.target.value)e.target.value=v;
+    amount=parseAmount(v);
+    refreshAmountUi();
+    scheduleQr();
+  }
+  function onAmountBlur(){
+    if(amount)$('amountInput').value=amount.toFixed(2).replace(/\.00$/,'');
+  }
+
+  /* ---------- Methods (accordion) ---------- */
+  function toggleMethod(id){
+    const m=$(id);
+    if(!m||m.classList.contains('is-disabled'))return;
+    const open=!m.classList.contains('is-open');
+    m.classList.toggle('is-open',open);
+    m.querySelector('.method__head').setAttribute('aria-expanded',String(open));
+  }
+  /* A method that can't be used is simply greyed out and its caption says why. */
+  function disableMethod(id,chevId,desc){
+    const m=$(id);
+    m.classList.add('is-disabled');
+    m.classList.remove('is-open');
+    const head=m.querySelector('.method__head');
+    head.setAttribute('aria-disabled','true');
+    head.setAttribute('aria-expanded','false');
+    $(chevId).classList.add('hide');
+    if(desc)m.querySelector('.method__desc').textContent=desc;
+  }
+
+  /* ---------- Bank details ---------- */
+  const BANK_FIELDS=[
+    ['accountName','Account Name'],
+    ['accountNumber','Account Number'],
+    ['ifsc','IFSC Code'],
+    ['bankName','Bank'],
+    ['branch','Branch'],
+    ['accountType','Account Type']
+  ];
+  function buildBank(){
+    const bank=(CONFIG.payment&&CONFIG.payment.bank)||{};
+    const rows=BANK_FIELDS.map(([k,label])=>({label,value:String(bank[k]||'').trim()})).filter(r=>r.value);
+    if(!rows.length){
+      disableMethod('mBank','bankChev','Bank details are not set up yet.');
+      return;
+    }
+    const list=$('bankList');
+    list.textContent='';
+    rows.forEach(r=>{
+      const li=document.createElement('li');li.className='bank__row';
+      const info=document.createElement('div');info.className='bank__info';
+      const k=document.createElement('span');k.className='bank__k';k.textContent=r.label;
+      const v=document.createElement('span');v.className='bank__v';v.textContent=r.value;
+      info.append(k,v);
+      const btn=document.createElement('button');
+      btn.type='button';btn.className='copy';btn.setAttribute('aria-label','Copy '+r.label);
+      btn.innerHTML='<i class="fa-regular fa-copy"></i>';
+      btn.addEventListener('click',async()=>{
+        const ok=await copyText(r.value);
+        if(ok){
+          btn.classList.add('is-copied');btn.innerHTML='<i class="fa-solid fa-check"></i>';
+          setTimeout(()=>{btn.classList.remove('is-copied');btn.innerHTML='<i class="fa-regular fa-copy"></i>';},1400);
+          toast(r.label+' copied');
+        }else toast('Could not copy. Press and hold to select.');
+      });
+      li.append(info,btn);
+      list.appendChild(li);
+    });
+    $('btnCopyAll').addEventListener('click',async()=>{
+      const text=rows.map(r=>r.label+': '+r.value).join('\n');
+      toast(await copyText(text)?'Bank details copied':'Could not copy. Press and hold to select.');
+    });
+  }
+
+  /* ---------- Done ---------- */
+  function handleDone(){
+    /* Same behaviour as invoice.html: go back one step, or close if there is no history. */
+    if(history.length>1){history.back();return;}
+    try{window.close();}catch(e){}
+  }
+
+  /* ---------- Boot ---------- */
+  async function loadConfig(){
+    const ctrl=new AbortController();
+    const to=setTimeout(()=>ctrl.abort(),9000);
+    try{
+      /* X-Bypass-SW makes the service worker skip its cached config.json, so a new
+         UPI ID / bank detail shows immediately. If that fails (offline), fall back
+         to the normal request, which the service worker can answer from cache. */
+      let r;
+      try{
+        r=await fetch('./config.json',{cache:'no-store',headers:{'X-Bypass-SW':'1'},signal:ctrl.signal});
+        if(!r.ok)throw new Error('config '+r.status);
+      }catch(e){
+        r=await fetch('./config.json',{signal:ctrl.signal});
+        if(!r.ok)throw new Error('config '+r.status);
+      }
+      return await r.json();
+    }finally{clearTimeout(to);}
+  }
+  function buildPage(){
+    const pay=CONFIG.payment||{};
+    const company=CONFIG.company||{};
+    payeeName=String(pay.payeeName||company.name||'').trim();
+    upiId=String(pay.upiId||'').trim();
+    if(upiId&&!UPI_REGEX.test(upiId)){console.warn('payment.upiId looks invalid:',upiId);upiId='';}
+
+    document.title=(pay.pageTitle||'Payment Portal')+(company.name?' · '+company.name:'');
+    $('brandSub').textContent=pay.pageTitle||'Payment Portal';
+
+    /* brand: logo on a white plate, falls back to the company name */
+    const logoSrc=(CONFIG.assets&&CONFIG.assets.horizontalLogo)||'';
+    const showName=()=>{$('brandPlate').classList.add('hide');const n=$('brandName');n.textContent=company.name||'';n.classList.toggle('hide',!company.name);};
+    if(logoSrc){
+      const img=$('brandLogo');
+      img.alt=company.name||'';
+      img.onerror=showName;
+      img.onload=()=>$('brandPlate').classList.remove('hide');
+      img.src=logoSrc;
+    }else showName();
+
+    /* chips */
+    if(invoiceNo){$('invValue').textContent='#'+invoiceNo;$('invChip').classList.remove('hide');}
+    if(payeeName){$('payeeValue').textContent=payeeName;$('payeeChip').classList.remove('hide');}
+    $('chips').classList.toggle('hide',!invoiceNo&&!payeeName);
+
+    $('thanksLine').textContent=(CONFIG.footer&&CONFIG.footer.thankYouMessage)||'';
+
+    /* methods */
+    if(!upiId){
+      disableMethod('mUpi','upiChev','UPI payment is not set up yet.');
+      $('scanDesc').textContent='UPI payment is not set up yet.';
+    }else if(!isMobileDevice()){
+      disableMethod('mUpi','upiChev','UPI app payments are available on supported mobile devices only.');
+    }
+    buildBank();
+
+    /* amount from the link: payment.html?amount=5000 */
+    const params=new URLSearchParams(location.search);
+    amount=parseAmount(params.get('amount'));
+    invoiceNo=String(params.get('inv')||'').trim().slice(0,40);
+    if(invoiceNo){$('invValue').textContent='#'+invoiceNo;$('invChip').classList.remove('hide');$('chips').classList.remove('hide');}
+    const input=$('amountInput');
+    if(amount)input.value=amount.toFixed(2).replace(/\.00$/,'');
+    refreshAmountUi();
+
+    $('stateLoading').classList.add('hide');
+    $('content').classList.remove('hide');
+    if(!amount)setTimeout(()=>input.focus(),150);
+    renderQr();
+  }
+  function bindEvents(){
+    document.querySelectorAll('[data-toggle]').forEach(b=>b.addEventListener('click',()=>toggleMethod(b.getAttribute('data-toggle'))));
+    $('amountInput').addEventListener('input',onAmountInput);
+    $('amountInput').addEventListener('blur',onAmountBlur);
+    $('btnUpiPay').addEventListener('click',()=>{
+      if(!amount){$('amountRow').classList.add('is-error');$('amountInput').focus();return;}
+      if(!upiId)return;
+      window.location.href=buildUpiUri(amount);
+    });
+    $('btnDone').addEventListener('click',handleDone);
+  }
+
+  function boot(){
+    bindEvents();
+    loadConfig().then(cfg=>{CONFIG=cfg;buildPage();}).catch(err=>{
+      console.error(err);
+      showError('Could not load the payment details. Please check your connection and try again.');
+    });
+  }
+  /* The QR library is loaded with defer: wait until it has run before starting. */
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);
+  else boot();
+})();
+</script>
+</body>
+</html>
