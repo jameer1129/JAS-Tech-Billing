@@ -2864,6 +2864,122 @@ body.dark-theme .nav-tabs::before{background:rgba(82,120,216,.24);}
   .nav-tab.has-alert .nav-dot,.nav-tab.has-alert .nav-tab__icon > i,.nav-tab.pop .nav-tab__icon > i{animation:none!important;}
   .app-shell.view-enter-next > .card,.app-shell.view-enter-prev > .card,.app-shell.view-enter-next > .admin-stats,.app-shell.view-enter-prev > .admin-stats{animation:none!important;}
 }
+
+/* ==========================================================
+   JAS AI VOICE ASSISTANT — PHASE 1 UI
+   Uses existing theme variables. No billing/reminder logic.
+   ========================================================== */
+.jas-ai[hidden],
+.jas-ai__panel[hidden]{display:none!important;}
+.jas-ai{position:relative;z-index:60;color:var(--text);}
+.jas-ai__fab{
+  position:fixed;right:20px;bottom:calc(94px + env(safe-area-inset-bottom,0px));z-index:60;
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  min-width:60px;height:60px;padding:0 15px;border:0;border-radius:999px;
+  color:#fff;background:var(--primary);box-shadow:0 8px 24px rgba(1,37,135,.28);
+  cursor:pointer;transition:transform .16s ease,box-shadow .16s ease,opacity .16s ease;
+  -webkit-tap-highlight-color:transparent;
+}
+.jas-ai__fab:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(1,37,135,.34);}
+.jas-ai__fab:active{transform:scale(.96);}
+.jas-ai__fab:focus-visible,.jas-ai__close:focus-visible,.jas-ai__mic:focus-visible{
+  outline:3px solid var(--focus-ring);outline-offset:3px;
+}
+.jas-ai__fab-icon{
+  display:grid;place-items:center;width:34px;height:34px;border-radius:50%;
+  background:rgba(255,255,255,.16);font-size:17px;
+}
+.jas-ai__fab-label{font-size:13px;font-weight:700;letter-spacing:.1px;white-space:nowrap;}
+.jas-ai__panel{
+  position:fixed;right:20px;bottom:calc(94px + env(safe-area-inset-bottom,0px));z-index:60;
+  display:flex;flex-direction:column;gap:14px;width:min(380px,calc(100vw - 32px));
+  max-height:min(560px,calc(100dvh - 124px - env(safe-area-inset-bottom,0px)));
+  overflow:auto;padding:18px;border:1px solid var(--line);border-radius:20px;
+  color:var(--text);background:var(--surface);
+  box-shadow:0 18px 54px rgba(15,23,42,.22);
+  overscroll-behavior:contain;
+}
+body.dark-theme .jas-ai__panel{box-shadow:0 18px 54px rgba(0,0,0,.58);}
+.jas-ai.is-open .jas-ai__fab{visibility:hidden;pointer-events:none;}
+.jas-ai__header{display:flex;align-items:center;gap:11px;min-width:0;}
+.jas-ai__brand{
+  display:grid;place-items:center;flex:0 0 42px;width:42px;height:42px;border-radius:13px;
+  color:#fff;background:var(--primary);font-size:18px;
+}
+.jas-ai__heading{flex:1;min-width:0;}
+.jas-ai__heading h2{margin:0;color:var(--text);font-size:15px;font-weight:800;line-height:1.25;}
+.jas-ai__heading p{margin:3px 0 0;color:var(--muted);font-size:11.5px;}
+.jas-ai__close{
+  display:grid;place-items:center;flex:0 0 36px;width:36px;height:36px;
+  border:1px solid var(--line);border-radius:10px;color:var(--muted);
+  background:var(--surface);font-size:14px;cursor:pointer;
+}
+.jas-ai__close:hover{color:var(--text);background:var(--bg);}
+.jas-ai__status{
+  display:flex;align-items:center;gap:9px;padding:11px 12px;
+  border:1px solid var(--line);border-radius:12px;background:var(--bg);
+}
+.jas-ai__status-dot{
+  flex:0 0 9px;width:9px;height:9px;border-radius:50%;background:var(--muted);
+}
+.jas-ai__status-copy{min-width:0;}
+.jas-ai__state-label{display:block;font-size:11px;font-weight:800;letter-spacing:.45px;text-transform:uppercase;color:var(--primary-text);}
+.jas-ai__status-text{display:block;margin-top:3px;color:var(--text);font-size:12.5px;line-height:1.4;}
+.jas-ai__visualizer{display:flex;align-items:center;justify-content:center;gap:5px;height:42px;color:var(--primary-text);}
+.jas-ai__visualizer span{display:block;width:4px;height:8px;border-radius:8px;background:currentColor;opacity:.55;}
+.jas-ai[data-state="listening"] .jas-ai__status-dot{background:var(--success);box-shadow:0 0 0 4px rgba(31,146,84,.13);}
+.jas-ai[data-state="processing"] .jas-ai__status-dot{background:var(--warning);animation:jasAiPulse 1s ease-in-out infinite;}
+.jas-ai[data-state="speaking"] .jas-ai__status-dot{background:var(--primary-text);box-shadow:0 0 0 4px var(--focus-ring);}
+.jas-ai[data-state="confirmation"] .jas-ai__status-dot{background:var(--warning);box-shadow:0 0 0 4px rgba(255,151,0,.14);}
+.jas-ai[data-state="listening"] .jas-ai__visualizer span,
+.jas-ai[data-state="speaking"] .jas-ai__visualizer span{opacity:1;animation:jasAiWave .72s ease-in-out infinite alternate;}
+.jas-ai__visualizer span:nth-child(2){animation-delay:.12s;}
+.jas-ai__visualizer span:nth-child(3){animation-delay:.24s;}
+.jas-ai__visualizer span:nth-child(4){animation-delay:.36s;}
+.jas-ai__visualizer span:nth-child(5){animation-delay:.48s;}
+@keyframes jasAiWave{from{height:7px;opacity:.45;}to{height:30px;opacity:1;}}
+@keyframes jasAiPulse{50%{opacity:.35;transform:scale(.78);}}
+.jas-ai__transcript-wrap{
+  padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--bg);
+}
+.jas-ai__transcript-label{display:block;margin-bottom:6px;color:var(--muted);font-size:10px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;}
+.jas-ai__transcript{margin:0;color:var(--text);font-size:13px;line-height:1.5;overflow-wrap:anywhere;white-space:pre-wrap;}
+.jas-ai__scope{margin:0;color:var(--muted);font-size:12px;line-height:1.45;}
+.jas-ai__phase-note{margin:0;padding-top:10px;border-top:1px solid var(--line);color:var(--muted);font-size:10.5px;line-height:1.45;}
+.jas-ai__error{
+  margin:0;padding:10px 11px;border:1px solid rgba(244,67,54,.28);border-radius:10px;
+  color:var(--danger);background:rgba(244,67,54,.07);font-size:12px;line-height:1.45;
+}
+.jas-ai__controls{display:flex;gap:9px;}
+.jas-ai__mic{
+  display:flex;align-items:center;justify-content:center;gap:9px;flex:1;min-height:48px;
+  padding:11px 15px;border:0;border-radius:12px;color:#fff;background:var(--primary);
+  font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s ease,transform .15s ease;
+}
+.jas-ai__mic:active{transform:scale(.98);}
+.jas-ai__mic:disabled{opacity:.48;cursor:not-allowed;transform:none;}
+.jas-ai__mic i{font-size:15px;}
+.jas-ai__mic[aria-pressed="true"]{background:var(--danger);}
+body.kb-open .jas-ai__fab,
+body.kb-open .jas-ai__panel{display:none!important;}
+@media(max-width:640px){
+  .jas-ai__fab{
+    right:14px;bottom:calc(76px + env(safe-area-inset-bottom,0px));
+    width:58px;min-width:58px;height:58px;padding:0;
+  }
+  .jas-ai__fab-label{display:none;}
+  .jas-ai__fab-icon{width:38px;height:38px;font-size:18px;}
+  .jas-ai__panel{
+    left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom,0px));
+    width:auto;max-height:calc(100dvh - 154px - env(safe-area-inset-bottom,0px));
+    padding:16px;border-radius:19px;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .jas-ai__fab,.jas-ai__mic{transition:none;}
+  .jas-ai__visualizer span,.jas-ai__status-dot{animation:none!important;}
+}
+
 </style>
 <link rel="stylesheet" href="./invoice-engine.css?v=8">
 <script src="./invoice-engine.js?v=9"></script>
@@ -3541,6 +3657,50 @@ body.dark-theme .nav-tabs::before{background:rgba(82,120,216,.24);}
     </section>
   </main>
 </div>
+
+<!-- ========== JAS AI VOICE ASSISTANT — PHASE 1 UI ONLY ========== -->
+<div class="jas-ai" id="jasVoiceAssistant" hidden data-state="idle">
+  <button type="button" class="jas-ai__fab" id="jasAiFab"
+    aria-label="Open JAS AI voice assistant" aria-expanded="false" aria-controls="jasAiPanel">
+    <span class="jas-ai__fab-icon" aria-hidden="true"><i class="fa-solid fa-microphone"></i></span>
+    <span class="jas-ai__fab-label">JAS AI</span>
+  </button>
+  <section class="jas-ai__panel" id="jasAiPanel" hidden role="region" aria-labelledby="jasAiTitle">
+    <header class="jas-ai__header">
+      <span class="jas-ai__brand" aria-hidden="true"><i class="fa-solid fa-microphone-lines"></i></span>
+      <div class="jas-ai__heading">
+        <h2 id="jasAiTitle">JAS AI Assistant</h2>
+        <p>Voice assistant</p>
+      </div>
+      <button type="button" class="jas-ai__close" id="jasAiClose" aria-label="Close assistant">
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
+    </header>
+    <div class="jas-ai__status" role="status" aria-live="polite" aria-atomic="true">
+      <span class="jas-ai__status-dot" aria-hidden="true"></span>
+      <span class="jas-ai__status-copy">
+        <span class="jas-ai__state-label" id="jasAiStateLabel">Ready</span>
+        <span class="jas-ai__status-text" id="jasAiStatusText">Tap the microphone and speak naturally.</span>
+      </span>
+    </div>
+    <div class="jas-ai__visualizer" aria-hidden="true">
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <div class="jas-ai__transcript-wrap" id="jasAiTranscriptWrap" hidden>
+      <span class="jas-ai__transcript-label">What I heard</span>
+      <p class="jas-ai__transcript" id="jasAiTranscript"></p>
+    </div>
+    <p class="jas-ai__error" id="jasAiError" role="alert" hidden></p>
+    <p class="jas-ai__scope">I can help with creating a new bill or a reminder.</p>
+    <div class="jas-ai__controls">
+      <button type="button" class="jas-ai__mic" id="jasAiMicButton" aria-label="Start speaking" aria-pressed="false">
+        <i class="fa-solid fa-microphone" aria-hidden="true"></i><span>Start speaking</span>
+      </button>
+    </div>
+    <p class="jas-ai__phase-note">Phase 1: voice interface and browser speech capture only. AI understanding and saving are not connected yet.</p>
+  </section>
+</div>
+
 <div class="modal-overlay hide" id="userInfoModalOverlay" role="presentation">
   <div class="modal user-info-modal" role="dialog" aria-modal="true" aria-labelledby="userInfoTitle">
     <div class="modal__header"><h3 id="userInfoTitle"><i class="fa-solid fa-circle-user" aria-hidden="true"></i> User Info</h3></div>
@@ -11493,5 +11653,338 @@ if ("serviceWorker" in navigator) {
   }
 }
 </script>
+
+<script>
+/* ==========================================================
+   JAS AI VOICE ASSISTANT — PHASE 1
+   UI + browser speech capture/output only.
+   No AI API calls, invoice writes, reminder writes or SQL.
+   ========================================================== */
+(function () {
+  'use strict';
+
+  const root = document.getElementById('jasVoiceAssistant');
+  const appScreen = document.getElementById('appScreen');
+  if (!root || !appScreen) return;
+
+  const fab = document.getElementById('jasAiFab');
+  const panel = document.getElementById('jasAiPanel');
+  const closeButton = document.getElementById('jasAiClose');
+  const micButton = document.getElementById('jasAiMicButton');
+  const stateLabel = document.getElementById('jasAiStateLabel');
+  const statusText = document.getElementById('jasAiStatusText');
+  const transcriptWrap = document.getElementById('jasAiTranscriptWrap');
+  const transcriptOutput = document.getElementById('jasAiTranscript');
+  const errorOutput = document.getElementById('jasAiError');
+
+  const STATES = ['idle', 'listening', 'processing', 'speaking', 'confirmation'];
+  const STATE_LABELS = {
+    idle: 'Ready',
+    listening: 'Listening',
+    processing: 'Processing',
+    speaking: 'Speaking',
+    confirmation: 'Confirmation'
+  };
+  const STATE_MESSAGES = {
+    idle: 'Tap the microphone and speak naturally.',
+    listening: 'Listening… tap the microphone again to stop.',
+    processing: 'Processing your request…',
+    speaking: 'JAS AI is speaking…',
+    confirmation: 'Say yes to confirm, or say change or cancel.'
+  };
+
+  const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let recognition = null;
+  let currentState = 'idle';
+  let isListening = false;
+  let isPanelOpen = false;
+  let finalTranscript = '';
+  let transcriptHandled = false;
+  let suppressAbortError = false;
+
+  function updateMicButton() {
+    if (!micButton) return;
+    const listening = currentState === 'listening';
+    const busy = currentState === 'processing' || currentState === 'speaking';
+    micButton.disabled = !recognition || busy;
+    micButton.setAttribute('aria-pressed', String(listening));
+    micButton.setAttribute('aria-label', listening ? 'Stop listening' : 'Start speaking');
+    micButton.innerHTML = listening
+      ? '<i class="fa-solid fa-stop" aria-hidden="true"></i><span>Stop listening</span>'
+      : '<i class="fa-solid fa-microphone" aria-hidden="true"></i><span>Start speaking</span>';
+  }
+
+  function setState(nextState, message) {
+    if (!STATES.includes(nextState)) return false;
+    currentState = nextState;
+    root.dataset.state = nextState;
+    if (stateLabel) stateLabel.textContent = STATE_LABELS[nextState];
+    if (statusText) statusText.textContent = message || STATE_MESSAGES[nextState];
+    updateMicButton();
+    window.dispatchEvent(new CustomEvent('jas-ai:statechange', {
+      detail: { state: nextState, message: message || STATE_MESSAGES[nextState] }
+    }));
+    return true;
+  }
+
+  function setTranscript(value) {
+    const text = String(value || '').trim();
+    if (transcriptOutput) transcriptOutput.textContent = text;
+    if (transcriptWrap) transcriptWrap.hidden = !text;
+  }
+
+  function setError(message) {
+    if (errorOutput) {
+      errorOutput.textContent = message;
+      errorOutput.hidden = false;
+    }
+    setState('idle', message);
+  }
+
+  function clearError() {
+    if (errorOutput) {
+      errorOutput.textContent = '';
+      errorOutput.hidden = true;
+    }
+  }
+
+  function stopListening() {
+    if (!recognition || !isListening) return;
+    try {
+      recognition.stop();
+    } catch (error) {
+      console.warn('JAS AI speech recognition could not stop cleanly:', error);
+    }
+    if (currentState === 'listening') {
+      setState('idle', 'Listening stopped. Tap the microphone to speak again.');
+    }
+  }
+
+  function startListening() {
+    if (currentState === 'listening') {
+      stopListening();
+      return;
+    }
+    if (!recognition) {
+      setError('Voice input is not supported in this browser. Try a supported browser such as Chrome.');
+      return;
+    }
+    if (!window.isSecureContext) {
+      setError('Microphone access requires a secure HTTPS connection.');
+      return;
+    }
+    if (currentState === 'processing' || currentState === 'speaking') return;
+
+    clearError();
+    finalTranscript = '';
+    transcriptHandled = false;
+    setTranscript('');
+    setState('idle', 'Requesting microphone access…');
+
+    try {
+      // The browser displays its own microphone permission prompt when needed.
+      // Keep this call directly inside the user's microphone-button gesture.
+      recognition.start();
+    } catch (error) {
+      setError(error && error.name === 'NotAllowedError'
+        ? 'Microphone access was denied. Allow microphone access in your browser settings.'
+        : 'Could not start the microphone. Please try again.');
+    }
+  }
+
+  function speak(text, options) {
+    const config = options || {};
+    const afterState = STATES.includes(config.afterState) ? config.afterState : 'idle';
+    const afterMessage = config.afterMessage || 'Voice capture is ready. AI conversation will be connected in the next phase.';
+    if (!text) return false;
+
+    if (recognition && isListening) {
+      try { recognition.stop(); } catch (error) {}
+    }
+    if (!('speechSynthesis' in window) || typeof window.SpeechSynthesisUtterance !== 'function') {
+      setState(afterState, 'Voice output is not supported in this browser.');
+      return false;
+    }
+
+    window.speechSynthesis.cancel();
+    const utterance = new window.SpeechSynthesisUtterance(String(text));
+    utterance.lang = (recognition && recognition.lang) || navigator.language || 'en-IN';
+    utterance.onstart = function () {
+      if (!root.hidden && isPanelOpen) setState('speaking');
+    };
+    utterance.onend = function () {
+      if (!root.hidden && isPanelOpen) setState(afterState, afterMessage);
+    };
+    utterance.onerror = function () {
+      if (!root.hidden && isPanelOpen) setState(afterState, 'Voice response could not be played.');
+    };
+    setState('processing', 'Preparing voice response…');
+    window.speechSynthesis.speak(utterance);
+    return true;
+  }
+
+  function openPanel() {
+    if (root.hidden) return;
+    isPanelOpen = true;
+    root.classList.add('is-open');
+    panel.hidden = false;
+    fab.setAttribute('aria-expanded', 'true');
+    if (!recognition) {
+      setError('Voice input is not supported in this browser. Try a supported browser such as Chrome.');
+    } else if (currentState === 'idle') {
+      setState('idle');
+    }
+  }
+
+  function closePanel(returnFocus) {
+    isPanelOpen = false;
+    if (recognition && isListening) {
+      suppressAbortError = true;
+      try { recognition.abort(); } catch (error) {}
+    }
+    isListening = false;
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    panel.hidden = true;
+    root.classList.remove('is-open');
+    fab.setAttribute('aria-expanded', 'false');
+    setState('idle');
+    if (returnFocus && !root.hidden) fab.focus();
+  }
+
+  if (typeof Recognition === 'function') {
+    try {
+      recognition = new Recognition();
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.maxAlternatives = 1;
+      recognition.lang = navigator.language || 'en-IN';
+
+      recognition.onstart = function () {
+        isListening = true;
+        setState('listening');
+      };
+
+      recognition.onresult = function (event) {
+        const finalParts = [];
+        const interimParts = [];
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const result = event.results[i];
+          const phrase = result && result[0] ? result[0].transcript : '';
+          if (!phrase) continue;
+          if (result.isFinal) finalParts.push(phrase);
+          else interimParts.push(phrase);
+        }
+
+        if (finalParts.length) {
+          finalTranscript = (finalTranscript + ' ' + finalParts.join(' ')).trim();
+          setTranscript(finalTranscript);
+          if (!transcriptHandled) {
+            transcriptHandled = true;
+            const captured = finalTranscript;
+            setState('processing', 'Voice captured. AI understanding is not connected in Phase 1.');
+            window.dispatchEvent(new CustomEvent('jas-ai:transcript', {
+              detail: { transcript: captured, language: recognition.lang }
+            }));
+            try { recognition.stop(); } catch (error) {}
+            speak(
+              'I heard your request. The AI conversation will be connected in the next phase.',
+              {
+                afterState: 'idle',
+                afterMessage: 'Voice capture is ready. AI conversation will be connected in the next phase.'
+              }
+            );
+          }
+        } else if (interimParts.length) {
+          setTranscript((finalTranscript + ' ' + interimParts.join(' ')).trim());
+        }
+      };
+
+      recognition.onerror = function (event) {
+        const error = event && event.error ? event.error : 'unknown';
+        if (error === 'aborted' && suppressAbortError) {
+          suppressAbortError = false;
+          return;
+        }
+        const messages = {
+          'not-allowed': 'Microphone access was denied. Allow microphone access in your browser settings.',
+          'service-not-allowed': 'The browser blocked speech recognition. Check microphone and site permissions.',
+          'audio-capture': 'No microphone was found. Connect or enable a microphone and try again.',
+          'no-speech': 'No speech was detected. Tap the microphone and try again.',
+          'network': 'The browser speech service is unavailable. Check your internet connection and try again.',
+          'language-not-supported': 'The browser does not support the current device speech language.',
+          'aborted': 'Listening was stopped.',
+          'unknown': 'Speech recognition failed. Please try again.'
+        };
+        setError(messages[error] || messages.unknown);
+      };
+
+      recognition.onend = function () {
+        isListening = false;
+        suppressAbortError = false;
+        if (currentState === 'listening') {
+          setState('idle', 'Listening stopped. Tap the microphone to speak again.');
+        } else {
+          updateMicButton();
+        }
+      };
+    } catch (error) {
+      recognition = null;
+    }
+  }
+
+  fab.addEventListener('click', function () {
+    if (isPanelOpen) closePanel(false);
+    else openPanel();
+  });
+  closeButton.addEventListener('click', function () {
+    closePanel(true);
+  });
+  micButton.addEventListener('click', startListening);
+
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape' && isPanelOpen) closePanel(true);
+  });
+  document.addEventListener('pointerdown', function (event) {
+    if (!isPanelOpen) return;
+    if (panel.contains(event.target) || fab.contains(event.target)) return;
+    closePanel(false);
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden && isListening) {
+      suppressAbortError = true;
+      try { recognition.abort(); } catch (error) {}
+      isListening = false;
+      setState('idle', 'Listening paused because the page is no longer active.');
+    }
+  });
+
+  function syncAppVisibility() {
+    const appVisible = !appScreen.classList.contains('hide');
+    root.hidden = !appVisible;
+    if (!appVisible && isPanelOpen) closePanel(false);
+  }
+
+  if ('MutationObserver' in window) {
+    const appVisibilityObserver = new MutationObserver(syncAppVisibility);
+    appVisibilityObserver.observe(appScreen, { attributes: true, attributeFilter: ['class'] });
+  }
+  syncAppVisibility();
+  updateMicButton();
+
+  // Phase 2 can connect a conversation engine through these UI-only methods.
+  // No method here writes to Supabase or calls invoice/reminder save functions.
+  window.JASVoiceAssistant = Object.freeze({
+    getState: function () { return currentState; },
+    setState: setState,
+    setTranscript: setTranscript,
+    speak: speak,
+    startListening: startListening,
+    stopListening: stopListening,
+    open: openPanel,
+    close: function () { closePanel(false); }
+  });
+})();
+</script>
+
 </body>
 </html>
