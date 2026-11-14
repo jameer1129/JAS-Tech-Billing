@@ -129,7 +129,9 @@ self.addEventListener("message", (event) => {
 /* =========================================================
    WEB PUSH — reminders
    Payload (JSON) is sent by the heartbeat edge function:
-   { title, body, tag, url }
+   { title, body, tag, ids, url }
+   One push per user per run. tag is always "reminders-<userId>", so the
+   next run REPLACES the previous notification (renotify buzzes again).
    ========================================================= */
 self.addEventListener("push", (event) => {
   let data = {};
@@ -147,7 +149,10 @@ self.addEventListener("push", (event) => {
     badge: "./assets/logo/logo-qr.png",
     tag: data.tag || "jas-reminder",
     renotify: true,
-    data: { url: data.url || "./index.html?mode=reminders" },
+    data: {
+      url: data.url || "./index.html?mode=reminders",
+      ids: data.ids || [],
+    },
     requireInteraction:true,
     vibrate:[200, 100, 200],
   };
@@ -173,7 +178,10 @@ self.addEventListener("notificationclick", (event) => {
       for (const client of windows) {
         if (client.url.startsWith(self.registration.scope)) {
           await client.focus();
-          client.postMessage({ type: "OPEN_REMINDERS" });
+          client.postMessage({
+            type: "OPEN_REMINDERS",
+            ids: event.notification.data?.ids || [],
+          });
           return;
         }
       }
