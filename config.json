@@ -37,8 +37,14 @@
     "url": "https://tdytfzqtaxijlbmfnxee.supabase.co",
     "anonKey": "sb_publishable_n2QoEQ5WiIzdC2RTGZMmQA_yrpAvGvI"
   },
-   "push": {
+  "push": {
     "vapidPublicKey": "BCvpqboxPkUSnhwiPD3TFMmuagd6Dq5uTlclf99_DmfazBPeFXEYeWMFzwLPSOQQj5RXb5xMTAdwYKBgPFJEaII"
+  },
+   "ai": {
+    "enabled": true,
+    "apiKey": "AQ.Ab8RN6IXuTZ6UVdHuZgfhUfjuqzgyBPkBnRk5FKMxucAAy1m4A",
+    "primaryModel":  "gemini-3.8-live",
+    "fallbackModel": "gemini-3.1-flash-live-preview"
   },
   "display": {
     "showWatermark": true,
@@ -50,7 +56,7 @@
     "showServiceCharge": true
   },
   "invoice": {
-    "currencySymbol": "₹",
+    "currencySymbol": "\u20b9",
     "filePrefix": "JAS_Invoice_",
     "numberFormat": "MMDDHHmmss",
     "defaultNotes": "Thank you for choosing JAS Tech.\nFor any support, feel free to contact us."
@@ -104,7 +110,7 @@
   ],
   "footer": {
     "thankYouMessage": "Thank you for choosing JAS Tech!",
-    "copyrightLine": "© 2026 JAS Tech | Laptop Sales • Service • Accessories"
+    "copyrightLine": "\u00a9 2026 JAS Tech | Laptop Sales \u2022 Service \u2022 Accessories"
   },
   "public_invoice_url": "./invoice.html"
 }
