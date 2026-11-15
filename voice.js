@@ -21,7 +21,7 @@
    =================================================================== */
 (function () {
   'use strict';
-  const VERSION = 'v9-background-token-reference-orb';
+  const VERSION = 'v14-india-confirm-wakelock';
   if (window.__jasVoiceLoaded) return;
   window.__jasVoiceLoaded = true;
   console.info('[voice] ' + VERSION + ' loaded');
@@ -108,6 +108,8 @@
     console.debug('[voice]', m);
     if (typeof ui !== 'undefined' && ui && ui.log) { ui.log.textContent = LOG.slice(-60).join('\n'); ui.log.scrollTop = ui.log.scrollHeight; }
   }
+  const indiaNow = () => new Intl.DateTimeFormat('en-GB', {timeZone:'Asia/Kolkata', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit', hourCycle:'h23'}).format(new Date());
+  const indiaToday = () => typeof appTodayIso === 'function' ? appTodayIso() : new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
   const toast = (m, t) => { try { showToast(m, t || 'info'); } catch (e) { console.log('[voice]', m); } };
 
   /* ---------------- runtime state ---------------- */
@@ -122,6 +124,24 @@
   let ui = {};
   let lastActivity = Date.now(), idleMonitor = null, visualFrame = 0;
   let micEnergy = 0, speakerEnergy = 0;
+  // Screen Wake Lock is best-effort: mobile browsers may deny it or release it on lock/background.
+  let screenWakeLock = null;
+  async function holdScreenAwake() {
+    if (!navigator.wakeLock?.request || screenWakeLock || document.visibilityState !== 'visible' || (!active && !starting)) return;
+    try {
+      const lock = await navigator.wakeLock.request('screen');
+      if (!active && !starting) { await lock.release(); return; }
+      screenWakeLock = lock;
+      lock.addEventListener('release', () => { if (screenWakeLock === lock) screenWakeLock = null; }, {once:true});
+    } catch (e) { dbg('Screen wake lock unavailable: ' + (e?.message || e)); }
+  }
+  function releaseScreenAwake() {
+    const lock = screenWakeLock; screenWakeLock = null;
+    if (lock) lock.release().catch(() => {});
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && (active || starting)) holdScreenAwake();
+  });
   const IDLE_MS = 60000;
   const activity = () => { lastActivity = Date.now(); };
   function startIdleMonitor(){
@@ -448,7 +468,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
   function tabContext() {
     if (typeof state === 'undefined') return { screen: 'loading' };
     const tab = currentTab();
-    const ctx = { current_tab: tab === 'admin' ? 'restricted' : tab, open_dialogs: tab === 'admin' ? [] : openDialogs().filter(x=>!/admin|userInfo/i.test(x)) };
+    const ctx = { india_today: indiaToday(), india_datetime: indiaNow(), timezone: 'Asia/Kolkata', current_tab: tab === 'admin' ? 'restricted' : tab, open_dialogs: tab === 'admin' ? [] : openDialogs().filter(x=>!/admin|userInfo/i.test(x)) };
     try {
       if (tab === 'newBill') {
         ctx.tab_name = 'New Bill';
@@ -489,6 +509,11 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
         ctx.reminder_limit=typeof REMINDER_LIMIT!=='undefined'?REMINDER_LIMIT:10;
         ctx.reminder_count=(reminders||[]).length;
         ctx.reminder_slots_left=Math.max(0,ctx.reminder_limit-ctx.reminder_count);
+        const today = indiaToday();
+        ctx.needs_action = (reminders||[]).filter(r=>r.status==='active' && r.remember_date<=today).map(r=>({title:r.title,date:r.remember_date,category:r.remember_date<today?'overdue':'due_today',repeat:r.repeater||'none'}));
+        ctx.needs_action_count=ctx.needs_action.length;
+        ctx.overdue_count=ctx.needs_action.filter(r=>r.category==='overdue').length;
+        ctx.due_today_count=ctx.needs_action.filter(r=>r.category==='due_today').length;
         ctx.reminder_counts={active:(reminders||[]).filter(r=>r.status==='active').length,paused:(reminders||[]).filter(r=>r.status==='paused').length,completed:(reminders||[]).filter(r=>r.status==='completed').length};
       } else {
         ctx.tab_name = 'Admin';
@@ -557,8 +582,10 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
     if(!q)return null;
     return list.find(r=>r.title.toLowerCase()===q)||list.find(r=>r.title.toLowerCase().includes(q))||null;
   }
+  let confirmedInvoiceFingerprint = null;
+  let invoiceSaveQuestionAsked = false;
   const TOOLS = {
-    async get_app_state() { if (currentTab() === 'previousBills' && !billsLoaded()) await waitFor(billsLoaded, 12000); if (currentTab() === 'reminders' && !remindersLoaded) await waitFor(()=>remindersLoaded, 12000); return { ok: true, screen: tabContext() }; },
+    async get_app_state() { if (currentTab() === 'previousBills' && !billsLoaded()) await waitFor(billsLoaded, 12000); if (currentTab() === 'reminders' && !remindersLoaded) await waitFor(()=>remindersLoaded, 12000); return { ok: true, screen: tabContext(), india_today:indiaToday(), india_datetime:indiaNow(), timezone:'Asia/Kolkata' }; },
 
     go_to_tab(a) {
       const map = { new_bill: 'newBill', previous_bills: 'previousBills', reminders: 'reminders' };
@@ -687,27 +714,54 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       await sleep(300);
       return { ok: true };
     },
-    // Opens the same Generate flow as the buttons. save=true/false answers the "save this bill?" question.
+    // Confirmation is separate from the Save-to-Supabase choice.
+    // A changed draft invalidates earlier confirmation.
     async generate_pdf(a) {
-      if (currentTab() === 'admin') return { ok: false, error: 'No access to the Admin panel.' };
+      if (currentTab() === 'admin') return {ok:false,error:'Admin is not available.'};
+      // Previous bill: the existing preview Generate handler hides the preview
+      // without restoring the New Bill draft until the PDF flow finishes.
       if (viewingSaved()) {
+        if (!openDialogs().includes('previewModal')) return {ok:false,error:'Open the saved bill preview first.'};
         const b = $('btnDownloadFromPreview');
-        if (!b) return { ok: false, error: 'Open the saved bill preview first.' };
+        if (!b) return {ok:false,error:'Saved bill Generate button unavailable.'};
         b.click();
-        await sleep(900);
-        return { ok: true, screen: tabContext() };
+        const opened = await waitFor(()=>openDialogs().includes('pdfActionModal'),20000);
+        return opened ? {ok:true,saved_to_records:false,note:'Previous bill PDF is ready. No database save question is needed.',screen:tabContext()}
+                      : {ok:false,error:'Previous bill PDF not ready. Check the app message.',screen:tabContext()};
       }
       if (currentTab() !== 'newBill') switchView('newBill');
-      if (!state.customer.name || !state.products.length) return { ok: false, error: 'Customer name and at least one item are required first.' };
-      if (el.btnDownload) el.btnDownload.click();
-      await sleep(500);
-      if (!openDialogs().includes('saveChoiceModal')) return { ok: false, error: 'The generate screen did not open. Check the on-screen message.', screen: tabContext() };
-      if (typeof a.save === 'boolean') {
-        (a.save ? el.btnSaveChoiceYes : el.btnSaveChoiceNo).click();
-        await waitFor(() => openDialogs().includes('pdfActionModal'), 15000);
-        return { ok: true, saved_to_records: a.save, note: 'PDF is ready. Ask whether to download it.', screen: tabContext() };
+      if (!state.customer.name || !state.products.length) return {ok:false,error:'Customer name and at least one product are required.'};
+      const fingerprint = JSON.stringify({customer:state.customer,products:state.products,date:state.dateStr,notes:state.notes,service:state.serviceCharge,serviceOn:state.serviceChargeOn,pdf:[state.showWatermark,state.showQr,state.showSignature,state.includeNotesOnPdf]});
+      if (!a.confirmed || confirmedInvoiceFingerprint !== fingerprint) {
+        confirmedInvoiceFingerprint = null;
+        invoiceSaveQuestionAsked = false;
+        if (a.confirmed) return needConfirm('Invoice details changed. Read back the updated customer, products, quantities, prices and total; ask for confirmation again.');
+        confirmedInvoiceFingerprint = fingerprint;
+        return needConfirm('Before generating, summarize customer, invoice date, each item with quantity and rate, and the grand total. Ask: Are these invoice details correct? Only proceed after the user explicitly confirms.');
       }
-      return { ok: true, note: 'The save question is on screen. Ask the user: save this bill to records, yes or no? Then call generate_pdf again with save true or false.' };
+      if (!invoiceSaveQuestionAsked) {
+        invoiceSaveQuestionAsked = true;
+        return needConfirm('Invoice details confirmed. Ask: Do you want to save this bill to the database? Yes or no. Call generate_pdf with confirmed true and save true or false only after their answer.');
+      }
+      if (typeof a.save !== 'boolean') return needConfirm('Ask the user whether to save this invoice to the database, yes or no.');
+      // Close a New Bill preview before opening the Save choice dialog.
+      if (openDialogs().includes('previewModal')) {
+        await hideOverlay(el.previewModalOverlay);
+        if (typeof clearPreviewScaleContainer === 'function') clearPreviewScaleContainer();
+      }
+      if (!openDialogs().includes('saveChoiceModal')) {
+        if (!el.btnDownload) return {ok:false,error:'Generate button unavailable.'};
+        el.btnDownload.click();
+        if (!(await waitFor(()=>openDialogs().includes('saveChoiceModal'),3000))) return {ok:false,error:'Save choice dialog did not open.'};
+      }
+      const button = a.save ? el.btnSaveChoiceYes : el.btnSaveChoiceNo;
+      if (!button) return {ok:false,error:'Save choice button unavailable.'};
+      button.click();
+      confirmedInvoiceFingerprint = null;
+      invoiceSaveQuestionAsked = false;
+      const opened = await waitFor(()=>openDialogs().includes('pdfActionModal'),20000);
+      return opened ? {ok:true,save_requested:a.save,note:'PDF ready. Check the app message for actual database save status.',screen:tabContext()}
+                    : {ok:false,error:'PDF not ready. Check the app message; do not claim it was saved or generated.',screen:tabContext()};
     },
     async pdf_action(a) {
       if(a.action==='close_qr'||a.action==='qr_done'){
@@ -888,7 +942,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       { name: 'set_pdf_options', description: 'Turn PDF extras on or off. Only pass the ones the user mentioned.', parameters: O({ watermark: B('Watermark'), qr: B('Payment QR'), signature: B('Signature'), notes: B('Notes on PDF') }) },
       { name: 'preview_invoice', description: 'Open the invoice preview.', parameters: O() },
       { name: 'close_preview', description: 'Close the preview.', parameters: O() },
-      { name: 'generate_pdf', description: 'Generate the invoice PDF. First call without save: the app asks whether to save the bill to records. Ask the user, then call again with save true or false. On a saved bill preview it just regenerates the PDF.', parameters: O({ save: B('true = save to records and make PDF, false = PDF only') }) },
+      { name: 'generate_pdf', description: 'New Bill: FIRST call without confirmed to request user approval of all invoice details. After user confirms, call with confirmed true and NO save to ask whether to save to database. Only after explicit save yes/no call with confirmed true and save boolean. Never skip steps. Previous Bill: call while saved preview is open; no confirmation or database save.', parameters: O({ confirmed:B('User explicitly approved invoice details'), save: B('Explicit user choice: true save to Supabase, false generate without saving') }) },
       { name: 'pdf_action', description: 'After the PDF is ready: download it, show the QR, or close the box.', parameters: O({ action: { type: 'STRING', enum: ['download', 'qr', 'close', 'close_qr', 'qr_done', 'share'] } }, ['action']) },
       { name: 'bills_search', description: 'Search Previous Bills by invoice number, customer name or phone. Empty query clears the search.', parameters: O({ query: S('Search text') }, ['query']) },
       { name: 'bills_sort', description: 'Sort Previous Bills.', parameters: O({ sort: { type: 'STRING', enum: ['newest', 'oldest', 'amount_high', 'amount_low', 'name_az', 'name_za'] } }, ['sort']) },
@@ -915,17 +969,17 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       `You are the voice-only assistant inside ${co} Billing. Speak naturally in English, Hindi, Telugu or the language of the user, with short clear replies.`,
       'You may operate ONLY New Bill, Previous Bills and Reminders. Admin, user management, permissions and administrative operations are prohibited. Never open Admin or perform admin tasks.',
       'Use available function calls for every app action. Do not claim an operation happened without an ok:true tool response.',
-      'New Bill: gather customer information, invoice date, products, prices, quantity, notes and PDF preferences; edit or remove items; preview, generate and optionally save the bill using the existing workflow.',
+      'New Bill: gather customer, invoice date, products, quantities, prices and options. BEFORE generating, read back the full invoice summary including total and explicitly ask if details are correct. Never infer yes. After confirmation ask a SECOND separate question: Save this bill to the database, yes or no? Only then call generate_pdf with confirmed true and the user-selected save boolean. Call generate_pdf first without confirmed to initiate this workflow. Never skip the save question, even if user says just generate. If the user changes details, confirm the updated invoice again.',
       'Previous Bills: if screen.loading is true, wait for Supabase to finish and call get_app_state again; NEVER interpret unloaded/empty cache as zero bills or no matches. If loading persists, say "Bills loading.", not that none exist. When asked for yesterday bills, filter by yesterday then read the displayed records. When asked for a particular customer or invoice, search and inspect the list before copying or opening. Never invent a saved bill. Use copy_bill_to_new to reuse the existing Copy action. Never edit the saved record directly.',
-      'Preview: when user asks to change invoice fields or PDF preferences while preview is open, close_preview first, make the change, and LEAVE preview closed. Only reopen for an explicit preview request or required generate flow.',
+      'Preview: when editing fields close the preview first. When generating a NEW bill, generate_pdf safely closes the preview before opening the save dialog. When generating a PREVIOUS bill, generate_pdf uses the saved preview Generate handler to close it safely and generate WITHOUT saving to Supabase. Do not call close_preview before generating a previous bill because that restores the unfinished draft.',
       'PDF: when user says close QR or QR done, use pdf_action close_qr or qr_done; these differ from closing the PDF options box.',
       'Theme: use set_theme for dark, light, or system default.',
       'When user says goodbye, bye, bye-bye, end chat, stop listening, or close assistant, call end_conversation, then say aloud exactly: Take care! See you soon. in your own Gemini voice. Do not call other tools after that. Do not confuse this with closing a modal.',
       'Reminders: if screen.loading is true, wait for Supabase and call get_app_state again. Never interpret unloaded reminders as zero or no matches. If loading persists, say only \"Reminders loading.\" Do not say \"still loading\".',
-      'Reminders: call reminder_prepare before collecting details for a NEW reminder to check the 10-reminder limit and show the form. Use reminder_list to answer active reminder counts or find a title. List, create, edit, pause, resume, complete, mark done or delete using the existing app handlers. New or changed reminder dates must be from tomorrow through 365 days ahead. Repeats: off, daily, weekly, monthly, yearly, or custom 1-365 days.',
+      'Reminder categories: Active means status active regardless of date. Completed means status completed, NOT due. Needs action or notifying means ONLY active reminders whose date is today or earlier in India: due today plus overdue. Overdue means active and date earlier than India today. For questions about due, overdue, action needed, notifications, list the matching reminders with their dates and counts, and use reminder_list/get_app_state to refresh. When asked to complete a due/overdue reminder call reminder_action complete; for repeating reminders this advances to the next occurrence, for one-time reminders it marks completed. Do not confuse Complete with Finished/Done or delete. Paused and completed reminders do not need action. Reminders: call reminder_prepare before collecting details for a NEW reminder to check the 10-reminder limit and show the form. Use reminder_list to answer active reminder counts or find a title. List, create, edit, pause, resume, complete, mark done or delete using the existing app handlers. New or changed reminder dates must be from tomorrow through 365 days ahead. Repeats: off, daily, weekly, monthly, yearly, or custom 1-365 days.',
       'Ask concise questions for missing essential information. Always confirm clearing an existing draft, reminder creation or edit, reminder done/delete and saving a bill. If user says no, do not perform the action.',
       'At the start of a new voice conversation, greet once: Welcome to [company name] Billing. You are currently on [current tab]. How can I help you? Keep it short. Do not repeat this greeting on model fallback.',
-      'When the user interrupts, listen and adapt. Do not invent names, amounts, dates, invoice numbers, or successful results. Money is INR.',
+      'Time and date: use Asia/Kolkata (Indian Standard Time, UTC+05:30) for TODAY, tomorrow, yesterday, due, overdue, and any relative date or time. Do not use UTC or the device timezone. Current India date and time are supplied in screen context; call get_app_state again when time-sensitive or near midnight. Ask for clarification for ambiguous dates. When the user interrupts, listen and adapt. Do not invent names, amounts, dates, invoice numbers, or successful results. Money is INR.',
       'When unsure about the current screen, call get_app_state. The initial screen is '+JSON.stringify(tabContext())
     ].join(' ');
   }
@@ -1138,6 +1192,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       return;
     }
     starting = true;
+    holdScreenAwake();
     muted = false;
     uText = aText = ''; newUserTurn = true; turnDone = true;
     showAct('');
@@ -1153,6 +1208,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       console.error('[voice] mic error', e);
       cleanupAudio();
       starting = false;
+      releaseScreenAwake();
       setStatus('error');
       ui.status.textContent = (e && e.name === 'NotAllowedError') ? 'Mic access denied. Enable it in permission settings.' : 'Could not open the microphone';
       toast(ui.status.textContent, 'error');
@@ -1194,6 +1250,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
     }
     starting = false;
     cleanupAudio();
+    releaseScreenAwake();
     setStatus('error');
     const why = lastErr && lastErr.message ? lastErr.message : 'unknown';
     ui.status.textContent = 'Could not connect (' + why.slice(0, 80) + ')';
@@ -1218,6 +1275,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
     ws = null; ready = false; active = false; starting = false; muted = false;
     if (sock) { sock.onclose = null; sock.onerror = null; try { sock.close(1000); } catch (e) { /* ignore */ } }
     cleanupAudio();
+    releaseScreenAwake();
     if (ui.sheet) {
       setStatus(finalStatus || 'idle');
       paintTokenState();
