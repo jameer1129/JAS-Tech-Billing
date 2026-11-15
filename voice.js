@@ -342,7 +342,17 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
     while (Date.now() < end) { try { if (fn()) return true; } catch (e) { /* ignore */ } await sleep(120); }
     return false;
   }
-  const billsLoaded = () => { const l = $('billsLoading'); return !l || l.classList.contains('hide'); };
+  // A hidden skeleton alone is not proof that Supabase returned data.
+  // The app increments billsRequestSeq when a fetch begins and renders the
+  // empty-state/table only after that request settles.
+  const billsLoaded = () => {
+    const l = $('billsLoading');
+    return !!l && l.classList.contains('hide') &&
+      (!!$('billsEmptyState') && !$('billsEmptyState').classList.contains('hide') ||
+       !!$('billsTableWrap') && !$('billsTableWrap').classList.contains('hide'));
+  };
+  const billsWaitError = () => ({ ok:false, loading:true,
+    error:'Previous Bills are still loading from Supabase. Do not report zero bills or no matching bills. Please wait and retry.' });
 
   function totals() {
     try {
@@ -382,6 +392,10 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
         ctx.date_filter = el.dateFilterLabel ? el.dateFilterLabel.textContent : '';
         ctx.showing_deleted_bills = typeof isRestoreBillsMode !== 'undefined' ? !!isRestoreBillsMode : false;
         ctx.loading = !billsLoaded();
+        if (ctx.loading) {
+          ctx.message = 'Previous Bills are loading from Supabase. Counts and records are not available yet; do not say zero or no bills.';
+          return ctx;
+        }
         ctx.page = page; ctx.total_pages = Math.max(1, Math.ceil(total / size)); ctx.total_bills = total;
         ctx.bills_on_this_page = (billsCache || []).map((b, i) => ({
           position: i + 1, invoice_no: b.invoice_no, customer: b.customer_name || 'Walk-in customer',
@@ -451,7 +465,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
   }
   async function ensureBillsTab() {
     if (currentTab() !== 'previousBills') { switchView('previousBills'); await sleep(400); }
-    await waitFor(billsLoaded, 6000);
+    return await waitFor(billsLoaded, 12000);
   }
   const needConfirm = (msg) => ({ ok: false, needs_confirmation: true, message: msg });
 
@@ -463,7 +477,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
     return list.find(r=>r.title.toLowerCase()===q)||list.find(r=>r.title.toLowerCase().includes(q))||null;
   }
   const TOOLS = {
-    get_app_state() { return { ok: true, screen: tabContext() }; },
+    async get_app_state() { if (currentTab() === 'previousBills' && !billsLoaded()) await waitFor(billsLoaded, 12000); return { ok: true, screen: tabContext() }; },
 
     go_to_tab(a) {
       const map = { new_bill: 'newBill', previous_bills: 'previousBills', reminders: 'reminders' };
@@ -634,7 +648,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
     /* ---------- Previous Bills ---------- */
     async bills_search(a) {
       if (currentTab() === 'admin' || !el.billSearchInput) return { ok: false, error: 'Not available here.' };
-      await ensureBillsTab();
+      if (!(await ensureBillsTab())) return billsWaitError();
       el.billSearchInput.value = String(a.query || '').slice(0, 80);
       el.billSearchInput.dispatchEvent(new Event('input', { bubbles: true }));
       await sleep(900);
@@ -649,7 +663,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       };
       const m = map[a.sort];
       if (!m) return { ok: false, error: 'Unknown sort.' };
-      await ensureBillsTab();
+      if (!(await ensureBillsTab())) return billsWaitError();
       if (el.billsFilterRow) el.billsFilterRow.classList.remove('hide');
       const item = el.sortDropdown.querySelector('[data-sort="' + m[0] + '"][data-dir="' + m[1] + '"]');
       if (!item) return { ok: false, error: 'Sort option not found.' };
@@ -661,7 +675,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
     async bills_date_filter(a) {
       const ok = ['any', 'today', 'yesterday', '7days', 'month', 'lastmonth'];
       if (!ok.includes(a.range)) return { ok: false, error: 'Unknown date range.' };
-      await ensureBillsTab();
+      if (!(await ensureBillsTab())) return billsWaitError();
       if (el.billsFilterRow) el.billsFilterRow.classList.remove('hide');
       const item = el.dateDropdown.querySelector('[data-range="' + a.range + '"]');
       if (!item) return { ok: false, error: 'Date option not found.' };
@@ -671,7 +685,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       return { ok: true, screen: tabContext() };
     },
     async bills_clear_filters() {
-      await ensureBillsTab();
+      if (!(await ensureBillsTab())) return billsWaitError();
       const t = el.btnBillsFilterToggle;
       if (t && t.classList.contains('is-clear')) t.click();
       await sleep(500);
@@ -679,7 +693,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       return { ok: true, screen: tabContext() };
     },
     async bills_page(a) {
-      await ensureBillsTab();
+      if (!(await ensureBillsTab())) return billsWaitError();
       const dir = a.direction === 'previous' ? 'prev' : 'next';
       const b = el.billsPaginationControls.querySelector('button[data-page="' + dir + '"]');
       if (!b || b.disabled) return { ok: false, error: dir === 'next' ? 'Already on the last page.' : 'Already on the first page.' };
@@ -689,7 +703,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       return { ok: true, screen: tabContext() };
     },
     async copy_bill_to_new(a) {
-      await ensureBillsTab();
+      if (!(await ensureBillsTab())) return billsWaitError();
       const bill = findBill(a);
       if (!bill) return { ok: false, error: 'Could not find that bill on this page. Check the list in the screen details.' };
       if (!draftIsEmpty() && !a.confirmed) return needConfirm('Copying will replace the unfinished bill on the New Bill tab. Ask the user to confirm, then call again with confirmed true.');
@@ -698,7 +712,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       return { ok: true, copied: bill.invoice_no, screen: tabContext() };
     },
     async reprint_bill(a) {
-      await ensureBillsTab();
+      if (!(await ensureBillsTab())) return billsWaitError();
       const bill = findBill(a);
       if (!bill) return { ok: false, error: 'Could not find that bill on this page.' };
       await reprintBill(bill.invoice_no);
@@ -821,7 +835,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       'You may operate ONLY New Bill, Previous Bills and Reminders. Admin, user management, permissions and administrative operations are prohibited. Never open Admin or perform admin tasks.',
       'Use available function calls for every app action. Do not claim an operation happened without an ok:true tool response.',
       'New Bill: gather customer information, invoice date, products, prices, quantity, notes and PDF preferences; edit or remove items; preview, generate and optionally save the bill using the existing workflow.',
-      'Previous Bills: when asked for yesterday bills, filter by yesterday then read the displayed records. When asked for a particular customer or invoice, search and inspect the list before copying or opening. Never invent a saved bill. Use copy_bill_to_new to reuse the existing Copy action. Never edit the saved record directly.',
+      'Previous Bills: if screen.loading is true, wait for Supabase to finish and call get_app_state again; NEVER interpret unloaded/empty cache as zero bills or no matches. If loading persists, say bills are still loading, not that none exist. When asked for yesterday bills, filter by yesterday then read the displayed records. When asked for a particular customer or invoice, search and inspect the list before copying or opening. Never invent a saved bill. Use copy_bill_to_new to reuse the existing Copy action. Never edit the saved record directly.',
       'Preview: when user asks to change invoice fields or PDF preferences while preview is open, close_preview first, make the change, and LEAVE preview closed. Only reopen for an explicit preview request or required generate flow.',
       'PDF: when user says close QR or QR done, use pdf_action close_qr or qr_done; these differ from closing the PDF options box.',
       'Theme: use set_theme for dark, light, or system default.',
