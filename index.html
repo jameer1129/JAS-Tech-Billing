@@ -7385,11 +7385,6 @@ function bindReminderEvents(){
     navObserver.observe(navEl);
     navEl.querySelectorAll('.nav-tab').forEach(t => navObserver.observe(t));
   }
-  // The dot also has to notice a new day and changes made on other devices.
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && currentSession) refreshDueReminderCount();
-  });
-  setInterval(() => { if (!document.hidden && currentSession) refreshDueReminderCount(); }, 10 * 60 * 1000);
   // Phones: hide the bottom bar while the keyboard is open so it never floats above it.
   const phone = window.matchMedia('(max-width:640px)');
   document.addEventListener('focusin', (e) => {
@@ -7536,8 +7531,11 @@ function switchView(view){
     shownView.classList.add(enterClass);
     setTimeout(() => shownView.classList.remove(enterClass), 420);
   }
+  const leavingReminders = navActiveView === 'reminders' && view !== 'reminders';
   navActiveView = view;
   updateReminderAlertDot();
+  // Refresh the red dot only when leaving the Reminders tab.
+  if (leavingReminders && currentSession) refreshDueReminderCount();
   // enterApp() only calls initInvoiceMeta() when the *saved last view* is
   // 'newBill'. If the app instead booted into Previous Bills (or Admin) as
   // the remembered last view, the date input is never initialized, and it

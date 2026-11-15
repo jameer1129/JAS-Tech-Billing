@@ -1814,3 +1814,62 @@ where public_token is not null;
 --             --url "https://tdytfzqtaxijlbmfnxee.supabase.co/functions/v1/supabase-heartbeat" \
 --             --header "apikey: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}" \
 --             --header "Content-Type: application/json"
+
+------------------------------------------------------------------
+-- gemini-session
+------------------------------------------------------------------
+-- import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+-- const cors = {
+--   'Access-Control-Allow-Origin': '*',
+--   'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info',
+--   'Access-Control-Allow-Methods': 'POST, OPTIONS',
+--   'Content-Type': 'application/json',
+--   'Cache-Control': 'no-store',
+-- };
+-- const reply = (status: number, body: Record<string, unknown>) =>
+--   new Response(JSON.stringify(body), { status, headers: cors });
+
+-- Deno.serve(async (req) => {
+--   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
+--   if (req.method !== 'POST') return reply(405, { error: 'Method not allowed' });
+
+--   const url = Deno.env.get('SUPABASE_URL');
+--   const publishable = Deno.env.get('SUPABASE_ANON_KEY');
+--   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+--   const geminiKey = Deno.env.get('GEMINI_API_KEY');
+--   if (!url || !publishable || !serviceKey || !geminiKey)
+--     return reply(500, { error: 'Voice service is not configured' });
+
+--   const bearer = req.headers.get('Authorization') || '';
+--   if (!bearer.startsWith('Bearer ')) return reply(401, { error: 'Sign in required' });
+--   const jwt = bearer.slice(7);
+--   const authClient = createClient(url, publishable, { auth: { persistSession: false } });
+--   const { data: userData, error: authError } = await authClient.auth.getUser(jwt);
+--   if (authError || !userData.user) return reply(401, { error: 'Session expired. Sign in again.' });
+
+--   const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
+--   const { data: profile, error: profileError } = await admin
+--     .from('profiles').select('status').eq('id', userData.user.id).single();
+--   if (profileError || profile?.status !== 'approved')
+--     return reply(403, { error: 'Account is not approved for voice access' });
+
+--   // One-use ephemeral token, valid only for a short time to start a Live session.
+--   const now = Date.now();
+--   const response = await fetch('https://generativelanguage.googleapis.com/v1alpha/auth_tokens', {
+--     method: 'POST',
+--     headers: { 'x-goog-api-key': geminiKey, 'Content-Type': 'application/json' },
+--     body: JSON.stringify({
+--       uses: 1,
+--       expireTime: new Date(now + 30 * 60_000).toISOString(),
+--       newSessionExpireTime: new Date(now + 2 * 60_000).toISOString(),
+--     }),
+--   });
+--   if (!response.ok) {
+--     console.error('Gemini token creation failed', response.status, await response.text());
+--     return reply(502, { error: 'Could not create Gemini Live session token' });
+--   }
+--   const data = await response.json();
+--   if (typeof data.name !== 'string') return reply(502, { error: 'Gemini token response invalid' });
+--   return reply(200, { token: data.name });
+-- });

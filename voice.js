@@ -152,6 +152,9 @@
 .jv-orb,.jv-mute,.jv-end{display:grid;place-items:center;flex:none;border-radius:50%;cursor:pointer;-webkit-tap-highlight-color:transparent;color:#fff}
 .jv-orb{width:52px;height:52px;position:relative;border:1.5px solid #ffffff48;background:radial-gradient(circle at 32% 28%,#4f7bff,#012587 62%,#001242);box-shadow:0 8px 24px #01258761,inset 0 2px 6px #ffffff59;transition:background .35s,box-shadow .35s,filter .3s}
 .jv-orb i{font-size:21px;position:relative;z-index:2;pointer-events:none}
+/* Idle orb indicates whether a fresh Gemini token is available. */
+.jv-wrap:not(.jv-active)[data-token="waiting"] .jv-orb{background:radial-gradient(circle at 32% 28%,#fca5a5,#ef4444 55%,#7f1d1d);box-shadow:0 8px 24px #b91c1c66,inset 0 2px 6px #ffffff59}
+.jv-wrap:not(.jv-active)[data-token="ready"] .jv-orb{background:radial-gradient(circle at 32% 28%,#4f7bff,#012587 62%,#001242);box-shadow:0 8px 24px #01258761,inset 0 2px 6px #ffffff59}
 .jv-orb:before,.jv-orb:after{content:'';position:absolute;inset:-4px;border:2px solid #60a5fa;border-radius:50%;opacity:0;pointer-events:none;z-index:-1}
 .jv-mute,.jv-end{display:none;width:38px;height:38px;font-size:16px;box-shadow:0 4px 13px #0002}
 .jv-mute{border:1px solid var(--line,#cbd5e1);background:var(--surface,#334155);color:var(--text,#fff)}
