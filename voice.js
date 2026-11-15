@@ -21,7 +21,7 @@
    =================================================================== */
 (function () {
   'use strict';
-  const VERSION = 'v8-reference-orb';
+  const VERSION = 'v9-background-token-reference-orb';
   if (window.__jasVoiceLoaded) return;
   window.__jasVoiceLoaded = true;
   console.info('[voice] ' + VERSION + ' loaded');
@@ -29,11 +29,78 @@
   /* ---------------- config helpers ---------------- */
   const cfg = () => (typeof CONFIG !== 'undefined' && CONFIG) ? CONFIG : {};
   const aiCfg = () => cfg().ai || {};
-  const getKey = () => {
-    const a = aiCfg(), c = cfg();
-    return a.apiKey || a.geminiApiKey || a.key || c.geminiApiKey || c.apiKey || '';
-  };
-  const WS_URL = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=';
+   const WS_URL = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained?access_token=';
+   async function getVoiceToken() {
+     if (typeof supabaseClient === 'undefined' || !supabaseClient) throw new Error('Please sign in first.');
+     const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
+     if (sessionError || !sessionData?.session?.access_token) throw new Error('Please sign in again.');
+     const { data, error } = await supabaseClient.functions.invoke('gemini-session', {
+       headers: { Authorization: 'Bearer ' + sessionData.session.access_token },
+       body: {}
+     });
+     if (error) {
+       let message = error.message || 'Voice authentication failed';
+       try { const detail = await error.context?.json(); message = detail?.error || message; } catch (_) {}
+       throw new Error(message);
+     }
+     if (!data?.token) throw new Error('Voice session token missing');
+     return data.token;
+   }
+  // Keep one UNUSED token warm. Gemini session tokens are single-use and
+  // the Edge Function permits new connections for only two minutes.
+  let warmToken = null, warmUntil = 0, warmPromise = null, warmTimer = null;
+  let warmRetry = 0, warmGeneration = 0;
+  function paintTokenState() {
+    if (!ui.sheet || active || starting) return;
+    const available = !!warmToken && Date.now() < warmUntil;
+    ui.sheet.dataset.token = available ? 'ready' : 'waiting';
+    ui.orb.title = available ? 'Start voice assistant' : 'Preparing voice assistant';
+    ui.orb.setAttribute('aria-label', ui.orb.title);
+  }
+  function scheduleWarm(delay) {
+    clearTimeout(warmTimer);
+    warmTimer = setTimeout(() => { prepareToken().catch(() => {}); }, delay);
+  }
+  async function prepareToken() {
+    if (warmToken && Date.now() < warmUntil - 25000) { paintTokenState(); return warmToken; }
+    if (warmPromise) return warmPromise;
+    const generation = warmGeneration;
+    paintTokenState();
+    warmPromise = (async () => {
+      try {
+        const token = await getVoiceToken();
+        if (generation !== warmGeneration) return null;
+        warmToken = token;
+        // Conservative lifetime: server's newSessionExpireTime is 2 minutes.
+        // A refresh at 75 seconds prevents idle tabs holding expired tokens.
+        warmUntil = Date.now() + 95000;
+        warmRetry = 0;
+        paintTokenState();
+        scheduleWarm(70000);
+        return token;
+      } catch (error) {
+        if (generation === warmGeneration) {
+          warmRetry = Math.min(warmRetry + 1, 5);
+          paintTokenState();
+          scheduleWarm(Math.min(30000, 2000 * (2 ** (warmRetry - 1))));
+        }
+        throw error;
+      } finally { if (generation === warmGeneration) warmPromise = null; }
+    })();
+    return warmPromise;
+  }
+  async function takeVoiceToken() {
+    // If a background request is underway, share it rather than issuing another.
+    if (!warmToken || Date.now() >= warmUntil) await prepareToken();
+    const token = warmToken;
+    if (!token) throw new Error('Voice token not ready');
+    warmToken = null; warmUntil = 0;
+    clearTimeout(warmTimer);
+    paintTokenState();
+    // Prepare the next single-use token without blocking the current connection.
+    scheduleWarm(250);
+    return token;
+  }
   const LOG = [];
   function dbg(m) {
     const line = new Date().toTimeString().slice(0, 8) + ' ' + m;
@@ -119,7 +186,7 @@
 @media(prefers-reduced-motion:reduce){.jv-orb,.jv-orb:before,.jv-orb:after{animation:none!important}}
 `;
     document.head.appendChild(style);
-    const wrap=document.createElement('div');wrap.className='jv-wrap';wrap.dataset.s='idle';
+    const wrap=document.createElement('div');wrap.className='jv-wrap';wrap.dataset.s='idle';wrap.dataset.token='waiting';
     wrap.innerHTML='<button type="button" class="jv-mute" aria-label="Mute microphone" aria-pressed="false" title="Mute microphone"><i class="fa-solid fa-microphone" aria-hidden="true"></i></button><button type="button" class="jv-orb" aria-label="Start voice assistant"><i class="fa-solid fa-robot" aria-hidden="true"></i></button><button type="button" class="jv-end" aria-label="End voice conversation" title="End conversation"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>';
     document.body.appendChild(wrap);
     ui={sheet:wrap,fab:wrap,orb:wrap.querySelector('.jv-orb'),orbIcon:wrap.querySelector('.jv-orb i'),status:{textContent:''},mute:wrap.querySelector('.jv-mute'),end:wrap.querySelector('.jv-end'),model:{textContent:''},act:null,log:null};
@@ -189,26 +256,31 @@
     ui.mute.title=muted?'Unmute microphone':'Mute microphone';
     ui.orb.setAttribute('aria-label',active||starting?'Voice assistant animation':'Start voice conversation');
     ui.orb.title=active||starting?'Voice assistant':'Start voice assistant';
+    paintTokenState();
   }
   const curStatus=()=>ui.sheet.dataset.s;
   function renderText(){}
-  function openSheet(){if(currentTab()==='admin')return;if(!active&&!starting)startSession();}
+  function openSheet(){if(currentTab()==='admin')return;if(!active&&!starting){if(!warmToken||Date.now()>=warmUntil)toast('Preparing voice assistant. Please wait…','info');startSession();}}
   function closeSheet(){farewellAndClose();}
 
-  let farewellInProgress=false, farewellTimer=null, farewellTurnComplete=false;
+  let farewellInProgress=false, farewellTimer=null, farewellTurnComplete=false, farewellRequestSent=false, farewellAudioReceived=false, farewellFinishTimer=null;
   function finishFarewell(){
-    if(!farewellInProgress||!farewellTurnComplete||sources.size)return;
-    stopSession('idle');
+    if(!farewellInProgress||!farewellRequestSent||!farewellAudioReceived||!farewellTurnComplete||sources.size)return;
+    // Allow late audio packets to arrive before closing the WebSocket.
+    clearTimeout(farewellFinishTimer);
+    farewellFinishTimer=setTimeout(()=>{
+      if(farewellInProgress&&farewellAudioReceived&&farewellTurnComplete&&sources.size===0)stopSession('idle');
+    },700);
   }
   function farewellAndClose(){
     if(farewellInProgress)return;
     if(!active||!ready||!ws){stopSession('idle');return;}
-    farewellInProgress=true;farewellTurnComplete=false;
+    farewellInProgress=true;farewellTurnComplete=false;farewellRequestSent=false;farewellAudioReceived=false;clearTimeout(farewellFinishTimer);
     greetingPending=false;clearTimeout(greetingTimer);greetingTimer=null;
     // The model speaks the goodbye; no browser text-to-speech.
     // A timeout ensures the session cannot remain open if Gemini fails.
     clearTimeout(farewellTimer);
-    farewellTimer=setTimeout(()=>stopSession('idle'),10000);
+    farewellTimer=setTimeout(()=>stopSession('idle'),15000);
     turnDone=false;
     setStatus('thinking');
   }
@@ -352,7 +424,9 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
        !!$('billsTableWrap') && !$('billsTableWrap').classList.contains('hide'));
   };
   const billsWaitError = () => ({ ok:false, loading:true,
-    error:'Previous Bills are still loading from Supabase. Do not report zero bills or no matching bills. Please wait and retry.' });
+    error:'Previous Bills loading. Do not report zero bills or no matching bills. Please wait and retry.' });
+
+  const reminderWaitError = () => ({ok:false,loading:true,error:'Reminders loading. Please wait and retry.'});
 
   function totals() {
     try {
@@ -404,6 +478,10 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       } else if (tab === 'reminders') {
         ctx.tab_name = 'Reminders';
         ctx.loading = !remindersLoaded;
+        if (ctx.loading) {
+          ctx.message = 'Reminders loading. Counts and records are not available yet; do not say zero or no reminders.';
+          return ctx;
+        }
         ctx.reminders = (reminders || []).map((r, i) => ({ position:i+1, title:r.title, description:r.description||'', date:r.remember_date, status:r.status, repeat:r.repeater||'none' }));
         ctx.reminder_limit=typeof REMINDER_LIMIT!=='undefined'?REMINDER_LIMIT:10;
         ctx.reminder_count=(reminders||[]).length;
@@ -477,7 +555,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
     return list.find(r=>r.title.toLowerCase()===q)||list.find(r=>r.title.toLowerCase().includes(q))||null;
   }
   const TOOLS = {
-    async get_app_state() { if (currentTab() === 'previousBills' && !billsLoaded()) await waitFor(billsLoaded, 12000); return { ok: true, screen: tabContext() }; },
+    async get_app_state() { if (currentTab() === 'previousBills' && !billsLoaded()) await waitFor(billsLoaded, 12000); if (currentTab() === 'reminders' && !remindersLoaded) await waitFor(()=>remindersLoaded, 12000); return { ok: true, screen: tabContext() }; },
 
     go_to_tab(a) {
       const map = { new_bill: 'newBill', previous_bills: 'previousBills', reminders: 'reminders' };
@@ -723,7 +801,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
     /* ---------- Reminders: use the app's existing handlers ---------- */
     async reminder_prepare(){
       if(currentTab()!=='reminders')switchView('reminders');
-      await waitFor(()=>remindersLoaded,8000);
+      if (!(await waitFor(()=>remindersLoaded,8000))) return reminderWaitError();
       const count=reminders.length;
       if(count>=REMINDER_LIMIT)return {ok:false,error:'Maximum '+REMINDER_LIMIT+' reminders reached. Delete an existing reminder before creating another.',screen:tabContext()};
       openReminderModal(null);
@@ -731,12 +809,12 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
     },
     async reminder_list(){
       if(currentTab()!=='reminders')switchView('reminders');
-      await waitFor(()=>remindersLoaded,8000);
+      if (!(await waitFor(()=>remindersLoaded,8000))) return reminderWaitError();
       return {ok:true,screen:tabContext()};
     },
     async reminder_save(a){
       if(currentTab()!=='reminders')switchView('reminders');
-      await waitFor(()=>remindersLoaded,8000);
+      if (!(await waitFor(()=>remindersLoaded,8000))) return reminderWaitError();
       const existing=resolveReminder(a);
       if(a.match_title||a.position){if(!existing)return {ok:false,error:'Could not find that reminder.'};}
       const title=a.title!=null?String(a.title).trim():(existing?existing.title:'');
@@ -764,10 +842,10 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       if(!['light','dark','system'].includes(mode))return {ok:false,error:'Choose light, dark or system.'};
       switchTheme(mode);return {ok:true,theme:getThemeMode()};
     },
-    end_conversation(){farewellAndClose();return {ok:true,message:'Now say exactly: Have a great day. Goodbye! Speak this farewell aloud in your Gemini voice, then end your turn. Do not call any more tools.'};},
+    end_conversation(){farewellAndClose();return {ok:true,message:'Now say exactly: Take care! See you soon. Speak this farewell aloud in your Gemini voice, then end your turn. Do not call any more tools.'};},
     async reminder_action(a){
       if(currentTab()!=='reminders')switchView('reminders');
-      await waitFor(()=>remindersLoaded,8000);
+      if (!(await waitFor(()=>remindersLoaded,8000))) return reminderWaitError();
       const r=resolveReminder(a);if(!r)return {ok:false,error:'Reminder not found.'};
       const action=String(a.action||'').toLowerCase();
       if(!['pause','resume','complete','done','delete'].includes(action))return {ok:false,error:'Unknown reminder action.'};
@@ -835,11 +913,12 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       'You may operate ONLY New Bill, Previous Bills and Reminders. Admin, user management, permissions and administrative operations are prohibited. Never open Admin or perform admin tasks.',
       'Use available function calls for every app action. Do not claim an operation happened without an ok:true tool response.',
       'New Bill: gather customer information, invoice date, products, prices, quantity, notes and PDF preferences; edit or remove items; preview, generate and optionally save the bill using the existing workflow.',
-      'Previous Bills: if screen.loading is true, wait for Supabase to finish and call get_app_state again; NEVER interpret unloaded/empty cache as zero bills or no matches. If loading persists, say bills are still loading, not that none exist. When asked for yesterday bills, filter by yesterday then read the displayed records. When asked for a particular customer or invoice, search and inspect the list before copying or opening. Never invent a saved bill. Use copy_bill_to_new to reuse the existing Copy action. Never edit the saved record directly.',
+      'Previous Bills: if screen.loading is true, wait for Supabase to finish and call get_app_state again; NEVER interpret unloaded/empty cache as zero bills or no matches. If loading persists, say "Bills loading.", not that none exist. When asked for yesterday bills, filter by yesterday then read the displayed records. When asked for a particular customer or invoice, search and inspect the list before copying or opening. Never invent a saved bill. Use copy_bill_to_new to reuse the existing Copy action. Never edit the saved record directly.',
       'Preview: when user asks to change invoice fields or PDF preferences while preview is open, close_preview first, make the change, and LEAVE preview closed. Only reopen for an explicit preview request or required generate flow.',
       'PDF: when user says close QR or QR done, use pdf_action close_qr or qr_done; these differ from closing the PDF options box.',
       'Theme: use set_theme for dark, light, or system default.',
-      'When user says goodbye, bye, bye-bye, end chat, stop listening, or close assistant, call end_conversation, then say aloud exactly: Have a great day. Goodbye! in your own Gemini voice. Do not call other tools after that. Do not confuse this with closing a modal.',
+      'When user says goodbye, bye, bye-bye, end chat, stop listening, or close assistant, call end_conversation, then say aloud exactly: Take care! See you soon. in your own Gemini voice. Do not call other tools after that. Do not confuse this with closing a modal.',
+      'Reminders: if screen.loading is true, wait for Supabase and call get_app_state again. Never interpret unloaded reminders as zero or no matches. If loading persists, say only \"Reminders loading.\" Do not say \"still loading\".',
       'Reminders: call reminder_prepare before collecting details for a NEW reminder to check the 10-reminder limit and show the form. Use reminder_list to answer active reminder counts or find a title. List, create, edit, pause, resume, complete, mark done or delete using the existing app handlers. New or changed reminder dates must be from tomorrow through 365 days ahead. Repeats: off, daily, weekly, monthly, yearly, or custom 1-365 days.',
       'Ask concise questions for missing essential information. Always confirm clearing an existing draft, reminder creation or edit, reminder done/delete and saving a bill. If user says no, do not perform the action.',
       'At the start of a new voice conversation, greet once: Welcome to [company name] Billing. You are currently on [current tab]. How can I help you? Keep it short. Do not repeat this greeting on model fallback.',
@@ -877,11 +956,11 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
      =================================================================== */
   function send(obj) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj)); }
 
-  function openSession(model) {
+  function openSession(model, token) {
     return new Promise((resolve, reject) => {
       let settled = false;
       thinkingModel = /thinking/i.test(model);
-      const sock = new WebSocket(WS_URL + encodeURIComponent(getKey()));
+      const sock = new WebSocket(WS_URL + encodeURIComponent(token));
       ws = sock;
       ready = false;
       const timer = setTimeout(() => { if (!settled) { settled = true; try { sock.close(); } catch (e) { /* ignore */ } reject(new Error('timeout')); } }, 12000);
@@ -936,6 +1015,13 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
     Promise.all(calls.map(runTool)).then((functionResponses) => {
       send({ toolResponse: { functionResponses } });
       dbg('tool response sent');
+      // An end_conversation tool call does not automatically make Gemini speak.
+      // Ask for the farewell only AFTER the function response has been delivered.
+      if (farewellInProgress && !farewellRequestSent && calls.some(c=>c.name==='end_conversation')) {
+        farewellRequestSent = true;
+        farewellTurnComplete = false;
+        send({clientContent:{turns:[{role:'user',parts:[{text:'Say aloud exactly: Take care! See you soon. This is your final spoken reply. Do not call tools.'}]}],turnComplete:true}});
+      }
     });
   }
 
@@ -985,6 +1071,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
         if (parts) {
           for (const p of parts) {
             if (p.inlineData && p.inlineData.data) { activity();
+              if(farewellInProgress && farewellRequestSent){farewellAudioReceived=true;clearTimeout(farewellFinishTimer);}
               turnDone = false;
               if (outCtx && outCtx.state === 'suspended') outCtx.resume();
               playPcm(p.inlineData.data);
@@ -993,7 +1080,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
           }
         }
         if (sc.turnComplete) {
-          if(farewellInProgress){farewellTurnComplete=true;finishFarewell();return;}
+          if(farewellInProgress){if(farewellRequestSent){farewellTurnComplete=true;finishFarewell();}return;}
           if (greetingPending) { greetingPending = false; clearTimeout(greetingTimer); greetingTimer = null; }
           dbg('you said: "' + uText.slice(0, 80) + '" | assistant said: "' + aText.slice(-160) + '" | tool calls so far: ' + toolCallCount);
           if (thinkingModel && toolCallCount === 0 && /system error|something went wrong|error occurred/i.test(aText)) switchToFallback();
@@ -1001,7 +1088,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
           if (!thinkingModel) { turnDone = true; maybeIdle(); }
         }
       }
-      if(farewellInProgress && status==='IDLE'){farewellTurnComplete=true;finishFarewell();}
+      if(farewellInProgress && farewellRequestSent && status==='IDLE' && sources.size){/* wait for final audio to finish */}
       if (!farewellInProgress && thinkingModel && status) {
         if (status === 'IN_PROGRESS') { if (sources.size === 0 && !greetingPending) setStatus('listening'); }
         else if (status === 'IDLE') { turnDone = true; maybeIdle(); }
@@ -1024,7 +1111,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
     stopPlayback();
     setStatus('connecting');
     try {
-      await openSession(fb);
+      await openSession(fb, await takeVoiceToken());
       activeModel = fb;
       ui.model.textContent = fb;
       toolCallCount = 0; uText = ''; aText = ''; newUserTurn = true; turnDone = true;
@@ -1041,13 +1128,6 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
 
   async function startSession() {
     if (active || starting) return;
-    const key = getKey();
-    if (!key) {
-      setStatus('error');
-      ui.status.textContent = 'Missing API key: add ai.apiKey in config.json';
-      toast('Voice AI: API key not found in config.json (ai.apiKey).', 'error');
-      return;
-    }
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.isSecureContext) {
       setStatus('error');
       ui.status.textContent = 'Microphone needs HTTPS';
@@ -1081,7 +1161,8 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
     let lastErr = null;
     for (const m of models) {
       try {
-        await openSession(m);
+        const voiceToken = await takeVoiceToken();
+        await openSession(m, voiceToken);
         activeModel = m;
         ui.model.textContent = m;
         dbg('USING MODEL: ' + m + ' (tools declared: ' + declarations(thinkingModel).length + ')');
@@ -1113,7 +1194,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
     setStatus('error');
     const why = lastErr && lastErr.message ? lastErr.message : 'unknown';
     ui.status.textContent = 'Could not connect (' + why.slice(0, 80) + ')';
-    toast('Voice AI could not connect. Check the API key and model names.', 'error');
+    toast('Voice AI could not connect. Check the session service and model names.', 'error');
   }
 
   function cleanupAudio() {
@@ -1127,7 +1208,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
   }
 
   function stopSession(finalStatus) {
-    farewellInProgress=false;farewellTurnComplete=false;clearTimeout(farewellTimer);farewellTimer=null;
+    farewellInProgress=false;farewellTurnComplete=false;farewellRequestSent=false;farewellAudioReceived=false;clearTimeout(farewellTimer);farewellTimer=null;clearTimeout(farewellFinishTimer);farewellFinishTimer=null;
     greetingPending = false; clearTimeout(greetingTimer); greetingTimer = null;
     clearInterval(idleMonitor);idleMonitor=null;
     const sock = ws;
@@ -1136,6 +1217,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
     cleanupAudio();
     if (ui.sheet) {
       setStatus(finalStatus || 'idle');
+      paintTokenState();
     }
   }
 
@@ -1143,6 +1225,19 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
   function init() {
     if (aiCfg().enabled === false) return;
     buildUi();
+    paintTokenState();
+    // Start after app initialization; authentication may finish shortly afterward.
+    scheduleWarm(100);
+    if (typeof supabaseClient !== 'undefined' && supabaseClient?.auth?.onAuthStateChange) {
+      supabaseClient.auth.onAuthStateChange((event) => {
+        if (event === 'SIGNED_OUT') {
+          warmGeneration++; warmToken=null; warmUntil=0; warmPromise=null;
+          clearTimeout(warmTimer); paintTokenState();
+        } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          if (!warmToken) scheduleWarm(100);
+        }
+      });
+    }
     window.JASVoice = {
       open: openSheet,
       close: closeSheet,

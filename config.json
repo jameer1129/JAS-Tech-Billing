@@ -42,7 +42,6 @@
   },
    "ai": {
     "enabled": true,
-    "apiKey": "AQ.Ab8RN6IXuTZ6UVdHuZgfhUfjuqzgyBPkBnRk5FKMxucAAy1m4A",
     "primaryModel":  "gemini-3.8-live",
     "fallbackModel": "gemini-3.1-flash-live-preview"
   },
