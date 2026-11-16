@@ -4663,7 +4663,6 @@ async function loadConfig(){
   }
   CONFIG = loaded;
   applyConfig();
-  if(CONFIG.ai?.enabled)loadAi();
   return true;
 }
 let appVersion = 'v1.0.0'; // updated from the service-worker version message
@@ -5710,6 +5709,7 @@ function showScreen(name){
   el.resetPasswordScreen.classList.toggle('hide', name !== 'reset-password');
   el.pendingScreen.classList.toggle('hide', name !== 'pending');
   el.appScreen.classList.toggle('hide', name !== 'app');
+  if (name !== 'app') window.JASVoice?.setAccess?.(false);
   el.offlineScreen.classList.toggle('hide', name !== 'offline');
 }
 function showActionLoader(message = 'Please wait…'){
@@ -6493,6 +6493,7 @@ function refreshAppChromeFromProfile(){
   el.appBarUserName.textContent = truncateText(fullName, 20);
   el.appBarUserName.setAttribute('title', fullName);
   el.navAdminTab.classList.toggle('hide', !['admin','super_admin'].includes(currentProfile.role));
+  window.JASVoice?.setAccess?.(currentProfile.status === 'approved');
   // Admin-only Restore Bills entry (kept here: syncRestoreBillsOption lives in a closure not reachable from this scope).
   const isAdminRole = ['admin','super_admin'].includes((currentProfile.role || '').toLowerCase());
   document.getElementById('btnShowRestoreBills')?.classList.toggle('hide', !isAdminRole);
@@ -6560,6 +6561,7 @@ async function afterAuthResolved(){
     saveCachedProfile(freshProfile);
     if (optimisticallyEntered) {
       refreshAppChromeFromProfile();
+      loadAi();
     } else {
       enterApp();
     }
@@ -6639,6 +6641,7 @@ function enterApp(){
   el.appBarUserName.setAttribute('title', fullName);
   el.navAdminTab.classList.toggle('hide', !['admin','super_admin'].includes(currentProfile.role));
   showScreen('app');
+  loadAi();
   scheduleHtml2PdfWarmup();
   const savedView = getAppStorage().getItem(prefKeyFor('jas_last_view'));
   let openReminders = false;
@@ -11436,10 +11439,15 @@ if ("serviceWorker" in navigator) {
     registerPwaServiceWorker();
   }
 }
+function getVoiceUserFullName() {
+  return currentSession?.user && currentProfile?.status === 'approved' ? String(currentProfile.name || '').trim() : '';
+}
 function loadAi() {
-  if (document.getElementById('jasVoiceScript')) return;
+  if (!CONFIG?.ai?.enabled || !currentSession?.user || currentProfile?.status !== 'approved' || el.appScreen?.classList.contains('hide')) return;
+  if (document.getElementById('jasVoiceScript')) { window.JASVoice?.setAccess?.(true); return; }
 
   const load = () => {
+    if (!CONFIG?.ai?.enabled || !currentSession?.user || currentProfile?.status !== 'approved' || el.appScreen?.classList.contains('hide') || document.getElementById('jasVoiceScript')) return;
     const s = document.createElement('script');
     s.id = 'jasVoiceScript';
     s.src = './voice.js?v=4';

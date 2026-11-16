@@ -25,6 +25,8 @@
   /* ---------------- config helpers ---------------- */
   const cfg = () => (typeof CONFIG !== 'undefined' && CONFIG) ? CONFIG : {};
   const aiCfg = () => cfg().ai || {};
+  const approved = () => typeof currentSession !== 'undefined' && !!currentSession?.user && typeof currentProfile !== 'undefined' && currentProfile?.status === 'approved' && !document.getElementById('appScreen')?.classList.contains('hide');
+  const userFullName = () => typeof getVoiceUserFullName === 'function' ? getVoiceUserFullName() : '';
   const WS_URL = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained?access_token=';
   async function getVoiceToken() {
     if (typeof supabaseClient === 'undefined' || !supabaseClient) throw new Error('Please sign in first.');
@@ -199,21 +201,39 @@
 .jv-wrap[data-s="connecting"] .jv-inner .jv-connect{display:block}
 .jv-wrap[data-s="listening"] .jv-inner .jv-bars{display:flex}
 .jv-wrap[data-s="thinking"] .jv-inner .jv-atom,.jv-wrap[data-s="transition"] .jv-inner .jv-atom{display:block}
-.jv-wrap[data-s="speaking"] .jv-inner .jv-speaker{display:grid}
-.jv-connect{width:27px;aspect-ratio:1;--_g:no-repeat radial-gradient(farthest-side,#fff 90%,#fff0);background:var(--_g),var(--_g),var(--_g),var(--_g);background-size:40% 40%;animation:jvL46 1s infinite}
+.jv-wrap[data-s="speaking"] .jv-inner .jv-speaker,.jv-wrap[data-s="muted"] .jv-inner .jv-muted-robot{display:grid}
+.jv-connect{width:27px;aspect-ratio:1;--_g:no-repeat radial-gradient(farthest-side,#fff 90%,#fff0);background:var(--_g),var(--_g),var(--_g),var(--_g);background-size:29% 29%;animation:jvL46 1s infinite}
 @keyframes jvL46{0%{background-position:0 0,100% 0,100% 100%,0 100%}40%,50%{background-position:100% 100%,100% 0,0 0,0 100%}90%,100%{background-position:100% 100%,0 100%,0 0,100% 0}}
 .jv-bars{height:30px;align-items:center;gap:3px}
 .jv-bars b{width:4px;height:20px;background:#fff;border-radius:5px;animation:jvInnerBar .65s ease-in-out infinite alternate}
 .jv-bars b:nth-child(2){height:27px;animation-delay:-.25s}.jv-bars b:nth-child(3){height:12px;animation-delay:-.4s}.jv-bars b:nth-child(4){height:23px;animation-delay:-.1s}
 @keyframes jvInnerBar{to{height:6px;opacity:.7}}
-.jv-atom{display:none;width:28px;height:28px;fill:none;stroke:#fff;stroke-width:2.5;stroke-linecap:round}
-.jv-speaker{position:relative;width:50px;height:50px;place-items:center;overflow:hidden;border-radius:50%}
-.jv-face{position:relative;width:35px;height:32px;border:2px solid #fff;border-radius:10px;display:flex;align-items:center;justify-content:space-evenly;background:#17243c;z-index:2}
+.jv-atom{display:none;width:34px;height:34px;fill:none;stroke:#fff;stroke-width:2.5;stroke-linecap:round}
+.jv-speaker,.jv-muted-robot{position:relative;width:50px;height:50px;place-items:center;overflow:hidden;border-radius:50%}
+/* Speaking: natural float, gentle head tilt, synchronized blink every 3 seconds. */
+.jv-speaker .jv-robot-float{animation:jvRobotFloat 3.8s ease-in-out infinite}
+.jv-face{position:relative;width:35px;height:32px;border:2px solid #fff;border-radius:10px;display:flex;align-items:center;justify-content:center;background:#17243c;z-index:2}
+.jv-speaker .jv-face{animation:jvFaceTilt 6s ease-in-out infinite}
 .jv-face:before{content:'';position:absolute;top:-6px;width:8px;height:2px;background:#fff;border-radius:3px}
-.jv-eye{width:5px;height:5px;border-radius:50%;background:#fff;margin-top:-5px;transform-origin:center;animation:jvEyeBlink 4.6s ease-in-out infinite}
-.jv-mouth{position:absolute;bottom:5px;left:12px;width:7px;height:3px;border-radius:50%;background:#fff;animation:jvInnerMouth 1.05s ease-in-out infinite}
-@keyframes jvInnerMouth{0%,18%,48%,70%,100%{height:3px}28%,39%{height:6px}58%,63%{height:4px}82%,90%{height:7px}}
-@keyframes jvEyeBlink{0%,43%,47%,100%{transform:scaleY(1)}45%{transform:scaleY(.12)}}
+.jv-eyes{display:flex;align-items:center;gap:9px;margin-top:-5px;transform-origin:center;animation:jvEyeBlink 3s ease-in-out infinite}
+.jv-eye{display:block;width:5px;height:5px;border-radius:50%;background:#fff}
+.jv-cheek{position:absolute;top:17px;width:3px;height:2px;background:#93c5fd;border-radius:50%;opacity:.6}
+.jv-cheek-left{left:4px}.jv-cheek-right{right:4px}
+.jv-mouth{position:absolute;bottom:5px;left:12px;width:7px;height:3px;border-radius:50%;background:#fff;animation:jvInnerMouth 1.45s ease-in-out infinite}
+@keyframes jvRobotFloat{0%,100%{transform:translateY(1px)}50%{transform:translateY(-2px)}}
+@keyframes jvFaceTilt{0%,30%,60%,100%{transform:rotate(0)}43%{transform:rotate(-3deg)}77%{transform:rotate(3deg)}}
+@keyframes jvEyeBlink{0%,40%,47%,100%{transform:scaleY(1)}43.5%{transform:scaleY(.04)}}
+@keyframes jvInnerMouth{0%,15%,43%,68%,100%{height:3px;width:7px}25%,33%{height:7px;width:6px}52%,60%{height:5px;width:9px}80%,88%{height:6px;width:7px}}
+/* Muted: warning amber robot, X eyes, still mouth, gentle alert motion. */
+.jv-muted-robot .jv-face{animation:jvMutedFace 2.4s ease-in-out infinite}
+.jv-muted-robot .jv-eyes{animation:none;gap:9px}
+.jv-muted-robot .jv-eye{position:relative;background:none;border-radius:0;width:6px;height:6px}
+.jv-muted-robot .jv-eye:before,.jv-muted-robot .jv-eye:after{content:'';position:absolute;left:2px;top:-1px;width:2px;height:8px;background:#fff;border-radius:2px;transform:rotate(45deg)}
+.jv-muted-robot .jv-eye:after{transform:rotate(-45deg)}
+.jv-muted-robot .jv-mouth{animation:none;height:2px;width:7px;border-radius:3px}
+@keyframes jvMutedFace{0%,100%{transform:translateY(0) rotate(0)}35%{transform:translateY(-1px) rotate(-3deg)}70%{transform:translateY(0) rotate(3deg)}}
+@keyframes jvMutedOrb{0%,100%{transform:scale(.97);filter:brightness(1)}50%{transform:scale(1.04);filter:brightness(1.13)}}
+@keyframes jvMutedRing{to{transform:rotate(360deg)}}
 
 /* Idle orb: red while preparing, blue after token preparation succeeds. */
 .jv-wrap:not(.jv-active)[data-token="waiting"] .jv-orb{background:radial-gradient(circle at 32% 28%,#fca5a5,#ef4444 55%,#7f1d1d);box-shadow:0 8px 24px #b91c1c66,inset 0 2px 6px #ffffff59}
@@ -242,7 +262,9 @@
 .jv-wrap[data-s="speaking"] .jv-orb{background:radial-gradient(circle at 30% 25%,#60a5fa,#2563eb 48%,#172554 95%);box-shadow:0 0 28px #3b82f6a6;animation:jvSpeak .55s ease-in-out infinite alternate}
 .jv-wrap[data-s="speaking"] .jv-orb:before{border-color:#3b82f680;animation:jvRipple 1.2s ease-out infinite}
 .jv-wrap[data-s="speaking"] .jv-orb:after{border-color:#3b82f659;animation:jvRipple 1.2s ease-out .4s infinite}
-.jv-wrap[data-s="muted"] .jv-orb{background:radial-gradient(circle at 30% 25%,#d1d5db,#64748b 60%,#334155);box-shadow:0 4px 13px #0003;animation:none}
+.jv-wrap[data-s="muted"] .jv-orb{background:radial-gradient(circle at 30% 25%,#fcd34d,#f59e0b 52%,#92400e);box-shadow:0 0 22px #f59e0b88,inset 0 2px 7px #ffffff44;animation:jvMutedOrb 2s ease-in-out infinite}
+.jv-wrap[data-s="muted"] .jv-orb:before{opacity:1;border-color:#f59e0b;border-style:dashed;animation:jvMutedRing 3s linear infinite}
+.jv-wrap[data-s="muted"] .jv-orb:after{opacity:.45;border-color:#fbbf24;animation:jvRipple 2s ease-out infinite}
 .jv-wrap[data-s="error"] .jv-orb{background:radial-gradient(circle at 30% 25%,#fca5a5,#ef4444 55%,#7f1d1d)}
 .jv-state{--jv-accent:#2563eb;position:absolute;left:50%;bottom:-46px;transform:translateX(-50%);display:none;align-items:center;justify-content:center;gap:7px;white-space:nowrap;padding:7px 11px;border:1px solid color-mix(in srgb,var(--jv-accent) 42%,var(--line,#64748b));border-radius:999px;background:color-mix(in srgb,var(--surface,#1e293b) 88%,var(--jv-accent) 12%);color:var(--text,#f8fafc);font-size:12px;font-weight:650;line-height:1.1;box-shadow:0 5px 18px #0002;pointer-events:none}
 .jv-wrap.jv-active .jv-state{display:flex}
@@ -254,7 +276,7 @@
 .jv-wrap[data-s="listening"] .jv-state{--jv-accent:#059669}
 .jv-wrap[data-s="thinking"] .jv-state,.jv-wrap[data-s="transition"] .jv-state{--jv-accent:#7c3aed}
 .jv-wrap[data-s="speaking"] .jv-state{--jv-accent:#2563eb}
-.jv-wrap[data-s="muted"] .jv-state{--jv-accent:#64748b}
+.jv-wrap[data-s="muted"] .jv-state{--jv-accent:#f59e0b}
 .jv-wrap[data-s="error"] .jv-state{--jv-accent:#dc2626}
 @keyframes jvDot{0%,65%,100%{opacity:.28;transform:translateY(0)}32%{opacity:1;transform:translateY(-3px)}}
 @keyframes jvBreathe{0%,100%{transform:scale(.92);opacity:.85}50%{transform:scale(1.04);opacity:1}}
@@ -268,14 +290,14 @@
 @keyframes jvReadyBounce{0%{transform:translateY(0) scale(1)}38%{transform:translateY(-12px) scale(1.18)}70%{transform:translateY(2px) scale(.96)}100%{transform:translateY(0) scale(1)}}
 @media(max-width:640px){.jv-wrap:not(.jv-active) .jv-orb{width:44px;height:44px}.jv-wrap:not(.jv-active) .jv-orb i{font-size:18px}}
 @media(min-width:641px){.jv-wrap.jv-active{bottom:135px}}
-@media(prefers-reduced-motion:reduce){.jv-orb,.jv-orb:before,.jv-orb:after,.jv-state-dots b{animation:none!important}}
+@media(prefers-reduced-motion:reduce){.jv-orb,.jv-orb:before,.jv-orb:after,.jv-state-dots b,.jv-speaker *, .jv-muted-robot *{animation:none!important}}
 `;
     document.head.appendChild(style);
     const wrap=document.createElement('div');wrap.className='jv-wrap';wrap.dataset.s='idle';wrap.dataset.token='waiting';
-    wrap.innerHTML='<button type="button" class="jv-mute" aria-label="Mute microphone" aria-pressed="false" title="Mute microphone"><i class="fa-solid fa-microphone" aria-hidden="true"></i></button><button type="button" class="jv-orb" aria-label="Start voice assistant"><i class="fa-solid fa-robot" aria-hidden="true"></i><span class="jv-inner" aria-hidden="true"><span class="jv-connect"></span><span class="jv-bars"><b></b><b></b><b></b><b></b></span><svg class="jv-atom" viewBox="0 0 48 48"><ellipse cx="24" cy="24" rx="19" ry="8"/><ellipse cx="24" cy="24" rx="19" ry="8" transform="rotate(60 24 24)"/><ellipse cx="24" cy="24" rx="19" ry="8" transform="rotate(120 24 24)"/><circle cx="24" cy="24" r="3.5" fill="#fff" stroke="none"/></svg><span class="jv-speaker"><span class="jv-face"><b class="jv-eye"></b><b class="jv-eye"></b><b class="jv-mouth"></b></span></span></span></button><button type="button" class="jv-end" aria-label="End voice conversation" title="End conversation"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button><div class="jv-state" role="status" aria-live="off"><i class="jv-state-icon fa-solid fa-link" aria-hidden="true"></i><span class="jv-state-label">Connecting</span><span class="jv-state-dots" aria-hidden="true"><b></b><b></b><b></b></span></div>';
+    wrap.innerHTML='<button type="button" class="jv-mute" aria-label="Mute microphone" aria-pressed="false" title="Mute microphone"><i class="fa-solid fa-microphone" aria-hidden="true"></i></button><button type="button" class="jv-orb" aria-label="Start voice assistant"><i class="fa-solid fa-robot" aria-hidden="true"></i><span class="jv-inner" aria-hidden="true"><span class="jv-connect"></span><span class="jv-bars"><b></b><b></b><b></b><b></b></span><svg class="jv-atom" viewBox="0 0 48 48"><ellipse cx="24" cy="24" rx="19" ry="8"/><ellipse cx="24" cy="24" rx="19" ry="8" transform="rotate(60 24 24)"/><ellipse cx="24" cy="24" rx="19" ry="8" transform="rotate(120 24 24)"/><circle cx="24" cy="24" r="3.5" fill="#fff" stroke="none"/></svg><span class="jv-speaker"><span class="jv-robot-float"><span class="jv-face"><span class="jv-eyes"><b class="jv-eye"></b><b class="jv-eye"></b></span><b class="jv-cheek jv-cheek-left"></b><b class="jv-cheek jv-cheek-right"></b><b class="jv-mouth"></b></span></span></span><span class="jv-muted-robot"><span class="jv-face"><span class="jv-eyes"><b class="jv-eye"></b><b class="jv-eye"></b></span><b class="jv-mouth"></b></span></span></span></button><button type="button" class="jv-end" aria-label="End voice conversation" title="End conversation"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button><div class="jv-state" role="status" aria-live="off"><i class="jv-state-icon fa-solid fa-link" aria-hidden="true"></i><span class="jv-state-label">Connecting</span><span class="jv-state-dots" aria-hidden="true"><b></b><b></b><b></b></span></div>';
     document.body.appendChild(wrap);
     ui={sheet:wrap,orb:wrap.querySelector('.jv-orb'),mute:wrap.querySelector('.jv-mute'),end:wrap.querySelector('.jv-end')};
-    ui.orb.addEventListener('click',()=>{if(!active&&!starting)openSheet();});
+    ui.orb.addEventListener('click',()=>{if(!active&&!starting&&approved())openSheet();});
     ui.mute.addEventListener('click',toggleMute);
     ui.end.addEventListener('click',()=>stopSession('idle'));
     window.addEventListener('pagehide',()=>stopSession('idle', true));
@@ -285,7 +307,7 @@
     const app=document.getElementById('appScreen');
     const nav=document.querySelector('.nav-tabs')||document.getElementById('navAdminTab')?.parentElement;
     const sync=()=>{
-      const visible=(!app||!app.classList.contains('hide'))&&currentTab()!=='admin';
+      const visible=approved()&&currentTab()!=='admin';
       wrap.classList.toggle('show',visible);
       if(!visible&&(active||starting))stopSession('idle');
     };
@@ -864,7 +886,8 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       await sleep(300);
       return { ok: true };
     },
-
+    // Confirmation is separate from the Save-to-Supabase choice.
+    // A changed draft invalidates earlier confirmation.
     async generate_pdf(a) {
       if (currentTab() === 'admin') return {ok:false,error:'Admin is not available.'};
       // Previous bill: the existing preview Generate handler hides the preview
@@ -902,6 +925,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       if (typeof a.save !== 'boolean') {
         return needConfirm('Invoice details are confirmed. Ask only: Save this bill to the database? Yes or no. Then call generate_pdf with confirmed true and save true or false. Do not repeat the invoice details.');
       }
+      // Close a New Bill preview before opening the Save choice dialog.
       if (openDialogs().includes('previewModal')) {
         await hideOverlay(el.previewModalOverlay);
         if (typeof clearPreviewScaleContainer === 'function') clearPreviewScaleContainer();
@@ -1186,7 +1210,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       `- For a NEW reminder call reminder_prepare before collecting details; it checks the ${limit}-reminder limit and shows the form. Use reminder_list for counts or to find a title. New or changed dates must be from tomorrow through ${maxDays} days ahead. Repeat: off, daily, weekly, monthly, yearly or custom 1-365 days.`,
       '',
       '## Session',
-      `- At the start greet once: Welcome to ${co} Billing application. You are currently on [current tab]. How can I help you? Keep it short.`,
+      `- At the start greet once: Welcome back${userFullName() ? ' ' + userFullName() : ''}. You are currently on [current tab]. How can I help you? Pronounce the full name naturally, do not shorten it or invent a nickname. Keep it short.`,
       '- When the user says goodbye, bye, bye-bye, end chat, stop listening or close assistant, call end_conversation, then say a short goodbye aloud in their language (in English: Take care! See you soon.). Call no other tools afterwards. Do not confuse this with closing a dialog.',
       '- When unsure about the current screen, call get_app_state. The initial screen is '+JSON.stringify(tabContext())
     ].join('\n');
@@ -1418,7 +1442,9 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
         setStatus('thinking');
         const companyName = cfg().company?.name || 'JAS Tech';
         const tabName = ({newBill:'New Bill',previousBills:'Previous Bills',reminders:'Reminders'})[currentTab()] || 'New Bill';
-        send({clientContent:{turns:[{role:'user',parts:[{text:'Start this new voice session now. Greet me aloud exactly once: Welcome to '+companyName+' Billing application. You are currently on '+tabName+'. How can I help you? Do not wait for microphone speech.'}]}],turnComplete:true}});
+        const fullName = userFullName();
+        const greeting = 'Welcome back'+(fullName ? ' '+fullName : '')+'. You are currently on '+tabName+'. How can I help you?';
+        send({clientContent:{turns:[{role:'user',parts:[{text:'Start this new voice session now. Greet me aloud exactly once: '+greeting+' Use the user’s full name as written, with natural pronunciation. Do not wait for microphone speech.'}]}],turnComplete:true}});
         greetingTimer = setTimeout(()=>{ if(!isCurrent())return; greetingPending=false; greetingTimer=null; if(active && !sources.size) setStatus('listening'); },12000);
         return;
       } catch (e) {
@@ -1472,11 +1498,11 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
 
   /* ---------------- boot ---------------- */
   function init() {
-    if (aiCfg().enabled === false) return;
+    if (aiCfg().enabled === false || !approved()) return;
     buildUi();
     paintTokenState();
     // Page load: request one token after app initialization (authentication may finish shortly afterward).
-    setTimeout(prepareToken, 100);
+    setTimeout(() => { if (approved()) prepareToken(); }, 100);
     if (typeof supabaseClient !== 'undefined' && supabaseClient?.auth?.onAuthStateChange) {
       supabaseClient.auth.onAuthStateChange((event) => {
         if (event === 'SIGNED_OUT') {
@@ -1485,7 +1511,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
           tokenPreparing = true; tokenReady = false;
           paintTokenState();
         } else if (event === 'SIGNED_IN') {
-          if (!tokenEverObtained && !tokenPromise) prepareToken();
+          if (approved() && !tokenEverObtained && !tokenPromise) prepareToken();
         }
       });
     }
@@ -1493,7 +1519,18 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       open: openSheet,
       close: farewellAndClose,
       isActive: () => active,
-      model: () => activeModel
+      model: () => activeModel,
+      setAccess: (allowed) => {
+        if (!allowed || !approved()) {
+          stopSession('idle', true);
+          tokenGeneration++; voiceToken = null; voiceTokenUntil = 0; tokenPromise = null;
+          tokenReady = false; tokenPreparing = true; pendingStart = false;
+          ui.sheet?.classList.remove('show');
+        } else {
+          if (approved() && currentTab() !== 'admin') ui.sheet?.classList.add('show');
+          if (!tokenUsable() && !tokenPromise) prepareToken();
+        }
+      }
     };
   }
   if (document.body) init(); else document.addEventListener('DOMContentLoaded', init, { once: true });
