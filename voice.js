@@ -43,23 +43,46 @@
     return data.token;
   }
   // ---- Voice token: one lazy, single-use token (no refresh timer) ----
-  // Flow: fetch one token when the page loads -> use it on the next tap -> after a conversation ends
-  // fetch one replacement. A token that sits unused simply expires; nothing refreshes it in the
-  // background. If the stored token is missing or expired when the user taps, the tap fetches a
-  // fresh one WHILE the microphone starts, then connects by itself (no second tap).
-  // Keep this at or below newSessionExpireTime in the gemini-session Edge Function.
-  const TOKEN_TTL_MS = 50000;
-  const TOKEN_MARGIN_MS = 5000;     // a token about to expire is treated as already expired
+  // One initial token and one replacement after each completed conversation.
+  // No tab-return or timer requests. Expired tokens refresh on tap only.
+  // Edge Function must set both token expirations to one hour.
+  const TOKEN_TTL_MS = 60 * 60_000;
+  const TOKEN_MARGIN_MS = 10000;     // a token about to expire is treated as already expired
   let voiceToken = null, voiceTokenUntil = 0, tokenPromise = null, tokenGeneration = 0;
-  let tokenFetchFailed = false, tokenEverObtained = false;
+  let tokenEverObtained = false;
   const tokenUsable = () => !!voiceToken && Date.now() < voiceTokenUntil - TOKEN_MARGIN_MS;
-  // The orb is tappable whenever the user is signed in, so it only turns red after a failed
-  // token request (a tap retries).
+  // Blue remains blue while idle. An expired token is refreshed only on the next tap.
+  let tokenPreparing = true, tokenReady = false, readyAnimationTimer = null, pendingStart = false;
   function paintTokenState() {
     if (!ui.sheet || active || starting) return;
-    ui.sheet.dataset.token = tokenFetchFailed ? 'waiting' : 'ready';
-    ui.orb.title = tokenFetchFailed ? 'Voice assistant unavailable. Tap to retry' : 'Start voice assistant';
+    const next = tokenPreparing || !tokenReady ? 'waiting' : 'ready';
+    const previous = ui.sheet.dataset.token;
+    ui.sheet.dataset.token = next;
+    ui.orb.title = next === 'waiting' ? 'AI is preparing. Please wait.' : 'Start voice assistant';
     ui.orb.setAttribute('aria-label', ui.orb.title);
+    if (next === 'ready' && previous !== 'ready') {
+      ui.sheet.classList.remove('jv-ready-animation');
+      void ui.sheet.offsetWidth;
+      ui.sheet.classList.add('jv-ready-animation');
+      clearTimeout(readyAnimationTimer);
+      readyAnimationTimer = setTimeout(() => ui.sheet?.classList.remove('jv-ready-animation'), 950);
+    } else if (next === 'waiting') {
+      clearTimeout(readyAnimationTimer);
+      ui.sheet.classList.remove('jv-ready-animation');
+    }
+  }
+  function prepareToken() {
+    if (tokenPromise) return; // An existing request already owns the red state.
+    if (tokenUsable()) { // Keep the cached token; do not call Supabase twice.
+      tokenPreparing = false;
+      tokenReady = true;
+      paintTokenState();
+      return;
+    }
+    tokenPreparing = true;
+    tokenReady = false;
+    paintTokenState();
+    fetchToken().catch(() => {});
   }
   // One request at a time: callers share the same in-flight promise.
   function fetchToken() {
@@ -71,11 +94,16 @@
         if (generation !== tokenGeneration) throw new Error('Signed out');
         voiceToken = token;
         voiceTokenUntil = Date.now() + TOKEN_TTL_MS;
-        tokenFetchFailed = false;
         tokenEverObtained = true;
+        tokenPreparing = false;
+        tokenReady = true;
+        paintTokenState();
         return token;
       } catch (error) {
-        if (generation === tokenGeneration) tokenFetchFailed = true;
+        if (generation === tokenGeneration) {
+          tokenPreparing = true;
+          tokenReady = false;
+        }
         throw error;
       } finally {
         if (tokenPromise === p) tokenPromise = null;
@@ -84,10 +112,6 @@
     })();
     tokenPromise = p;
     return p;
-  }
-  function prefetchToken() {
-    if (tokenUsable() || tokenPromise) return;
-    fetchToken().catch(() => {});
   }
   // Hands out the stored token if still valid, otherwise fetches one. Never hands a token to a
   // session that has already been stopped or replaced (isCurrent() is false).
@@ -167,8 +191,12 @@
 .jv-orb,.jv-mute,.jv-end{display:grid;place-items:center;flex:none;border-radius:50%;cursor:pointer;-webkit-tap-highlight-color:transparent;color:#fff}
 .jv-orb{width:52px;height:52px;position:relative;border:1.5px solid #ffffff48;background:radial-gradient(circle at 32% 28%,#4f7bff,#012587 62%,#001242);box-shadow:0 8px 24px #01258761,inset 0 2px 6px #ffffff59;transition:background .35s,box-shadow .35s,filter .3s}
 .jv-orb i{font-size:21px;position:relative;z-index:2;pointer-events:none}
-/* Idle orb indicates whether a fresh Gemini token is available. */
+/* Idle orb: red while preparing, blue after token preparation succeeds. */
 .jv-wrap:not(.jv-active)[data-token="waiting"] .jv-orb{background:radial-gradient(circle at 32% 28%,#fca5a5,#ef4444 55%,#7f1d1d);box-shadow:0 8px 24px #b91c1c66,inset 0 2px 6px #ffffff59}
+.jv-wrap:not(.jv-active)[data-token="waiting"] .jv-orb:before{opacity:1;border-color:#fca5a5;border-style:dashed;animation:jvSpin 3s linear infinite}
+.jv-wrap:not(.jv-active)[data-token="waiting"] .jv-orb i{animation:jvRobotTilt 1.5s ease-in-out infinite}
+.jv-wrap:not(.jv-active).jv-ready-animation[data-token="ready"] .jv-orb:before{opacity:1;border-color:#60a5fa;animation:jvReadyRing .3s ease-out forwards}
+.jv-wrap:not(.jv-active).jv-ready-animation[data-token="ready"] .jv-orb{animation:jvReadyBounce .65s cubic-bezier(.22,.8,.25,1) .3s both}
 .jv-orb:before,.jv-orb:after{content:'';position:absolute;inset:-4px;border:2px solid #60a5fa;border-radius:50%;opacity:0;pointer-events:none;z-index:-1}
 .jv-mute,.jv-end{display:none;width:38px;height:38px;font-size:16px;box-shadow:0 4px 13px #0002}
 .jv-mute{border:1px solid var(--line,#cbd5e1);background:var(--surface,#334155);color:var(--text,#fff)}
@@ -179,7 +207,7 @@
 .jv-wrap.jv-active .jv-orb{width:62px;height:62px}
 .jv-wrap.jv-active .jv-mute,.jv-wrap.jv-active .jv-end{display:grid}
 .jv-wrap[data-s="connecting"] .jv-orb{background:radial-gradient(circle at 30% 25%,#67e8f9,#0891b2 53%,#164e63);animation:jvBreathe 1.4s ease-in-out infinite}
-.jv-wrap[data-s="connecting"] .jv-orb:before{opacity:1;border-color:#22d3ee;border-style:dashed;animation:jvSpin 3s linear infinite}
+.jv-wrap[data-s="connecting"] .jv-orb:before{opacity:1;border-color:#22d3ee;border-style:dashed;animation:jvSpin 1.5s linear infinite}
 .jv-wrap[data-s="listening"] .jv-orb{background:radial-gradient(circle at 35% 25%,#6ee7b7,#059669 48%,#064e3b 95%);box-shadow:0 0 24px #10b9818c,inset 0 3px 10px #ffffff3b;animation:jvListen 1.8s ease-in-out infinite}
 .jv-wrap[data-s="listening"] .jv-orb:before{border-color:#34d399;animation:jvRipple 2s cubic-bezier(.16,1,.3,1) infinite}
 .jv-wrap[data-s="listening"] .jv-orb:after{border-color:#34d399;animation:jvRipple 2s cubic-bezier(.16,1,.3,1) .7s infinite}
@@ -211,20 +239,22 @@
 @keyframes jvSpeak{from{transform:scale(.96)}to{transform:scale(calc(1.1 + var(--jv-level,0)*.06))}}
 @keyframes jvRipple{0%{transform:scale(.85);opacity:.75}100%{transform:scale(1.55);opacity:0}}
 @keyframes jvSpin{to{transform:rotate(360deg)}}
+@keyframes jvRobotTilt{0%,100%{transform:rotate(-9deg)}50%{transform:rotate(9deg)}}
+@keyframes jvReadyRing{0%{transform:scale(1);opacity:1}100%{transform:scale(1.75);opacity:0}}
+@keyframes jvReadyBounce{0%{transform:translateY(0) scale(1)}38%{transform:translateY(-12px) scale(1.18)}70%{transform:translateY(2px) scale(.96)}100%{transform:translateY(0) scale(1)}}
 @media(max-width:640px){.jv-wrap:not(.jv-active) .jv-orb{width:44px;height:44px}.jv-wrap:not(.jv-active) .jv-orb i{font-size:18px}}
 @media(min-width:641px){.jv-wrap.jv-active{bottom:135px}}
 @media(prefers-reduced-motion:reduce){.jv-orb,.jv-orb:before,.jv-orb:after,.jv-state-dots b{animation:none!important}}
 `;
     document.head.appendChild(style);
-    const wrap=document.createElement('div');wrap.className='jv-wrap';wrap.dataset.s='idle';wrap.dataset.token='ready';
+    const wrap=document.createElement('div');wrap.className='jv-wrap';wrap.dataset.s='idle';wrap.dataset.token='waiting';
     wrap.innerHTML='<button type="button" class="jv-mute" aria-label="Mute microphone" aria-pressed="false" title="Mute microphone"><i class="fa-solid fa-microphone" aria-hidden="true"></i></button><button type="button" class="jv-orb" aria-label="Start voice assistant"><i class="fa-solid fa-robot" aria-hidden="true"></i></button><button type="button" class="jv-end" aria-label="End voice conversation" title="End conversation"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button><div class="jv-state" role="status" aria-live="off"><i class="jv-state-icon fa-solid fa-link" aria-hidden="true"></i><span class="jv-state-label">Connecting</span><span class="jv-state-dots" aria-hidden="true"><b></b><b></b><b></b></span></div>';
     document.body.appendChild(wrap);
     ui={sheet:wrap,orb:wrap.querySelector('.jv-orb'),mute:wrap.querySelector('.jv-mute'),end:wrap.querySelector('.jv-end')};
     ui.orb.addEventListener('click',()=>{if(!active&&!starting)openSheet();});
     ui.mute.addEventListener('click',toggleMute);
     ui.end.addEventListener('click',()=>stopSession('idle'));
-    window.addEventListener('pagehide',()=>stopSession('idle'));
-    document.addEventListener('visibilitychange',()=>{if(document.hidden&&(active||starting))stopSession('idle');});
+    window.addEventListener('pagehide',()=>stopSession('idle', true));
     const app=document.getElementById('appScreen');
     const nav=document.querySelector('.nav-tabs')||document.getElementById('navAdminTab')?.parentElement;
     const sync=()=>{
@@ -294,9 +324,34 @@
     paintTokenState();
   }
   const curStatus=()=>ui.sheet.dataset.s;
-  function openSheet(){
-    if(currentTab()==='admin'||active||starting)return;
-    startSession();   // a missing or expired token is fetched inside startSession
+  async function openSheet(){
+    if(currentTab()==='admin'||active||starting||pendingStart)return;
+    if (tokenPreparing || !tokenReady) {
+      toast('AI is preparing. Please wait.', 'info');
+      return;
+    }
+    if (!tokenUsable()) {
+      // Expired while idle: show red first, then blue and automatically start.
+      pendingStart = true;
+      tokenPreparing = true;
+      tokenReady = false;
+      paintTokenState();
+      toast('AI is preparing. Please wait.', 'info');
+      const generation = tokenGeneration;
+      try {
+        await fetchToken();
+        if (generation === tokenGeneration && currentTab() !== 'admin') {
+          pendingStart = false;
+          startSession();
+        }
+      } catch (e) {
+        if (generation === tokenGeneration) toast(e.message || 'Could not prepare AI. Try again.', 'error');
+      } finally {
+        pendingStart = false;
+      }
+      return;
+    }
+    startSession();
   }
 
   let farewellInProgress=false, farewellTimer=null, farewellTurnComplete=false, farewellRequestSent=false, farewellAudioReceived=false, farewellFinishTimer=null;
@@ -1299,7 +1354,6 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       outCtx = new AC();
       if (outCtx.state === 'suspended') outCtx.resume();
       const micReady = startMic(sid);
-      if (!tokenUsable()) fetchToken().catch(() => {});   // expired or missing: fetch in parallel with the mic
       await micReady;
     } catch (e) {
       if (!isCurrent()) return;
@@ -1322,6 +1376,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       try { token = await takeVoiceToken(isCurrent); }
       catch (e) {
         if (!isCurrent()) return;
+        tokenPreparing = true; tokenReady = false;
         lastErr = e; tokenError = true;   // a token failure will not be fixed by the fallback model
         break;
       }
@@ -1354,6 +1409,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
     cleanupAudio();
     releaseScreenAwake();
     setStatus('error');
+    paintTokenState();
     const why = lastErr && lastErr.message ? lastErr.message : 'unknown';
     dbg('could not connect: ' + why);
     toast(tokenError ? ('Voice assistant unavailable: ' + why) : 'Voice AI could not connect. Check the session service and model names.', 'error');
@@ -1369,7 +1425,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
     micNode = micSink = micStream = inCtx = outCtx = null;
   }
 
-  function stopSession(finalStatus) {
+  function stopSession(finalStatus, unloading = false) {
     const wasActive = active;
     sessionId++;   // invalidates every pending callback, timer and tool run of the connection being closed
     farewellInProgress=false;farewellTurnComplete=false;farewellRequestSent=false;farewellAudioReceived=false;clearTimeout(farewellTimer);farewellTimer=null;clearTimeout(farewellFinishTimer);farewellFinishTimer=null;
@@ -1385,9 +1441,8 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       setStatus(finalStatus || 'idle');
       paintTokenState();
     }
-    // A conversation that really ran used up its token: prepare ONE replacement for the next tap.
-    // Skipped when the app is hidden or signed out; the next tap then fetches it on demand.
-    if (wasActive && !document.hidden && ui.sheet?.classList.contains('show')) prefetchToken();
+    // Exactly one replacement when a conversation ends, regardless of tab visibility.
+    if (wasActive && !unloading) prepareToken();
   }
 
   /* ---------------- boot ---------------- */
@@ -1396,15 +1451,16 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
     buildUi();
     paintTokenState();
     // Page load: request one token after app initialization (authentication may finish shortly afterward).
-    setTimeout(prefetchToken, 100);
+    setTimeout(prepareToken, 100);
     if (typeof supabaseClient !== 'undefined' && supabaseClient?.auth?.onAuthStateChange) {
       supabaseClient.auth.onAuthStateChange((event) => {
         if (event === 'SIGNED_OUT') {
           tokenGeneration++; voiceToken = null; voiceTokenUntil = 0; tokenPromise = null;
-          tokenFetchFailed = false; tokenEverObtained = false;
+          tokenEverObtained = false; pendingStart = false;
+          tokenPreparing = true; tokenReady = false;
           paintTokenState();
         } else if (event === 'SIGNED_IN') {
-          if (!tokenEverObtained) prefetchToken();   // first sign-in only; later SIGNED_IN events must not refetch
+          if (!tokenEverObtained && !tokenPromise) prepareToken();
         }
       });
     }

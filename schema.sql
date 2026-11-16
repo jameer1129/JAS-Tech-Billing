@@ -1854,15 +1854,14 @@ where public_token is not null;
 --   if (profileError || profile?.status !== 'approved')
 --     return reply(403, { error: 'Account is not approved for voice access' });
 
---   // One-use ephemeral token, valid only for a short time to start a Live session.
---   const now = Date.now();
+--   const expires = new Date(Date.now() + 60 * 60_000).toISOString();
 --   const response = await fetch('https://generativelanguage.googleapis.com/v1alpha/auth_tokens', {
 --     method: 'POST',
 --     headers: { 'x-goog-api-key': geminiKey, 'Content-Type': 'application/json' },
 --     body: JSON.stringify({
 --       uses: 1,
---       expireTime: new Date(now + 30 * 60_000).toISOString(),
---       newSessionExpireTime: new Date(now + 2 * 60_000).toISOString(),
+--       expireTime: expires,
+--       newSessionExpireTime: expires,
 --     }),
 --   });
 --   if (!response.ok) {
