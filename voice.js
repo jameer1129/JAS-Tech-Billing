@@ -12,16 +12,14 @@
 
    config.json → "ai": {
      "enabled": true,
-     "apiKey": "YOUR_GEMINI_KEY",            <-- required
-     "primaryModel": "gemini-3.8-live-extended-thinking",
-     "fallbackModel": "gemini-3.8-live",
-     "thinkingLevel": "MEDIUM",              (LOW | MEDIUM | HIGH)
+     "primaryModel": "gemini-3.8-live",
+     "fallbackModel": "gemini-3.1-flash-live-preview",
      "voiceName": "Puck"                     (optional)
    }
    =================================================================== */
 (function () {
   'use strict';
-  const VERSION = 'v14-india-confirm-wakelock';
+  const VERSION = 'v19-live-model-cleanup';
   if (window.__jasVoiceLoaded) return;
   window.__jasVoiceLoaded = true;
   console.info('[voice] ' + VERSION + ' loaded');
@@ -113,7 +111,7 @@
   const toast = (m, t) => { try { showToast(m, t || 'info'); } catch (e) { console.log('[voice]', m); } };
 
   /* ---------------- runtime state ---------------- */
-  let ws = null, activeModel = '', ready = false, thinkingModel = false;
+  let ws = null, activeModel = '', ready = false;
   let micStream = null, inCtx = null, micNode = null, micSink = null, outCtx = null;
   let muted = false, active = false, starting = false;
   let greetingPending = false, greetingTimer = null;
@@ -161,7 +159,7 @@
   }
 
 
-  /* One compact control row. Only the orb has mode-specific animation. */
+  /* Compact voice controls with a state-matched status pill beneath the orb. */
   const STATUS_TEXT = {idle:'',connecting:'Connecting...',listening:'Listening...',thinking:'Thinking...',speaking:'Speaking...',muted:'Muted...',ended:'',error:'Error'};
   function buildUi(){
     if(document.querySelector('.jv-wrap'))return;
@@ -180,24 +178,38 @@
 .jv-mute{border:1px solid var(--line,#cbd5e1);background:var(--surface,#334155);color:var(--text,#fff)}
 .jv-mute[aria-pressed="true"]{background:#64748b;color:#fff;border-color:#94a3b8}
 .jv-end{border:1px solid #fecaca;background:linear-gradient(145deg,#ef4444,#b91c1c);box-shadow:0 4px 13px #dc26264d}
-.jv-wrap.jv-active{left:50%;right:auto;top:auto;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);gap:30px}
+.jv-wrap.jv-active{left:50%;right:auto;top:auto;bottom:calc(120px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);gap:30px}
 .jv-wrap.jv-active:not(.show){transform:translateX(-50%) translateY(12px) scale(.72)}
 .jv-wrap.jv-active .jv-orb{width:62px;height:62px}
 .jv-wrap.jv-active .jv-mute,.jv-wrap.jv-active .jv-end{display:grid}
-.jv-wrap[data-s="connecting"] .jv-orb{background:radial-gradient(circle at 30% 25%,#cffafe,#06b6d4 55%,#155e75);animation:jvBreathe 1.4s ease-in-out infinite}
+.jv-wrap[data-s="connecting"] .jv-orb{background:radial-gradient(circle at 30% 25%,#67e8f9,#0891b2 53%,#164e63);animation:jvBreathe 1.4s ease-in-out infinite}
 .jv-wrap[data-s="connecting"] .jv-orb:before{opacity:1;border-color:#22d3ee;border-style:dashed;animation:jvSpin 3s linear infinite}
-.jv-wrap[data-s="listening"] .jv-orb{background:radial-gradient(circle at 35% 25%,#a7f3d0,#10b981 48%,#065f46 95%);box-shadow:0 0 24px #10b9818c,inset 0 3px 10px #ffffff80;animation:jvListen 1.8s ease-in-out infinite}
+.jv-wrap[data-s="listening"] .jv-orb{background:radial-gradient(circle at 35% 25%,#6ee7b7,#059669 48%,#064e3b 95%);box-shadow:0 0 24px #10b9818c,inset 0 3px 10px #ffffff3b;animation:jvListen 1.8s ease-in-out infinite}
 .jv-wrap[data-s="listening"] .jv-orb:before{border-color:#34d399;animation:jvRipple 2s cubic-bezier(.16,1,.3,1) infinite}
 .jv-wrap[data-s="listening"] .jv-orb:after{border-color:#34d399;animation:jvRipple 2s cubic-bezier(.16,1,.3,1) .7s infinite}
-.jv-wrap[data-s="thinking"] .jv-orb{background:radial-gradient(circle at 35% 25%,#c084fc,#7c3aed 50%,#311068 95%);box-shadow:0 0 26px #8b5cf6a6;animation:jvMorph 1.3s ease-in-out infinite}
+.jv-wrap[data-s="thinking"] .jv-orb{background:radial-gradient(circle at 35% 25%,#a78bfa,#6d28d9 50%,#2e1065 95%);box-shadow:0 0 26px #8b5cf6a6;animation:jvMorph 1.3s ease-in-out infinite}
 .jv-wrap[data-s="thinking"] .jv-orb:before{opacity:.9;border-color:#a855f7;border-top-color:transparent;border-bottom-color:transparent;animation:jvSpin 1.1s linear infinite}
-.jv-wrap[data-s="transition"] .jv-orb{background:radial-gradient(circle at 35% 25%,#f5d0fe,#a855f7 48%,#581c87 95%);box-shadow:0 0 26px #a855f7a6;animation:jvMorph .5s ease-in-out both}
+.jv-wrap[data-s="transition"] .jv-orb{background:radial-gradient(circle at 35% 25%,#d8b4fe,#9333ea 48%,#4a044e 95%);box-shadow:0 0 26px #a855f7a6;animation:jvMorph .5s ease-in-out both}
 .jv-wrap[data-s="transition"] .jv-orb:before{opacity:.95;border-color:#e879f9;border-top-color:transparent;border-bottom-color:transparent;animation:jvSpin .5s linear infinite}
-.jv-wrap[data-s="speaking"] .jv-orb{background:radial-gradient(circle at 30% 25%,#93c5fd,#3b82f6 48%,#1e3a8a 95%);box-shadow:0 0 28px #3b82f6a6;animation:jvSpeak .55s ease-in-out infinite alternate}
+.jv-wrap[data-s="speaking"] .jv-orb{background:radial-gradient(circle at 30% 25%,#60a5fa,#2563eb 48%,#172554 95%);box-shadow:0 0 28px #3b82f6a6;animation:jvSpeak .55s ease-in-out infinite alternate}
 .jv-wrap[data-s="speaking"] .jv-orb:before{border-color:#3b82f680;animation:jvRipple 1.2s ease-out infinite}
 .jv-wrap[data-s="speaking"] .jv-orb:after{border-color:#3b82f659;animation:jvRipple 1.2s ease-out .4s infinite}
 .jv-wrap[data-s="muted"] .jv-orb{background:radial-gradient(circle at 30% 25%,#d1d5db,#64748b 60%,#334155);box-shadow:0 4px 13px #0003;animation:none}
 .jv-wrap[data-s="error"] .jv-orb{background:radial-gradient(circle at 30% 25%,#fca5a5,#ef4444 55%,#7f1d1d)}
+.jv-state{--jv-accent:#2563eb;position:absolute;left:50%;bottom:-46px;transform:translateX(-50%);display:none;align-items:center;justify-content:center;gap:7px;white-space:nowrap;padding:7px 11px;border:1px solid color-mix(in srgb,var(--jv-accent) 42%,var(--line,#64748b));border-radius:999px;background:color-mix(in srgb,var(--surface,#1e293b) 88%,var(--jv-accent) 12%);color:var(--text,#f8fafc);font-size:12px;font-weight:650;line-height:1.1;box-shadow:0 5px 18px #0002;pointer-events:none}
+.jv-wrap.jv-active .jv-state{display:flex}
+.jv-state-icon{color:var(--jv-accent);font-size:12px}
+.jv-state-dots{display:inline-flex;gap:3px;align-items:center;margin-left:1px}
+.jv-state-dots b{width:3px;height:3px;border-radius:50%;background:var(--jv-accent);animation:jvDot 1.1s ease-in-out infinite}
+.jv-state-dots b:nth-child(2){animation-delay:.15s}.jv-state-dots b:nth-child(3){animation-delay:.3s}
+.jv-wrap[data-s="connecting"] .jv-state{--jv-accent:#0891b2}
+.jv-wrap[data-s="listening"] .jv-state{--jv-accent:#059669}
+.jv-wrap[data-s="thinking"],.jv-wrap[data-s="transition"]{--jv-accent:#7c3aed}
+.jv-wrap[data-s="thinking"] .jv-state,.jv-wrap[data-s="transition"] .jv-state{--jv-accent:#7c3aed}
+.jv-wrap[data-s="speaking"] .jv-state{--jv-accent:#2563eb}
+.jv-wrap[data-s="muted"] .jv-state{--jv-accent:#64748b}
+.jv-wrap[data-s="error"] .jv-state{--jv-accent:#dc2626}
+@keyframes jvDot{0%,65%,100%{opacity:.28;transform:translateY(0)}32%{opacity:1;transform:translateY(-3px)}}
 @keyframes jvBreathe{0%,100%{transform:scale(.92);opacity:.85}50%{transform:scale(1.04);opacity:1}}
 @keyframes jvListen{0%,100%{transform:scale(1)}50%{transform:scale(calc(1.06 + var(--jv-level,0)*.07))}}
 @keyframes jvMorph{0%,100%{transform:scale(.95) rotate(0);border-radius:50%}33%{transform:scale(1.06) rotate(120deg);border-radius:44% 56% 48% 52%}66%{transform:scale(.98) rotate(240deg);border-radius:54% 46% 55% 45%}}
@@ -205,12 +217,12 @@
 @keyframes jvRipple{0%{transform:scale(.85);opacity:.75}100%{transform:scale(1.55);opacity:0}}
 @keyframes jvSpin{to{transform:rotate(360deg)}}
 @media(max-width:640px){.jv-wrap:not(.jv-active) .jv-orb{width:44px;height:44px}.jv-wrap:not(.jv-active) .jv-orb i{font-size:18px}}
-@media(min-width:641px){.jv-wrap.jv-active{bottom:92px}}
-@media(prefers-reduced-motion:reduce){.jv-orb,.jv-orb:before,.jv-orb:after{animation:none!important}}
+@media(min-width:641px){.jv-wrap.jv-active{bottom:135px}}
+@media(prefers-reduced-motion:reduce){.jv-orb,.jv-orb:before,.jv-orb:after,.jv-state-dots b{animation:none!important}}
 `;
     document.head.appendChild(style);
     const wrap=document.createElement('div');wrap.className='jv-wrap';wrap.dataset.s='idle';wrap.dataset.token='waiting';
-    wrap.innerHTML='<button type="button" class="jv-mute" aria-label="Mute microphone" aria-pressed="false" title="Mute microphone"><i class="fa-solid fa-microphone" aria-hidden="true"></i></button><button type="button" class="jv-orb" aria-label="Start voice assistant"><i class="fa-solid fa-robot" aria-hidden="true"></i></button><button type="button" class="jv-end" aria-label="End voice conversation" title="End conversation"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>';
+    wrap.innerHTML='<button type="button" class="jv-mute" aria-label="Mute microphone" aria-pressed="false" title="Mute microphone"><i class="fa-solid fa-microphone" aria-hidden="true"></i></button><button type="button" class="jv-orb" aria-label="Start voice assistant"><i class="fa-solid fa-robot" aria-hidden="true"></i></button><button type="button" class="jv-end" aria-label="End voice conversation" title="End conversation"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button><div class="jv-state" role="status" aria-live="off"><i class="jv-state-icon fa-solid fa-link" aria-hidden="true"></i><span class="jv-state-label">Connecting</span><span class="jv-state-dots" aria-hidden="true"><b></b><b></b><b></b></span></div>';
     document.body.appendChild(wrap);
     ui={sheet:wrap,fab:wrap,orb:wrap.querySelector('.jv-orb'),orbIcon:wrap.querySelector('.jv-orb i'),status:{textContent:''},mute:wrap.querySelector('.jv-mute'),end:wrap.querySelector('.jv-end'),model:{textContent:''},act:null,log:null};
     ui.orb.addEventListener('click',()=>{if(!active&&!starting)openSheet();});
@@ -242,6 +254,14 @@
   let transitionTimer=null;
   let settledVoiceState='idle';
   let pendingVoiceState=null;
+  function updateVoiceStatusLabel(s){
+    const state=ui.sheet?.querySelector('.jv-state');if(!state)return;
+    const labels={connecting:['Connecting','fa-link'],listening:['Listening','fa-microphone'],thinking:['Thinking','fa-brain'],transition:['Thinking','fa-brain'],speaking:['Speaking','fa-volume-high'],muted:['Muted','fa-microphone-slash'],error:['Error','fa-triangle-exclamation']};
+    const item=labels[s]||['','fa-circle'];
+    state.querySelector('.jv-state-label').textContent=item[0];
+    state.querySelector('.jv-state-icon').className='jv-state-icon fa-solid '+item[1];
+    state.hidden=!item[0];
+  }
   function setStatus(s){
     if(!ui.sheet)return;
     if(muted && s!=='idle'&&s!=='ended'&&s!=='error')s='muted';
@@ -262,6 +282,7 @@
           if(!target||!ui.sheet)return;
           settledVoiceState=target;
           ui.sheet.dataset.s=target;
+          updateVoiceStatusLabel(target);
         },500);
       }
       if(pendingVoiceState===null){settledVoiceState=s;ui.sheet.dataset.s=s;}
@@ -271,6 +292,7 @@
       ui.sheet.dataset.s=s;
     }
     ui.status.textContent=STATUS_TEXT[s]||s;
+    updateVoiceStatusLabel(ui.sheet.dataset.s);
     ui.sheet.classList.toggle('jv-active',!!(active||starting));
     ui.orbIcon.className='fa-solid fa-robot';
     ui.mute.querySelector('i').className='fa-solid '+(muted?'fa-microphone-slash':'fa-microphone');
@@ -283,7 +305,17 @@
   }
   const curStatus=()=>ui.sheet.dataset.s;
   function renderText(){}
-  function openSheet(){if(currentTab()==='admin')return;if(!active&&!starting){if(!warmToken||Date.now()>=warmUntil)toast('Preparing voice assistant. Please wait…','info');startSession();}}
+  function openSheet(){
+    if(currentTab()==='admin'||active||starting)return;
+    // Red orb: notify only. Never open the sheet or start connecting until blue.
+    if(!warmToken||Date.now()>=warmUntil){
+      paintTokenState();
+      toast('Preparing voice assistant. Please wait…','info');
+      if(!warmPromise)scheduleWarm(0);
+      return;
+    }
+    startSession();
+  }
   function closeSheet(){farewellAndClose();}
 
   let farewellInProgress=false, farewellTimer=null, farewellTurnComplete=false, farewellRequestSent=false, farewellAudioReceived=false, farewellFinishTimer=null;
@@ -481,6 +513,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
         ctx.totals = totals();
         ctx.invoice_date = state.dateStr || '';
         ctx.qr_dialog_open = openDialogs().includes('invoiceQrModal');
+        ctx.invoice_download_qr_available = !!(openDialogs().includes('pdfActionModal') && el.btnPdfQr && !el.btnPdfQr.classList.contains('hide'));
       } else if (tab === 'previousBills') {
         ctx.tab_name = 'Previous Bills';
         const page = billsPage, size = BILLS_PAGE_SIZE, total = billsTotalCount;
@@ -561,13 +594,27 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
     if (q) return list.find((p) => (p.name || '').toLowerCase() === q) || list.find((p) => (p.name || '').toLowerCase().includes(q));
     return null;
   }
-  function findBill(a) {
+  function billCandidates(a) {
     const list = billsCache || [];
-    if (a.invoice_no) { const q = String(a.invoice_no).replace(/\D/g, ''); const hit = list.find((b) => String(b.invoice_no).replace(/\D/g, '').endsWith(q) && q); if (hit) return hit; }
-    if (a.position != null && list[num(a.position) - 1]) return list[num(a.position) - 1];
-    const c = String(a.customer || '').trim().toLowerCase();
-    if (c) return list.find((b) => (b.customer_name || '').toLowerCase().includes(c));
-    return null;
+    if (a.invoice_no) {
+      const q = String(a.invoice_no).replace(/\\D/g, '');
+      return q ? list.filter(b => String(b.invoice_no).replace(/\\D/g, '').endsWith(q)) : [];
+    }
+    if (a.position != null) return list[Number(a.position)-1] ? [list[Number(a.position)-1]] : [];
+    const q = String(a.customer || '').trim().toLowerCase();
+    return q ? list.filter(b => (b.customer_name || '').toLowerCase().includes(q)) : [];
+  }
+  function billIdentity(b) {
+    return {invoice_no:b.invoice_no,customer:b.customer_name||'Walk-in customer',date:b.bill_date||'',total:b.total,phone:b.customer_phone||''};
+  }
+  function findBill(a) {
+    const matches=billCandidates(a);
+    return matches.length===1?matches[0]:null;
+  }
+  function billLookupError(a) {
+    const matches=billCandidates(a);
+    if(matches.length>1)return {ok:false,ambiguous:true,error:'Multiple bills match. Ask which invoice before taking action. Do not select the first match.',matches:matches.map(billIdentity)};
+    return {ok:false,error:'Bill not found on this page. Search or navigate to the correct page and retry.'};
   }
   async function ensureBillsTab() {
     if (currentTab() !== 'previousBills') { switchView('previousBills'); await sleep(400); }
@@ -575,15 +622,28 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
   }
   const needConfirm = (msg) => ({ ok: false, needs_confirmation: true, message: msg });
 
-  function resolveReminder(a){
+  function reminderCandidates(a){
     const list=typeof reminders!=='undefined'?reminders:[];
-    if(a.position!=null)return list[Number(a.position)-1]||null;
+    if(a.position!=null)return list[Number(a.position)-1]?[list[Number(a.position)-1]]:[];
     const q=String(a.match_title||'').trim().toLowerCase();
-    if(!q)return null;
-    return list.find(r=>r.title.toLowerCase()===q)||list.find(r=>r.title.toLowerCase().includes(q))||null;
+    if(!q)return [];
+    const exact=list.filter(r=>r.title.toLowerCase()===q);
+    return exact.length?exact:list.filter(r=>r.title.toLowerCase().includes(q));
   }
+  function reminderIdentity(r){
+    return {position:(reminders||[]).findIndex(x=>x.id===r.id)+1,title:r.title,date:r.remember_date,status:r.status,repeat:r.repeater||'none',description:r.description||''};
+  }
+  function resolveReminder(a){
+    const matches=reminderCandidates(a);
+    return matches.length===1?matches[0]:null;
+  }
+  function reminderLookupError(a){
+    const matches=reminderCandidates(a);
+    if(matches.length>1)return {ok:false,ambiguous:true,error:'Multiple reminders match. Ask the user which reminder before taking action; do not select the first match.',matches:matches.map(reminderIdentity)};
+    return {ok:false,error:'Reminder not found. Check its title or position.'};
+  }
+  let lastPdfQrAvailable=false;
   let confirmedInvoiceFingerprint = null;
-  let invoiceSaveQuestionAsked = false;
   const TOOLS = {
     async get_app_state() { if (currentTab() === 'previousBills' && !billsLoaded()) await waitFor(billsLoaded, 12000); if (currentTab() === 'reminders' && !remindersLoaded) await waitFor(()=>remindersLoaded, 12000); return { ok: true, screen: tabContext(), india_today:indiaToday(), india_datetime:indiaNow(), timezone:'Asia/Kolkata' }; },
 
@@ -609,6 +669,19 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       if (viewingSaved() || !draftIsEmpty()) resetInvoice(false);
       switchView('newBill');
       return { ok: true, note: 'Fresh New Bill is ready.', screen: tabContext() };
+    },
+    reset_new_bill(a) {
+      if (currentTab() === 'admin') return {ok:false,error:'New Bill reset is unavailable from Admin.'};
+      if (!draftIsEmpty() && a.confirmed !== true) {
+        return needConfirm('Reset will discard the current New Bill including customer, products, charges and notes. Ask for explicit confirmation, then call reset_new_bill with confirmed true.');
+      }
+      // Use the exact reset routine wired to the app's Reset button.
+      // It clears autosaved draft, restores defaults and resets invoice metadata.
+      resetInvoice(false, true);
+      confirmedInvoiceFingerprint = null;
+      lastPdfQrAvailable = false;
+      switchView('newBill');
+      return {ok:true,note:'New Bill reset using the app Reset action. All invoice fields and autosaved draft cleared; invoice defaults restored.',screen:tabContext()};
     },
     set_invoice_date(a){
       const bad=guardEdit();if(bad)return {ok:false,error:bad};
@@ -709,6 +782,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       return { ok: true };
     },
     async close_preview() {
+      if (!openDialogs().includes('previewModal')) return {ok:true,already_closed:true};
       const b = $('btnClosePreviewModal');
       if (b) b.click();
       await sleep(300);
@@ -726,24 +800,25 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
         if (!b) return {ok:false,error:'Saved bill Generate button unavailable.'};
         b.click();
         const opened = await waitFor(()=>openDialogs().includes('pdfActionModal'),20000);
-        return opened ? {ok:true,saved_to_records:false,note:'Previous bill PDF is ready. No database save question is needed.',screen:tabContext()}
+        lastPdfQrAvailable=opened && !!(el.btnPdfQr && !el.btnPdfQr.classList.contains('hide'));
+        return opened ? {ok:true,qr_available:lastPdfQrAvailable,saved_to_records:false,note:'Previous bill PDF is ready. No database save question is needed.',screen:tabContext()}
                       : {ok:false,error:'Previous bill PDF not ready. Check the app message.',screen:tabContext()};
       }
       if (currentTab() !== 'newBill') switchView('newBill');
       if (!state.customer.name || !state.products.length) return {ok:false,error:'Customer name and at least one product are required.'};
       const fingerprint = JSON.stringify({customer:state.customer,products:state.products,date:state.dateStr,notes:state.notes,service:state.serviceCharge,serviceOn:state.serviceChargeOn,pdf:[state.showWatermark,state.showQr,state.showSignature,state.includeNotesOnPdf]});
-      if (!a.confirmed || confirmedInvoiceFingerprint !== fingerprint) {
-        confirmedInvoiceFingerprint = null;
-        invoiceSaveQuestionAsked = false;
-        if (a.confirmed) return needConfirm('Invoice details changed. Read back the updated customer, products, quantities, prices and total; ask for confirmation again.');
+      // Keep the confirmed fingerprint across tool calls. A missing argument
+      // must not silently erase an earlier confirmation and restart the flow.
+      if (confirmedInvoiceFingerprint !== fingerprint) {
         confirmedInvoiceFingerprint = fingerprint;
-        return needConfirm('Before generating, summarize customer, invoice date, each item with quantity and rate, and the grand total. Ask: Are these invoice details correct? Only proceed after the user explicitly confirms.');
+        return needConfirm('Read back the invoice summary once and ask whether all details are correct. After an explicit yes, call generate_pdf with confirmed true.');
       }
-      if (!invoiceSaveQuestionAsked) {
-        invoiceSaveQuestionAsked = true;
-        return needConfirm('Invoice details confirmed. Ask: Do you want to save this bill to the database? Yes or no. Call generate_pdf with confirmed true and save true or false only after their answer.');
+      if (a.confirmed !== true) {
+        return needConfirm('Invoice summary has already been presented. Wait for the user to explicitly confirm it. Once confirmed, call generate_pdf with confirmed true; do not repeat the full summary.');
       }
-      if (typeof a.save !== 'boolean') return needConfirm('Ask the user whether to save this invoice to the database, yes or no.');
+      if (typeof a.save !== 'boolean') {
+        return needConfirm('Invoice details are confirmed. Ask only: Save this bill to the database? Yes or no. Once answered, call generate_pdf with confirmed true and save true or false. Do not repeat the invoice details.');
+      }
       // Close a New Bill preview before opening the Save choice dialog.
       if (openDialogs().includes('previewModal')) {
         await hideOverlay(el.previewModalOverlay);
@@ -758,14 +833,15 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       if (!button) return {ok:false,error:'Save choice button unavailable.'};
       button.click();
       confirmedInvoiceFingerprint = null;
-      invoiceSaveQuestionAsked = false;
       const opened = await waitFor(()=>openDialogs().includes('pdfActionModal'),20000);
-      return opened ? {ok:true,save_requested:a.save,note:'PDF ready. Check the app message for actual database save status.',screen:tabContext()}
+      lastPdfQrAvailable=opened && !!(el.btnPdfQr && !el.btnPdfQr.classList.contains('hide'));
+      return opened ? {ok:true,qr_available:lastPdfQrAvailable,save_requested:a.save,note:'PDF ready. Check the app message for actual database save status.',screen:tabContext()}
                     : {ok:false,error:'PDF not ready. Check the app message; do not claim it was saved or generated.',screen:tabContext()};
     },
     async pdf_action(a) {
+      if(a.action==='qr' && !lastPdfQrAvailable)return {ok:false,error:'Invoice download QR is unavailable because this bill was not saved to the database. Do not offer or ask about QR; offer PDF download instead.'};
       if(a.action==='close_qr'||a.action==='qr_done'){
-        if(!openDialogs().includes('invoiceQrModal'))return {ok:false,error:'QR dialog is not open.'};
+        if(!openDialogs().includes('invoiceQrModal'))return {ok:true,already_closed:true};
         const b=$(a.action==='qr_done'?'btnInvoiceQrDone':'btnInvoiceQrClose');
         if(!b)return {ok:false,error:'QR close button unavailable.'};
         b.click();await sleep(200);
@@ -774,7 +850,8 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       const map = { download: 'btnPdfDownload', qr: 'btnPdfQr', close: 'btnPdfActionCancel' };
       if (a.action === 'share') return { ok: false, error: 'Sharing needs a real tap. Ask the user to tap Share PDF.' };
       const b = $(map[a.action]);
-      if (!b || !openDialogs().includes('pdfActionModal')) return { ok: false, error: 'The PDF options screen is not open.' };
+      if (!openDialogs().includes('pdfActionModal') && a.action==='close') return {ok:true,already_closed:true};
+      if (!b || !openDialogs().includes('pdfActionModal')) return { ok: false, error: 'PDF options are unavailable for that action.' };
       b.click();
       await sleep(400);
       return { ok: true };
@@ -840,7 +917,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
     async copy_bill_to_new(a) {
       if (!(await ensureBillsTab())) return billsWaitError();
       const bill = findBill(a);
-      if (!bill) return { ok: false, error: 'Could not find that bill on this page. Check the list in the screen details.' };
+      if (!bill) return billLookupError(a);
       if (!draftIsEmpty() && !a.confirmed) return needConfirm('Copying will replace the unfinished bill on the New Bill tab. Ask the user to confirm, then call again with confirmed true.');
       await copyBillToNew(bill.invoice_no);
       await sleep(300);
@@ -849,10 +926,10 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
     async reprint_bill(a) {
       if (!(await ensureBillsTab())) return billsWaitError();
       const bill = findBill(a);
-      if (!bill) return { ok: false, error: 'Could not find that bill on this page.' };
+      if (!bill) return billLookupError(a);
       await reprintBill(bill.invoice_no);
       await sleep(500);
-      return { ok: true, opened: bill.invoice_no, note: 'Preview of the saved bill is open. To generate the PDF again call generate_pdf.', screen: tabContext() };
+      return { ok: true, opened: bill.invoice_no, preview_open: openDialogs().includes('previewModal'), bill: billIdentity(bill), loaded_details: { customer: {name:state.customer?.name||'',address:state.customer?.address||'',mobile:state.customer?.mobile||''}, invoice_date:state.dateStr||bill.bill_date||'', items:(state.products||[]).map(productRow), service_charge:getActiveServiceCharge(), notes:state.notes||'', totals:totals() }, note: 'Saved bill preview opened. These are the bill details loaded into the preview. Show/view/display means preview only; do not generate PDF unless separately requested.', screen: tabContext() };
     },
 
     /* ---------- Reminders: use the app's existing handlers ---------- */
@@ -873,7 +950,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       if(currentTab()!=='reminders')switchView('reminders');
       if (!(await waitFor(()=>remindersLoaded,8000))) return reminderWaitError();
       const existing=resolveReminder(a);
-      if(a.match_title||a.position){if(!existing)return {ok:false,error:'Could not find that reminder.'};}
+      if(a.match_title||a.position){if(!existing)return reminderLookupError(a);}
       const title=a.title!=null?String(a.title).trim():(existing?existing.title:'');
       const date=a.date!=null?String(a.date):existing?.remember_date;
       if(!title||!date)return {ok:false,error:'A title and date are required. Ask the user for missing information.'};
@@ -903,8 +980,9 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
     async reminder_action(a){
       if(currentTab()!=='reminders')switchView('reminders');
       if (!(await waitFor(()=>remindersLoaded,8000))) return reminderWaitError();
-      const r=resolveReminder(a);if(!r)return {ok:false,error:'Reminder not found.'};
-      const action=String(a.action||'').toLowerCase();
+      const r=resolveReminder(a);if(!r)return reminderLookupError(a);
+      let action=String(a.action||'').toLowerCase().trim().replace(/[\s_-]+/g,' ');
+      if(['finished','finish','mark as finished','mark finished','mark as done','mark done'].includes(action))action='done';
       if(!['pause','resume','complete','done','delete'].includes(action))return {ok:false,error:'Unknown reminder action.'};
       if(['done','delete'].includes(action)&&!a.confirmed)return needConfirm('Confirm '+action+' for reminder '+r.title+'.');
       if(action==='done'){
@@ -927,11 +1005,12 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
   const O = (props, req) => ({ type: 'OBJECT', properties: props || {}, ...(req ? { required: req } : {}) });
   const BILL_REF = { invoice_no: S('Invoice number or its last digits'), position: N('1-based position on the current page'), customer: S('Part of the customer name') };
 
-  function declarations(nonBlocking) {
+  function declarations() {
     const d = [
       { name: 'get_app_state', description: 'Read the current tab and everything visible on it. Use when unsure what is on screen.', parameters: O() },
       { name: 'go_to_tab', description: 'Open a tab.', parameters: O({ tab: { type: 'STRING', enum: ['new_bill', 'previous_bills', 'reminders'] } }, ['tab']) },
       { name: 'start_new_bill', description: 'Start a fresh blank New Bill. If the current bill has data, ask the user first and pass confirmed true.', parameters: O({ confirmed: B('User agreed to clear the current bill') }) },
+      { name: 'reset_new_bill', description: 'Reset or clear New Bill EXACTLY like the app Reset button: reset customer, items, notes, service charge, invoice metadata and saved draft. Ask for confirmation if draft has data, then pass confirmed true. Do not simulate reset by emptying input fields.', parameters: O({ confirmed: B('User explicitly confirmed discarding the current New Bill') }) },
       { name: 'set_invoice_date', description: 'Set the date on the New Bill using YYYY-MM-DD.', parameters: O({date:S('YYYY-MM-DD date')},['date']) },
       { name: 'set_customer', description: 'Set the customer name, address and/or mobile on the New Bill. Only pass what the user said.', parameters: O({ name: S('Customer name'), address: S('Address'), mobile: S('10 digit mobile number') }) },
       { name: 'add_product', description: 'Add one item to the New Bill. Rate is required: ask if missing. You may write a short professional description if the user asks you to suggest or generate one.', parameters: O({ name: S('Product or service name'), quantity: S('Quantity as spoken, e.g. "2" or "5 liters". Default "1"'), rate: N('Price per unit in rupees'), description: S('Optional description'), serial: S('Optional serial number') }, ['name', 'rate']) },
@@ -942,24 +1021,23 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       { name: 'set_pdf_options', description: 'Turn PDF extras on or off. Only pass the ones the user mentioned.', parameters: O({ watermark: B('Watermark'), qr: B('Payment QR'), signature: B('Signature'), notes: B('Notes on PDF') }) },
       { name: 'preview_invoice', description: 'Open the invoice preview.', parameters: O() },
       { name: 'close_preview', description: 'Close the preview.', parameters: O() },
-      { name: 'generate_pdf', description: 'New Bill: FIRST call without confirmed to request user approval of all invoice details. After user confirms, call with confirmed true and NO save to ask whether to save to database. Only after explicit save yes/no call with confirmed true and save boolean. Never skip steps. Previous Bill: call while saved preview is open; no confirmation or database save.', parameters: O({ confirmed:B('User explicitly approved invoice details'), save: B('Explicit user choice: true save to Supabase, false generate without saving') }) },
-      { name: 'pdf_action', description: 'After the PDF is ready: download it, show the QR, or close the box.', parameters: O({ action: { type: 'STRING', enum: ['download', 'qr', 'close', 'close_qr', 'qr_done', 'share'] } }, ['action']) },
+      { name: 'generate_pdf', description: 'New Bill: call once to request invoice approval. After user explicitly confirms, call with confirmed true (without save) to request database-save choice. After user answers, call with confirmed true and save true or false. A repeated confirmation question is a bug: NEVER restart or repeat the invoice summary when it is already approved and unchanged. Previous Bill: call while saved preview is open; no confirmation or database save. Previous Bill: call while saved preview is open; no confirmation or database save.', parameters: O({ confirmed:B('User explicitly approved invoice details'), save: B('Explicit user choice: true save to Supabase, false generate without saving') }) },
+      { name: 'pdf_action', description: 'After PDF is ready: download, optionally show invoice-download QR ONLY when qr_available is true, or close. Never offer QR after a new bill generated without saving.', parameters: O({ action: { type: 'STRING', enum: ['download', 'qr', 'close', 'close_qr', 'qr_done', 'share'] } }, ['action']) },
       { name: 'bills_search', description: 'Search Previous Bills by invoice number, customer name or phone. Empty query clears the search.', parameters: O({ query: S('Search text') }, ['query']) },
       { name: 'bills_sort', description: 'Sort Previous Bills.', parameters: O({ sort: { type: 'STRING', enum: ['newest', 'oldest', 'amount_high', 'amount_low', 'name_az', 'name_za'] } }, ['sort']) },
       { name: 'bills_date_filter', description: 'Filter Previous Bills by date range.', parameters: O({ range: { type: 'STRING', enum: ['any', 'today', 'yesterday', '7days', 'month', 'lastmonth'] } }, ['range']) },
       { name: 'bills_clear_filters', description: 'Clear search, sort and date filters on Previous Bills.', parameters: O() },
       { name: 'bills_page', description: 'Go to the next or previous page of Previous Bills.', parameters: O({ direction: { type: 'STRING', enum: ['next', 'previous'] } }, ['direction']) },
       { name: 'copy_bill_to_new', description: 'Copy a saved bill into a fresh New Bill so it can be edited and generated again. Identify the bill by invoice_no, position or customer. If the New Bill already has data ask the user first and pass confirmed true.', parameters: O({ ...BILL_REF, confirmed: B('User agreed to replace the current New Bill') }) },
-      { name: 'reprint_bill', description: 'Open a saved bill preview to generate its PDF again. Identify by invoice_no, position or customer.', parameters: O(BILL_REF) },
+      { name: 'reprint_bill', description: 'SHOW, VIEW, DISPLAY or OPEN a particular saved Previous Bill: open its read-only preview and return its loaded customer, product and total details. Do NOT generate a PDF unless separately requested. Identify by invoice_no, position or customer; ask which if ambiguous.', parameters: O(BILL_REF) },
       { name: 'reminder_prepare', description: 'Open the create reminder modal ONLY after checking remaining slots. If all 10 slots are used, tell the user immediately; do not collect details.', parameters: O() },
       { name: 'reminder_list', description: 'Open and read the reminders list.', parameters: O() },
       { name: 'reminder_save', description: 'Create or edit a reminder. Ask for title, date and repeat preference. For edits identify by match_title or position. ALWAYS ask the user to confirm first, then pass confirmed true.', parameters: O({match_title:S('Existing reminder title to edit'),position:N('Existing reminder position'),title:S('Reminder title'),description:S('Description'),date:S('YYYY-MM-DD, tomorrow or later for a new date'),repeat:S('off, daily, weekly, monthly, yearly, or 1-365 days'),confirmed:B('User confirmed the exact details')}) },
-      { name: 'reminder_action', description: 'Pause, resume, complete due reminder, mark done, or delete reminder. For done and delete ask for confirmation first.', parameters: O({match_title:S('Reminder title'),position:N('Reminder position'),action:{type:'STRING',enum:['pause','resume','complete','done','delete']},confirmed:B('User confirmed irreversible action')},['action']) },
+      { name: 'reminder_action', description: 'Finished / Finish / Mark as Done / Mark as Finished all mean action done (permanent completed status, no further notifications). Done is allowed for paused reminders too. Complete is different: for due repeating reminders it advances to the next date. Ask confirmation before done or delete.', parameters: O({match_title:S('Reminder title'),position:N('Reminder position'),action:{type:'STRING',enum:['pause','resume','complete','done','delete']},confirmed:B('User confirmed irreversible action')},['action']) },
       { name:'set_theme',description:'Set the app appearance to light, dark, or system device default.',parameters:O({mode:{type:'STRING',enum:['light','dark','system']}},['mode']) },
       { name:'end_conversation',description:'End the voice chat when user says goodbye, bye, bye-bye, end chat, stop listening, or close assistant.',parameters:O() }
     ];
     d.forEach((f) => { if (f.parameters && f.parameters.properties && !Object.keys(f.parameters.properties).length) delete f.parameters; });
-    if (nonBlocking) d.forEach((f) => { f.behavior = 'NON_BLOCKING'; });
     return d;
   }
 
@@ -969,13 +1047,18 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       `You are the voice-only assistant inside ${co} Billing. Speak naturally in English, Hindi, Telugu or the language of the user, with short clear replies.`,
       'You may operate ONLY New Bill, Previous Bills and Reminders. Admin, user management, permissions and administrative operations are prohibited. Never open Admin or perform admin tasks.',
       'Use available function calls for every app action. Do not claim an operation happened without an ok:true tool response.',
-      'New Bill: gather customer, invoice date, products, quantities, prices and options. BEFORE generating, read back the full invoice summary including total and explicitly ask if details are correct. Never infer yes. After confirmation ask a SECOND separate question: Save this bill to the database, yes or no? Only then call generate_pdf with confirmed true and the user-selected save boolean. Call generate_pdf first without confirmed to initiate this workflow. Never skip the save question, even if user says just generate. If the user changes details, confirm the updated invoice again.',
+      'New Bill: gather customer, invoice date, products, quantities, prices and options. BEFORE generating, read back the full invoice summary including total and explicitly ask if details are correct. Never infer yes. After confirmation ask a SECOND separate question: Save this bill to the database, yes or no? Only then call generate_pdf with confirmed true and the user-selected save boolean. Call generate_pdf first to initiate this workflow. Remember explicit user approval and save choice across tool calls. Never call generate_pdf without confirmed after the user already approved the invoice. Never skip the save question, even if user says just generate. If the user changes details, confirm the updated invoice again.',
+      'New Bill reset/clear: When the user says reset bill, clear bill, clear new bill, or start over, use reset_new_bill. If a draft has data, ask for confirmation once; after yes call reset_new_bill with confirmed true. This calls the SAME resetInvoice routine as the Reset button, clearing products, customer, notes, charges, invoice metadata and autosave. Never merely set input fields to empty. start_new_bill is for opening a fresh bill, reset_new_bill is for explicit reset/clear.',
       'Previous Bills: if screen.loading is true, wait for Supabase to finish and call get_app_state again; NEVER interpret unloaded/empty cache as zero bills or no matches. If loading persists, say "Bills loading.", not that none exist. When asked for yesterday bills, filter by yesterday then read the displayed records. When asked for a particular customer or invoice, search and inspect the list before copying or opening. Never invent a saved bill. Use copy_bill_to_new to reuse the existing Copy action. Never edit the saved record directly.',
+      'Previous Bills show/view/display/open: call reprint_bill to open the selected saved bill preview, then use loaded_details returned by that tool to answer questions about its customer, products, quantities, prices, charges and total. Do not copy to New Bill or generate a PDF for a view-only request. If several bills match the name, ask which invoice using invoice number/date/total before opening. If user later says generate, use generate_pdf on that saved preview.',
       'Preview: when editing fields close the preview first. When generating a NEW bill, generate_pdf safely closes the preview before opening the save dialog. When generating a PREVIOUS bill, generate_pdf uses the saved preview Generate handler to close it safely and generate WITHOUT saving to Supabase. Do not call close_preview before generating a previous bill because that restores the unfinished draft.',
-      'PDF: when user says close QR or QR done, use pdf_action close_qr or qr_done; these differ from closing the PDF options box.',
+      'Ambiguous names: When multiple Previous Bills have matching customer names, identify them by invoice number, date and total, and ask the user to select one BEFORE copy/reprint/generation. When multiple reminders have matching titles, identify each by date, status, repeat and position, then ask which one BEFORE editing, completing, pausing, resuming, marking done or deleting. Never assume the first match. If a tool returns ambiguous true, ask for selection using the returned matches and retry with exact invoice number or position.',
+      'Invoice download QR: This is NOT the optional payment QR printed inside a PDF. For a New Bill generated with save false, invoice-download QR is unavailable. Do not ask whether to show it or offer it; only offer download/close. Only offer invoice-download QR when generate_pdf returns qr_available true. Previous saved bills may support it.',
+      'PDF and preview closing: before closing check the dialog state. If a close tool returns already_closed true, the request succeeded silently; do not tell the user a modal was not open. Closing QR is different from closing PDF options.',
       'Theme: use set_theme for dark, light, or system default.',
       'When user says goodbye, bye, bye-bye, end chat, stop listening, or close assistant, call end_conversation, then say aloud exactly: Take care! See you soon. in your own Gemini voice. Do not call other tools after that. Do not confuse this with closing a modal.',
       'Reminders: if screen.loading is true, wait for Supabase and call get_app_state again. Never interpret unloaded reminders as zero or no matches. If loading persists, say only \"Reminders loading.\" Do not say \"still loading\".',
+      'Reminder action words: Finished, Finish, Mark as Finished, Mark as Done and Done all mean reminder_action with action done. Confirm once, then mark completed permanently so it never notifies again. A paused reminder CAN also be Finished without resuming first. Complete is NOT the same: due/overdue repeating reminders advance to their next occurrence. Do not confuse these actions.',
       'Reminder categories: Active means status active regardless of date. Completed means status completed, NOT due. Needs action or notifying means ONLY active reminders whose date is today or earlier in India: due today plus overdue. Overdue means active and date earlier than India today. For questions about due, overdue, action needed, notifications, list the matching reminders with their dates and counts, and use reminder_list/get_app_state to refresh. When asked to complete a due/overdue reminder call reminder_action complete; for repeating reminders this advances to the next occurrence, for one-time reminders it marks completed. Do not confuse Complete with Finished/Done or delete. Paused and completed reminders do not need action. Reminders: call reminder_prepare before collecting details for a NEW reminder to check the 10-reminder limit and show the form. Use reminder_list to answer active reminder counts or find a title. List, create, edit, pause, resume, complete, mark done or delete using the existing app handlers. New or changed reminder dates must be from tomorrow through 365 days ahead. Repeats: off, daily, weekly, monthly, yearly, or custom 1-365 days.',
       'Ask concise questions for missing essential information. Always confirm clearing an existing draft, reminder creation or edit, reminder done/delete and saving a bill. If user says no, do not perform the action.',
       'At the start of a new voice conversation, greet once: Welcome to [company name] Billing. You are currently on [current tab]. How can I help you? Keep it short. Do not repeat this greeting on model fallback.',
@@ -1004,7 +1087,6 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       try { output.screen = tabContext(); } catch (e) { /* ignore */ }
     }
     const response = { output };
-    // Extended Thinking: NON_BLOCKING tool responses must not include scheduling.
     return { id: call.id, name: call.name, response };
   }
 
@@ -1016,25 +1098,23 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
   function openSession(model, token) {
     return new Promise((resolve, reject) => {
       let settled = false;
-      thinkingModel = /thinking/i.test(model);
       const sock = new WebSocket(WS_URL + encodeURIComponent(token));
       ws = sock;
       ready = false;
       const timer = setTimeout(() => { if (!settled) { settled = true; try { sock.close(); } catch (e) { /* ignore */ } reject(new Error('timeout')); } }, 12000);
 
       sock.onopen = () => {
-        dbg('socket open, model=' + model + ', thinking=' + thinkingModel);
+        dbg('socket open, model=' + model);
         const gen = {
           responseModalities: ['AUDIO'],
-          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: aiCfg().voiceName || 'Puck' } } }
+          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Achird' } } }
         };
-        if (thinkingModel) gen.thinkingConfig = { thinkingLevel: String(aiCfg().thinkingLevel || 'MEDIUM').toUpperCase() };
         sock.send(JSON.stringify({
           setup: {
             model: 'models/' + model,
             generationConfig: gen,
             systemInstruction: { parts: [{ text: systemPrompt() }] },
-            tools: [{ functionDeclarations: declarations(thinkingModel) }],
+            tools: [{ functionDeclarations: declarations() }],
             inputAudioTranscription: {},
             outputAudioTranscription: {}
           }
@@ -1066,7 +1146,6 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
 
   function dispatchCalls(calls) {
     if (!calls || !calls.length) return;
-    if (thinkingModel && sources.size === 0 && !greetingPending) setStatus('listening');
     toolCallCount += calls.length;activity();
     dbg('running tools: ' + calls.map((c) => c.name).join(', '));
     Promise.all(calls.map(runTool)).then((functionResponses) => {
@@ -1140,51 +1219,24 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
           if(farewellInProgress){if(farewellRequestSent){farewellTurnComplete=true;finishFarewell();}return;}
           if (greetingPending) { greetingPending = false; clearTimeout(greetingTimer); greetingTimer = null; }
           dbg('you said: "' + uText.slice(0, 80) + '" | assistant said: "' + aText.slice(-160) + '" | tool calls so far: ' + toolCallCount);
-          if (thinkingModel && toolCallCount === 0 && /system error|something went wrong|error occurred/i.test(aText)) switchToFallback();
           newUserTurn = true;
-          if (!thinkingModel) { turnDone = true; maybeIdle(); }
+          turnDone = true; maybeIdle();
         }
       }
       if(farewellInProgress && farewellRequestSent && status==='IDLE' && sources.size){/* wait for final audio to finish */}
-      if (!farewellInProgress && thinkingModel && status) {
-        if (status === 'IN_PROGRESS') { if (sources.size === 0 && !greetingPending) setStatus('listening'); }
-        else if (status === 'IDLE') { turnDone = true; maybeIdle(); }
-      }
       if (msg.goAway) toast('Voice session will end soon. Tap the mic to restart.', 'info');
     } catch (e) { console.error('[voice] message handling error', e); }
   }
 
-  // The thinking model reported a system error and never called a tool: move to the plain Live model.
-  async function switchToFallback() {
-    if (switching) return;
-    const a = aiCfg();
-    const fb = (a.fallbackModel && a.fallbackModel !== activeModel) ? a.fallbackModel : 'gemini-3.8-live';
-    if (fb === activeModel) return;
-    switching = true;
-    dbg('Thinking model failed to run tools. Switching to ' + fb);
-    const old = ws;
-    ws = null; ready = false;
-    if (old) { old.onclose = null; old.onerror = null; old.onmessage = null; try { old.close(1000); } catch (e) { /* ignore */ } }
-    stopPlayback();
-    setStatus('connecting');
-    try {
-      await openSession(fb, await takeVoiceToken());
-      activeModel = fb;
-      ui.model.textContent = fb;
-      toolCallCount = 0; uText = ''; aText = ''; newUserTurn = true; turnDone = true;
-      setStatus('listening');
-      showAct('Switched voice engine. Please say your command again.');
-      toast('Switched voice engine. Please say it again.', 'info');
-      dbg('USING MODEL: ' + fb);
-    } catch (e) {
-      dbg('Switch failed: ' + (e && e.message));
-      stopSession('error');
-    }
-    switching = false;
-  }
-
   async function startSession() {
     if (active || starting) return;
+    // Guard direct calls too: a missing/expired token must not open Connecting.
+    if (!warmToken || Date.now() >= warmUntil) {
+      paintTokenState();
+      toast('Preparing voice assistant. Please wait…','info');
+      if (!warmPromise) scheduleWarm(0);
+      return;
+    }
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.isSecureContext) {
       setStatus('error');
       ui.status.textContent = 'Microphone needs HTTPS';
@@ -1216,7 +1268,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
     }
 
     const a = aiCfg();
-    const models = [a.primaryModel || 'gemini-3.8-live-extended-thinking', (a.fallbackModel || 'gemini-3.8-live')].filter((m, i, arr) => m && arr.indexOf(m) === i);
+    const models = [a.primaryModel || 'gemini-3.8-live', (a.fallbackModel || 'gemini-3.1-flash-live-preview')].filter((m, i, arr) => m && arr.indexOf(m) === i);
     let lastErr = null;
     for (const m of models) {
       try {
@@ -1224,7 +1276,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
         await openSession(m, voiceToken);
         activeModel = m;
         ui.model.textContent = m;
-        dbg('USING MODEL: ' + m + ' (tools declared: ' + declarations(thinkingModel).length + ')');
+        dbg('USING MODEL: ' + m + ' (tools declared: ' + declarations().length + ')');
         active = true;
         starting = false;
         startIdleMonitor();
