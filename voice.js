@@ -46,7 +46,7 @@
   // One initial token and one replacement after each completed conversation.
   // No tab-return or timer requests. Expired tokens refresh on tap only.
   // Edge Function must set both token expirations to one hour.
-  const TOKEN_TTL_MS = 60 * 60_000;
+  const TOKEN_TTL_MS = 45 * 60_000;
   const TOKEN_MARGIN_MS = 10000;     // a token about to expire is treated as already expired
   let voiceToken = null, voiceTokenUntil = 0, tokenPromise = null, tokenGeneration = 0;
   let tokenEverObtained = false;
@@ -191,6 +191,30 @@
 .jv-orb,.jv-mute,.jv-end{display:grid;place-items:center;flex:none;border-radius:50%;cursor:pointer;-webkit-tap-highlight-color:transparent;color:#fff}
 .jv-orb{width:52px;height:52px;position:relative;border:1.5px solid #ffffff48;background:radial-gradient(circle at 32% 28%,#4f7bff,#012587 62%,#001242);box-shadow:0 8px 24px #01258761,inset 0 2px 6px #ffffff59;transition:background .35s,box-shadow .35s,filter .3s}
 .jv-orb i{font-size:21px;position:relative;z-index:2;pointer-events:none}
+/* Inner artwork only: pure white, with existing orb/ring states untouched. */
+.jv-inner{display:none;position:absolute;inset:0;z-index:3;place-items:center;pointer-events:none;color:#fff;overflow:hidden;border-radius:50%}
+.jv-wrap.jv-active .jv-orb>.fa-robot{display:none}
+.jv-wrap.jv-active .jv-inner{display:grid}
+.jv-inner>span{display:none}
+.jv-wrap[data-s="connecting"] .jv-inner .jv-connect{display:block}
+.jv-wrap[data-s="listening"] .jv-inner .jv-bars{display:flex}
+.jv-wrap[data-s="thinking"] .jv-inner .jv-atom,.jv-wrap[data-s="transition"] .jv-inner .jv-atom{display:block}
+.jv-wrap[data-s="speaking"] .jv-inner .jv-speaker{display:grid}
+.jv-connect{width:27px;aspect-ratio:1;--_g:no-repeat radial-gradient(farthest-side,#fff 90%,#fff0);background:var(--_g),var(--_g),var(--_g),var(--_g);background-size:40% 40%;animation:jvL46 1s infinite}
+@keyframes jvL46{0%{background-position:0 0,100% 0,100% 100%,0 100%}40%,50%{background-position:100% 100%,100% 0,0 0,0 100%}90%,100%{background-position:100% 100%,0 100%,0 0,100% 0}}
+.jv-bars{height:30px;align-items:center;gap:3px}
+.jv-bars b{width:4px;height:20px;background:#fff;border-radius:5px;animation:jvInnerBar .65s ease-in-out infinite alternate}
+.jv-bars b:nth-child(2){height:27px;animation-delay:-.25s}.jv-bars b:nth-child(3){height:12px;animation-delay:-.4s}.jv-bars b:nth-child(4){height:23px;animation-delay:-.1s}
+@keyframes jvInnerBar{to{height:6px;opacity:.7}}
+.jv-atom{display:none;width:28px;height:28px;fill:none;stroke:#fff;stroke-width:2.5;stroke-linecap:round}
+.jv-speaker{position:relative;width:50px;height:50px;place-items:center;overflow:hidden;border-radius:50%}
+.jv-face{position:relative;width:35px;height:32px;border:2px solid #fff;border-radius:10px;display:flex;align-items:center;justify-content:space-evenly;background:#17243c;z-index:2}
+.jv-face:before{content:'';position:absolute;top:-6px;width:8px;height:2px;background:#fff;border-radius:3px}
+.jv-eye{width:5px;height:5px;border-radius:50%;background:#fff;margin-top:-5px;transform-origin:center;animation:jvEyeBlink 4.6s ease-in-out infinite}
+.jv-mouth{position:absolute;bottom:5px;left:12px;width:7px;height:3px;border-radius:50%;background:#fff;animation:jvInnerMouth 1.05s ease-in-out infinite}
+@keyframes jvInnerMouth{0%,18%,48%,70%,100%{height:3px}28%,39%{height:6px}58%,63%{height:4px}82%,90%{height:7px}}
+@keyframes jvEyeBlink{0%,43%,47%,100%{transform:scaleY(1)}45%{transform:scaleY(.12)}}
+
 /* Idle orb: red while preparing, blue after token preparation succeeds. */
 .jv-wrap:not(.jv-active)[data-token="waiting"] .jv-orb{background:radial-gradient(circle at 32% 28%,#fca5a5,#ef4444 55%,#7f1d1d);box-shadow:0 8px 24px #b91c1c66,inset 0 2px 6px #ffffff59}
 .jv-wrap:not(.jv-active)[data-token="waiting"] .jv-orb:before{opacity:1;border-color:#fca5a5;border-style:dashed;animation:jvSpin 3s linear infinite}
@@ -207,7 +231,7 @@
 .jv-wrap.jv-active .jv-orb{width:62px;height:62px}
 .jv-wrap.jv-active .jv-mute,.jv-wrap.jv-active .jv-end{display:grid}
 .jv-wrap[data-s="connecting"] .jv-orb{background:radial-gradient(circle at 30% 25%,#67e8f9,#0891b2 53%,#164e63);animation:jvBreathe 1.4s ease-in-out infinite}
-.jv-wrap[data-s="connecting"] .jv-orb:before{opacity:1;border-color:#22d3ee;border-style:dashed;animation:jvSpin 1.5s linear infinite}
+.jv-wrap[data-s="connecting"] .jv-orb:before{opacity:1;border-color:#22d3ee;border-style:dashed;animation:jvSpin 3s linear infinite}
 .jv-wrap[data-s="listening"] .jv-orb{background:radial-gradient(circle at 35% 25%,#6ee7b7,#059669 48%,#064e3b 95%);box-shadow:0 0 24px #10b9818c,inset 0 3px 10px #ffffff3b;animation:jvListen 1.8s ease-in-out infinite}
 .jv-wrap[data-s="listening"] .jv-orb:before{border-color:#34d399;animation:jvRipple 2s cubic-bezier(.16,1,.3,1) infinite}
 .jv-wrap[data-s="listening"] .jv-orb:after{border-color:#34d399;animation:jvRipple 2s cubic-bezier(.16,1,.3,1) .7s infinite}
@@ -248,13 +272,16 @@
 `;
     document.head.appendChild(style);
     const wrap=document.createElement('div');wrap.className='jv-wrap';wrap.dataset.s='idle';wrap.dataset.token='waiting';
-    wrap.innerHTML='<button type="button" class="jv-mute" aria-label="Mute microphone" aria-pressed="false" title="Mute microphone"><i class="fa-solid fa-microphone" aria-hidden="true"></i></button><button type="button" class="jv-orb" aria-label="Start voice assistant"><i class="fa-solid fa-robot" aria-hidden="true"></i></button><button type="button" class="jv-end" aria-label="End voice conversation" title="End conversation"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button><div class="jv-state" role="status" aria-live="off"><i class="jv-state-icon fa-solid fa-link" aria-hidden="true"></i><span class="jv-state-label">Connecting</span><span class="jv-state-dots" aria-hidden="true"><b></b><b></b><b></b></span></div>';
+    wrap.innerHTML='<button type="button" class="jv-mute" aria-label="Mute microphone" aria-pressed="false" title="Mute microphone"><i class="fa-solid fa-microphone" aria-hidden="true"></i></button><button type="button" class="jv-orb" aria-label="Start voice assistant"><i class="fa-solid fa-robot" aria-hidden="true"></i><span class="jv-inner" aria-hidden="true"><span class="jv-connect"></span><span class="jv-bars"><b></b><b></b><b></b><b></b></span><svg class="jv-atom" viewBox="0 0 48 48"><ellipse cx="24" cy="24" rx="19" ry="8"/><ellipse cx="24" cy="24" rx="19" ry="8" transform="rotate(60 24 24)"/><ellipse cx="24" cy="24" rx="19" ry="8" transform="rotate(120 24 24)"/><circle cx="24" cy="24" r="3.5" fill="#fff" stroke="none"/></svg><span class="jv-speaker"><span class="jv-face"><b class="jv-eye"></b><b class="jv-eye"></b><b class="jv-mouth"></b></span></span></span></button><button type="button" class="jv-end" aria-label="End voice conversation" title="End conversation"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button><div class="jv-state" role="status" aria-live="off"><i class="jv-state-icon fa-solid fa-link" aria-hidden="true"></i><span class="jv-state-label">Connecting</span><span class="jv-state-dots" aria-hidden="true"><b></b><b></b><b></b></span></div>';
     document.body.appendChild(wrap);
     ui={sheet:wrap,orb:wrap.querySelector('.jv-orb'),mute:wrap.querySelector('.jv-mute'),end:wrap.querySelector('.jv-end')};
     ui.orb.addEventListener('click',()=>{if(!active&&!starting)openSheet();});
     ui.mute.addEventListener('click',toggleMute);
     ui.end.addEventListener('click',()=>stopSession('idle'));
     window.addEventListener('pagehide',()=>stopSession('idle', true));
+    document.addEventListener('visibilitychange',()=>{
+      if(document.hidden&&(active||starting))stopSession('idle');
+    });
     const app=document.getElementById('appScreen');
     const nav=document.querySelector('.nav-tabs')||document.getElementById('navAdminTab')?.parentElement;
     const sync=()=>{
@@ -837,8 +864,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       await sleep(300);
       return { ok: true };
     },
-    // Confirmation is separate from the Save-to-Supabase choice.
-    // A changed draft invalidates earlier confirmation.
+
     async generate_pdf(a) {
       if (currentTab() === 'admin') return {ok:false,error:'Admin is not available.'};
       // Previous bill: the existing preview Generate handler hides the preview
@@ -876,7 +902,6 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       if (typeof a.save !== 'boolean') {
         return needConfirm('Invoice details are confirmed. Ask only: Save this bill to the database? Yes or no. Then call generate_pdf with confirmed true and save true or false. Do not repeat the invoice details.');
       }
-      // Close a New Bill preview before opening the Save choice dialog.
       if (openDialogs().includes('previewModal')) {
         await hideOverlay(el.previewModalOverlay);
         if (typeof clearPreviewScaleContainer === 'function') clearPreviewScaleContainer();
