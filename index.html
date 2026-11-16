@@ -392,7 +392,7 @@ body.dark-theme .bills-table thead th{background: #1A202C;color: var(--primary-t
 .bills-table tbody td.col-actions{white-space:nowrap;}
 .bills-table tbody td:not(.col-actions):not(:nth-child(2)){white-space:nowrap;}
 .col-actions{text-align:right;width:1px;}
-.prod-meta,.inv-table .prod-meta{margin-top:4px;line-height:1.45;}
+.prod-meta{margin-top:4px;line-height:1.45;}
 .prod-desc-line{color:var(--muted);font-size:12px;margin-top:2px;white-space:pre-line;word-break:break-word;overflow-wrap:anywhere;}
 .prod-sn-line{font-size:12px;margin-top:2px;color:var(--text)!important;white-space:normal;word-break:break-word;overflow-wrap:anywhere;}
 .prod-sn-line .sn-label{color:var(--primary);font-weight:700;}
@@ -932,7 +932,6 @@ body.dark-theme .confirm-note{background: rgba(1, 37, 135, .35);}
 .confirm-list{list-style:none;margin:8px 0 0;padding:10px 12px;width:100%;display:flex;flex-direction:column;gap:8px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--bg);text-align:left;font-size:13px;color:var(--text);}
 .confirm-list li{display:flex;align-items:center;gap:10px;min-width:0;}
 .confirm-list i{flex:0 0 16px;text-align:center;color:var(--danger);font-size:13px;}
-.confirm-list--neutral i{color:var(--primary-text);}
 .confirm-lead{color:var(--text) !important;font-weight:600;font-size:14px !important;}
 body.dark-theme #invoiceQrCanvas{filter: invert(1);}
 
@@ -957,13 +956,6 @@ body.dark-theme #invoiceQrCanvas{filter: invert(1);}
 .pwa-update-progress__meta{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;margin-top:10px;font-size:12.5px;color:var(--muted);}
 .pwa-update-progress__meta #pwaUpdatePercent{font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;}
 @keyframes pwaUpdateSpin{to{transform:rotate(360deg);}}
-.pwa-install-modal{z-index:120 !important;}
-.pwa-install-modal .modal{max-width:400px;}
-.pwa-install-modal .modal__footer{gap:10px;}
-/* ---------- PWA open-in-app modal ---------- */
-.pwa-open-app-modal{z-index:120 !important;}
-.pwa-open-app-modal .modal{max-width:400px;}
-.pwa-open-app-modal .modal__footer{gap:10px;}
 .pwa-entry-modal #btnPwaEntryAction{text-decoration: none !important;}
 .modal--preview{z-index: 150 !important;align-items: center !important;}
 .modal--preview .modal{
@@ -1549,7 +1541,6 @@ body:has(.auth-shell:not(.hide)){overflow:hidden;}
   border-radius:99px;
   background:linear-gradient(90deg,transparent,#012587,transparent);
 }
-.auth-tabs{display:none;}
 .auth-form{display:flex;flex-direction:column;gap:12px;}
 /* ---------- Card heading ---------- */
 .auth-card-heading{text-align:center;}
@@ -2119,8 +2110,6 @@ body.dark-theme .pdf-option__switch-track{background:#3A3A40;}
 
 }
 @media(max-width:640px){.pdf-options-card{padding:16px 16px 14px;}
-.pdf-options__heading{margin-bottom:9px;}
-.pdf-options__heading-icon{font-size:13px;}
 .pdf-option{min-height:58px;grid-template-columns:38px minmax(0,1fr) 44px;gap:9px;padding:8px 0;}
 .pdf-option__icon{width:34px;height:34px;border-radius:9px;font-size:14px;}
 .pdf-option__title{font-size:13px;}
@@ -2204,8 +2193,6 @@ body.dark-theme .pdf-option__switch-track{background:#3A3A40;}
 body.dark-theme .date-filter-btn.active{background:rgba(1,37,135,.15);}
 .date-filter-btn i{font-size:13px;}
 .date-filter-btn .caret{margin-left:auto;font-size:10px;opacity:.6;}
-.btn--reset-filter:hover{color:var(--danger);border-color:var(--danger);background:rgba(214,69,69,.06);}
-body.dark-theme .btn--reset-filter{background:var(--surface);}
 .date-custom-wrap{display:none;width:calc(200% + 10px);max-width:none;margin-top:6px;}
 .date-custom-wrap.show{display:block;}
 .date-dropdown{
@@ -3043,7 +3030,7 @@ body.dark-theme .nav-tabs::before{background:rgba(82,120,216,.24);}
       <p class="verify-email-text">We have sent a 6-digit verification code to</p>
       <span class="verify-email-address" id="verifyEmailAddress"></span>
     </div>
-    <div class="auth-form" id="emailVerificationForm">
+    <div class="auth-form">
       <div class="field">
         <input
           type="hidden"
@@ -3077,7 +3064,7 @@ body.dark-theme .nav-tabs::before{background:rgba(82,120,216,.24);}
           Please verify your email within 7 days. If your email is not verified within 7 days, this account will be automatically deleted.
         </div>
       </div>
-      <div class="verify-timer" id="verifyTimerWrap">
+      <div class="verify-timer">
         <i class="fa-regular fa-clock" aria-hidden="true"></i>
         <span id="verifyResendTimerText">Resend code in <strong id="verifyResendTimer">00:60</strong></span>
         <button type="button" class="verify-resend" id="btnResendVerification" disabled>Resend Code</button>
@@ -3182,7 +3169,7 @@ body.dark-theme .nav-tabs::before{background:rgba(82,120,216,.24);}
       </div>
     </div>
     <div class="app-bar__actions">
-      <div class="user-menu-wrap" id="userMenuWrap">
+      <div class="user-menu-wrap">
         <button class="app-bar__user" id="appBarUser" aria-label="Account menu" aria-haspopup="dialog" aria-expanded="false" aria-controls="appDrawer">
           <span class="app-bar__trigger-fallback" id="appBarUserFallback" aria-hidden="true"><i class="fa-solid fa-user"></i></span><b id="appBarUserName"></b><i class="fa-solid fa-chevron-right caret"></i>
         </button>
@@ -3382,7 +3369,7 @@ body.dark-theme .nav-tabs::before{background:rgba(82,120,216,.24);}
               <input type="date" id="billDateFilter" class="hide" tabindex="-1" aria-hidden="true" aria-label="Custom date filter">
             </div>
           </div>
-          <div class="sort-filter-wrap" id="sortFilterWrap">
+          <div class="sort-filter-wrap">
             <button class="date-filter-btn" id="btnSortBills"><i class="fa-solid fa-arrow-down-wide-short"></i> <span id="sortFilterLabel">Newest First</span> <i class="fa-solid fa-chevron-down caret"></i></button>
             <div class="date-dropdown hide" id="sortDropdown">
               <button class="date-dropdown__item active" data-sort="created_at" data-dir="desc">Newest First</button>
@@ -3619,7 +3606,7 @@ body.dark-theme .nav-tabs::before{background:rgba(82,120,216,.24);}
         <textarea id="remDesc" name="cf-txt-r3b4" autocomplete="nope" autocorrect="off" spellcheck="false" data-lpignore="true" data-form-type="other" placeholder="Description (optional)" aria-label="Description" maxlength="300" rows="2"></textarea>
       </div>
       <div class="field">
-        <div class="date-picker" id="remDatePicker">
+        <div class="date-picker">
           <button type="button" class="date-picker__input field--icon" id="remDateInput" aria-haspopup="true" aria-expanded="false">
             <span class="date-picker__text" id="remDateText"></span>
             <i class="fa-regular fa-calendar"></i>
@@ -4080,7 +4067,7 @@ body.dark-theme .nav-tabs::before{background:rgba(82,120,216,.24);}
   </div>
 </div>
 <div class="toast-stack" id="toastStack"></div>
-<div id="pdfRenderWrap">
+<div>
   <div id="pdfWrapper" class="pdf-wrapper-container">
     <div id="invoiceRoot" class="invoice-render"></div>
   </div>
@@ -4290,22 +4277,12 @@ let sameAccountRecovery = false;
 function getAppStorage(){
   return window.localStorage;
 }
-const APP_DATA_BASE_KEYS = [
-  'jas_last_view',
-  'jas_autosave_bill',
-  'jas_pref_notes',
-  'jas_pref_watermark',
-  'jas_pref_qr',
-  'jas_pref_signature'
-];
-
 let billsCache = [];
 let loadedBillForPrint = null;
 let isPreviousBillMode = false; // when re-printing a saved bill
 let draftBillSnapshot = null; // backup of the in-progress New Bill draft while previewing a previous bill
 const BILLS_PAGE_SIZE = 10;
 const USERS_PAGE_SIZE = 10;
-const A4_PAGE_HEIGHT_PX = 1123; // A4 height in px at 96dpi, used for PDF pagination
 const TOAST_DURATION_MS = 2500;
 const AUTH_TOAST_DURATION_MS = 5000;
 const MAX_VISIBLE_TOASTS = 3;
@@ -4380,7 +4357,6 @@ function cacheElements(){
   el.verifyOtp = document.getElementById('verifyOtp');
   el.verifyResendTimerText = document.getElementById('verifyResendTimerText');
   el.verifyResendTimer = document.getElementById('verifyResendTimer');
-  el.verifyTimerWrap = document.getElementById('verifyTimerWrap');
   el.btnVerifyEmail = document.getElementById('btnVerifyEmail');
   el.btnResendVerification = document.getElementById('btnResendVerification');
   el.btnBackFromVerification = document.getElementById('btnBackFromVerification');
@@ -4555,7 +4531,6 @@ function cacheElements(){
   el.btnCancelExpiredRecovery = document.getElementById('btnCancelExpiredRecovery');
   el.btnActionExpiredRecovery = document.getElementById('btnActionExpiredRecovery');
   el.appBarUser = document.getElementById('appBarUser');
-  el.userMenuWrap = document.getElementById('userMenuWrap');
   el.appDrawer = document.getElementById('appDrawer');
   el.drawerBackdrop = document.getElementById('drawerBackdrop');
   el.btnDrawerOpen = document.getElementById('btnDrawerOpen');
@@ -5001,9 +4976,6 @@ function applyRestoredInvoiceDate(candidateIso){
   // with whatever ended up in the input, rather than trusting a separately
   // saved dateStr that could be stale/empty/out of sync.
   state.dateStr = formatDateForDisplay(el.invoiceDate.value);
-}
-function roundMoney(value) {
-  return Math.round((Number(value) + Number.EPSILON) * 100) / 100;
 }
 // Quantity is free text ("5", "23 liters", ""): the shared engine reads the number
 // out of it, so the app, the PDF and the public invoice page always agree.
@@ -5476,23 +5448,6 @@ function createSupabaseClient(authStorage, detectSessionInUrl, storageKey = null
   });
   supabaseClientCache.set(cacheKey, client);
   return client;
-}
-function initSupabase(recoveryContext){
-  // Password recovery lives in memory only for the current page lifetime —
-  // nothing is written to any browser storage (persistSession: false), and
-  // it never proactively refreshes its own access token in the background
-  // (autoRefreshToken: false). A reload or closed tab ends the recovery
-  // attempt entirely rather than leaving anything running or stored; if
-  // interrupted, the person re-opens the email link.
-  if (recoveryContext) {
-    supabaseClient = createSupabaseClient(window.sessionStorage, true, RECOVERY_AUTH_STORAGE_KEY, false, false);
-    return supabaseClient;
-  }
-  // Normal logins always persist in localStorage, and supabase-js refreshes
-  // the access token automatically (autoRefreshToken: true). There is no
-  // manual refresh timer; nothing else should call refreshSession().
-  supabaseClient = createSupabaseClient(window.localStorage, undefined, null, true, true);
-  return supabaseClient;
 }
 // Marks (in sessionStorage, so it survives the OAuth redirect round-trip but
 // never leaks into localStorage) that a Google sign-in redirect is in
@@ -7041,9 +6996,6 @@ async function enableOnThisDevice(btn){
 }
 
 /* ---------- reminders list ---------- */
-function resetRemindersView(){
-  reminders = []; remindersLoaded = false; remindersOwner = null;
-}
 async function loadRemindersView(){
   const userId = currentSession?.user?.id;
   if (!userId) return;
@@ -7890,11 +7842,6 @@ function updateSummary(){
     if (serviceCharge !== null) el.serviceChargeValue.textContent = formatCurrency(serviceCharge);
   }
   el.grandTotal.textContent = formatCurrency(grandTotal);
-}
-function formatServiceLabel(text) {
-  const words = text.split(" ");
-  if(words.length > 1) return escapeHtml(words[0]) + "<br>" + escapeHtml(words.slice(1).join(" "));
-  return escapeHtml(text);
 }
 /* ===================================================================
    INVOICE RENDER + PDF (unchanged logic from original app)
@@ -9206,8 +9153,6 @@ function handlePendingUsersClick(e){
 function closeAllActionMenus(){
   document.querySelectorAll('.actions-popup').forEach(p => p.remove());
 }
-function closeUserDropdown(){}
-function toggleUserDropdown(){ openDrawer(); }
 
 const FEEDBACK_MIN_LENGTH = 10;
 const FEEDBACK_MAX_LENGTH = 1000;
@@ -11091,7 +11036,6 @@ function bindEvents(){
       getDismissibleOverlays().forEach(([overlay, close]) => {
         if(!overlay.classList.contains('hide')) close();
       });
-      closeUserDropdown();
       closeDrawer();
       closeAllActionMenus();
       if (_openDatePickerClose) _openDatePickerClose();
@@ -11498,7 +11442,7 @@ function loadAi() {
   const load = () => {
     const s = document.createElement('script');
     s.id = 'jasVoiceScript';
-    s.src = './voice.js?v=3';
+    s.src = './voice.js?v=4';
     s.async = true;
     document.body.appendChild(s);
   };
