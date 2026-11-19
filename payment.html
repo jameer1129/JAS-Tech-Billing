@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="google" content="notranslate">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#000000">
@@ -35,7 +35,9 @@
   color-scheme:dark;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-html{height:100%;}
+html{height:100%;width:100%;overflow-x:hidden;-webkit-text-size-adjust:100%;text-size-adjust:100%;}
+body{width:100%;overflow-x:hidden;}
+input{font-size:16px;}
 body{
   min-height:100%;
   background:var(--bg);
@@ -621,7 +623,7 @@ button{cursor:pointer;background:none;border:none;}
 
     $('stateLoading').classList.add('hide');
     $('content').classList.remove('hide');
-    if(!amount)setTimeout(()=>input.focus(),150);
+    /* Avoid automatic mobile keyboard opening and viewport zoom. */
     renderQr();
   }
   function bindEvents(){

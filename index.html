@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" translate="no">
 <head>
+<meta charset="UTF-8">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -48,9 +49,8 @@ if ('launchQueue' in window) {
   });
 }
 </script>
-<meta charset="UTF-8">
 <meta name="google" content="notranslate">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Billing App</title>
 <meta name="theme-color" content="#012587">
 <meta name="description" content="Professional billing software — generate invoices in seconds." id="metaDescription">
@@ -60,7 +60,7 @@ if ('launchQueue' in window) {
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.3.1/css/all.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js" defer></script>
 <style>
@@ -378,7 +378,7 @@ body.dark-theme .bills-table thead th{background: #1A202C;color: var(--primary-t
   text-transform:uppercase;
   letter-spacing:.4px;
   white-space:nowrap;
-  transition:background .15 ease;
+  transition:background .15s ease;
 }
 .bills-table tbody td{
   min-width:0;
@@ -969,14 +969,17 @@ body.dark-theme #invoiceQrCanvas{filter: invert(1);}
 }
 .modal--preview .modal__header{
   border-bottom: 1px solid var(--line);
+  justify-content: flex-start;
+  padding: 14px 12px;
 }
+.modal--preview .modal__header h3{white-space:nowrap;}
 .modal--preview .modal__body{
   padding: 20px 0;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: auto;                    /* scroll/pan both ways when zoomed in */
+  touch-action: pan-x pan-y;         /* pinch-zoom is handled by the preview itself */
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: 20px;
   min-height: min(400px, 35dvh);     /* can shrink on short screens so the footer stays visible */
   flex: 1 1 auto;
@@ -989,7 +992,10 @@ body.dark-theme #invoiceQrCanvas{filter: invert(1);}
   border-top: 1px solid var(--line);
 }
 .change-pw-footer{border-top:1px solid var(--line);padding-bottom: 14px;}
-#previewScaleContainer{display: flex;flex-direction: column;gap: 24px;transform-origin: top center;width: 794px;}
+#previewScaleContainer{display: flex;flex-direction: column;gap: 24px;transform-origin: top left;width: 794px;}
+#previewZoomStage{flex:none;margin:0 auto;overflow:hidden;}
+.preview-zoom{margin-left:auto;display:flex;align-items:center;gap:3px;}
+.preview-zoom .btn{padding:5px 7px;}
 /* ==========================================================
    APP CHROME — app bar, user menu, mobile drawer, nav tabs,
    boot loader, app footer
@@ -1161,7 +1167,7 @@ html.pop-open,body.pop-open{overflow:hidden!important;}
   place-items: center;
   border: 3px solid var(--surface);
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 25%, #5C72FF 0%, #344CEB 45%, #2A3FB8 75%, #162270 100%);;
+  background: radial-gradient(circle at 35% 25%, #5C72FF 0%, #344CEB 45%, #2A3FB8 75%, #162270 100%);
   color: #fff;
   font-size: 11px;
   line-height: 1;
@@ -1277,7 +1283,7 @@ body.dark-theme .drawer__item--red{--acc:239,68,68;--fg:#FF5C6C;}
   gap:12px;
   padding:12px 20px;
   border-top:1px solid var(--line);
-  background:rgba(127, 127, 127, .08);;
+  background:rgba(127, 127, 127, .08);
 }
 body.dark-theme .drawer__footer{background:rgba(127, 127, 127, .08);}
 .drawer__footer-icon{
@@ -1604,7 +1610,7 @@ body:has(.auth-shell:not(.hide)){overflow:hidden;}
   text-transform:uppercase;
   letter-spacing:.5px;
 }
-.auth-divider::before,.auth-divider::after{content:"";flex:1;height:1px;background:var(--muted-line);}
+.auth-divider::before,.auth-divider::after{content:"";flex:1;height:1px;background:var(--line);}
 /* ---------- Google button ---------- */
 .btn--google{
   background:var(--surface);
@@ -2264,7 +2270,7 @@ body.dark-theme .date-dropdown__item.active{background:rgba(1,37,135,.20);}
   box-shadow:var(--shadow-sm);
   transition:border-color .15s ease,box-shadow .15s ease;
 }
-.bill-card:hover{border-color: var(--primary-text);box-shadow: 0 0 0 3px var(--focus-ring);box-shadow:var(--shadow-sm);}
+.bill-card:hover{border-color:var(--primary-text);box-shadow:var(--shadow-sm);}
 .bill-card__invoice{
   display:block;
   padding-right:82px;
@@ -2925,12 +2931,12 @@ body.dark-theme .nav-tabs::before{background:rgba(82,120,216,.24);}
       </div>
       <div class="auth-field">
         <i class="fa-regular fa-envelope auth-field__icon"></i>
-        <label for="loginEmail" class="hide">Email</label>
+        <label for="loginEmail" class="visually-hidden">Email</label>
         <input type="email" id="loginEmail" autocomplete="email" maxlength="100" placeholder="Email">
       </div>
       <div class="auth-field has-toggle">
         <i class="fa-solid fa-lock auth-field__icon"></i>
-        <label for="loginPassword" class="hide">Password</label>
+        <label for="loginPassword" class="visually-hidden">Password</label>
         <input type="password" id="loginPassword" autocomplete="current-password" maxlength="64" placeholder="Password">
         <button type="button" class="pw-toggle-btn" data-target="loginPassword" aria-label="Show password">
           <i class="fa-regular fa-eye"></i>
@@ -2958,17 +2964,17 @@ body.dark-theme .nav-tabs::before{background:rgba(82,120,216,.24);}
       </div>
       <div class="auth-field">
         <i class="fa-regular fa-user auth-field__icon"></i>
-        <label for="regName" class="hide">Full Name</label>
+        <label for="regName" class="visually-hidden">Full Name</label>
         <input type="text" id="regName" autocomplete="name" maxlength="60" placeholder="Full Name">
       </div>
       <div class="auth-field">
         <i class="fa-regular fa-envelope auth-field__icon"></i>
-        <label for="regEmail" class="hide">Email</label>
+        <label for="regEmail" class="visually-hidden">Email</label>
         <input type="email" id="regEmail" autocomplete="email" maxlength="100" placeholder="Email">
       </div>
       <div class="auth-field has-toggle">
         <i class="fa-solid fa-lock auth-field__icon"></i>
-        <label for="regPassword" class="hide">Password</label>
+        <label for="regPassword" class="visually-hidden">Password</label>
         <input type="password" id="regPassword" autocomplete="new-password" placeholder="Password" maxlength="64">
         <button type="button" class="pw-toggle-btn" data-target="regPassword" aria-label="Show password">
           <i class="fa-regular fa-eye"></i>
@@ -2976,7 +2982,7 @@ body.dark-theme .nav-tabs::before{background:rgba(82,120,216,.24);}
       </div>
       <div class="auth-field has-toggle">
         <i class="fa-solid fa-lock auth-field__icon"></i>
-        <label for="regConfirmPassword" class="hide">Confirm Password</label>
+        <label for="regConfirmPassword" class="visually-hidden">Confirm Password</label>
         <input type="password" id="regConfirmPassword" autocomplete="new-password" maxlength="64" placeholder="Confirm Password">
         <button type="button" class="pw-toggle-btn" data-target="regConfirmPassword" aria-label="Show password">
           <i class="fa-regular fa-eye"></i>
@@ -3006,7 +3012,7 @@ body.dark-theme .nav-tabs::before{background:rgba(82,120,216,.24);}
       </div>
       <div class="auth-field">
         <i class="fa-regular fa-envelope auth-field__icon"></i>
-        <label for="forgotEmail" class="hide">Email</label>
+        <label for="forgotEmail" class="visually-hidden">Email</label>
         <input type="email" id="forgotEmail" autocomplete="email" maxlength="100" placeholder="Email">
       </div>
       <button class="btn btn--primary btn--full" id="btnSendReset">
@@ -3032,18 +3038,7 @@ body.dark-theme .nav-tabs::before{background:rgba(82,120,216,.24);}
     </div>
     <div class="auth-form">
       <div class="field">
-        <input
-          type="hidden"
-          id="verifyOtp"
-          class="verify-otp-input"
-          inputmode="numeric"
-          autocomplete="one-time-code"
-          pattern="[0-9]*"
-          maxlength="6"
-          placeholder="••••••"
-          aria-label="6-digit verification code"
-          style="font-size:20px;letter-spacing:5px;text-align:center;"
-        >
+        <input type="hidden" id="verifyOtp">
         <div class="otp-boxes" role="group" aria-label="6-digit verification code">
           <input class="otp-box" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" maxlength="1" aria-label="Digit 1">
           <input class="otp-box" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Digit 2">
@@ -3070,7 +3065,7 @@ body.dark-theme .nav-tabs::before{background:rgba(82,120,216,.24);}
         <button type="button" class="verify-resend" id="btnResendVerification" disabled>Resend Code</button>
       </div>
       <div style="margin-top:12px;display:flex;justify-content:center;">
-        <a class="auth-link" id="btnBackFromVerification">
+        <a href="#" class="auth-link" id="btnBackFromVerification">
           <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>Back to Login
         </a>
       </div>
@@ -3119,7 +3114,7 @@ body.dark-theme .nav-tabs::before{background:rgba(82,120,216,.24);}
     <div class="auth-form" id="resetPasswordForm">
       <div class="auth-field has-toggle">
         <i class="fa-solid fa-lock auth-field__icon"></i>
-        <label for="resetNewPassword" class="hide">New Password</label>
+        <label for="resetNewPassword" class="visually-hidden">New Password</label>
         <input type="password" id="resetNewPassword" autocomplete="new-password" placeholder="New Password" maxlength="64">
         <button type="button" class="pw-toggle-btn" data-target="resetNewPassword" aria-label="Show password">
           <i class="fa-regular fa-eye"></i>
@@ -3127,7 +3122,7 @@ body.dark-theme .nav-tabs::before{background:rgba(82,120,216,.24);}
       </div>
       <div class="auth-field has-toggle">
         <i class="fa-solid fa-lock auth-field__icon"></i>
-        <label for="resetConfirmPassword" class="hide">Confirm Password</label>
+        <label for="resetConfirmPassword" class="visually-hidden">Confirm Password</label>
         <input type="password" id="resetConfirmPassword" autocomplete="new-password" maxlength="64" placeholder="Confirm Password">
         <button type="button" class="pw-toggle-btn" data-target="resetConfirmPassword" aria-label="Show password">
           <i class="fa-regular fa-eye"></i>
@@ -3722,7 +3717,7 @@ body.dark-theme .nav-tabs::before{background:rgba(82,120,216,.24);}
     </div>
     <div class="modal__body" id="billDetailsBody"></div>
     <div class="modal__footer">
-      <button class="btn btn--primary btn--full" id="btnCloseBillDetailsModalFooter"><i class="fa-solid fa-xmark __web-inspector-hide-shortcut__" aria-hidden="true"></i>Close</button>
+      <button class="btn btn--primary btn--full" id="btnCloseBillDetailsModalFooter"><i class="fa-solid fa-xmark" aria-hidden="true"></i>Close</button>
     </div>
   </div>
 </div>
@@ -3731,9 +3726,14 @@ body.dark-theme .nav-tabs::before{background:rgba(82,120,216,.24);}
     <div class="modal__header">
       <i class="fa-regular fa-eye"></i>
       <h3>Invoice Preview</h3>
+      <div class="preview-zoom">
+        <button type="button" class="btn btn--ghost btn--sm" id="btnPreviewZoomOut" aria-label="Zoom out"><i class="fa-solid fa-minus"></i></button>
+        <button type="button" class="btn btn--ghost btn--sm" id="previewZoomVal" title="Reset zoom">100%</button>
+        <button type="button" class="btn btn--ghost btn--sm" id="btnPreviewZoomIn" aria-label="Zoom in"><i class="fa-solid fa-plus"></i></button>
+      </div>
     </div>
     <div class="modal__body" id="previewModalBody">
-      <div id="previewScaleContainer"></div>
+      <div id="previewZoomStage"><div id="previewScaleContainer"></div></div>
     </div>
     <div class="modal__footer">
       <button class="btn btn--ghost" id="btnClosePreviewModal">Close</button>
@@ -4094,13 +4094,7 @@ body.dark-theme .nav-tabs::before{background:rgba(82,120,216,.24);}
   </section>
 </div>
 <script>
-// html2pdf.js (~700KB) is only needed when a user actually exports/prints an
-// invoice, so it's loaded on demand here rather than blocking every startup
-// with a synchronous <script> tag. loadHtml2Pdf() caches the in-flight
-// promise so concurrent/repeated calls (or a slow/failed first attempt)
-// don't inject the tag more than once.
-// PDF libraries + warm-up now live in invoice-engine.js (shared with invoice.html).
-function loadHtml2Pdf(){ return InvoiceEngine.loadHtml2Pdf(); }
+// PDF libraries (html2pdf.js) load on demand and warm up inside invoice-engine.js.
 function scheduleHtml2PdfWarmup(){
   try { InvoiceEngine.configure(CONFIG); InvoiceEngine.warmup(getCurrentInvoiceEngineData()); }
   catch (e) { InvoiceEngine.warmup(); }
@@ -4269,9 +4263,7 @@ async function handlePossiblySpuriousSignOut(client){
     showScreen('auth');
   }, 900);
 }
-let currentAuthTab = 'login';
-// App data always lives in localStorage now (Remember-me removed —
-// sessions are always persistent; see conversation history for why).
+// App data always lives in localStorage (sessions are always persistent).
 // Theme is intentionally excluded and remains persistent in localStorage too.
 let sameAccountRecovery = false;
 function getAppStorage(){
@@ -4334,8 +4326,6 @@ function cacheElements(){
   el.btnOfflineRetry = document.getElementById('btnOfflineRetry');
   el.authScreen = document.getElementById('authScreen');
   el.authCompanyName = document.getElementById('authCompanyName');
-  el.authTabLogin = document.getElementById('authTabLogin');
-  el.authTabRegister = document.getElementById('authTabRegister');
   el.loginForm = document.getElementById('loginForm');
   el.registerForm = document.getElementById('registerForm');
   el.forgotPasswordForm = document.getElementById('forgotPasswordForm');
@@ -4352,7 +4342,6 @@ function cacheElements(){
   el.forgotEmail = document.getElementById('forgotEmail');
   el.btnSendReset = document.getElementById('btnSendReset');
   el.emailVerificationScreen = document.getElementById('emailVerificationScreen');
-  el.verifyCompanyName = document.getElementById('verifyCompanyName');
   el.verifyEmailAddress = document.getElementById('verifyEmailAddress');
   el.verifyOtp = document.getElementById('verifyOtp');
   el.verifyResendTimerText = document.getElementById('verifyResendTimerText');
@@ -5024,7 +5013,7 @@ function formatCurrency(amount, includeSymbol = true){
   return symbol + " " + (Number(amount) || 0).toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 });
 }
 function escapeHtml(str){
-  if(!str) return '';
+  if(str === null || str === undefined) return '';
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
 }
 function truncateText(str, max = 40){
@@ -5052,7 +5041,9 @@ function syncPopOpenState(){
   const drawerOpen = !!el.appDrawer?.classList.contains('open')
     || !!el.drawerBackdrop?.classList.contains('open');
   const loaderOpen = !!el.bootLoader && !el.bootLoader.classList.contains('hide');
-  const shouldLock = modalOpen || datePickerOpen || drawerOpen || loaderOpen;
+  const cropOverlayEl = document.getElementById('profileAvatarCropOverlay');
+  const cropOpen = !!cropOverlayEl && !cropOverlayEl.hidden;
+  const shouldLock = modalOpen || datePickerOpen || drawerOpen || loaderOpen || cropOpen;
   document.documentElement.classList.toggle('pop-open', shouldLock);
   document.body.classList.toggle('pop-open', shouldLock);
 }
@@ -5222,15 +5213,6 @@ function hideCustomerSuggestions(){
   customerSuggestionActiveIndex = -1;
 }
 
-function escapeCustomerHtml(value){
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-
 function renderCustomerSuggestions(customers){
   if (!el.customerSuggestions) return;
   customerSuggestionItems = Array.isArray(customers) ? customers : [];
@@ -5242,11 +5224,11 @@ function renderCustomerSuggestions(customers){
   }
 
   el.customerSuggestions.innerHTML = customerSuggestionItems.map((customer, index) => {
-    const name = escapeCustomerHtml(customer.customer_name || '');
+    const name = escapeHtml(customer.customer_name || '');
     const phone = String(customer.customer_phone || '').trim();
     const address = String(customer.customer_address || '').trim().replace(/\s+/g, ' ');
     const meta = [phone, address].filter(Boolean).join(' • ');
-    return `<button type="button" class="customer-suggestion" data-customer-index="${index}" role="option" aria-selected="false">\n      <span class="customer-suggestion__content">\n        <span class="customer-suggestion__name">${name}</span>\n        ${meta ? `<span class="customer-suggestion__meta">${escapeCustomerHtml(meta)}</span>` : ''}\n      </span>\n    </button>`;
+    return `<button type="button" class="customer-suggestion" data-customer-index="${index}" role="option" aria-selected="false">\n      <span class="customer-suggestion__content">\n        <span class="customer-suggestion__name">${name}</span>\n        ${meta ? `<span class="customer-suggestion__meta">${escapeHtml(meta)}</span>` : ''}\n      </span>\n    </button>`;
   }).join('');
 
   el.customerSuggestions.classList.remove('hide');
@@ -5495,11 +5477,6 @@ async function withGuardedSubmit(button, loaderMsg, action, onError){
   }
 }
 function setAuthTab(tab){
-  currentAuthTab = tab;
-  // Tab buttons are not rendered in the current auth layout. Keep these
-  // optional so text links can still switch forms without throwing.
-  el.authTabLogin?.classList.toggle('active', tab === 'login');
-  el.authTabRegister?.classList.toggle('active', tab === 'register');
   el.loginForm.classList.toggle('hide', tab !== 'login');
   el.registerForm.classList.toggle('hide', tab !== 'register');
   el.forgotPasswordForm.classList.toggle('hide', tab !== 'forgot');
@@ -5819,7 +5796,6 @@ function submitOtpWhenComplete(){
 }
 function showEmailVerification(email, message = 'Enter the code from your email to verify your account.'){
   pendingSignupEmail = email;
-  if (el.verifyCompanyName) el.verifyCompanyName.textContent = (CONFIG.company.name + ' Billing').toUpperCase();
   el.verifyEmailAddress.textContent = email;
   setVerificationOtp('');
   hideVerificationMsg();
@@ -6677,7 +6653,6 @@ const REMINDER_MAX_DAYS = 365;
 const REMINDER_AUTO_PAUSE_DAYS = 7;
 const DEVICE_FP_LS_KEY = 'jas_device_fingerprint';
 let reminders = [];
-let remindersOwner = null;
 let remindersLoaded = false;
 let editingReminderId = null;
 let pendingDeleteReminderId = null;
@@ -7003,7 +6978,7 @@ async function loadRemindersView(){
   const userId = currentSession?.user?.id;
   if (!userId) return;
   // Every visit to the tab starts from the skeleton, like Bills and Admin.
-  reminders = []; remindersLoaded = false; remindersOwner = userId;
+  reminders = []; remindersLoaded = false;
   loadDeviceState();
   await loadReminders();
 }
@@ -7876,21 +7851,47 @@ function renderInvoiceTemplate(targetContainerId = 'invoiceRoot'){
 function fitInvoiceToSinglePage(){
   return InvoiceEngine.fitInvoiceToSinglePage('invoiceRoot');
 }
+// Preview scale = fit-to-width x zoom (1x-4x). The stage is sized to the scaled invoice,
+// so the modal body scrolls/pans natively when zoomed in.
+const previewZoom = { z: 1, fit: 1 };
+function setPreviewZoom(z) {
+  const body = el.previewModalBody;
+  const sc = document.getElementById('previewScaleContainer');
+  const stage = document.getElementById('previewZoomStage');
+  if (!body || !sc || !stage) return;
+  previewZoom.z = Math.min(4, Math.max(1, z));
+  // keep the middle of the view where it was
+  const cx = (body.scrollLeft + body.clientWidth / 2) / (stage.offsetWidth || 1);
+  const cy = (body.scrollTop + body.clientHeight / 2) / (stage.offsetHeight || 1);
+  const scale = previewZoom.fit * previewZoom.z;
+  sc.style.transform = `scale(${scale})`;
+  stage.style.width = (794 * scale) + 'px';
+  stage.style.height = (sc.offsetHeight * scale) + 'px';
+  body.scrollLeft = cx * stage.offsetWidth - body.clientWidth / 2;
+  body.scrollTop = cy * stage.offsetHeight - body.clientHeight / 2;
+  document.getElementById('previewZoomVal').textContent = Math.round(previewZoom.z * 100) + '%';
+}
 function handlePreviewLayoutScaling() {
-  const wrapper = el.previewModalBody;
-  const scaleContainer = document.getElementById('previewScaleContainer');
-  if (!wrapper || !scaleContainer) return;
-  const baseWidth = 794;
-  const availableWidth = wrapper.clientWidth - 24;
-  if (availableWidth < baseWidth) {
-    const scale = availableWidth / baseWidth;
-    scaleContainer.style.transform = `scale(${scale})`;
-    const heightLoss = scaleContainer.offsetHeight * (1 - scale);
-    scaleContainer.style.marginBottom = `-${heightLoss}px`;
-  } else {
-    scaleContainer.style.transform = "none";
-    scaleContainer.style.marginBottom = "0px";
-  }
+  if (!el.previewModalBody) return;
+  previewZoom.fit = Math.max(0.1, Math.min(1, (el.previewModalBody.clientWidth - 24) / 794));
+  setPreviewZoom(previewZoom.z);
+}
+function initPreviewZoom() {
+  const body = el.previewModalBody;
+  if (!body) return;
+  document.getElementById('btnPreviewZoomIn').addEventListener('click', () => setPreviewZoom(previewZoom.z * 1.25));
+  document.getElementById('btnPreviewZoomOut').addEventListener('click', () => setPreviewZoom(previewZoom.z / 1.25));
+  document.getElementById('previewZoomVal').addEventListener('click', () => setPreviewZoom(1));
+  // two-finger pinch
+  const gap = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+  let pinch = null;
+  body.addEventListener('touchstart', (e) => { pinch = e.touches.length === 2 ? { d: gap(e.touches), z: previewZoom.z } : null; }, { passive: true });
+  body.addEventListener('touchmove', (e) => {
+    if (!pinch || e.touches.length !== 2) return;
+    e.preventDefault();
+    setPreviewZoom(pinch.z * gap(e.touches) / pinch.d);
+  }, { passive: false });
+  body.addEventListener('touchend', () => { pinch = null; });
 }
 function openPreviewModal(){
   if(!validateField(el.customerName)){
@@ -7907,8 +7908,10 @@ function openPreviewModal(){
   showOverlay(el.previewModalOverlay);
   renderInvoiceTemplate('previewScaleContainer');
   fitInvoiceToSinglePage();
+  previewZoom.z = 1;                       // every preview opens fit-to-width
   handlePreviewLayoutScaling();
   el.previewModalBody.scrollTop = 0;
+  el.previewModalBody.scrollLeft = 0;
 }
 // Clears the preview content only once the modal's close animation has
 // actually finished (via hideOverlay's Promise) instead of a hardcoded
@@ -8321,8 +8324,8 @@ async function sharePdfBlob(){
   }
 }
 function sanitizeSearchTerm(term){
-  // Strip characters that would break the PostgREST .or() filter syntax
-  return term.replace(/[%,()]/g, ' ').trim();
+  // Strip characters that would break the PostgREST .or() filter syntax or act as wildcards/escapes.
+  return String(term || '').replace(/[%,()*"\\]/g, ' ').replace(/\s+/g, ' ').trim();
 }
 /**
  * Loads only the current page of bills from Supabase — search, sort, and
@@ -8915,22 +8918,14 @@ function renderUserRow(user, { isSelf = false, showActions = false } = {}){
   const letter = getUserAvatarLetter(user);
   const avatarColor = getUserAvatarColor(user);
   const name = user?.name || user?.email || '';
-  const avatarUpdatedAt = user?.avatar_updated_at;
-  const avatarUrl = avatarUpdatedAt && user?.id && supabaseClient
-    ? (() => {
-        const objectName = getAvatarObjectName(avatarUpdatedAt);
-        const objectPath = `${user.id}/${objectName}`;
-        const { data } = supabaseClient.storage.from('profile-avatars').getPublicUrl(objectPath);
-        return data?.publicUrl || '';
-      })()
-    : '';
+  const avatarUrl = user?.id ? getProfileAvatarUrl(user) : '';
   const role = user?.role || '';
   const status = user?.status || '';
 
   return `
     <div class="user-row" data-id="${escapeHtml(user.id || '')}" data-role="${escapeHtml(role)}" data-status="${escapeHtml(status)}">
       <div class="user-row__info" data-initial="${escapeHtml(letter)}" style="--user-avatar-bg:${avatarColor};">
-        ${avatarUrl ? `<img class="user-row__avatar-img" src="${escapeHtml(avatarUrl)}?v=${encodeURIComponent(String(avatarUpdatedAt))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}
+        ${avatarUrl ? `<img class="user-row__avatar-img" src="${escapeHtml(avatarUrl)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}
         <b>${escapeHtml(name)} ${isSelf ? '<span style="color:var(--muted);font-weight:500;">(you)</span>' : ''}</b>
         <span>${escapeHtml(user?.email || '')}</span>
         <div class="admin-user-badges">
@@ -9000,8 +8995,8 @@ async function loadAllUsers(resetToFirstPage = false){
       .from('profiles')
       .select('id,name,email,role,status,avatar_updated_at', { count: 'exact' });
     if (term) {
-      const safeTerm = term.replace(/[%,()]/g, ' ').trim();
-      query = query.or(
+      const safeTerm = sanitizeSearchTerm(term);
+      if (safeTerm) query = query.or(
         `name.ilike.${safeTerm}%,name.ilike.% ${safeTerm}%,email.ilike.${safeTerm}%`
       );
     }
@@ -9356,7 +9351,7 @@ function openChangePwForgotLogoutConfirm(){
   el.logoutModalMessage.innerHTML = 'You need to log out to reset your password.<br>Are you sure you want to log out?';
   el.logoutModalEmail.textContent = email;
   el.logoutModalEmail.style.display = email ? 'block' : 'none';
-  el.btnConfirmLogout.innerHTML = 'Log Out & Reset';
+  el.btnConfirmLogout.innerHTML = 'Log Out &amp; Reset';
   showOverlay(el.logoutModalOverlay);
 }
 let expiredRecoveryMode = null;
@@ -9405,7 +9400,7 @@ function openRecoveryConflictConfirm(conflict){
   el.logoutModalMessage.textContent = 'An account is already logged in on this device. Log out this account to continue with the password reset?';
   el.logoutModalEmail.textContent = email;
   el.logoutModalEmail.style.display = 'block';
-  el.btnConfirmLogout.innerHTML = 'Log Out & Reset';
+  el.btnConfirmLogout.innerHTML = 'Log Out &amp; Reset';
   showOverlay(el.logoutModalOverlay);
 }
 function closeLogoutConfirm(){
@@ -9621,13 +9616,16 @@ function getProfileAvatarPath(){
 }
 let profileAvatarCropper = null;
 let profileAvatarCropFile = null;
+let profileAvatarCropUrl = null;
 function closeProfileAvatarCropper(){
   const overlay = document.getElementById('profileAvatarCropOverlay');
   if (profileAvatarCropper) { profileAvatarCropper.destroy(); profileAvatarCropper = null; }
   if (overlay) overlay.hidden = true;
   const image = document.getElementById('profileAvatarCropImage');
-  if (image) image.removeAttribute('src');
+  if (image) { image.onload = image.onerror = null; image.removeAttribute('src'); }
+  if (profileAvatarCropUrl) { URL.revokeObjectURL(profileAvatarCropUrl); profileAvatarCropUrl = null; }
   profileAvatarCropFile = null;
+  syncPopOpenState();
 }
 function openProfileAvatarCropper(file){
   if (!window.Cropper) {
@@ -9640,7 +9638,7 @@ function openProfileAvatarCropper(file){
   closeProfileAvatarCropper();
   profileAvatarCropFile = file;
   overlay.hidden = false;
-  document.documentElement.classList.add('pop-open');
+  syncPopOpenState();
   image.onload = () => {
     profileAvatarCropper = new Cropper(image, {
       aspectRatio: 1,
@@ -9662,10 +9660,10 @@ function openProfileAvatarCropper(file){
   };
   image.onerror = () => {
     closeProfileAvatarCropper();
-    document.documentElement.classList.remove('pop-open');
     showToast('Could not open this image. Please choose another one.', 'error');
   };
-  image.src = URL.createObjectURL(file);
+  profileAvatarCropUrl = URL.createObjectURL(file);
+  image.src = profileAvatarCropUrl;
 }
 async function handleProfileAvatarUpload(file){
   if (!file) return;
@@ -9696,7 +9694,6 @@ async function saveCroppedProfileAvatar(){
   if (!croppedBlob) { showToast('Could not prepare the cropped image.', 'error'); return; }
   const file = new File([croppedBlob], `avatar.${outputType === 'image/png' ? 'png' : 'jpg'}`, {type:outputType, lastModified:Date.now()});
   closeProfileAvatarCropper();
-  document.documentElement.classList.remove('pop-open');
   if (saveBtn) { saveBtn.disabled = true; saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving…'; }
   if (!currentSession?.user?.id || !supabaseClient) {
     if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '<i class="fa-solid fa-check"></i> Save photo'; }
@@ -10324,13 +10321,11 @@ function bindEvents(){
   if (el.btnPwaUpdateLater) el.btnPwaUpdateLater.addEventListener('click', dismissPwaUpdateAsLater);
   if (el.btnPwaEntryContinue) el.btnPwaEntryContinue.addEventListener('click', closePwaEntryModal);
   if (el.btnPwaEntryAction) el.btnPwaEntryAction.addEventListener('click', handlePwaEntryAction);
-  el.authTabLogin?.addEventListener('click', () => setAuthTab('login'));
-  el.authTabRegister?.addEventListener('click', () => setAuthTab('register'));
   el.btnLogin.addEventListener('click', handleLogin);
   el.btnRegister.addEventListener('click', handleRegister);
   el.btnVerifyEmail.addEventListener('click', handleVerifyEmail);
   el.btnResendVerification.addEventListener('click', handleResendVerification);
-  el.btnBackFromVerification.addEventListener('click', handleBackFromVerification);
+  el.btnBackFromVerification.addEventListener('click', (event) => { event.preventDefault(); handleBackFromVerification(); });
   const otpBoxesWrap = document.querySelector('.otp-boxes');
   let otpRefocusTimer = null;
   if (otpBoxesWrap) {
@@ -10451,8 +10446,7 @@ function bindEvents(){
   el.profileAvatarInput.addEventListener('change', async () => {
     await handleProfileAvatarUpload(el.profileAvatarInput.files?.[0]);
   });
-  const cropOverlay = document.getElementById('profileAvatarCropOverlay');
-  const cancelProfileCrop = () => { closeProfileAvatarCropper(); document.documentElement.classList.remove('pop-open'); };
+  const cancelProfileCrop = () => closeProfileAvatarCropper();
   document.getElementById('btnCancelProfileAvatarCrop')?.addEventListener('click', cancelProfileCrop);
   document.getElementById('btnSaveProfileAvatarCrop')?.addEventListener('click', saveCroppedProfileAvatar);
   document.getElementById('btnProfileAvatarZoomIn')?.addEventListener('click', () => profileAvatarCropper?.zoom(0.1));
@@ -10697,6 +10691,7 @@ function bindEvents(){
   el.btnDownloadFromPreview.addEventListener('click', handlePreviewDownload);
   el.btnClosePreviewModal.addEventListener('click', closePreviewModal);
   el.btnPreview.addEventListener('click', openPreviewModal);
+  initPreviewZoom();
   el.btnCancelDelete.addEventListener('click', closeDeleteModal);
   el.btnConfirmDelete.addEventListener('click', deleteProduct);
   el.btnResetPage.addEventListener('click', openResetModal);
@@ -11272,7 +11267,6 @@ async function init(){
   // localStorage and sessionStorage.
   let normalAuthResolved = false;
   let activeNormalClient = null;
-  let persistentNormalClient = null;
   if (oauthCallbackContext) {
     const oauthClient = createSupabaseClient(window.localStorage, true, null, true, true);
     const clearOAuthPending = () => {
@@ -11346,7 +11340,6 @@ async function init(){
   }
   // Normal application load: inspect localStorage without parsing the URL.
   const persistentClient = createSupabaseClient(window.localStorage, false, null, true, true);
-  persistentNormalClient = persistentClient;
   if (!persistentClient) {
     showScreen('auth');
     return;
@@ -11450,8 +11443,9 @@ function loadAi() {
     if (!CONFIG?.ai?.enabled || !currentSession?.user || currentProfile?.status !== 'approved' || el.appScreen?.classList.contains('hide') || document.getElementById('jasVoiceScript')) return;
     const s = document.createElement('script');
     s.id = 'jasVoiceScript';
-    s.src = './voice.js?v=4';
+    s.src = './voice.js?v=5';
     s.async = true;
+    s.onerror = () => s.remove();   // allow a later loadAi() to retry after a failed download
     document.body.appendChild(s);
   };
 
