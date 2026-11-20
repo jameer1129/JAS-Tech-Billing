@@ -1361,11 +1361,12 @@ body.dark-theme .theme-option.active{background:color-mix(in srgb,var(--primary)
 }
 .boot-loader--startup .boot-loader__card{
   position:relative;width:100%;min-width:0;height:100%;box-sizing:border-box;
-  /* Centre the logo in the area below the status bar (adjust --statusbar-h to fine-tune). */
-  padding:calc(var(--statusbar-h,24px) + env(safe-area-inset-top,0px)) 24px 0;gap:22px;
+  padding:0 24px;gap:22px;
   background:transparent;border:0;border-radius:0;box-shadow:none;filter:none;
 }
-.boot-loader--startup .boot-loader__logo{width:min(65vw,260px);height:min(65vw,260px);}
+.boot-loader--startup .boot-loader__logo{width:min(65vw,260px);height:min(65vw,260px);
+  transform:translateY(var(--logo-lift,-6vh)); /* negative = move logo up, positive = down */
+}
 /* Logo stays centered; bar and text sit near the bottom. */
 .boot-loader--startup .boot-loader__bar-track{
   position:absolute;left:50%;transform:translateX(-50%);
@@ -1382,7 +1383,7 @@ body.dark-theme .theme-option.active{background:color-mix(in srgb,var(--primary)
 @media(max-width:640px){
   .boot-loader__card{min-width:176px;padding:16px 22px;gap:14px;border-radius:16px;}
   .boot-loader__bar-track{width:140px;}
-  .boot-loader--startup .boot-loader__card{min-width:0;padding:calc(var(--statusbar-h,24px) + env(safe-area-inset-top,0px)) 20px 0;gap:20px;border-radius:0;}
+  .boot-loader--startup .boot-loader__card{min-width:0;padding:0 20px;gap:20px;border-radius:0;}
   .boot-loader--startup .boot-loader__bar-track{width:min(48vw,190px);}
 }
 @media(prefers-reduced-motion:reduce){
