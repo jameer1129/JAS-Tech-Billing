@@ -2218,8 +2218,10 @@ body.dark-theme .pdf-option__switch-track{background:#3A3A40;}
 body.dark-theme .date-filter-btn.active{background:rgba(1,37,135,.15);}
 .date-filter-btn i{font-size:13px;}
 .date-filter-btn .caret{margin-left:auto;font-size:10px;opacity:.6;}
-.date-custom-wrap{display:none;width:calc(200% + 10px);max-width:none;margin-top:6px;}
-.date-custom-wrap.show{display:block;}
+.date-custom-wrap{display:none;flex:1 1 100%;width:100%;max-width:none;margin-top:0;}
+.date-custom-wrap.show{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:8px;}
+.date-range-field{min-width:0;}
+.date-range-sep{font-size:12.5px;font-weight:600;opacity:.7;text-align:center;}
 .date-dropdown{
   position:absolute;
   top:calc(100% + 6px);
@@ -2257,7 +2259,7 @@ body.dark-theme .date-dropdown__item.active{background:rgba(1,37,135,.20);}
 #btnShowRestoreBills:hover,#btnShowRestoreBills.active{background:rgba(31,146,84,.12);}
 .date-filter-wrap-new,.sort-filter-wrap{position:relative;flex:1 1 0;min-width:0;}
 /* Filter row: labels truncate instead of pushing the button past the screen edge. */
-.bills-filter-row{flex-wrap:nowrap;}
+.bills-filter-row{flex-wrap:wrap;}
 .date-filter-wrap-new{flex:0.85 1 0;}
 .sort-filter-wrap{flex:1.15 1 0;}
 .bills-filter-row .date-filter-btn{flex:0 0 auto;min-width:0;max-width:100%;overflow:hidden;}
@@ -3372,16 +3374,7 @@ body.dark-theme .nav-tabs::before{background:rgba(82,120,216,.24);}
               <button class="date-dropdown__item" data-range="7days">Last 7 Days</button>
               <button class="date-dropdown__item" data-range="month">This Month</button>
               <button class="date-dropdown__item" data-range="lastmonth">Last Month</button>
-              <button class="date-dropdown__item" data-range="custom">Custom Date…</button>
-            </div>
-            <div class="date-custom-wrap" id="dateCustomWrap">
-              <div class="date-picker" id="billDateFilterPicker">
-                <button type="button" class="date-picker__input" id="billDateFilterInput" aria-haspopup="true" aria-expanded="false">
-                  <span class="date-picker__text" id="billDateFilterText"></span>
-                  <i class="fa-regular fa-calendar"></i>
-                </button>
-              </div>
-              <input type="date" id="billDateFilter" class="hide" tabindex="-1" aria-hidden="true" aria-label="Custom date filter">
+              <button class="date-dropdown__item" data-range="custom">Custom Range…</button>
             </div>
           </div>
           <div class="sort-filter-wrap">
@@ -3395,6 +3388,27 @@ body.dark-theme .nav-tabs::before{background:rgba(82,120,216,.24);}
               <button class="date-dropdown__item" data-sort="customer_name" data-dir="desc">Customer: Z to A</button>
               <div class="date-dropdown__divider" data-restore-divider="true" style="border-top:1px solid var(--line);margin:5px 0;"></div>
               <button class="date-dropdown__item hide" id="btnShowRestoreBills" type="button"><i class="fa-solid fa-trash-arrow-up" aria-hidden="true"></i><span>Restore Bills</span></button>
+            </div>
+          </div>
+          <div class="date-custom-wrap" id="dateCustomWrap">
+            <div class="date-range-field">
+              <div class="date-picker" id="billDateFilterPicker">
+                <button type="button" class="date-picker__input" id="billDateFilterInput" aria-haspopup="true" aria-expanded="false">
+                  <span class="date-picker__text" id="billDateFilterText"></span>
+                  <i class="fa-regular fa-calendar"></i>
+                </button>
+              </div>
+              <input type="date" id="billDateFilter" class="hide" tabindex="-1" aria-hidden="true" aria-label="Custom date filter from">
+            </div>
+            <span class="date-range-sep" aria-hidden="true">To</span>
+            <div class="date-range-field">
+              <div class="date-picker" id="billDateFilterToPicker">
+                <button type="button" class="date-picker__input" id="billDateFilterToInput" aria-haspopup="true" aria-expanded="false">
+                  <span class="date-picker__text" id="billDateFilterToText"></span>
+                  <i class="fa-regular fa-calendar"></i>
+                </button>
+              </div>
+              <input type="date" id="billDateFilterTo" class="hide" tabindex="-1" aria-hidden="true" aria-label="Custom date filter to">
             </div>
           </div>
         </div>
@@ -4313,6 +4327,7 @@ let billsSortCol = 'created_at';
 let billsSortDir = 'desc';
 let billsDateRange = 'any';
 let billsCustomDate = '';
+let billsCustomDateTo = '';
 // Incremented on every loadBills() call. Lets an in-flight request detect
 // that a newer request has since been started (via search/filter/sort/
 // pagination) and discard its own now-stale results instead of overwriting
@@ -4323,6 +4338,7 @@ let pendingUsersRequestSeq = 0;
 let allUsersRequestSeq = 0;
 let invoiceDatePicker = null;
 let billDateFilterPicker = null;
+let billDateFilterToPicker = null;
 const state = {
   customer: { name: '', address: '', mobile: '' },
   invoiceNumber: '',
@@ -4505,6 +4521,9 @@ function cacheElements(){
   el.billDateFilter = document.getElementById('billDateFilter');
   el.billDateFilterInput = document.getElementById('billDateFilterInput');
   el.billDateFilterText = document.getElementById('billDateFilterText');
+  el.billDateFilterTo = document.getElementById('billDateFilterTo');
+  el.billDateFilterToInput = document.getElementById('billDateFilterToInput');
+  el.billDateFilterToText = document.getElementById('billDateFilterToText');
   el.btnDateFilter = document.getElementById('btnDateFilter');
   el.dateFilterLabel = document.getElementById('dateFilterLabel');
   el.dateDropdown = document.getElementById('dateDropdown');
@@ -8385,27 +8404,27 @@ async function loadBills(resetToFirstPage){
         );
       }
     }
-    // Date range filter
-    const today = new Date();
-    const toISO = localDateToIso;
+    // Date range filter. Every boundary is derived from appTodayIso() (India date),
+    // the same "today" Reminders use, so the device timezone never shifts the range.
+    const todayIso = appTodayIso();
+    const [ty, tm] = todayIso.split('-').map(Number);
     if (billsDateRange === 'today') {
-      query = query.eq('bill_date', toISO(today));
+      query = query.eq('bill_date', todayIso);
     } else if (billsDateRange === 'yesterday') {
-      const y = new Date(today); y.setDate(y.getDate()-1);
-      query = query.eq('bill_date', toISO(y));
+      query = query.eq('bill_date', addDaysIso(todayIso, -1));
     } else if (billsDateRange === '7days') {
-      const w = new Date(today); w.setDate(w.getDate()-6);
-      query = query.gte('bill_date', toISO(w)).lte('bill_date', toISO(today));
+      query = query.gte('bill_date', addDaysIso(todayIso, -6)).lte('bill_date', todayIso);
     } else if (billsDateRange === 'month') {
-      const first = new Date(today.getFullYear(), today.getMonth(), 1);
-      const last = new Date(today.getFullYear(), today.getMonth()+1, 0);
-      query = query.gte('bill_date', toISO(first)).lte('bill_date', toISO(last));
+      query = query.gte('bill_date', utcMsToIso(Date.UTC(ty, tm - 1, 1))).lte('bill_date', utcMsToIso(Date.UTC(ty, tm, 0)));
     } else if (billsDateRange === 'lastmonth') {
-      const first = new Date(today.getFullYear(), today.getMonth()-1, 1);
-      const last = new Date(today.getFullYear(), today.getMonth(), 0);
-      query = query.gte('bill_date', toISO(first)).lte('bill_date', toISO(last));
-    } else if (billsDateRange === 'custom' && billsCustomDate) {
-      query = query.eq('bill_date', billsCustomDate);
+      query = query.gte('bill_date', utcMsToIso(Date.UTC(ty, tm - 2, 1))).lte('bill_date', utcMsToIso(Date.UTC(ty, tm - 1, 0)));
+    } else if (billsDateRange === 'custom' && (billsCustomDate || billsCustomDateTo)) {
+      // From only = that single day, To only = up to that day, both = inclusive range.
+      let from = billsCustomDate, to = billsCustomDateTo;
+      if (from && to && from > to) [from, to] = [to, from];
+      if (from && to) query = query.gte('bill_date', from).lte('bill_date', to);
+      else if (from) query = query.eq('bill_date', from);
+      else query = query.lte('bill_date', to);
     }
     query = query.order(billsSortCol, { ascending: billsSortDir === 'asc' });
     if (billsSortCol !== 'created_at') query = query.order('created_at', { ascending: false });
@@ -10751,6 +10770,7 @@ function bindEvents(){
       !!el.billSearchInput.value.trim() ||
       billsDateRange !== 'any' ||
       !!billsCustomDate ||
+      !!billsCustomDateTo ||
       billsSortCol !== 'created_at' ||
       billsSortDir !== 'desc';
     el.btnBillsFilterToggle.innerHTML = active
@@ -10773,8 +10793,11 @@ function bindEvents(){
     el.sortDropdown.classList.add('hide');
     billsDateRange = 'any';
     billsCustomDate = '';
+    billsCustomDateTo = '';
     el.billDateFilter.value = '';
+    el.billDateFilterTo.value = '';
     if (billDateFilterPicker) billDateFilterPicker.updateText();
+    if (billDateFilterToPicker) billDateFilterToPicker.updateText();
     el.billSearchInput.value = '';
     el.dateFilterLabel.textContent = 'Any Date';
     el.btnDateFilter.classList.remove('active');
@@ -10796,6 +10819,7 @@ function bindEvents(){
       !!el.billSearchInput.value.trim() ||
       billsDateRange !== 'any' ||
       !!billsCustomDate ||
+      !!billsCustomDateTo ||
       billsSortCol !== 'created_at' ||
       billsSortDir !== 'desc';
     if (hasActiveBillControls) resetAndHideBillsFilters();
@@ -10816,7 +10840,7 @@ function bindEvents(){
     if (!item) return;
     billsDateRange = item.dataset.range;
     el.dateDropdown.classList.add('hide');
-    const labels = {any:'Any Date',today:'Today',yesterday:'Yesterday','7days':'Last 7 Days',month:'This Month',lastmonth:'Last Month',custom:'Custom Date'};
+    const labels = {any:'Any Date',today:'Today',yesterday:'Yesterday','7days':'Last 7 Days',month:'This Month',lastmonth:'Last Month',custom:'Custom Range'};
     el.dateFilterLabel.textContent = labels[billsDateRange] || 'Any Date';
     el.btnDateFilter.classList.toggle('active', billsDateRange !== 'any');
     el.dateCustomWrap.classList.toggle('show', billsDateRange === 'custom');
@@ -10883,24 +10907,19 @@ function bindEvents(){
     updateBillsFilterToggle();
     loadBills(true);
   });
-  billDateFilterPicker = createDatePicker(el.billDateFilter, el.billDateFilterInput, el.billDateFilterText, { placeholder: 'Select date', allowClear: true });
-  el.billDateFilter.addEventListener('change', () => {
+  billDateFilterPicker = createDatePicker(el.billDateFilter, el.billDateFilterInput, el.billDateFilterText, { placeholder: 'From date', allowClear: true });
+  billDateFilterToPicker = createDatePicker(el.billDateFilterTo, el.billDateFilterToInput, el.billDateFilterToText, { placeholder: 'To date', allowClear: true });
+  function onBillsCustomRangeChange(){
     billsCustomDate = el.billDateFilter.value;
-    if (!billsCustomDate && billsDateRange === 'custom') {
-      // The custom date was cleared via the picker's Clear button. Without
-      // this, the label would keep showing "Custom Date" while the query
-      // applies no date restriction at all — revert to "Any Date" so the
-      // label matches what's actually being queried.
-      billsDateRange = 'any';
-      el.dateFilterLabel.textContent = 'Any Date';
-      el.btnDateFilter.classList.remove('active');
-      el.dateCustomWrap.classList.remove('show');
-      document.querySelectorAll('#dateDropdown .date-dropdown__item').forEach(i => i.classList.toggle('active', i.dataset.range === 'any'));
-    }
+    billsCustomDateTo = el.billDateFilterTo.value;
+    // Clearing a date (picker's Clear button) only empties that field. Custom Range
+    // stays selected with both fields visible; with no dates set, no date limit applies.
     billsFiltersOpen = true;
     updateBillsFilterToggle();
     loadBills(true);
-  });
+  }
+  el.billDateFilter.addEventListener('change', onBillsCustomRangeChange);
+  el.billDateFilterTo.addEventListener('change', onBillsCustomRangeChange);
   el.billsTableBody.addEventListener('click', handleBillsTableClick);
   el.billsPaginationControls.addEventListener('click', handleBillsPaginationClick);
   el.btnCancelDeleteBill.addEventListener('click', closeDeleteBillModal);

@@ -4,22 +4,23 @@
    Safe Activation Handoff
    ========================================================= */
 
-const CACHE_NAME = "v3.2.5";
+const CACHE_VERSION = "v3.2.5";
+const CACHE_PREFIX = "jas-tech-billing-";
+const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;
 const CLAIM_DELAY_MS = 2000;
 
 const STATIC_ASSETS = [
   "./index.html",
+  "./config.json",
   "./invoice-engine.js",
   "./invoice-engine.css",
-  "./voice.js",
-  "./config.json",
   "./manifest.json",
+  "./assets/icons/app-icon.png",
   "./assets/logo/logo.png",
   "./assets/logo/logo-qr.png",
   "./assets/logo/main-logo.png",
   "./assets/logo/horizontal-logo.png",
   "./assets/signature/signature.png",
-  "./assets/icons/app-icon.png",
   "./assets/icons/app-icon-maskable.png",
   "./assets/icons/pay-qr.png",
 ];
@@ -123,7 +124,7 @@ async function precacheCdn(cache) {
 
 self.addEventListener("message", (event) => {
   if (event.data?.type === "GET_VERSION") {
-    event.source.postMessage(CACHE_NAME);
+    event.source.postMessage(CACHE_VERSION);
   }
 });
 
@@ -148,7 +149,7 @@ self.addEventListener("push", (event) => {
     body: data.body || "You have a reminder due.",
     icon: "./assets/icons/app-icon.png",
     badge: "./assets/logo/logo-qr.png",
-    tag: data.tag || "jas-reminder",
+    tag: data.tag || "reminder",
     renotify: true,
     data: {
       url: data.url || "./index.html?mode=reminders",
@@ -235,7 +236,7 @@ self.addEventListener("activate", (event) => {
       .then((keys) =>
         Promise.all(
           keys
-            .filter((key) => key !== CACHE_NAME)
+            .filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME)
             .map((key) => caches.delete(key))
         )
       )

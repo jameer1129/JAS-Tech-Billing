@@ -1,5 +1,5 @@
 /* ===================================================================
-   voice.js — Live voice assistant for JAS Billing
+   voice.js — Live voice assistant for Billing
    -------------------------------------------------------------------
    Speak → Gemini Live (WebSocket) → spoken answer, and it can also
    drive the app UI (New Bill, Previous Bills and Reminders)
@@ -678,7 +678,11 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
         ctx.search_text = (el.billSearchInput && el.billSearchInput.value) || '';
         ctx.sort = el.sortFilterLabel ? el.sortFilterLabel.textContent : '';
         ctx.date_filter = el.dateFilterLabel ? el.dateFilterLabel.textContent : '';
-        if (billsDateRange === 'custom' && billsCustomDate) ctx.custom_date = billsCustomDate;
+        if (billsDateRange === 'custom' && (billsCustomDate || billsCustomDateTo)) {
+          if (billsCustomDate) ctx.custom_date = billsCustomDate;
+          ctx.custom_date_from = billsCustomDate || '';
+          ctx.custom_date_to = billsCustomDateTo || '';
+        }
         ctx.showing_deleted_bills = !!isRestoreBillsMode;
         ctx.loading = !billsLoaded();
         if (ctx.loading) {
@@ -1042,25 +1046,35 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
     },
     async bills_date_filter(a) {
       const ok = ['any', 'today', 'yesterday', '7days', 'month', 'lastmonth', 'custom'];
-      // A spoken date such as "14th November 2026" or "14/11/2026" arrives as range custom + date.
-      if (a.date && !a.range) a.range = 'custom';
+      // "date" is the start (or the only day); "date_to" is the end of a range.
+      let from = a.date_from || a.date || '', to = a.date_to || '';
+      if ((from || to) && !a.range) a.range = 'custom';
       if (!ok.includes(a.range)) return { ok: false, error: 'Unknown date range.' };
       if (a.range === 'custom') {
-        if (!a.date) return { ok: false, error: 'Ask the user which date, then call again with the date as YYYY-MM-DD.' };
-        if (!isValidIsoDateStr(a.date)) return { ok: false, error: 'That is not a valid date. Ask the user to say the day, month and year again.' };
+        if (!from && !to) return { ok: false, error: 'Ask the user which date or date range, then call again with dates as YYYY-MM-DD.' };
+        if ((from && !isValidIsoDateStr(from)) || (to && !isValidIsoDateStr(to))) return { ok: false, error: 'That is not a valid date. Ask the user to say the day, month and year again.' };
+        if (from && to && from > to) [from, to] = [to, from];
       }
       if (!(await ensureBillsTab())) return billsWaitError();
       if (el.billsFilterRow) el.billsFilterRow.classList.remove('hide');
       if (a.range === 'custom') {
-        // Same path as choosing "Custom Date…" and then picking the day on screen.
+        // Same path as choosing "Custom Range" and then picking From / To on screen.
         const customItem = el.dateDropdown.querySelector('[data-range="custom"]');
         if (!customItem) return { ok: false, error: 'Custom date option not found.' };
         customItem.click();
-        if (typeof billDateFilterPicker !== 'undefined' && billDateFilterPicker) billDateFilterPicker.setValue(a.date, true);
-        else { el.billDateFilter.value = a.date; el.billDateFilter.dispatchEvent(new Event('change', { bubbles: true })); }
+        const pFrom = typeof billDateFilterPicker !== 'undefined' && billDateFilterPicker;
+        const pTo = typeof billDateFilterToPicker !== 'undefined' && billDateFilterToPicker;
+        if (pFrom && pTo) {
+          // Set From silently, then To fires the single change that reloads with both.
+          pFrom.setValue(from, false);
+          pTo.setValue(to, true);
+        } else {
+          el.billDateFilter.value = from; el.billDateFilterTo.value = to;
+          el.billDateFilterTo.dispatchEvent(new Event('change', { bubbles: true }));
+        }
         await sleep(500);
         await waitFor(billsLoaded, 8000);
-        return { ok: true, filtered_date: a.date, screen: tabContext() };
+        return { ok: true, filtered_date: from || undefined, filtered_from: from, filtered_to: to, screen: tabContext() };
       }
       const item = el.dateDropdown.querySelector('[data-range="' + a.range + '"]');
       if (!item) return { ok: false, error: 'Date option not found.' };
@@ -1210,7 +1224,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       { name: 'pdf_action', description: 'After PDF is ready: download, optionally show invoice-download QR ONLY when qr_available is true, or close. Never offer QR after a new bill generated without saving.', parameters: O({ action: { type: 'STRING', enum: ['download', 'qr', 'close', 'close_qr', 'qr_done', 'share'] } }, ['action']) },
       { name: 'bills_search', description: 'Search Previous Bills by invoice number, customer name or phone. Empty query clears the search.', parameters: O({ query: S('Search text') }, ['query']) },
       { name: 'bills_sort', description: 'Sort Previous Bills.', parameters: O({ sort: { type: 'STRING', enum: ['newest', 'oldest', 'amount_high', 'amount_low', 'name_az', 'name_za'] } }, ['sort']) },
-      { name: 'bills_date_filter', description: 'Filter Previous Bills by date. Use a preset range, or range custom with a specific date (for example "bills on 14th November 2026" or "14/11/2026") to show only bills of that one day.', parameters: O({ range: { type: 'STRING', enum: ['any', 'today', 'yesterday', '7days', 'month', 'lastmonth', 'custom'] }, date: S('Required when range is custom: the exact day as YYYY-MM-DD') }, ['range']) },
+      { name: 'bills_date_filter', description: 'Filter Previous Bills by date. Use a preset range, or range custom with a specific date ("bills on 14th November 2026") for one day, or with date and date_to ("bills from November 10 to November 15") for an inclusive range.', parameters: O({ range: { type: 'STRING', enum: ['any', 'today', 'yesterday', '7days', 'month', 'lastmonth', 'custom'] }, date: S('For range custom: the start (or only) day as YYYY-MM-DD'), date_to: S('Optional end day of a range as YYYY-MM-DD, inclusive') }, ['range']) },
       { name: 'bills_clear_filters', description: 'Clear search, sort and date filters on Previous Bills.', parameters: O() },
       { name: 'bills_page', description: 'Go to the next or previous page of Previous Bills.', parameters: O({ direction: { type: 'STRING', enum: ['next', 'previous'] } }, ['direction']) },
       { name: 'copy_bill_to_new', description: 'Copy a saved bill into a fresh New Bill so it can be edited and generated again. Identify the bill by invoice_no, position or customer. If the New Bill already has data ask the user first and pass confirmed true.', parameters: O({ ...BILL_REF, confirmed: B('User agreed to replace the current New Bill') }) },
@@ -1230,7 +1244,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
   const toolDeclarations = () => cachedDecls || (cachedDecls = declarations());
 
   function systemPrompt(){
-    const co=cfg().company?.name||'JAS Tech';
+    const co=cfg().company?.name||'';
     const limit=REMINDER_LIMIT, maxDays=REMINDER_MAX_DAYS;
     return [
       `You are the voice-only assistant inside ${co} Billing.`,
@@ -1272,7 +1286,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       '## Previous Bills',
       '- If screen.loading is true, wait and call get_app_state again. Never treat unloaded data as zero bills or no matches; if loading persists, say only that bills are still loading.',
       '- You see ONE page of bills at a time. Use total_bills for the count. For amounts across pages, page through with bills_page and add them up, or say you can only see the current page. Never estimate or invent totals.',
-      '- For a specific day ("bills on 14th November 2026", "14/11/2026", "14 11 2026") call bills_date_filter with range custom and that date as YYYY-MM-DD (day-first; if the year is missing use the current India year). For yesterday or other dates, filter first, then read the displayed records. For a customer or invoice, search and inspect the list before copying or opening. Never invent a saved bill and never edit a saved record directly. copy_bill_to_new reuses the app Copy action.',
+      '- For a specific day ("bills on 14th November 2026", "14/11/2026", "14 11 2026") call bills_date_filter with range custom and that date as YYYY-MM-DD (day-first; if the year is missing use the current India year). For a range ("bills from November 10 to November 15", "between 10/11 and 15/11") call bills_date_filter with range custom, date as the start and date_to as the end, both YYYY-MM-DD (day-first; missing year = current India year; "till/until X" alone = date_to only). To change or remove just one end of a range ("clear the end date", "change the start to 12th"), call bills_date_filter again with range custom, passing the current custom_date_from and custom_date_to from the screen context and leaving out the one to remove. For yesterday or other dates, filter first, then read the displayed records. For a customer or invoice, search and inspect the list before copying or opening. Never invent a saved bill and never edit a saved record directly. copy_bill_to_new reuses the app Copy action.',
       '- Show, view, display or open a bill: call reprint_bill, then answer from loaded_details (customer, products, quantities, prices, charges, total). Do not copy to New Bill or generate a PDF for a view-only request. If the user then says generate, use generate_pdf on that saved preview.',
       '- If several bills match a name, identify them by invoice number, date and total and ask which one BEFORE copying, opening or generating. The same applies to reminders: identify by date, status, repeat and position BEFORE editing, completing, pausing, resuming, marking done or deleting. Never assume the first match. If a tool returns ambiguous true, ask using the returned matches and retry with the exact invoice number or position.',
       '',
@@ -1603,7 +1617,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
         }
       });
     }
-    window.JASVoice = {
+    window.Voice = {
       open: openSheet,
       close: farewellAndClose,
       isActive: () => active,
