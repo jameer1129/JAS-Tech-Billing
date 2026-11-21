@@ -44,7 +44,7 @@
     "enabled": true,
     "primaryModel":  "gemini-3.8-live",
     "fallbackModel": "gemini-3.1-flash-live-preview",
-    "voiceName": "Achird" 
+    "voiceName": ["Kore" , "Charon" , "Aoede" , "Puck"]
   },
   "display": {
     "showWatermark": true,

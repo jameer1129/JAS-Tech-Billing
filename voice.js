@@ -17,7 +17,7 @@
      "enabled": true,
      "primaryModel": "gemini-3.8-live",
      "fallbackModel": "gemini-3.1-flash-live-preview",
-     "voiceName": "Achird"                   (optional, default Achird)
+     "voiceName": ["Kore" , "Charon" , "Aoede" , "Puck"] (optionals, defaults to "Kore" if missing)
    }
    =================================================================== */
 (function () {
@@ -196,6 +196,19 @@
 
 
   /* Compact voice controls with a state-matched status pill beneath the orb. */
+  const voiceStorageKey = 'jas-tech-billing.ai.voice';
+  function voiceOptions() {
+    const config = aiCfg().voiceName;
+    const names = (Array.isArray(config) ? config : [config])
+      .filter(name => typeof name === 'string' && name.trim()).map(name => name.trim());
+    return names.length ? [...new Set(names)] : ['Kore'];
+  }
+  function selectedVoice(names = voiceOptions()) {
+    let saved;
+    try { saved = localStorage.getItem(voiceStorageKey); } catch (_) {}
+    return names.includes(saved) ? saved : names.includes('Kore') ? 'Kore' : names[0];
+  }
+
   function buildUi(){
     if(document.querySelector('.jv-wrap'))return;
     const IMG_ANT='data:image/webp;base64,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';
@@ -233,7 +246,7 @@
 .jv-orb,.jv-mute,.jv-end{display:grid;place-items:center;flex:none;border-radius:50%;cursor:pointer;-webkit-tap-highlight-color:transparent;color:#fff}
 .jv-orb{width:52px;height:52px;position:relative;padding:0;border:1.5px solid var(--ac);background:radial-gradient(circle at 30% 24%,color-mix(in srgb,var(--ac) 68%,#171d28),color-mix(in srgb,var(--c2) 73%,#080c13) 55%,color-mix(in srgb,var(--c2) 64%,#02050a));box-shadow:0 4px 23px 1px color-mix(in srgb,var(--c2) 35%,transparent),inset 0 1px 2px #ffffff12,inset 0 -6px 12px #0008}
 .jv-orb:before,.jv-orb:after{content:'';position:absolute;inset:-5px;border:2px solid var(--c2);border-radius:50%;opacity:0;pointer-events:none;z-index:-1}
-.jv-question{display:none;position:absolute;right:-3px;top:-15px;z-index:2;color:var(--ac);font:800 22px/1 system-ui,sans-serif;text-shadow:0 0 7px color-mix(in srgb,var(--ac) 70%,transparent);pointer-events:none}
+.jv-question{display:none;position:absolute;right:-3px;top:-15px;z-index:2;color:var(--ac);font-weight:800;text-shadow:0 0 7px color-mix(in srgb,var(--ac) 70%,transparent);pointer-events:none}
 [data-f=thinking] .jv-question{display:block}
 .jv-in{position:absolute;inset:0;border-radius:50%;overflow:hidden;pointer-events:none}
 .jv-in svg{width:100%;height:100%;display:block}
@@ -293,8 +306,13 @@
 .m3 circle:nth-child(2){animation-name:jvConnectCenter}
 .m5{transform-origin:50px 57px;animation:jvVis .82s ease-in-out infinite}
 .mt{transform-origin:50px 57px;transform:scale(.94,.72)}
+.jv-voices{position:absolute;bottom:calc(100% + 14px);left:50%;transform:translateX(-50%);box-sizing:border-box;width:min(200px,calc(100vw - 24px));max-height:calc(100dvh - 100% - 165px - env(safe-area-inset-bottom,0px));overflow:auto;display:grid;gap:4px;padding:6px;border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--text);box-shadow:0 6px 22px #0003;font-weight:600}
+.jv-voices .theme-option{min-height:40px;padding:0 8px;gap:8px}
+.jv-voices .fa-volume-high{color:var(--primary-text)}
+.jv-voices[hidden]{display:none}
+.jv-voices>strong{padding:6px;color:var(--primary-text);text-align:center;}
 /* status pill */
-.jv-state{position:absolute;left:50%;bottom:-46px;transform:translateX(-50%);display:none;align-items:center;gap:7px;white-space:nowrap;padding:7px 11px;border:1px solid color-mix(in srgb,var(--c2) 42%,var(--line,#64748b));border-radius:999px;background:color-mix(in srgb,var(--surface,#1e293b) 88%,var(--c2) 12%);color:var(--text,#f8fafc);font:650 12px/1.1 system-ui,sans-serif;box-shadow:0 5px 18px #0002;pointer-events:none}
+.jv-state{position:absolute;left:50%;bottom:-46px;transform:translateX(-50%);display:none;align-items:center;gap:7px;white-space:nowrap;padding:6px 11px;border:1px solid color-mix(in srgb,var(--c2) 42%,var(--line,#64748b));border-radius:999px;background:color-mix(in srgb,var(--surface,#1e293b) 88%,var(--c2) 12%);color:var(--text,#f8fafc);font-weight:650;box-shadow:0 5px 18px #0002;pointer-events:none}
 .jv-active .jv-state{display:flex}
 .jv-state-icon{color:var(--c2);font-size:12px}
 .jv-state-dots{display:inline-flex;gap:3px}
@@ -333,10 +351,58 @@
 `+Object.entries(ST).map(([k,v])=>`[data-f=${k}]{--ac:${v[0]};--c2:${v[1]}}[data-f=${k}] .f-${k}{display:inline}`+(OA[k]?`[data-f=${k}] .jv-orb{animation:${OA[k]}}`:'')+(HA[k]?`[data-f=${k}] .hd{animation:${HA[k]} ease-in-out infinite}`:'')).join('');
     document.head.appendChild(style);
     const wrap=document.createElement('div');wrap.className='jv-wrap';wrap.dataset.s='idle';wrap.dataset.token='waiting';wrap.dataset.f='preparing';
-    wrap.innerHTML='<button type="button" class="jv-mute" aria-label="Mute microphone" aria-pressed="false" title="Mute microphone"><i class="fa-solid fa-microphone" aria-hidden="true"></i></button><button type="button" class="jv-orb" aria-label="Start voice assistant"><span class="jv-question" aria-hidden="true">?</span><span class="jv-in" aria-hidden="true">'+ROBOT+'</span></button><button type="button" class="jv-end" aria-label="End voice conversation" title="End conversation"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button><div class="jv-state" role="status" aria-live="off"><i class="jv-state-icon fa-solid fa-link" aria-hidden="true"></i><span class="jv-state-label">Connecting</span><span class="jv-state-dots" aria-hidden="true"><b></b><b></b><b></b></span></div>';
+    wrap.innerHTML='<button type="button" class="jv-mute" aria-label="Mute microphone" aria-pressed="false" title="Mute microphone"><i class="fa-solid fa-microphone" aria-hidden="true"></i></button><button type="button" class="jv-orb" aria-label="Start voice assistant"><span class="jv-question" aria-hidden="true">?</span><span class="jv-in" aria-hidden="true">'+ROBOT+'</span></button><button type="button" class="jv-end" aria-label="End voice conversation" title="End conversation"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button><div class="jv-state" role="status" aria-live="off"><i class="jv-state-icon fa-solid fa-link" aria-hidden="true"></i><span class="jv-state-label" style="font-size:12px">Connecting</span><span class="jv-state-dots" aria-hidden="true"><b></b><b></b><b></b></span></div>';
     document.body.appendChild(wrap);
     ui={sheet:wrap,orb:wrap.querySelector('.jv-orb'),mute:wrap.querySelector('.jv-mute'),end:wrap.querySelector('.jv-end')};
-    ui.orb.addEventListener('click',()=>{if(!active&&!starting&&approved())openSheet();});
+    const picker = document.createElement('div');
+    picker.id = 'jv-voices';
+    picker.className = 'jv-voices';
+    picker.hidden = true;
+    picker.setAttribute('role', 'group');
+    picker.setAttribute('aria-label', 'Choose voice');
+    wrap.appendChild(picker);
+    ui.orb.setAttribute('aria-controls', picker.id);
+    ui.orb.setAttribute('aria-expanded', 'false');
+    ui.closePicker = () => {
+      picker.hidden = true;
+      ui.orb.setAttribute('aria-expanded', 'false');
+    };
+    ui.orb.addEventListener('click', () => {
+      if (!approved() || currentTab() === 'admin') return;
+      if (!active && !starting) return openSheet();
+      if (!picker.hidden) return ui.closePicker();
+      const names = voiceOptions();
+      const selected = selectedVoice(names);
+      const title = document.createElement('strong');
+      title.textContent = 'Choose voice';
+      picker.replaceChildren(title);
+      for (const name of names) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'theme-option';
+        button.classList.toggle('active', name === selected);
+        button.innerHTML = '<i class="fa-solid fa-volume-high" aria-hidden="true"></i><span class="theme-option__text"><b></b></span><i class="fa-solid fa-circle-check theme-option__check" aria-hidden="true"></i>';
+        button.querySelector('b').textContent = name;
+        button.setAttribute('aria-pressed', String(name === selected));
+        button.onclick = () => {
+          ui.closePicker();
+          ui.orb.focus();
+          try { localStorage.setItem(voiceStorageKey, name); }
+          catch (_) { showToast('Could not save your voice choice on this device.', 'warning', AUTH_TOAST_DURATION_MS); return; }
+          showToast(name + ' selected. You’ll hear this voice next time you open the assistant.', 'info', AUTH_TOAST_DURATION_MS);
+        };
+        picker.appendChild(button);
+      }
+      picker.hidden = false;
+      ui.orb.setAttribute('aria-expanded', 'true');
+      picker.querySelector('[aria-pressed="true"]').focus();
+    });
+    document.addEventListener('pointerdown', e => {
+      if (!picker.hidden && !picker.contains(e.target) && !ui.orb.contains(e.target)) ui.closePicker();
+    });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && !picker.hidden) { ui.closePicker(); ui.orb.focus(); }
+    });
     ui.mute.addEventListener('click',toggleMute);
     ui.end.addEventListener('click',()=>stopSession('idle'));
     window.addEventListener('pagehide',()=>stopSession('idle', true));
@@ -409,8 +475,8 @@
     ui.mute.setAttribute('aria-pressed',String(muted));
     ui.mute.setAttribute('aria-label',muted?'Unmute microphone':'Mute microphone');
     ui.mute.title=muted?'Unmute microphone':'Mute microphone';
-    ui.orb.setAttribute('aria-label',active||starting?'Voice assistant animation':'Start voice conversation');
-    ui.orb.title=active||starting?'Voice assistant':'Start voice assistant';
+    ui.orb.setAttribute('aria-label',active||starting?'Choose voice':'Start voice conversation');
+    ui.orb.title=active||starting?'Choose voice':'Start voice assistant';
     paintTokenState();paintFace();
   }
   const curStatus=()=>ui.sheet.dataset.s;
@@ -575,9 +641,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
     const s = outCtx.createBufferSource();
     s.buffer = buf;
     s.connect(outCtx.destination);
-    // After a gap, allow a modest cushion for uneven network chunk delivery.
-    // Subsequent chunks are scheduled contiguously, without extra per-chunk delay.
-    const t = nextPlayTime > outCtx.currentTime ? nextPlayTime : outCtx.currentTime + 0.20;
+    const t = Math.max(nextPlayTime, outCtx.currentTime);
     s.start(t);
     nextPlayTime = t + buf.duration;
     sources.add(s);
@@ -1322,7 +1386,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
      =================================================================== */
   function send(obj) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj)); }
 
-  function openSession(model, token, sid) {
+  function openSession(model, token, sid, voiceName) {
     return new Promise((resolve, reject) => {
       let settled = false;
       const live = () => sid === sessionId && ws === sock;   // false once this connection was stopped or replaced
@@ -1336,7 +1400,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
         dbg('socket open, model=' + model);
         const gen = {
           responseModalities: ['AUDIO'],
-          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: aiCfg().voiceName || 'Achird' } } }
+          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName } } }
         };
         sock.send(JSON.stringify({
           setup: {
@@ -1483,6 +1547,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
     }
     // Each connection gets its own id. Every await below re-checks it, so a delayed callback from an
     // older connection can never touch a newer one.
+    const voiceName = selectedVoice();
     const sid = ++sessionId;
     const isCurrent = () => sid === sessionId;
     starting = true;
@@ -1527,7 +1592,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
         break;
       }
       try {
-        await openSession(m, token, sid);
+        await openSession(m, token, sid, voiceName);
         if (!isCurrent()) return;
         activeModel = m;
         dbg('USING MODEL: ' + m + ' (tools declared: ' + toolDeclarations().length + ')');
@@ -1573,6 +1638,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
   }
 
   function stopSession(finalStatus, unloading = false) {
+    ui.closePicker?.();
     const wasActive = active;
     const wasConnecting = starting;
     sessionId++;   // invalidates every pending callback, timer and tool run of the connection being closed
