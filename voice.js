@@ -367,10 +367,14 @@
       picker.hidden = true;
       ui.orb.setAttribute('aria-expanded', 'false');
     };
-    ui.orb.addEventListener('click', () => {
-      if (!approved() || currentTab() === 'admin') return;
-      if (!active && !starting) return openSheet();
-      if (!picker.hidden) return ui.closePicker();
+    // Saves the voice for the NEXT session (a live session cannot switch voice). Used by the picker and by the change_voice tool.
+    ui.saveVoice = (name) => {
+      try { localStorage.setItem(voiceStorageKey, name); }
+      catch (_) { showToast('Could not save your voice choice on this device.', 'warning', AUTH_TOAST_DURATION_MS); return false; }
+      showToast(name + ' selected. You’ll hear this voice next time you open the assistant.', 'info', AUTH_TOAST_DURATION_MS);
+      return true;
+    };
+    ui.openPicker = () => {
       const names = voiceOptions();
       const selected = selectedVoice(names);
       const title = document.createElement('strong');
@@ -387,15 +391,19 @@
         button.onclick = () => {
           ui.closePicker();
           ui.orb.focus();
-          try { localStorage.setItem(voiceStorageKey, name); }
-          catch (_) { showToast('Could not save your voice choice on this device.', 'warning', AUTH_TOAST_DURATION_MS); return; }
-          showToast(name + ' selected. You’ll hear this voice next time you open the assistant.', 'info', AUTH_TOAST_DURATION_MS);
+          ui.saveVoice(name);
         };
         picker.appendChild(button);
       }
       picker.hidden = false;
       ui.orb.setAttribute('aria-expanded', 'true');
       picker.querySelector('[aria-pressed="true"]').focus();
+    };
+    ui.orb.addEventListener('click', () => {
+      if (!approved() || currentTab() === 'admin') return;
+      if (!active && !starting) return openSheet();
+      if (!picker.hidden) return ui.closePicker();
+      ui.openPicker();
     });
     document.addEventListener('pointerdown', e => {
       if (!picker.hidden && !picker.contains(e.target) && !ui.orb.contains(e.target)) ui.closePicker();
@@ -945,7 +953,8 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
         id: state.nextId++, name: name.slice(0, 100),
         description: String(a.description || '').trim().slice(0, 500),
         serial: String(a.serial || '').trim().slice(0, 50),
-        qty: String(a.quantity ?? '1').trim().slice(0, 30) || '1', rate
+        // Not mentioned -> "1". Explicit empty string -> no quantity (same as leaving the field blank in the app).
+        qty: a.quantity == null ? '1' : String(a.quantity).trim().slice(0, 30), rate
       };
       state.products.push(p);
       refresh();
@@ -1015,6 +1024,23 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       if (!state.products.length) return { ok: false, error: 'No items yet. Add at least one item first.' };
       openPreviewModal();
       return { ok: true };
+    },
+    // Change the assistant's voice. No name = show the options on screen. With a name = save it for next time.
+    change_voice(a) {
+      const names = voiceOptions();
+      const current = selectedVoice(names);
+      const asked = String(a.voice_name || '').trim().toLowerCase();
+      if (!asked) {
+        try { if (ui.closePicker) ui.closePicker(); if (ui.openPicker) ui.openPicker(); } catch (e) { /* picker is only a visual aid */ }
+        return { ok: true, options: names, current_voice: current, picker_shown_on_screen: true,
+          instruction: 'The voice options are now displayed on screen. Tell the user these options by name, say which one is current, and ask which one they want.' };
+      }
+      const match = names.find(n => n.toLowerCase() === asked) || names.find(n => n.toLowerCase().startsWith(asked));
+      if (!match) return { ok: false, error: 'That is not one of the available voices.', options: names, current_voice: current, instruction: 'Say that name is not available, read the options again and ask which one they want.' };
+      if (match === current) return { ok: true, selected: match, already_selected: true, note: match + ' is already the saved voice. Nothing to change.' };
+      if (!ui.saveVoice || !ui.saveVoice(match)) return { ok: false, error: 'Could not save the voice choice on this device.' };
+      try { if (ui.closePicker) ui.closePicker(); } catch (e) { /* ignore */ }
+      return { ok: true, selected: match, applies: 'next_time', note: match + ' is saved. It will work the next time the assistant is opened, not in this conversation.' };
     },
     async close_preview() {
       if (!openDialogs().includes('previewModal')) return {ok:true,already_closed:true};
@@ -1322,14 +1348,15 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       { name: 'reset_new_bill', description: 'Reset or clear New Bill EXACTLY like the app Reset button: reset customer, items, notes, service charge, invoice metadata and saved draft. Ask for confirmation if draft has data, then pass confirmed true. Do not simulate reset by emptying input fields.', parameters: O({ confirmed: B('User explicitly confirmed discarding the current New Bill') }) },
       { name: 'set_invoice_date', description: 'Set the date on the New Bill using YYYY-MM-DD.', parameters: O({date:S('YYYY-MM-DD date')},['date']) },
       { name: 'set_customer', description: 'Set the customer name, address and/or mobile on the New Bill. Only pass what the user said.', parameters: O({ name: S('Customer name, in English letters'), address: S('Address, in English letters'), mobile: S('10 digit mobile number') }) },
-      { name: 'add_product', description: 'Add one item to the New Bill. Rate is required: ask if missing. You may write a short professional description if the user asks you to suggest or generate one.', parameters: O({ name: S('Product or service name'), quantity: S('Quantity as spoken, e.g. "2" or "5 liters". Default "1"'), rate: N('Price per unit in rupees'), description: S('Optional description'), serial: S('Optional serial number') }, ['name', 'rate']) },
-      { name: 'update_product', description: 'Change an item. Identify it by item_number (1-based) or name_match. Also use it to add or change a description.', parameters: O({ item_number: N('1-based position'), name_match: S('Part of the item name'), new_name: S('New name'), quantity: S('New quantity'), rate: N('New rate'), description: S('New description'), serial: S('New serial') }) },
+      { name: 'add_product', description: 'Add one item to the New Bill. Rate is required: ask if missing. You may write a short professional description if the user asks you to suggest or generate one.', parameters: O({ name: S('Product or service name'), quantity: S('Free text quantity, with or without a unit, as spoken: \"5\", \"2 liters\", \"5 boxes\", \"3 piece\". If the user does not mention quantity, omit it (defaults to \"1\"). If the user says no quantity or without quantity, pass an empty string \"\".'), rate: N('Price per unit in rupees'), description: S('Optional description'), serial: S('Optional serial number') }, ['name', 'rate']) },
+      { name: 'update_product', description: 'Change an item. Identify it by item_number (1-based) or name_match. Also use it to add or change a description.', parameters: O({ item_number: N('1-based position'), name_match: S('Part of the item name'), new_name: S('New name'), quantity: S('New quantity, free text with or without a unit, e.g. \"5\", \"2 liters\", \"3 piece\". To remove the quantity (leave it blank), pass an empty string \"\".'), rate: N('New rate'), description: S('New description'), serial: S('New serial') }) },
       { name: 'remove_product', description: 'Remove an item by item_number (1-based) or name_match.', parameters: O({ item_number: N('1-based position'), name_match: S('Part of the item name') }) },
       { name: 'set_service_charge', description: 'Turn service charge on (with amount) or off.', parameters: O({ enabled: B('false to turn off'), amount: N('Amount in rupees') }) },
       { name: 'set_notes', description: 'Replace the invoice notes text.', parameters: O({ notes: S('Notes text') }, ['notes']) },
       { name: 'set_pdf_options', description: 'Turn PDF extras on or off. Only pass the ones the user mentioned.', parameters: O({ watermark: B('Watermark'), qr: B('Payment QR'), signature: B('Signature'), notes: B('Notes on PDF') }) },
       { name: 'preview_invoice', description: 'Open the invoice preview.', parameters: O() },
       { name: 'close_preview', description: 'Close the preview.', parameters: O() },
+      { name: 'change_voice', description: 'Change the assistant voice. Call with NO voice_name first: it displays the voice options on screen and returns them. After the user chooses, call again with that exact voice_name to save it. The new voice works from the next time the assistant is opened, not in this conversation.', parameters: O({ voice_name: S('Exact name of the chosen voice from the options. Omit to only show the options.') }) },
       { name: 'generate_pdf', description: 'Make the PDF. New Bill: the replies enforce the steps, so call it and follow each reply. Pass confirmed true only after the user explicitly approved the invoice (it is fine to pass it on the first call if you already read the summary back and got a yes). Pass save true or false only after the user answered the database-save question. Previous Bill: call while the saved preview is open; no confirmation or save question.', parameters: O({ confirmed:B('User explicitly approved invoice details'), save: B('Explicit user choice: true save to Supabase, false generate without saving') }) },
       { name: 'pdf_action', description: 'After PDF is ready: download, optionally show invoice-download QR ONLY when qr_available is true, or close. Never offer QR after a new bill generated without saving.', parameters: O({ action: { type: 'STRING', enum: ['download', 'qr', 'close', 'close_qr', 'qr_done', 'share'] } }, ['action']) },
       { name: 'bills_search', description: 'Search Previous Bills by invoice number, customer name or phone. Empty query clears the search.', parameters: O({ query: S('Search text') }, ['query']) },
@@ -1379,7 +1406,8 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       '',
       '## Working with spoken requests',
       '- When the user corrects a detail, change only that detail. For example, change the rate of the existing item when they say actually 150 each. If multiple rows match, ask which one.',
-      '- Accept multiple items in one utterance. Keep each quantity and unit with its product. Distinguish a unit rate from a line total and ask if the distinction is unclear.',
+      '- Accept multiple items in one utterance. Quantity is free text and optional: a plain number (5), a number with a unit (2 liters, 5 boxes, 3 piece), or nothing. Keep each quantity and its unit exactly with its product, written with digits (two litres becomes 2 liters). If the user says no quantity, remove the quantity, or without quantity, pass quantity as an empty string on add_product or update_product and do not invent 1. If quantity is not mentioned when adding, leave it out and it defaults to 1. Distinguish a unit rate from a line total and ask if the distinction is unclear.',
+      '- How quantity is billed: only the first number in the quantity counts for the amount (2 liters counts as 2, 5 boxes as 5), so always start the quantity with the count. An item with no quantity (empty, 0, or words only) is billed as one unit at its rate and shows a dash in the QTY column. When an item has no quantity, say so briefly: no quantity, so it is billed once at its rate.',
       '- Apply dependent actions in order. If one fails, stop the remaining steps and explain what succeeded and what still needs attention.',
       '- If a save or generation result is uncertain after a disconnect, inspect the current screen and available records before retrying. Ask if the outcome remains uncertain.',
       '- Use only filters the app supports. For an unsupported date interval, explain the available date filters and ask which the user prefers.',
@@ -1389,6 +1417,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       '- To generate, call generate_pdf and follow each reply, because the tool enforces the steps: (1) read back the full invoice summary with the total and ask whether all details are correct; never infer yes. (2) After an explicit yes, ask a SEPARATE question: Save this bill to the database, yes or no? Never skip it, even if the user says just generate. (3) Call generate_pdf with confirmed true and the chosen save value. If you already read the summary and got a yes, you may pass confirmed true on the first call. Never repeat an approved, unchanged summary. If the user changes any detail, confirm the updated invoice again.',
       '- Reset, clear or start over: use reset_new_bill (the same routine as the app Reset button; never just empty the fields). If a draft has data, ask once, then pass confirmed true. start_new_bill only opens a fresh bill.',
       '- Preview: close it before editing fields. generate_pdf closes a New Bill preview by itself. For a PREVIOUS bill generate_pdf uses the saved preview Generate handler and does not save to Supabase; do not call close_preview first, because that restores the unfinished draft.',
+      '- Changing the assistant voice: when the user asks to change the voice (voice, sound, speaker), first call change_voice with no voice_name. It displays the voice picker on screen. Then tell the user the options by name from the tool result, say which one is current, and ask which one they want. When they choose, call change_voice with that exact name (map what they said to the closest option name). Then say it is saved and that the new voice will work from the next time they open the assistant, not in this conversation. Never say the voice changed right now. If they name a voice that is not in the options, say so and read the options again.',
       '- Invoice-download QR is NOT the optional payment QR printed inside the PDF. Offer it only when generate_pdf returns qr_available true (never after a new bill generated without saving); otherwise offer only download or close.',
       '- After generate_pdf succeeds, say the real saving result from the tool: saved_to_database true means saved (you may say the invoice number); if the tool returns a warning, tell the user plainly that the PDF is ready but the bill was NOT saved; if the user chose not to save, say it was not saved as they chose. If the tool says service charge needs an amount, ask for the amount or whether to turn service charge off.',
       '- If a close tool returns already_closed true it succeeded; do not say the dialog was not open. Closing the QR dialog is different from closing the PDF options.',
