@@ -1044,6 +1044,10 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       if (!state.customer.name) missing.push('the customer name');
       if (!state.products.length) missing.push('at least one product');
       if (missing.length) return {ok:false,error:'Cannot generate yet. Missing ' + missing.join(' and ') + '. Ask the user for it.'};
+      // Same rule as the app Generate button: service charge turned on needs an amount.
+      if (typeof isServiceChargeEnabledByConfig==='function' && isServiceChargeEnabledByConfig() && state.serviceChargeOn && getActiveServiceCharge()===null) {
+        return {ok:false,error:'Service charge is turned on but has no amount, so the app will not generate. Ask the user for the service charge amount (then set it), or ask if they want service charge turned off.'};
+      }
       const fingerprint = JSON.stringify({customer:state.customer,products:state.products,date:state.dateStr,notes:state.notes,service:state.serviceCharge,serviceOn:state.serviceChargeOn,pdf:[state.showWatermark,state.showQr,state.showSignature,state.includeNotesOnPdf]});
       // The tool enforces the order but trusts an explicit confirmed:true, so a summary the
       // model already read aloud is never requested twice. If the bill changed after the
@@ -1078,8 +1082,14 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       invoiceReviewFp = null;
       const opened = await waitFor(()=>openDialogs().includes('pdfActionModal'),20000);
       lastPdfQrAvailable=opened && !!(el.btnPdfQr && !el.btnPdfQr.classList.contains('hide'));
-      return opened ? {ok:true,qr_available:lastPdfQrAvailable,save_requested:a.save,note:'PDF ready. Check the app message for actual database save status.',screen:tabContext()}
-                    : {ok:false,error:'PDF not ready. Check the app message; do not claim it was saved or generated.',screen:tabContext()};
+      if(!opened)return {ok:false,error:'PDF was not generated or saved. Do not claim it was saved or generated. Tell the user it did not complete and ask if they want to try again.',screen:tabContext()};
+      // What REALLY happened, read from the app itself (the app can fall back to download-only, e.g. total too large).
+      const savedReal=(typeof _pdfActionDidSave!=='undefined')?!!_pdfActionDidSave:false;
+      const res={ok:true,qr_available:lastPdfQrAvailable,save_requested:a.save,saved_to_database:savedReal,screen:tabContext()};
+      if(savedReal){res.invoice_no=(typeof state!=='undefined'&&state.invoiceNumber)||'';res.note='PDF is ready and the bill is saved to the database.';}
+      else if(a.save){res.warning='The user asked to save, but the bill was NOT saved to the database (the app fell back to PDF only, for example because the total is too large). The PDF is ready. Tell the user clearly that it was not saved.';}
+      else res.note='PDF is ready. As the user chose, the bill was not saved to the database.';
+      return res;
     },
     async pdf_action(a) {
       if(a.action==='qr' && !lastPdfQrAvailable)return {ok:false,error:'Invoice download QR is unavailable because this bill was not saved to the database. Do not offer or ask about QR; offer PDF download instead.'};
@@ -1328,7 +1338,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       { name: 'bills_clear_filters', description: 'Clear search, sort and date filters on Previous Bills.', parameters: O() },
       { name: 'bills_page', description: 'Go to the next or previous page of Previous Bills.', parameters: O({ direction: { type: 'STRING', enum: ['next', 'previous'] } }, ['direction']) },
       { name: 'copy_bill_to_new', description: 'Copy a saved bill into a fresh New Bill so it can be edited and generated again. Identify the bill by invoice_no, position or customer. If the New Bill already has data ask the user first and pass confirmed true.', parameters: O({ ...BILL_REF, confirmed: B('User agreed to replace the current New Bill') }) },
-      { name: 'reprint_bill', description: 'SHOW, VIEW, DISPLAY or OPEN a particular saved Previous Bill: open its read-only preview and return its loaded customer, product and total details. Do NOT generate a PDF unless separately requested. Identify by invoice_no, position or customer; ask which if ambiguous.', parameters: O(BILL_REF) },
+      { name: 'reprint_bill', description: 'SHOW, VIEW, DISPLAY, OPEN, PRINT or REPRINT a particular saved Previous Bill (this is the same as the Print icon on the bill card): open its read-only preview and return its loaded customer, product and total details. Do NOT generate a PDF unless separately requested. Identify by invoice_no, position or customer; ask which if ambiguous.', parameters: O(BILL_REF) },
       { name: 'reminder_prepare', description: `Open the create reminder modal ONLY after checking remaining slots. If all ${REMINDER_LIMIT} slots are used, tell the user immediately; do not collect details.`, parameters: O() },
       { name: 'reminder_list', description: 'Open and read the reminders list.', parameters: O() },
       { name: 'reminder_save', description: 'Create or edit a reminder. Ask for title, date and repeat preference. For edits identify by match_title or position. ALWAYS ask the user to confirm first, then pass confirmed true.', parameters: O({match_title:S('Existing reminder title to edit'),position:N('Existing reminder position'),title:S('Reminder title'),description:S('Description'),date:S(`YYYY-MM-DD, from tomorrow up to ${REMINDER_MAX_DAYS} days ahead for a new or changed date`),repeat:S('off, daily, weekly, monthly, yearly, or 1-365 days'),confirmed:B('User confirmed the exact details')}) },
@@ -1380,6 +1390,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       '- Reset, clear or start over: use reset_new_bill (the same routine as the app Reset button; never just empty the fields). If a draft has data, ask once, then pass confirmed true. start_new_bill only opens a fresh bill.',
       '- Preview: close it before editing fields. generate_pdf closes a New Bill preview by itself. For a PREVIOUS bill generate_pdf uses the saved preview Generate handler and does not save to Supabase; do not call close_preview first, because that restores the unfinished draft.',
       '- Invoice-download QR is NOT the optional payment QR printed inside the PDF. Offer it only when generate_pdf returns qr_available true (never after a new bill generated without saving); otherwise offer only download or close.',
+      '- After generate_pdf succeeds, say the real saving result from the tool: saved_to_database true means saved (you may say the invoice number); if the tool returns a warning, tell the user plainly that the PDF is ready but the bill was NOT saved; if the user chose not to save, say it was not saved as they chose. If the tool says service charge needs an amount, ask for the amount or whether to turn service charge off.',
       '- If a close tool returns already_closed true it succeeded; do not say the dialog was not open. Closing the QR dialog is different from closing the PDF options.',
       '- Theme: use set_theme for dark, light or system default.',
       '',
@@ -1388,6 +1399,8 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       '- You see ONE page of bills at a time. Use total_bills for the count. For amounts across pages, page through with bills_page and add them up, or say you can only see the current page. Never estimate or invent totals.',
       '- For a specific day ("bills on 14th November 2026", "14/11/2026", "14 11 2026") call bills_date_filter with range custom and that date as YYYY-MM-DD (day-first; if the year is missing use the current India year). For a range ("bills from November 10 to November 15", "between 10/11 and 15/11") call bills_date_filter with range custom, date as the start and date_to as the end, both YYYY-MM-DD (day-first; missing year = current India year; "till/until X" alone = date_to only). To change or remove just one end of a range ("clear the end date", "change the start to 12th"), call bills_date_filter again with range custom, passing the current custom_date_from and custom_date_to from the screen context and leaving out the one to remove. For yesterday or other dates, filter first, then read the displayed records. For a customer or invoice, search and inspect the list before copying or opening. Never invent a saved bill and never edit a saved record directly. copy_bill_to_new reuses the app Copy action.',
       '- Show, view, display or open a bill: call reprint_bill, then answer from loaded_details (customer, products, quantities, prices, charges, total). Do not copy to New Bill or generate a PDF for a view-only request. If the user then says generate, use generate_pdf on that saved preview.',
+      '- Print or reprint a bill means the Print icon on the bill card: call reprint_bill to open its preview, tell the user the preview is open, then ask whether they want the PDF generated. Only if they say yes, call generate_pdf on that saved preview, then offer download. Copy a bill means copy_bill_to_new (the Copy icon), which is different from print.',
+      '- Bill details, Delete bill and Restore Bills (the three-dot menu and Restore Bills in the sort list) are admin-only controls and are NOT available by voice. If the user asks for them, say kindly that these are done on screen by an admin, and never offer or try them. You can still search, sort, filter, view, print and copy bills.',
       '- If several bills match a name, identify them by invoice number, date and total and ask which one BEFORE copying, opening or generating. The same applies to reminders: identify by date, status, repeat and position BEFORE editing, pausing, resuming, marking Done, finishing or deleting. Never assume the first match. If a tool returns ambiguous true, ask using the returned matches and retry with the exact invoice number or position.',
       '',
       '## Reminders',
