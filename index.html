@@ -445,8 +445,9 @@ body.dark-theme .prod-card__top{background:#0D0F14;}
 .prod-card__top i.fa-box{color:var(--primary-text);}
 .prod-card__actions{margin-left:auto;display:flex;gap:5px;}
 .prod-card__actions .row-action-btn{width:30px;height:28px;border:1px solid var(--line);border-radius:8px;color:var(--muted);}
-.prod-card__actions .row-action-btn{color:var(--primary-text);border-color:var(--primary-text);}
+.prod-card__actions .row-action-btn.edit{color:var(--primary-text);border-color:var(--primary-text);}
 .prod-card__actions .row-action-btn.delete{color:var(--danger);border-color:var(--danger);}
+.prod-card__actions .row-action-btn:disabled{opacity:.35;cursor:not-allowed;color:var(--muted);border-color:var(--line);background:none;}
 .prod-card__content{display:flex;flex-wrap:wrap;gap:8px;padding:10px;}
 .prod-card__info{flex:1 1 auto;min-width:70px;}
 .prod-card .prod-name{font-size:14px;font-weight:700;line-height:1.35;overflow-wrap:anywhere;}
@@ -1364,7 +1365,7 @@ body.dark-theme .theme-option.active{background:color-mix(in srgb,var(--primary)
   padding:0 24px;gap:22px;
   background:transparent;border:0;border-radius:0;box-shadow:none;filter:none;
 }
-.boot-loader--startup .boot-loader__logo{width:min(65vw,260px);height:min(65vw,260px);
+.boot-loader--startup .boot-loader__logo{width:min(60vw,250px);height:min(60vw,250px);
   transform:translateY(var(--logo-lift,-3vh)); /* negative = move logo up, positive = down */
 }
 /* Logo stays centered; bar and text sit near the bottom. */
@@ -7665,6 +7666,20 @@ function closeDeleteModal(){
   hideOverlay(el.deleteModalOverlay);
   pendingDeleteId = null;
 }
+// Swap an item with its neighbour. The order here is the order printed on the invoice.
+function moveProduct(id, dir){
+  const i = state.products.findIndex(p => p.id === id);
+  const j = i + dir;
+  if(i < 0 || j < 0 || j >= state.products.length) return;
+  [state.products[i], state.products[j]] = [state.products[j], state.products[i]];
+  renderProducts();
+  if (currentSession) saveBillStateToLocalStorage();
+  // The card was re-drawn, so put keyboard focus back on the same arrow (or its pair if it is now disabled).
+  const card = el.productTableBody.querySelector(`.prod-card[data-id="${id}"]`);
+  const same = card?.querySelector(`[data-action="${dir < 0 ? 'move-up' : 'move-down'}"]`);
+  const other = card?.querySelector(`[data-action="${dir < 0 ? 'move-down' : 'move-up'}"]`);
+  (same && !same.disabled ? same : other)?.focus({ preventScroll: true });
+}
 function deleteProduct(){
   if(pendingDeleteId === null) return;
   state.products = state.products.filter(p => p.id !== pendingDeleteId);
@@ -7898,7 +7913,9 @@ function renderProducts(){
           <span class="prod-card__idx">${idx+1}</span>
           <i class="fa-solid fa-box"></i><span>Item</span>
           <div class="prod-card__actions">
-            <button class="row-action-btn" data-action="edit" data-id="${p.id}" aria-label="Edit product" title="Edit"><i class="fa-solid fa-pen-to-square"></i></button>
+            <button class="row-action-btn" data-action="move-up" data-id="${p.id}" aria-label="Move item up" title="Move up"${idx === 0 ? ' disabled' : ''}><i class="fa-solid fa-arrow-up"></i></button>
+            <button class="row-action-btn" data-action="move-down" data-id="${p.id}" aria-label="Move item down" title="Move down"${idx === products.length - 1 ? ' disabled' : ''}><i class="fa-solid fa-arrow-down"></i></button>
+            <button class="row-action-btn edit" data-action="edit" data-id="${p.id}" aria-label="Edit product" title="Edit"><i class="fa-solid fa-pen-to-square"></i></button>
             <button class="row-action-btn delete" data-action="delete" data-id="${p.id}" aria-label="Delete product" title="Delete"><i class="fa-solid fa-trash-can"></i></button>
           </div>
         </div>
@@ -9682,6 +9699,8 @@ function handleTableClick(e){
   const id = Number(btn.dataset.id);
   if(btn.dataset.action === 'edit') editProduct(id);
   else if(btn.dataset.action === 'delete') requestDeleteProduct(id);
+  else if(btn.dataset.action === 'move-up') moveProduct(id, -1);
+  else if(btn.dataset.action === 'move-down') moveProduct(id, 1);
 }
 function closeProfileAvatarActions(){
   hideOverlay(el.profileAvatarModalOverlay);
