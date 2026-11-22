@@ -3685,20 +3685,20 @@ body.dark-theme .nav-tabs::before{background:rgba(82,120,216,.24);}
     </div>
   </div>
 </div>
-<div class="modal-overlay modal--confirm hide" id="reminderDoneModalOverlay">
+<div class="modal-overlay modal--confirm hide" id="reminderFinishModalOverlay">
   <div class="modal" role="alertdialog" aria-modal="true">
     <div class="modal__header">
       <div class="confirm-icon confirm-icon--warning"><i class="fa-solid fa-circle-check"></i></div>
-      <h3>Mark as Done</h3>
+      <h3>Finish Reminder</h3>
     </div>
     <div class="modal__body">
-      <p class="confirm-lead">Mark this reminder as done?</p>
-      <p class="confirm-target" id="reminderDoneName"></p>
-      <div class="confirm-note confirm-note--warning"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i><span>This can’t be undone. It moves to Completed and can’t be edited again. You can only delete it.</span></div>
+      <p class="confirm-lead">Finish this reminder permanently?</p>
+      <p class="confirm-target" id="reminderFinishName"></p>
+      <div class="confirm-note confirm-note--warning"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i><span>This can’t be undone. It stops notifying, moves to Finished and can’t be edited again. You can only delete it.</span></div>
     </div>
     <div class="modal__footer">
-      <button class="btn btn--ghost" id="btnCancelDoneReminder" type="button">Cancel</button>
-      <button class="btn btn--warning" id="btnConfirmDoneReminder" type="button">Mark as Done</button>
+      <button class="btn btn--ghost" id="btnCancelFinishReminder" type="button">Cancel</button>
+      <button class="btn btn--warning" id="btnConfirmFinishReminder" type="button">Finish</button>
     </div>
   </div>
 </div>
@@ -4437,10 +4437,10 @@ function cacheElements(){
   el.reminderDeleteName = document.getElementById('reminderDeleteName');
   el.btnCancelDeleteReminder = document.getElementById('btnCancelDeleteReminder');
   el.btnConfirmDeleteReminder = document.getElementById('btnConfirmDeleteReminder');
-  el.reminderDoneModalOverlay = document.getElementById('reminderDoneModalOverlay');
-  el.reminderDoneName = document.getElementById('reminderDoneName');
-  el.btnCancelDoneReminder = document.getElementById('btnCancelDoneReminder');
-  el.btnConfirmDoneReminder = document.getElementById('btnConfirmDoneReminder');
+  el.reminderFinishModalOverlay = document.getElementById('reminderFinishModalOverlay');
+  el.reminderFinishName = document.getElementById('reminderFinishName');
+  el.btnCancelFinishReminder = document.getElementById('btnCancelFinishReminder');
+  el.btnConfirmFinishReminder = document.getElementById('btnConfirmFinishReminder');
   el.customerName = document.getElementById('customerName');
   el.customerSuggestions = document.getElementById('customerSuggestions');
   el.customerAddress = document.getElementById('customerAddress');
@@ -6699,7 +6699,7 @@ let reminders = [];
 let remindersLoaded = false;
 let editingReminderId = null;
 let pendingDeleteReminderId = null;
-let pendingDoneReminderId = null;
+let pendingFinishReminderId = null;
 let reminderRepeatValue = '';
 let reminderDatePicker = null;
 let reminderBusy = false;
@@ -7053,47 +7053,94 @@ function reminderDueInfo(r, today){
   if (diff < 0) return { cls: 'overdue', text: `Overdue by ${-diff} day${-diff === 1 ? '' : 's'}`, due: true };
   return { cls: '', text: diff === 1 ? 'Tomorrow' : `In ${diff} days`, due: false };
 }
+/* ===== Reminder actions: the ONLY two "ending" ideas =====
+   DONE   = shown only while a reminder is due/overdue. Repeating: this time is handled,
+            it stays Active and moves to its next date. One-time: it has no next time, so
+            Done finishes it automatically (same result as Finish).
+   FINISH = shown only while NOT due. Stop for good. Status becomes Finished (stored as
+            'completed'), no more notifications, only Delete remains.
+   Single source of truth for the buttons. The card, the action guard and the voice AI
+   all use this, so they can never disagree:
+     Active, repeating, not due   -> Edit, Pause, Finish
+     Active, repeating, due       -> Edit, Pause, Done  (moves to next date)
+     Active, one-time, not due    -> Edit, Finish
+     Active, one-time, due        -> Edit, Done         (finishes it)
+     Paused (repeating only)      -> Resume, Finish
+     Finished                     -> Delete                                       */
+function reminderAllowedActions(r, today){
+  today = today || appTodayIso();
+  if (r.status === 'completed') return ['delete'];
+  if (r.status === 'paused') return r.repeater ? ['resume', 'finish'] : ['finish'];
+  const list = ['edit'];
+  if (r.repeater) list.push('pause');
+  list.push(r.remember_date <= today ? 'done' : 'finish');
+  return list;
+}
+// Empty string = allowed. Otherwise a plain-language reason (also read out by the voice AI).
+function reminderActionBlockReason(r, action, today){
+  today = today || appTodayIso();
+  if (reminderAllowedActions(r, today).includes(action)) return '';
+  const st = r.status;
+  if (st === 'completed') {
+    return action === 'finish'
+      ? 'This reminder is already finished.'
+      : 'This reminder is already finished, so it cannot be edited, paused, resumed or marked Done again. The only thing possible is to delete it.';
+  }
+  switch (action) {
+    case 'delete':
+      return 'Only finished reminders can be deleted. This one is ' + st + '. Finish it first' +
+        (st === 'active' && r.repeater && r.remember_date <= today ? ' (pause it, then finish it)' : '') + ', then delete it.';
+    case 'edit':
+      return 'A paused reminder cannot be edited. ' + (r.repeater ? 'Resume it first, then edit it.' : 'It can only be finished.');
+    case 'pause':
+      return st === 'paused' ? 'This reminder is already paused.'
+        : 'Only repeating reminders can be paused. This one does not repeat, so it can only be finished.';
+    case 'resume':
+      return r.repeater ? 'This reminder is already active, so there is nothing to resume.'
+        : 'Resume is only for repeating reminders. This one does not repeat, so it can only be finished.';
+    case 'done':
+      if (st === 'paused') return 'A paused reminder cannot be marked Done. Resume it, or finish it.';
+      return 'This reminder is not due yet (due ' + r.remember_date + '). Done is only for a reminder that is due today or overdue. You can finish it to stop it for good, or leave it.';
+    case 'finish':
+      return r.repeater
+        ? 'Finish is not offered while a repeating reminder is due. Done moves it to its next date. To stop it for good, pause it first and then finish it.'
+        : 'Finish is not offered while a reminder is due. Use Done, which finishes it.';
+  }
+  return 'That action is not available for this reminder.';
+}
 function reminderCardHtml(r, today){
   const due = reminderDueInfo(r, today);
   const id = escapeHtml(r.id);
   const badge = {
     active: '<span class="rem-badge rem-badge--active"><i class="fa-solid fa-circle-play"></i> Active</span>',
     paused: '<span class="rem-badge rem-badge--paused"><i class="fa-solid fa-circle-pause"></i> Paused</span>',
-    completed: '<span class="rem-badge rem-badge--completed"><i class="fa-solid fa-circle-check"></i> Completed</span>'
+    completed: '<span class="rem-badge rem-badge--completed"><i class="fa-solid fa-circle-check"></i> Finished</span>'
   }[r.status] || '';
   const btn = (action, cls, icon, label) =>
     `<button type="button" class="btn ${cls}" data-rem-action="${action}" data-id="${id}"><i class="fa-solid ${icon}" aria-hidden="true"></i> ${label}</button>`;
-  const edit = btn('edit', 'btn--outline', 'fa-pen', 'Edit');
-  const done = btn('done', 'btn--warn-outline', 'fa-circle-check', 'Finished');
-  let actions = '';
-  if (r.status === 'completed') {
-    // Finished reminders are final: no edit, no restore, only delete.
-    actions = btn('delete', 'btn--ghost btn--danger-ghost', 'fa-trash-can', 'Delete');
-  } else if (r.status === 'paused') {
-    actions = btn('resume', 'btn--primary', 'fa-play', 'Resume') + done;
-  } else {
-    // Active. Due or overdue: Complete replaces Done. Not due yet: Done is available.
-    const isDue = !!due?.due;
-    // Order: Edit, Pause, Done/Complete. Buttons share a flex-wrap row, so when space is tight
-    // the last button (Done/Complete) wraps alone onto its own row and stretches full width.
-    actions = edit;
-    if (r.repeater) actions += btn('pause', 'btn--ghost', 'fa-pause', 'Pause');
-    if (isDue) actions += btn('complete', 'btn--success', 'fa-check', 'Complete');
-    else actions += done;
-  }
+  const defs = {
+    edit: btn('edit', 'btn--outline', 'fa-pen', 'Edit'),
+    pause: btn('pause', 'btn--ghost', 'fa-pause', 'Pause'),
+    resume: btn('resume', 'btn--primary', 'fa-play', 'Resume'),
+    done: btn('done', 'btn--success', 'fa-check', 'Done'),
+    finish: btn('finish', 'btn--warn-outline', 'fa-circle-check', 'Finish'),
+    delete: btn('delete', 'btn--ghost btn--danger-ghost', 'fa-trash-can', 'Delete')
+  };
+  // Buttons share a flex-wrap row; the last one wraps alone and stretches when space is tight.
+  const actions = reminderAllowedActions(r, today).map(a => defs[a]).join('');
   const meta = [`<span><i class="fa-regular fa-calendar"></i> ${escapeHtml(formatDateForDisplay(r.remember_date))}</span>`];
   if (r.repeater) meta.push(`<span><i class="fa-solid fa-repeat"></i> ${escapeHtml(repeaterText(r.repeater))}</span>`);
   if (due) meta.push(`<span class="${due.cls}"><i class="fa-regular fa-clock"></i> ${escapeHtml(due.text)}</span>`);
-  if (r.status === 'completed' && r.last_activity) meta.push(`<span><i class="fa-solid fa-check"></i> Done ${escapeHtml(formatDateForDisplay(r.last_activity))}</span>`);
+  if (r.status === 'completed' && r.last_activity) meta.push(`<span><i class="fa-solid fa-check"></i> Finished ${escapeHtml(formatDateForDisplay(r.last_activity))}</span>`);
   let hint = '';
-  if (r.status === 'active' && due?.due) {
+  if (r.status === 'active' && due?.due && r.repeater) {
     const overdue = -daysBetweenIso(today, r.remember_date);
     if (overdue > REMINDER_AUTO_PAUSE_DAYS) hint = ['danger', 'fa-circle-pause', 'Overdue for more than 7 days. This will be paused automatically.'];
-    else if (overdue === REMINDER_AUTO_PAUSE_DAYS) hint = ['danger', 'fa-triangle-exclamation', 'Last reminder. It will be paused tomorrow if not completed.'];
+    else if (overdue === REMINDER_AUTO_PAUSE_DAYS) hint = ['danger', 'fa-triangle-exclamation', 'Last reminder. It will be paused tomorrow if not marked Done.'];
     else if (overdue > 0) hint = ['warn', 'fa-circle-info', `Auto-pause after ${REMINDER_AUTO_PAUSE_DAYS} days overdue.`];
   } else if (r.status === 'paused') {
     const late = daysBetweenIso(r.remember_date, today);
-    if (late > REMINDER_AUTO_PAUSE_DAYS) hint = ['danger', 'fa-circle-pause', `Paused: was overdue by ${late} days, so notifications stopped. Tap Resume to start again.`];
+    if (late > REMINDER_AUTO_PAUSE_DAYS) hint = ['danger', 'fa-circle-pause', `Paused: was overdue by ${late} days, so notifications stopped. ${r.repeater ? 'Tap Resume to start again, or Finish to end it.' : 'Tap Finish to close it.'}`];
   }
   const hintHtml = hint ? `<div class="rem-card__hint rem-card__hint--${hint[0]}"><i class="fa-solid ${hint[1]}" aria-hidden="true"></i><span>${escapeHtml(hint[2])}</span></div>` : '';
   return `<article class="bill-card rem-card">
@@ -7114,7 +7161,7 @@ function renderReminders(){
   const groups = [
     ['Active', 'fa-circle-play', reminders.filter(r => r.status === 'active').sort(byDate)],
     ['Paused', 'fa-circle-pause', reminders.filter(r => r.status === 'paused').sort(byDate)],
-    ['Completed', 'fa-circle-check', reminders.filter(r => r.status === 'completed').sort((a, b) => (b.last_activity || '').localeCompare(a.last_activity || ''))]
+    ['Finished', 'fa-circle-check', reminders.filter(r => r.status === 'completed').sort((a, b) => (b.last_activity || '').localeCompare(a.last_activity || ''))]
   ];
   el.remGroups.innerHTML = groups.filter(g => g[2].length).map(([name, icon, list]) => `
     <section class="rem-group"><div class="rem-group__title"><i class="fa-solid ${icon}"></i> ${name} <b>${list.length}</b></div>
@@ -7128,17 +7175,24 @@ async function runReminderAction(action, id, btn){
   if (reminderBusy) return;
   const r = reminders.find(x => x.id === id);
   if (!r) return;
+  const blocked = reminderActionBlockReason(r, action);
+  if (blocked) { showToast(blocked, 'info', 4000); return; }
   if (action === 'edit') { openReminderModal(r); return; }
   if (action === 'delete') { openReminderDelete(r); return; }
-  if (action === 'done') { openReminderDone(r); return; }
+  if (action === 'finish') { openReminderFinish(r); return; }
   const today = appTodayIso();
   let patch = null, okMsg = '';
-  if (action === 'complete') {
-    if (r.remember_date > today) { showToast('This reminder is not due yet.', 'info'); return; }
-    patch = r.repeater
-      ? { remember_date: nextReminderDate(r.remember_date, r.repeater, today), last_activity: today }
-      : { status: 'completed', last_activity: today };
-    okMsg = r.repeater ? 'Done. Next reminder scheduled.' : 'Marked as completed.';
+  if (action === 'done') {
+    if (r.repeater) {
+      // Repeating: this time is handled. Stays Active and moves to its next date.
+      const nextDate = nextReminderDate(r.remember_date, r.repeater, today);
+      patch = { remember_date: nextDate, last_activity: today };
+      okMsg = `Done for this time. Still active, next reminder on ${formatDateForDisplay(nextDate)}.`;
+    } else {
+      // One-time: no next time, so Done finishes it automatically.
+      patch = { status: 'completed', last_activity: today };
+      okMsg = 'Done. This reminder is finished and will not notify again.';
+    }
   } else if (action === 'pause') {
     patch = { status: 'paused' }; okMsg = 'Reminder paused.';
   } else if (action === 'resume') {
@@ -7153,7 +7207,7 @@ async function runReminderAction(action, id, btn){
   if (!patch) return;
   reminderBusy = true;
   if (btn) btn.disabled = true;
-  showActionLoader(action === 'complete' ? 'Completing reminder…' : action === 'pause' ? 'Pausing reminder…' : 'Resuming reminder…');
+  showActionLoader(action === 'done' ? 'Saving…' : action === 'pause' ? 'Pausing reminder…' : 'Resuming reminder…');
   try {
     const { data, error } = await supabaseClient.from('reminders').update(patch).eq('id', id).select().single();
     if (error) throw error;
@@ -7273,21 +7327,24 @@ async function saveReminder(){
     el.btnSaveReminder.disabled = false;
   }
 }
-function openReminderDone(r){
-  pendingDoneReminderId = r.id;
-  el.reminderDoneName.textContent = `"${r.title}"`;
-  showOverlay(el.reminderDoneModalOverlay);
+function openReminderFinish(r){
+  pendingFinishReminderId = r.id;
+  el.reminderFinishName.textContent = `"${r.title}"`;
+  showOverlay(el.reminderFinishModalOverlay);
 }
-function closeReminderDoneModal(){
-  hideOverlay(el.reminderDoneModalOverlay);
-  pendingDoneReminderId = null;
+function closeReminderFinishModal(){
+  hideOverlay(el.reminderFinishModalOverlay);
+  pendingFinishReminderId = null;
 }
-async function confirmDoneReminder(){
-  if (reminderBusy || !pendingDoneReminderId) return;
-  const id = pendingDoneReminderId;
+async function confirmFinishReminder(){
+  if (reminderBusy || !pendingFinishReminderId) return;
+  const id = pendingFinishReminderId;
+  const rr = reminders.find(x => x.id === id);
+  const why = rr ? reminderActionBlockReason(rr, 'finish') : '';
+  if (why) { closeReminderFinishModal(); showToast(why, 'info', 4000); return; }
   reminderBusy = true;
-  el.btnConfirmDoneReminder.disabled = true;
-  showActionLoader('Marking as done…');
+  el.btnConfirmFinishReminder.disabled = true;
+  showActionLoader('Finishing reminder…');
   try {
     const { data, error } = await supabaseClient.from('reminders')
       .update({ status: 'completed', last_activity: appTodayIso() })
@@ -7295,15 +7352,15 @@ async function confirmDoneReminder(){
     if (error) throw error;
     replaceReminder(data);
     renderReminders();
-    closeReminderDoneModal();
-    showToast('Reminder marked as done.', 'success');
+    closeReminderFinishModal();
+    showToast('Reminder finished.', 'success');
   } catch (err) {
     console.error(err);
-    showToast(err?.message || 'Could not mark the reminder as done.', 'error');
+    showToast(err?.message || 'Could not finish the reminder.', 'error');
   } finally {
     hideActionLoader();
     reminderBusy = false;
-    el.btnConfirmDoneReminder.disabled = false;
+    el.btnConfirmFinishReminder.disabled = false;
   }
 }
 function openReminderDelete(r){
@@ -7318,6 +7375,9 @@ function closeReminderDeleteModal(){
 async function confirmDeleteReminder(){
   if (reminderBusy || !pendingDeleteReminderId) return;
   const id = pendingDeleteReminderId;
+  const rr = reminders.find(x => x.id === id);
+  const why = rr ? reminderActionBlockReason(rr, 'delete') : '';
+  if (why) { closeReminderDeleteModal(); showToast(why, 'info', 4000); return; }
   reminderBusy = true;
   el.btnConfirmDeleteReminder.disabled = true;
   showActionLoader('Deleting reminder…');
@@ -7380,8 +7440,8 @@ function bindReminderEvents(){
   el.btnCancelReminder.addEventListener('click', closeReminderModal);
   el.btnCancelDeleteReminder.addEventListener('click', closeReminderDeleteModal);
   el.btnConfirmDeleteReminder.addEventListener('click', confirmDeleteReminder);
-  el.btnCancelDoneReminder.addEventListener('click', closeReminderDoneModal);
-  el.btnConfirmDoneReminder.addEventListener('click', confirmDoneReminder);
+  el.btnCancelFinishReminder.addEventListener('click', closeReminderFinishModal);
+  el.btnConfirmFinishReminder.addEventListener('click', confirmFinishReminder);
   el.remTitle.addEventListener('input', () => el.remTitle.classList.remove('input-error'));
   el.remTitle.addEventListener('blur', () => applyTitleCaseToField(el.remTitle));
   el.remCustomDays.addEventListener('input', () => {
@@ -10320,7 +10380,7 @@ function getDismissibleOverlays(){
     [el.productModalOverlay, closeProductModal],
     [el.reminderModalOverlay, closeReminderModal],
     [el.reminderDeleteModalOverlay, closeReminderDeleteModal],
-    [el.reminderDoneModalOverlay, closeReminderDoneModal],
+    [el.reminderFinishModalOverlay, closeReminderFinishModal],
     [el.deleteModalOverlay, closeDeleteModal],
     [el.previewModalOverlay, closePreviewModal],
     [el.resetModalOverlay, closeResetModal],
