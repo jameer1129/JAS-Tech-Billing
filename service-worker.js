@@ -11,9 +11,7 @@ const CLAIM_DELAY_MS = 2000;
 
 const STATIC_ASSETS = [
   "./index.html",
-  "./config.json",
-  "./invoice-engine.js",
-  "./invoice-engine.css",
+  "./config.json",,
   "./manifest.json",
   "./assets/icons/app-icon.png",
   "./assets/logo/logo.png",
@@ -23,6 +21,7 @@ const STATIC_ASSETS = [
   "./assets/signature/signature.png",
   "./assets/icons/app-icon-maskable.png",
   "./assets/icons/pay-qr.png",
+  "./payment.html",
 ];
 
 const CDN_HOSTS = [
@@ -283,6 +282,32 @@ function cacheFirst(request) {
   });
 }
 
+/**
+ * PAYMENT PAGE — CACHE FIRST, ONE COPY ONLY
+ * Only the page itself is cached. The amount, invoice number, etc. travel in the
+ * URL query (payment.html?amount=...), so the cache ignores the query: every visit
+ * gets the same cached page, and the page reads its own URL as normal.
+ * The copy is stored under the plain "./payment.html" key, so a new amount can
+ * never create a new cache entry. It is refreshed when CACHE_VERSION changes.
+ */
+const PAYMENT_PAGE = "./payment.html";
+
+async function paymentPage(request) {
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(PAYMENT_PAGE, { ignoreSearch: true });
+  if (cached) return cached;
+
+  try {
+    const response = await fetch(request);
+    if (response && response.ok && !response.redirected) {
+      await cache.put(PAYMENT_PAGE, response.clone());
+    }
+    return response;
+  } catch {
+    return Response.error();
+  }
+}
+
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
 
@@ -348,16 +373,22 @@ self.addEventListener("fetch", (event) => {
     url.pathname.endsWith(".html") ||
     url.pathname.endsWith("config.json")
   ) {
-    // invoice.html and payment.html must NEVER be cached.
-    // (payment.html is opened with a different ?amount= every time, so
-    // cache-first would also store a separate copy for every amount.)
+    // invoice.html must NEVER be cached: its content is different every time.
     if (
       url.pathname.endsWith("/invoice.html") ||
-      url.pathname === "/invoice.html" ||
+      url.pathname === "/invoice.html"
+    ) {
+      event.respondWith(fetch(event.request));
+      return;
+    }
+
+    // payment.html: only the page is cached (a single copy, see paymentPage()),
+    // never one copy per ?amount= value.
+    if (
       url.pathname.endsWith("/payment.html") ||
       url.pathname === "/payment.html"
     ) {
-      event.respondWith(fetch(event.request));
+      event.respondWith(paymentPage(event.request));
       return;
     }
 

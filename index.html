@@ -334,13 +334,13 @@ body.dark-theme .btn--ghost:hover{background: #1A202C;}
   text-transform:uppercase;
   letter-spacing:.3px;
 }
-.badge--admin{background:rgba(1,37,135,.1);color:var(--primary-text);}
+.badge--admin{--acc:20,230,240;--fg:#0CC0DB;padding:3px 7px;background:linear-gradient(135deg,rgba(var(--acc),.10),rgba(var(--acc),.03));border:1px solid rgba(var(--acc),.5);box-shadow:0 0 10px rgba(var(--acc),.10);color:var(--fg);}   /* 1px border, so 1px less padding keeps it the same size as the other badges */
+body:not(.dark-theme) .badge--admin{color:#0A8CA0;}   /* only the text is a little darker on white, for readability */
 .badge--super_admin{background:rgba(168,85,247,.16);color:#a855f7;}
 .badge--employee{background:rgba(107,114,128,.14);color:var(--muted);}
 .badge--pending{background:rgba(232,137,0,.13);color:#E88900;}
 .badge--approved{background:rgba(31,146,84,.12);color:var(--success);}
 .badge--rejected{background:rgba(214,69,69,.12);color:var(--danger);}
-body.dark-theme .badge--admin{background:rgba(23,105,255,.18);color:#5B9CFF;}
 body.dark-theme .badge--employee{background:rgba(107, 114, 128, 0.2);color:var(--muted);}
 body.dark-theme .badge--pending{background:rgba(255,176,32,.13);color:#ffb120de;}
 body.dark-theme .badge--approved{background:rgba(48,209,120,.14);color:var(--success);}
@@ -445,7 +445,7 @@ body.dark-theme .prod-card__top{background:#0D0F14;}
 .prod-card__top i.fa-box{color:var(--primary-text);}
 .prod-card__actions{margin-left:auto;display:flex;gap:5px;}
 .prod-card__actions .row-action-btn{width:30px;height:28px;border:1px solid var(--line);border-radius:8px;color:var(--muted);}
-.prod-card__actions .row-action-btn.edit{color:var(--primary-text);border-color:var(--primary-text);}
+.prod-card__actions .row-action-btn{color:var(--primary-text);border-color:var(--primary-text);}
 .prod-card__actions .row-action-btn.delete{color:var(--danger);border-color:var(--danger);}
 .prod-card__actions .row-action-btn:disabled{opacity:.35;cursor:not-allowed;color:var(--muted);border-color:var(--line);background:none;}
 .prod-card__content{display:flex;flex-wrap:wrap;gap:8px;padding:10px;}
@@ -1090,6 +1090,11 @@ html.pop-open,body.pop-open{overflow:hidden!important;}
   top:0;
   right:0;
   bottom:0;
+  /* --g  = how much taller than 480px the window is (0 to 220px), --g2 = how much taller than 700px (0 to 200px).
+     Sizes below grow smoothly with them, so the 5 rows always fit without scrolling and the profile fills the
+     space instead of leaving a big gap. */
+  --g:clamp(0px, calc(100vh - 480px), 220px);
+  --g2:clamp(0px, calc(100vh - 700px), 200px);
   width:min(80vw,360px);
   max-width:360px;
   background:var(--surface);
@@ -1119,16 +1124,22 @@ html.pop-open,body.pop-open{overflow:hidden!important;}
   z-index:2;
 }
 .drawer__close:hover{background:rgba(127,127,127,.26);}
+/* --av / --av-top size the avatar and place its camera badge, so one media query can shrink both. */
 .drawer__profile{
+  --av:calc(75px + var(--g) * .127 + var(--g2) * .1);        /* 56px .. 84px */
+  --av-top:calc(24px + var(--g) * .073 + var(--g2) * .04);    /* 24px .. 40px */
+  position:relative;
   display:flex;
   flex-direction:column;
   align-items:center;
   text-align:center;
-  padding:40px 24px 12px;
+  padding:var(--av-top) 24px calc(6px + var(--g) * .027 + var(--g2) * .03);
 }
-.drawer__user-avatar {
-  width: 84px;
-  height: 84px;
+.drawer__profile .drawer__user-avatar {
+  width: var(--av);
+  height: var(--av);
+  font-size: calc(var(--av) * .43);
+  margin-bottom: calc(6px + var(--g) * .027 + var(--g2) * .03);
 }
 .user-avatar {
   border-radius: 50%;
@@ -1159,8 +1170,8 @@ html.pop-open,body.pop-open{overflow:hidden!important;}
 .drawer__user-avatar:focus-visible{outline:3px solid var(--primary-text);}
 .drawer__user-avatar-edit {
   position: absolute;
-  top: 96px;
-  left: calc(50% + 16px);
+  top: calc(var(--av-top) + var(--av) - 28px);
+  left: calc(50% + var(--av) / 2 - 26px);
   z-index: 3;
   width: 30px;
   height: 30px;
@@ -1188,7 +1199,6 @@ html.pop-open,body.pop-open{overflow:hidden!important;}
 .profile-avatar-modal .modal__footer .btn--ghost.btn--danger{background:transparent!important;color:var(--danger)!important;border:1.5px solid var(--danger)!important;}
 .profile-avatar-modal .modal__footer .btn--ghost.btn--danger:hover{background:rgba(220,38,38,.08)!important;}
 .profile-avatar-modal .modal__footer .btn[hidden]{display:none!important;}
-.drawer__profile{position:relative;}
 #profileAvatarInput{display:none;}
 
 
@@ -1205,7 +1215,7 @@ html.pop-open,body.pop-open{overflow:hidden!important;}
 }
 .drawer__user-info{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0;width:100%;}
 .drawer__user-name{
-  font-size:18px;
+  font-size:calc(15px + var(--g) * .0136 + var(--g2) * .01);
   font-weight:700;
   color:var(--text);
   white-space:nowrap;
@@ -1225,36 +1235,34 @@ html.pop-open,body.pop-open{overflow:hidden!important;}
   font-size:11.5px;color:var(--primary-text);font-weight:700;text-transform:uppercase;letter-spacing:.5px;
 }
 body.dark-theme .drawer__user-role{background: rgba(23, 105, 255, .18);border-color: rgba(23, 105, 255, .25);}  
-.drawer__divider{height:1px;background:var(--line);margin:0 20px 6px;}
-.drawer__body{flex:1;padding:8px 16px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;}
+.drawer__divider{height:1px;background:var(--line);margin:0 20px 4px;}
+.drawer__body{flex:1;padding:6px 14px;display:flex;flex-direction:column;gap:calc(6px + var(--g) * .027 + var(--g2) * .03);overflow-y:auto;}
 .drawer__item{
   --acc:127,127,127;
   --fg:var(--text);
   position:relative;
   display:flex;
   align-items:center;
-  gap:14px;
-  padding:13px 16px;
-  font-size:18px;
-  font-weight:600;
+  gap:10px;
+  padding:calc(6px + var(--g) * .032 + var(--g2) * .02) 12px;
   color:var(--text);
   cursor:pointer;
   border:1px solid rgba(var(--acc),.5);
   background:linear-gradient(135deg,rgba(var(--acc),.10),rgba(var(--acc),.03));
-  border-radius:18px;
+  border-radius:14px;
   width:100%;
   text-align:left;
   box-shadow:0 0 16px rgba(var(--acc),.10);
   transition:transform .12s ease,box-shadow .2s ease,background .2s ease;
 }
 .drawer__item-icon{
-  width:42px;
-  height:42px;
+  width:calc(32px + var(--g) * .0455 + var(--g2) * .04);
+  height:calc(32px + var(--g) * .0455 + var(--g2) * .04);
   border-radius:50%;
   display:flex;
   align-items:center;
   justify-content:center;
-  font-size:16px;
+  font-size:14px;
   color:var(--fg);
   flex-shrink:0;
   border:1.5px solid rgba(var(--acc),.85);
@@ -1264,6 +1272,7 @@ body.dark-theme .drawer__user-role{background: rgba(23, 105, 255, .18);border-co
 .drawer__item--purple{--acc:147,80,240;--fg:#6655D7;}
 .drawer__item--green{--acc:16,185,129;--fg:#0E9F6E;}
 .drawer__item--red{--acc:239,68,68;--fg:#B52F42;}
+.drawer__item--payments{--acc:20,230,240;--fg:#0CC0DB;}   /* same cyan as the AI assistant's Connecting state, in light and dark */
 body.dark-theme .drawer__item--theme{--acc:245,176,0;--fg:#FFC933;}
 body.dark-theme .drawer__item--purple{--acc:168,85,247;--fg:#E58BFF;}
 body.dark-theme .drawer__item--green{--acc:20,200,150;--fg:#2DE0B0;}
@@ -1273,23 +1282,22 @@ body.dark-theme .drawer__item--red{--acc:239,68,68;--fg:#FF5C6C;}
   background:linear-gradient(135deg,rgba(var(--acc),.14),rgba(var(--acc),.04));
   box-shadow:0 0 18px rgba(var(--acc),.28);
 }
-.drawer__item-text{flex:1;display:flex;flex-direction:column;gap:4px;min-width:0;}
-.drawer__item-title{font-size:14.5px;font-weight:700;color:var(--text);line-height:1.25;}
-.drawer__item-subtitle{font-size:12px;color:var(--muted);font-weight:500;line-height:1.25;}
+.drawer__item-text{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0;}
+.drawer__item-title{font-size:calc(13.5px + var(--g) * .0045 + var(--g2) * .0075);font-weight:700;color:var(--text);line-height:1.25;}
+.drawer__item-subtitle{font-size:calc(11px + var(--g) * .0045 + var(--g2) * .005);color:var(--muted);font-weight:500;line-height:1.25;}
 .drawer__item-chevron{color:var(--fg);font-size:13px;flex-shrink:0;}
 .drawer__item.danger .drawer__item-title{color:var(--fg);}
 .drawer__footer{
   display:flex;
   align-items:center;
-  gap:12px;
-  padding:12px 20px;
+  gap:10px;
+  padding:calc(8px + var(--g) * .018 + var(--g2) * .02) 20px;
   border-top:1px solid var(--line);
   background:rgba(127, 127, 127, .08);
 }
-body.dark-theme .drawer__footer{background:rgba(127, 127, 127, .08);}
 .drawer__footer-icon{
-  width:36px;
-  height:36px;
+  width:calc(30px + var(--g) * .027);
+  height:calc(30px + var(--g) * .027);
   border-radius:50%;
   background:radial-gradient(circle at 35% 30%,#2A3FB8,#705AF0);
   color:#fff;
@@ -1301,7 +1309,6 @@ body.dark-theme .drawer__footer{background:rgba(127, 127, 127, .08);}
 }
 .drawer__footer-title{font-size:14px;font-weight:700;color:var(--text);}
 .drawer__footer-sub{font-size:12px;color:var(--muted);margin-top: 6px}
-
 .theme-options{gap:10px;}
 .theme-option{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;text-align:left;cursor:pointer;color:var(--text);background:var(--surface);border:1.5px solid var(--line);border-radius:var(--radius-sm);transition:border-color .15s ease,background .15s ease,transform .08s ease;}
 .theme-option:active{transform:scale(.98);}
@@ -3911,6 +3918,14 @@ body.dark-theme .nav-tabs::before{background:rgba(82,120,216,.24);}
       </span>
       <i class="fa-solid fa-chevron-right drawer__item-chevron"></i>
     </button>
+    <button class="drawer__item drawer__item--payments" id="drawerPayments">
+      <span class="drawer__item-icon"><i class="fa-solid fa-credit-card"></i></span>
+      <span class="drawer__item-text">
+        <span class="drawer__item-title">Payments</span>
+        <span class="drawer__item-subtitle">Open the payments page</span>
+      </span>
+      <i class="fa-solid fa-chevron-right drawer__item-chevron"></i>
+    </button>
     <button class="drawer__item drawer__item--purple" id="drawerChangePw">
       <span class="drawer__item-icon"><i class="fa-solid fa-lock"></i></span>
       <span class="drawer__item-text">
@@ -4578,6 +4593,7 @@ function cacheElements(){
   el.themeOptions = document.getElementById('themeOptions');
   el.btnThemeDone = document.getElementById('btnThemeDone');
   el.drawerLogout = document.getElementById('drawerLogout');
+  el.drawerPayments = document.getElementById('drawerPayments');
   el.drawerChangePw = document.getElementById('drawerChangePw');
   el.drawerFeedback = document.getElementById('drawerFeedback');
   el.feedbackModalOverlay = document.getElementById('feedbackModalOverlay');
@@ -7915,7 +7931,7 @@ function renderProducts(){
           <div class="prod-card__actions">
             <button class="row-action-btn" data-action="move-up" data-id="${p.id}" aria-label="Move item up" title="Move up"${idx === 0 ? ' disabled' : ''}><i class="fa-solid fa-arrow-up"></i></button>
             <button class="row-action-btn" data-action="move-down" data-id="${p.id}" aria-label="Move item down" title="Move down"${idx === products.length - 1 ? ' disabled' : ''}><i class="fa-solid fa-arrow-down"></i></button>
-            <button class="row-action-btn edit" data-action="edit" data-id="${p.id}" aria-label="Edit product" title="Edit"><i class="fa-solid fa-pen-to-square"></i></button>
+            <button class="row-action-btn" data-action="edit" data-id="${p.id}" aria-label="Edit product" title="Edit"><i class="fa-solid fa-pen-to-square"></i></button>
             <button class="row-action-btn delete" data-action="delete" data-id="${p.id}" aria-label="Delete product" title="Delete"><i class="fa-solid fa-trash-can"></i></button>
           </div>
         </div>
@@ -10541,6 +10557,7 @@ function bindEvents(){
       el.btnConfirmChangePw?.click();
     });
   }
+  el.drawerPayments.addEventListener('click', () => { closeDrawer(); window.location.href = '/payment.html'; });
   el.drawerChangePw.addEventListener('click', () => { closeDrawer(); openChangePasswordModal(); });
   el.btnCancelChangePw.addEventListener('click', closeChangePasswordModal);
   el.btnConfirmChangePw.addEventListener('click', handleChangePassword);
