@@ -55,18 +55,19 @@
   const tokenUsable = () => !!voiceToken && Date.now() < voiceTokenUntil - TOKEN_MARGIN_MS;
   // Blue remains blue while idle. An expired token is refreshed only on the next tap.
   let tokenPreparing = true, tokenReady = false, readyAnimationTimer = null, pendingStart = false;
+  let tokenFailed = false;   // true after every preparation attempt failed: the orb shows Error instead of looking like it is still loading
   // One face per state: active states use the live status; idle uses the token state (preparing / ready).
   function paintFace() {
     const w = ui.sheet; if (!w) return;
     const s = w.dataset.s, live = (active || starting || s === 'error') && s !== 'idle' && s !== 'ended';
-    w.dataset.f = live ? (s === 'transition' ? 'thinking' : s) : (w.dataset.token === 'ready' ? 'ready' : 'preparing');
+    w.dataset.f = live ? (s === 'transition' ? 'thinking' : s) : (tokenFailed ? 'error' : (w.dataset.token === 'ready' ? 'ready' : 'preparing'));
   }
   function paintTokenState() {
     if (!ui.sheet || active || starting) return;
     const next = tokenPreparing || !tokenReady ? 'waiting' : 'ready';
     const previous = ui.sheet.dataset.token;
     ui.sheet.dataset.token = next;
-    ui.orb.title = next === 'waiting' ? 'AI is preparing. Please wait.' : 'Start voice assistant';
+    ui.orb.title = next === 'waiting' ? (tokenFailed ? 'AI could not prepare. Tap to try again.' : 'AI is preparing. Please wait.') : 'Start voice assistant';
     ui.orb.setAttribute('aria-label', ui.orb.title);
     paintFace();
     if (next === 'ready' && previous !== 'ready') {
@@ -90,13 +91,15 @@
     }
     tokenPreparing = true;
     tokenReady = false;
+    tokenFailed = false;
     paintTokenState();
-    fetchToken().catch(() => {});
+    fetchToken().catch(() => { if (tokenFailed) flashError(); });
   }
   // One request at a time: callers share the same in-flight promise.
   // Retry transient token failures twice (3 attempts total), with short backoff.
   function fetchToken() {
     if (tokenPromise) return tokenPromise;
+    tokenFailed = false;
     const generation = tokenGeneration;
     const p = (async () => {
       try {
@@ -121,12 +124,14 @@
         tokenEverObtained = true;
         tokenPreparing = false;
         tokenReady = true;
+        tokenFailed = false;
         paintTokenState();
         return token;
       } catch (error) {
         if (generation === tokenGeneration) {
           tokenPreparing = true;
           tokenReady = false;
+          tokenFailed = true;   // all attempts failed (or sign-in is needed): show Error and retry on the next tap
         }
         throw error;
       } finally {
@@ -314,6 +319,7 @@
 /* status pill */
 .jv-state{position:absolute;left:50%;bottom:-46px;transform:translateX(-50%);display:none;align-items:center;gap:7px;white-space:nowrap;padding:6px 11px;border:1px solid color-mix(in srgb,var(--c2) 42%,var(--line,#64748b));border-radius:999px;background:color-mix(in srgb,var(--surface,#1e293b) 88%,var(--c2) 12%);color:var(--text,#f8fafc);font-weight:650;box-shadow:0 5px 18px #0002;pointer-events:none}
 .jv-active .jv-state{display:flex}
+.jv-wrap[data-s=error] .jv-state{display:flex}   /* failed attempts show the Error label even though no session is active */
 .jv-state-icon{color:var(--c2);font-size:12px}
 .jv-state-dots{display:inline-flex;gap:3px}
 .jv-state-dots b{width:3px;height:3px;border-radius:50%;background:var(--c2);animation:jvDot 1.1s ease-in-out infinite}
@@ -415,7 +421,7 @@
     ui.end.addEventListener('click',()=>stopSession('idle'));
     window.addEventListener('pagehide',()=>stopSession('idle', true));
     document.addEventListener('visibilitychange',()=>{
-      if(document.hidden&&(active||starting))stopSession('idle');
+      if(document.hidden)muteForBackground();else resumeFromBackground();   // leaving the page only MUTES; coming back unmutes
       wrap.classList.toggle('jv-paused',document.hidden);   // freeze every animation while the app is hidden
       if(!document.hidden){ wrap.style.display='none'; void wrap.offsetHeight; wrap.style.display=''; }   // fresh repaint on return
     });
@@ -438,6 +444,39 @@
     if(muted){lastUnmutedStatus=curStatus();setStatus('muted');}
     else{activity();setStatus(lastUnmutedStatus==='speaking'&&sources.size?'speaking':'listening');}
   }
+  // Leaving the page (another browser tab, another app, a locked screen) only MUTES the assistant, and
+  // coming back unmutes it. A mute the user set by hand is left alone. If the user stays away longer than
+  // the normal idle limit, the session ends exactly as it does for silence.
+  let autoMuted = false, hiddenAt = 0;
+  function muteForBackground() {
+    if (!active && !starting) return;
+    hiddenAt = Date.now();
+    if (muted) return;                                   // already muted by the user: do not touch it
+    lastUnmutedStatus = curStatus();
+    muted = true; autoMuted = true;
+    setStatus('muted');
+  }
+  function resumeFromBackground() {
+    const away = hiddenAt ? Date.now() - hiddenAt : 0;
+    hiddenAt = 0;
+    if (!active && !starting) { autoMuted = false; return; }
+    // Phone timers can be frozen while hidden, so check the time away here as well as in the idle monitor.
+    if (away > IDLE_MS) {
+      autoMuted = false;
+      toast('Voice assistant stopped after a minute of silence.', 'info'); stopSession('idle'); return;
+    }
+    // Phones can suspend audio or take the microphone away in the background.
+    for (const c of [inCtx, outCtx]) { if (c && c.state !== 'running') c.resume().catch(() => {}); }
+    if (micStream && micStream.getTracks().some((t) => t.readyState === 'ended')) {
+      autoMuted = false;
+      toast('The microphone was turned off by the device. Please start the assistant again.', 'warning'); stopSession('idle'); return;
+    }
+    holdScreenAwake();
+    if (autoMuted) {
+      autoMuted = false; muted = false; activity();
+      setStatus(lastUnmutedStatus === 'speaking' && sources.size ? 'speaking' : 'listening');
+    }
+  }
   let transitionTimer=null;
   let settledVoiceState='idle';
   let pendingVoiceState=null;
@@ -447,6 +486,17 @@
     const item=labels[s]||['','fa-circle'];
     state.querySelector('.jv-state-label').textContent=item[0];
     state.querySelector('.jv-state-icon').className='jv-state-icon fa-solid '+item[1];
+  }
+  // Shows the "Error" status (orb and label) for a few seconds, then the orb returns to its normal idle look.
+  let errorClearTimer=null;
+  function flashError(){
+    if(!ui.sheet||active||starting)return;
+    setStatus('error');
+    clearTimeout(errorClearTimer);
+    errorClearTimer=setTimeout(()=>{
+      errorClearTimer=null;
+      if(!active&&!starting&&ui.sheet?.dataset.s==='error'){setStatus('idle');paintTokenState();}
+    },8000);
   }
   function setStatus(s){
     if(!ui.sheet)return;
@@ -490,8 +540,8 @@
   const curStatus=()=>ui.sheet.dataset.s;
   async function openSheet(){
     if(currentTab()==='admin'||active||starting||pendingStart)return;
-    if (tokenPreparing || !tokenReady) {
-      // A failed preparation has no in-flight request; tapping retries it.
+    if ((tokenPreparing || !tokenReady) && !tokenFailed) {
+      // Still preparing (not failed): wait. A FAILED preparation falls through to the retry-and-start path below.
       if (!tokenPromise) {
         prepareToken();
         toast('Retrying AI preparation…', 'info');
@@ -513,7 +563,7 @@
           startSession();
         }
       } catch (e) {
-        if (generation === tokenGeneration) toast(e.message || 'Could not prepare AI. Try again.', 'error');
+        if (generation === tokenGeneration) { toast((e.message || 'Could not prepare AI.') + ' Tap the orb to try again.', 'error'); flashError(); }
       } finally {
         pendingStart = false;
       }
@@ -1514,8 +1564,10 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
         if (!settled) { settled = true; reject(new Error('closed ' + ev.code + ' ' + (ev.reason || ''))); return; }
         if (live() && active) {
           console.warn('[voice] closed', ev.code, ev.reason);
-          stopSession('ended');
+          const abnormal = ev.code !== 1000 && ev.code !== 1001;   // anything else means the connection dropped or was rejected
+          stopSession(abnormal ? 'error' : 'ended');
           if (ev.reason) toast('Voice: ' + ev.reason.slice(0, 120), 'warning');
+          else if (abnormal) toast('Voice connection was lost. Tap the orb to start again.', 'warning');
         }
       };
     });
@@ -1623,7 +1675,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
   async function startSession() {
     if (active || starting) return;
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.isSecureContext) {
-      setStatus('error');
+      flashError();
       toast('Microphone works only on HTTPS or localhost.', 'error');
       return;
     }
@@ -1634,7 +1686,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
     const isCurrent = () => sid === sessionId;
     starting = true;
     holdScreenAwake();
-    muted = false;
+    muted = false; autoMuted = false; hiddenAt = 0;
     uText = aText = ''; newUserTurn = true; turnDone = true;
     setStatus('connecting');
 
@@ -1654,7 +1706,7 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
       cleanupAudio();
       starting = false;
       releaseScreenAwake();
-      setStatus('error');
+      flashError();
       toast((e && e.name === 'NotAllowedError') ? 'Mic access denied. Enable it in permission settings.' : 'Could not open the microphone', 'error');
       return;
     }
@@ -1702,11 +1754,13 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
     starting = false;
     cleanupAudio();
     releaseScreenAwake();
-    setStatus('error');
+    flashError();
     paintTokenState();
     const why = lastErr && lastErr.message ? lastErr.message : 'unknown';
     dbg('could not connect: ' + why);
-    toast(tokenError ? ('Voice assistant unavailable: ' + why) : 'Voice AI could not connect. Check the session service and model names.', 'error');
+    toast(tokenError ? ('Voice assistant unavailable: ' + why + ' Tap the orb to try again.') : 'Could not connect to the voice AI. Tap the orb to try again.', 'error');
+    // The failed attempt used up its one-time token: prepare a fresh one now so the next tap starts quickly.
+    if (!tokenError) prepareToken();
   }
 
   function cleanupAudio() {
@@ -1730,12 +1784,12 @@ if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}return true}}
     clearInterval(idleMonitor);idleMonitor=null;
     
     const sock = ws;
-    ws = null; ready = false; active = false; starting = false; muted = false;
+    ws = null; ready = false; active = false; starting = false; muted = false; autoMuted = false; hiddenAt = 0;
     if (sock) { sock.onmessage = null; try { sock.close(1000); } catch (e) { /* ignore */ } }
     cleanupAudio();
     releaseScreenAwake();
     if (ui.sheet) {
-      setStatus(finalStatus || 'idle');
+      if (finalStatus === 'error') flashError(); else setStatus(finalStatus || 'idle');
       paintTokenState();
     }
     // A cancelled WebSocket attempt has already consumed its token. Prepare a fresh one
