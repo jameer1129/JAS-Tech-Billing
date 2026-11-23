@@ -561,17 +561,11 @@ button{cursor:pointer;background:none;border:none;}
     const ctrl=new AbortController();
     const to=setTimeout(()=>ctrl.abort(),9000);
     try{
-      /* X-Bypass-SW makes the service worker skip its cached config.json, so a new
-         UPI ID / bank detail shows immediately. If that fails (offline), fall back
-         to the normal request, which the service worker can answer from cache. */
-      let r;
-      try{
-        r=await fetch('./config.json',{cache:'no-store',headers:{'X-Bypass-SW':'1'},signal:ctrl.signal});
-        if(!r.ok)throw new Error('config '+r.status);
-      }catch(e){
-        r=await fetch('./config.json',{signal:ctrl.signal});
-        if(!r.ok)throw new Error('config '+r.status);
-      }
+      /* Normal request, like the main app: the service worker answers from its cache, so the page
+         opens instantly and works offline. A changed UPI ID / bank detail shows once the app is
+         updated (new CACHE_VERSION in service-worker.js). */
+      const r=await fetch('./config.json',{signal:ctrl.signal});
+      if(!r.ok)throw new Error('config '+r.status);
       return await r.json();
     }finally{clearTimeout(to);}
   }
