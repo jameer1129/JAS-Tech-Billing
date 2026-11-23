@@ -10557,7 +10557,8 @@ function bindEvents(){
       el.btnConfirmChangePw?.click();
     });
   }
-  el.drawerPayments.addEventListener('click', () => { closeDrawer(); window.location.href = '/payment.html'; });
+  // Relative link: the app lives in a sub-folder (/J.ALI-Billing/), so "/payment.html" would wrongly point to the site root.
+  el.drawerPayments.addEventListener('click', () => { closeDrawer(); window.location.href = 'payment.html'; });
   el.drawerChangePw.addEventListener('click', () => { closeDrawer(); openChangePasswordModal(); });
   el.btnCancelChangePw.addEventListener('click', closeChangePasswordModal);
   el.btnConfirmChangePw.addEventListener('click', handleChangePassword);
