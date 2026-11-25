@@ -1622,6 +1622,8 @@ body:has(.auth-shell:not(.hide)){overflow:hidden;}
   user-select:none;
 }
 .auth-checkbox-line input{width:15px;height:15px;accent-color:var(--primary);cursor:pointer;flex-shrink:0;margin-top:2px;}
+.auth-checkbox-line.input-error{color:var(--danger);}
+.auth-checkbox-line.input-error input{outline:2px solid var(--danger);outline-offset:2px;border-radius:3px;}
 .auth-checkbox-line a{color:var(--primary-text);font-weight:600;text-decoration:none;}
 .auth-checkbox-line a:hover{text-decoration:underline;}
 .terms-section + .terms-section{margin-top:14px;}
@@ -5279,6 +5281,21 @@ function focusFirstInvalid(inputs){
   const first = inputs.find(i => i && i.classList.contains('input-error'));
   if (first) setTimeout(() => first.focus(), 0);
 }
+// Marks every empty field red at once and focuses the first one.
+// Returns true when all fields are filled. Used by login/register/forgot/reset.
+function requireFilled(inputs){
+  const empty = inputs.filter(i => !i.value.trim());
+  inputs.forEach(i => markError(i, !empty.includes(i)));
+  focusFirstInvalid(inputs);
+  return empty.length === 0;
+}
+// Clear the red state as soon as the person edits/ticks the field (auth screens).
+document.addEventListener('input', e => {
+  if (e.target.closest && e.target.closest('.auth-field')) e.target.classList.remove('input-error');
+});
+document.addEventListener('change', e => {
+  if (e.target.id === 'regAgreeTerms') e.target.closest('.auth-checkbox-line').classList.remove('input-error');
+});
 function markError(elInput, isValid) {
   if (!isValid) {
     elInput.classList.add('input-error');
@@ -5567,6 +5584,7 @@ async function withGuardedSubmit(button, loaderMsg, action, onError){
   }
 }
 function setAuthTab(tab){
+  document.querySelectorAll('.auth-form .input-error').forEach(i => i.classList.remove('input-error'));
   el.loginForm.classList.toggle('hide', tab !== 'login');
   el.registerForm.classList.toggle('hide', tab !== 'register');
   el.forgotPasswordForm.classList.toggle('hide', tab !== 'forgot');
@@ -5932,8 +5950,11 @@ async function resendSignupOtp(email, options = {}){
 async function handleLogin(){
   const email = el.loginEmail.value.trim().toLowerCase();
   const password = el.loginPassword.value;
-  if (!email || !password) return showAuthMsg('Enter email and password.', 'warning');
-  if (!isValidPassword(password)) return showAuthMsg(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`, 'warning');
+  if (!requireFilled([el.loginEmail, el.loginPassword])) return showAuthMsg('Enter email and password.', 'warning');
+  if (!isValidPassword(password)) {
+    markError(el.loginPassword, false); focusFirstInvalid([el.loginPassword]);
+    return showAuthMsg(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`, 'warning');
+  }
   hideAuthMsg();
   await withGuardedSubmit(el.btnLogin, 'Signing in...', async () => {
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
@@ -6092,13 +6113,16 @@ async function handleRegister() {
   const email = el.regEmail.value.trim().toLowerCase();
   const password = el.regPassword.value;
   const confirmPassword = el.regConfirmPassword.value;
-  if (!name || !email || !password || !confirmPassword) return showAuthMsg('Fill in all fields.', 'warning');
-  if (el.regAgreeTerms && !el.regAgreeTerms.checked) return showAuthMsg('Please agree to the Terms & Privacy Policy.', 'warning');
+  if (!requireFilled([el.regName, el.regEmail, el.regPassword, el.regConfirmPassword])) return showAuthMsg('Fill in all fields.', 'warning');
+  if (el.regAgreeTerms && !el.regAgreeTerms.checked) {
+    el.regAgreeTerms.closest('.auth-checkbox-line').classList.add('input-error');
+    return showAuthMsg('Please agree to the Terms & Privacy Policy.', 'warning');
+  }
   const pwErr = validateNewPassword(password, confirmPassword);
   if (pwErr) {
-    showAuthMsg(pwErr, 'warning');
-    if (pwErr === 'Passwords do not match.' || pwErr.startsWith('Confirm ')) el.regConfirmPassword.focus();
-    return;
+    const target = (pwErr === 'Passwords do not match.' || pwErr.startsWith('Confirm ')) ? el.regConfirmPassword : el.regPassword;
+    markError(target, false); focusFirstInvalid([target]);
+    return showAuthMsg(pwErr, 'warning');
   }
   hideAuthMsg();
   // Loader messages are managed manually inside (multiple stages: checking
@@ -6341,7 +6365,7 @@ function askToSendResetLink(email) {
 
 async function handleForgotPassword(){
   const email = el.forgotEmail.value.trim().toLowerCase();
-  if (!email) return showAuthMsg('Enter your email address.', 'warning');
+  if (!requireFilled([el.forgotEmail])) return showAuthMsg('Enter your email address.', 'warning');
   hideAuthMsg();
 
   await withGuardedSubmit(el.btnSendReset, null, async () => {
@@ -6395,9 +6419,13 @@ async function handleForgotPassword(){
 async function handleResetPassword(){
   const newPw = el.resetNewPassword.value;
   const confirmPw = el.resetConfirmPassword.value;
-  if (!newPw || !confirmPw) return (hideActionLoader(), showToast('Enter both passwords.', 'warning', AUTH_TOAST_DURATION_MS));
+  if (!requireFilled([el.resetNewPassword, el.resetConfirmPassword])) return (hideActionLoader(), showToast('Enter both passwords.', 'warning', AUTH_TOAST_DURATION_MS));
   const pwErr = validateNewPassword(newPw, confirmPw);
-  if (pwErr) return (hideActionLoader(), showToast(pwErr, 'warning', AUTH_TOAST_DURATION_MS));
+  if (pwErr) {
+    const target = (pwErr === 'Passwords do not match.' || pwErr.startsWith('Confirm ')) ? el.resetConfirmPassword : el.resetNewPassword;
+    markError(target, false); focusFirstInvalid([target]);
+    return (hideActionLoader(), showToast(pwErr, 'warning', AUTH_TOAST_DURATION_MS));
+  }
   await withGuardedSubmit(el.btnUpdateResetPassword, 'Updating password…', async () => {
     const { error } = await supabaseClient.auth.updateUser({ password: newPw });
     if (error) {
@@ -11622,7 +11650,6 @@ function loadAi() {
     s.onerror = () => s.remove();   // allow a later loadAi() to retry after a failed download
     document.body.appendChild(s);
   };
-
   const idle = () => {
     if ('requestIdleCallback' in window) {
       requestIdleCallback(load, { timeout: 3000 });
@@ -11652,8 +11679,6 @@ function loadAi() {
     agreeBtn && agreeBtn.focus();
   };
   const close = () => {
-    // Move focus out of the overlay BEFORE hiding it from assistive tech,
-    // otherwise a focused descendant ends up inside an aria-hidden ancestor.
     if (overlay.contains(document.activeElement)) {
       (checkbox && checkbox.checked ? checkbox : link).focus({ preventScroll: true });
     }
