@@ -10620,7 +10620,14 @@ function bindEvents(){
     });
   }
   // Relative link: the app lives in a sub-folder (/J.ALI-Billing/), so "/payment.html" would wrongly point to the site root.
-  el.drawerPayments.addEventListener('click', () => { closeDrawer(); window.location.href = 'payment.html'; });
+  // Close the drawer fully first, THEN navigate, so the browser's saved snapshot (used on Back) shows a closed drawer.
+  el.drawerPayments.addEventListener('click', () => {
+    closeDrawer();
+    let done = false;
+    const go = () => { if (done) return; done = true; window.location.href = 'payment.html'; };
+    el.appDrawer.addEventListener('transitionend', e => { if (e.target === el.appDrawer && e.propertyName === 'transform') go(); });
+    setTimeout(go, 350);   // fallback if the transition event never fires
+  });
   el.drawerChangePw.addEventListener('click', () => { closeDrawer(); openChangePasswordModal(); });
   el.btnCancelChangePw.addEventListener('click', closeChangePasswordModal);
   el.btnConfirmChangePw.addEventListener('click', handleChangePassword);
@@ -11650,6 +11657,7 @@ function loadAi() {
     s.onerror = () => s.remove();   // allow a later loadAi() to retry after a failed download
     document.body.appendChild(s);
   };
+
   const idle = () => {
     if ('requestIdleCallback' in window) {
       requestIdleCallback(load, { timeout: 3000 });
@@ -11679,6 +11687,8 @@ function loadAi() {
     agreeBtn && agreeBtn.focus();
   };
   const close = () => {
+    // Move focus out of the overlay BEFORE hiding it from assistive tech,
+    // otherwise a focused descendant ends up inside an aria-hidden ancestor.
     if (overlay.contains(document.activeElement)) {
       (checkbox && checkbox.checked ? checkbox : link).focus({ preventScroll: true });
     }
