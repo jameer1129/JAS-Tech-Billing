@@ -5773,6 +5773,20 @@ window.addEventListener('beforeunload', (event) => {
   event.preventDefault();
   event.returnValue = '';
 });
+// Closing/reloading while the New Bill tab is open and the existing autosave
+// holds customer or product data: show Chrome's "Leave site?" confirmation.
+window.addEventListener('beforeunload', (event) => {
+  if (!el.viewNewBill || el.viewNewBill.classList.contains('hide')) return;
+  if (!el.appScreen || el.appScreen.classList.contains('hide')) return;
+  const saved = getSavedBillState();
+  if (!saved) return;
+  const c = saved.customer || {};
+  const hasData = String(c.name || '').trim() || String(c.address || '').trim() ||
+    String(c.mobile || '').trim() || (Array.isArray(saved.products) && saved.products.length > 0);
+  if (!hasData) return;
+  event.preventDefault();
+  event.returnValue = '';
+});
 function leaveResetPage(){
   allowResetPageUnload = true;
   try { sessionStorage.removeItem('jas_link_launch'); } catch (e) {}
