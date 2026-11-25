@@ -11645,8 +11645,21 @@ function loadAi() {
   const agreeBtn = document.getElementById('btnAgreeTerms');
   const checkbox = document.getElementById('regAgreeTerms');
   if (!overlay || !link) return;
-  const open = () => { overlay.setAttribute('aria-hidden', 'false'); showOverlay(overlay); agreeBtn && agreeBtn.focus(); };
-  const close = () => { overlay.setAttribute('aria-hidden', 'true'); return hideOverlay(overlay); };
+  const open = () => {
+    overlay.removeAttribute('inert');
+    overlay.setAttribute('aria-hidden', 'false');
+    showOverlay(overlay);
+    agreeBtn && agreeBtn.focus();
+  };
+  const close = () => {
+    // Move focus out of the overlay BEFORE hiding it from assistive tech,
+    // otherwise a focused descendant ends up inside an aria-hidden ancestor.
+    if (overlay.contains(document.activeElement)) {
+      (checkbox && checkbox.checked ? checkbox : link).focus({ preventScroll: true });
+    }
+    overlay.setAttribute('inert', '');
+    return hideOverlay(overlay).then(() => overlay.setAttribute('aria-hidden', 'true'));
+  };
   link.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); open(); });
   agreeBtn && agreeBtn.addEventListener('click', () => {
     if (checkbox) checkbox.checked = true;
