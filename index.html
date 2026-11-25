@@ -1538,6 +1538,7 @@ body:has(.auth-shell:not(.hide)){overflow:hidden;}
   box-shadow:var(--shadow-sm);
   transition:background .15s ease,color .15s ease,transform .08s ease;
   backdrop-filter:blur(10px);
+  z-index: 1;
 }
 .auth-theme-toggle:hover{color:var(--primary-text);border-color:var(--line);background:var(--surface);}
 .auth-card{
@@ -1623,6 +1624,11 @@ body:has(.auth-shell:not(.hide)){overflow:hidden;}
 .auth-checkbox-line input{width:15px;height:15px;accent-color:var(--primary);cursor:pointer;flex-shrink:0;margin-top:2px;}
 .auth-checkbox-line a{color:var(--primary-text);font-weight:600;text-decoration:none;}
 .auth-checkbox-line a:hover{text-decoration:underline;}
+.terms-section + .terms-section{margin-top:14px;}
+.terms-section h4{margin:0 0 8px;font-size:14px;color:var(--primary-text);}
+.terms-section ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px;}
+.terms-section li{position:relative;padding-left:16px;font-size:13.5px;line-height:1.5;color:var(--muted);}
+.terms-section li::before{content:"";position:absolute;left:2px;top:.6em;width:5px;height:5px;border-radius:50%;background:var(--primary);}
 .auth-bottom-text{text-align:center;font-size:12px;color:var(--muted);margin:20px 0;}
 .auth-link{color:var(--primary-text);font-size:12px;font-weight:600;cursor:pointer;text-decoration:none;transition:text-decoration 0.2s ease;display:inline-flex;align-items:center;gap:6px;}
 .auth-link:hover{text-decoration:underline;color:var(--primary-text);}
@@ -1825,7 +1831,6 @@ body.dark-theme .auth-hero-icon__ring--two{border:1px solid rgba(23, 105, 255, .
   flex-direction:column;
   justify-content:center;
 }
-.auth-theme-toggle{top:16px;right:16px;}
 .auth-form{gap:11px;}
 .auth-card-heading h2{font-size:21px;}
 .auth-field input{min-height:54px;font-size:14px;}
@@ -3020,7 +3025,7 @@ body.dark-theme .nav-tabs::before{background:rgba(82,120,216,.24);}
       </div>
       <label class="auth-checkbox-line">
         <input type="checkbox" id="regAgreeTerms">
-        <span>I agree to the <a href="#" onclick="return false;">Terms &amp; Privacy Policy</a></span>
+        <span>I agree to the <a href="#" id="openTermsLink" role="button">Terms &amp; Privacy Policy</a></span>
       </label>
       <button class="btn btn--primary btn--full" id="btnRegister">
         <i class="fa-solid fa-user-plus"></i> Register
@@ -4072,6 +4077,35 @@ body.dark-theme .nav-tabs::before{background:rgba(82,120,216,.24);}
     <div class="modal__footer">
       <button class="btn btn--ghost" id="btnCancelExpiredRecovery">Cancel</button>
       <button class="btn btn--primary" id="btnActionExpiredRecovery">Resend</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay hide" id="termsModalOverlay" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="termsModalTitle">
+    <div class="modal__header">
+      <i class="fa-solid fa-file-shield" aria-hidden="true"></i>
+      <h3 id="termsModalTitle">Terms &amp; Privacy Policy</h3>
+    </div>
+    <div class="modal__body">
+      <section class="terms-section">
+        <h4>Terms of Service</h4>
+        <ul>
+          <li>Use the application for legitimate billing purposes.</li>
+          <li>You are responsible for your account and billing accuracy.</li>
+          <li>Access is subject to administrator approval.</li>
+        </ul>
+      </section>
+      <section class="terms-section">
+        <h4>Privacy Policy</h4>
+        <ul>
+          <li>Your account and billing data are stored using Supabase.</li>
+          <li>Device information is used for app functionality and notifications.</li>
+          <li>When using AI assistance, relevant data and voice input may be processed by Google Gemini.</li>
+        </ul>
+      </section>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--primary" id="btnAgreeTerms" type="button"><i class="fa-solid fa-check"></i> I Agree</button>
     </div>
   </div>
 </div>
@@ -11603,6 +11637,26 @@ function loadAi() {
     window.addEventListener('load', idle, { once: true });
   }
 }
+
+/* ---------- Terms & Privacy Policy popup ---------- */
+(function initTermsModal(){
+  const overlay = document.getElementById('termsModalOverlay');
+  const link = document.getElementById('openTermsLink');
+  const agreeBtn = document.getElementById('btnAgreeTerms');
+  const checkbox = document.getElementById('regAgreeTerms');
+  if (!overlay || !link) return;
+  const open = () => { overlay.setAttribute('aria-hidden', 'false'); showOverlay(overlay); agreeBtn && agreeBtn.focus(); };
+  const close = () => { overlay.setAttribute('aria-hidden', 'true'); return hideOverlay(overlay); };
+  link.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); open(); });
+  agreeBtn && agreeBtn.addEventListener('click', () => {
+    if (checkbox) checkbox.checked = true;
+    close();
+  });
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !overlay.classList.contains('hide')) close();
+  });
+})();
 </script>
 </body>
 </html>
