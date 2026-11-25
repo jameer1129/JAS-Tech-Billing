@@ -2894,6 +2894,35 @@ body.dark-theme .nav-tabs::before{background:rgba(82,120,216,.24);}
   .nav-tab.has-alert .nav-dot,.nav-tab.has-alert .nav-tab__icon > i,.nav-tab.pop .nav-tab__icon > i{animation:none!important;}
   .app-shell.view-enter-next > .card,.app-shell.view-enter-prev > .card,.app-shell.view-enter-next > .admin-stats,.app-shell.view-enter-prev > .admin-stats{animation:none!important;}
 }
+/* ---------- Mobile: popups open as bottom sheets (desktop stays centered) ---------- */
+@media(max-width:480px){
+  .modal-overlay,.modal--preview.modal-overlay,.date-picker__overlay{align-items:flex-end !important;justify-content:center;padding:0 !important;}
+  .modal-overlay .modal,.modal--preview .modal{
+    width:100% !important;max-width:none !important;
+    border-radius:22px 22px 0 0 !important;
+    border-left:0;border-right:0;border-bottom:0;
+    max-height:calc(100dvh - 24px - env(safe-area-inset-top,0px)) !important;
+    padding-bottom:env(safe-area-inset-bottom,0px);
+    box-shadow:0 -10px 40px rgba(0,0,0,.28);
+  }
+  .modal-overlay .modal::before{
+    content:"";position:absolute;top:8px;left:50%;transform:translateX(-50%);
+    width:40px;height:4px;border-radius:999px;background:var(--line);opacity:.9;pointer-events:none;z-index:3;
+  }
+  .modal-overlay .modal__header{padding-top:26px;}
+  .modal--confirm .modal__header{padding-top:32px;}
+  .modal--preview .modal__header{padding-top:24px;}
+  .modal-overlay .modal__footer{padding-bottom:max(16px,env(safe-area-inset-bottom,0px));}
+  .date-picker__panel{
+    width:100%;max-width:none;border-radius:22px 22px 0 0;
+    border-left:0;border-right:0;border-bottom:0;
+    padding-bottom:calc(14px + env(safe-area-inset-bottom,0px));
+    max-height:calc(100dvh - 24px - env(safe-area-inset-top,0px));
+  }
+  /* slide fully up from / down to the bottom edge */
+  @keyframes modalSlideIn{from{transform:translateY(100%);}to{transform:none;}}
+  @keyframes modalSlideOut{from{transform:none;}to{transform:translateY(100%);}}
+}
 </style>
 <link rel="stylesheet" href="./invoice-engine.css?v=8">
 <script src="./invoice-engine.js?v=9"></script>
@@ -7859,17 +7888,6 @@ function openRestoreBillModal(){
 function closeRestoreBillModal(){
   hideOverlay(el.restoreBillModalOverlay);
 }
-// Tapping outside the modal (or pressing Escape) without explicitly picking
-// Restore or Start Fresh is treated as Start Fresh, not as "do nothing" --
-// otherwise the stale autosave survives an accidental dismiss and the same
-// prompt keeps reappearing every time New Bill is opened. This must stay
-// separate from closeRestoreBillModal() itself: the Restore/Start Fresh
-// button handlers already call closeRestoreBillModal() as their own final
-// step, and must not have this reset logic re-triggered on top of that.
-function dismissRestoreBillModalAsStartFresh(){
-  closeRestoreBillModal();
-  resetInvoice(); // also clears the saved autosave internally
-}
 function normalizeBillForComparison(bill) {
   if (!bill) {
     return {
@@ -10493,7 +10511,6 @@ function getDismissibleOverlays(){
     [el.saveChoiceModalOverlay, closeSaveChoiceModal],
     [el.pdfActionModalOverlay, closePdfActionModal],
     [el.invoiceQrModalOverlay, closeInvoiceQr],
-    [el.restoreBillModalOverlay, dismissRestoreBillModalAsStartFresh],
     [el.otpSendConfirmOverlay, () => el.btnCancelOtpSendConfirm.click()]
   ];
 }
