@@ -56,7 +56,7 @@ Edit `config.json` to control company info, theming, and invoice content. Common
 - `company.name`, `company.addressLines`, `company.phone`, `company.email`
 - `theme.light` / `theme.dark` (colors) and `theme.radius`
 - `assets.*` — paths to logo, watermark, signature, WhatsApp QR
-- `supabase.url`, `supabase.anonKey` — required for the app to function
+- `supabase.url`, `supabase.publishableKey` — required for the app to function
 - `invoice.currencySymbol`, `invoice.filePrefix`, `invoice.numberFormat`, `invoice.defaultNotes`
 - `display.*` — toggle which optional sections appear on the invoice
 - `services` — the row of feature icons shown in the invoice footer

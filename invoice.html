@@ -364,7 +364,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
     if(!r.ok)throw codedError('CONFIG_ERROR','Configuration file is not available.');
     let json;
     try{json=await r.json();}catch(e){throw codedError('CONFIG_ERROR','Configuration file is invalid.');}
-    if(!json||!json.supabase||!json.supabase.url||!json.supabase.anonKey)throw codedError('CONFIG_ERROR','Configuration is incomplete.');
+    if(!json||!json.supabase||!json.supabase.url||!json.supabase.publishableKey)throw codedError('CONFIG_ERROR','Configuration is incomplete.');
     CONFIG=json;
     applyCompanyName();
     try{InvoiceEngine.configure(CONFIG);}catch(e){throw codedError('CONFIG_ERROR','Configuration could not be applied.');}
@@ -382,7 +382,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
     }
 
     let netFailed=false;
-    const client=supabase.createClient(CONFIG.supabase.url,CONFIG.supabase.anonKey,{
+    const client=supabase.createClient(CONFIG.supabase.url,CONFIG.supabase.publishableKey,{
       auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},
       global:{fetch:async(url,opts)=>{
         try{return await timedFetch(url,opts);}

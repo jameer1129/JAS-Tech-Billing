@@ -5507,7 +5507,7 @@ function migrateLegacyAuthStorage(authStorage, targetKey){
 }
 const supabaseClientCache = new Map();
 function createSupabaseClient(authStorage, detectSessionInUrl, storageKey = null, persistSession = true, autoRefreshToken = false){
-  if (!CONFIG.supabase || !CONFIG.supabase.url || !CONFIG.supabase.anonKey) {
+  if (!CONFIG.supabase || !CONFIG.supabase.url || !CONFIG.supabase.publishableKey) {
     console.error('Supabase config missing in config.json');
     showToast('Supabase is not configured. Check config.json', 'error');
     return null;
@@ -5523,7 +5523,7 @@ function createSupabaseClient(authStorage, detectSessionInUrl, storageKey = null
   const cacheKey = `${CONFIG.supabase.url}|${resolvedStorageKey}`;
   const cachedClient = supabaseClientCache.get(cacheKey);
   if (cachedClient) return cachedClient;
-  const client = window.supabase.createClient(CONFIG.supabase.url, CONFIG.supabase.anonKey, {
+  const client = window.supabase.createClient(CONFIG.supabase.url, CONFIG.supabase.publishableKey, {
     auth: {
       persistSession: persistSession,
       autoRefreshToken: autoRefreshToken,
@@ -9447,7 +9447,7 @@ async function handleChangePassword(){
     // "Require current password when changing password" enabled.
     let passwordClient = null;
     try {
-      passwordClient = window.supabase.createClient(CONFIG.supabase.url, CONFIG.supabase.anonKey, {
+      passwordClient = window.supabase.createClient(CONFIG.supabase.url, CONFIG.supabase.publishableKey, {
         auth: {
           persistSession: false,
           autoRefreshToken: false,
@@ -9478,7 +9478,7 @@ async function handleChangePassword(){
         // A password update can occasionally be committed server-side even
         // when the client receives a secondary auth error. Verify the result
         // with a brand-new sign-in before telling the user it failed.
-        const verifyNewClient = window.supabase.createClient(CONFIG.supabase.url, CONFIG.supabase.anonKey, {
+        const verifyNewClient = window.supabase.createClient(CONFIG.supabase.url, CONFIG.supabase.publishableKey, {
           auth: {
             persistSession: false,
             autoRefreshToken: false,
@@ -11340,7 +11340,7 @@ async function init(){
   const oauthCallbackContext = !recoveryContext && sessionStorage.getItem(OAUTH_PENDING_KEY) !== null;
 
   syncDisplayToggleState();
-  if (!CONFIG.supabase || !CONFIG.supabase.url || !CONFIG.supabase.anonKey) {
+  if (!CONFIG.supabase || !CONFIG.supabase.url || !CONFIG.supabase.publishableKey) {
     showScreen('auth');
     return;
   }

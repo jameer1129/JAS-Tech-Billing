@@ -101,9 +101,17 @@ button{cursor:pointer;background:none;border:none;}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
 .chip{
   display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--muted);
-  border:1px solid var(--line-strong);border-radius:999px;padding:4px 11px;
+  border:1px solid var(--line-strong);border-radius:999px;padding:4px 8px;
 }
 .chip b{color:#fff;font-weight:600;}
+.chip--upi b{word-break:break-all;user-select:all;-webkit-user-select:all;}
+.chip__copy{
+  flex-shrink:0;width:22px;height:22px;margin:-2px -6px -2px 0;border-radius:50%;
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:11px;color:var(--muted);transition:background .15s,color .15s;
+}
+.chip__copy:hover{background:#1c1c1c;color:#fff;}
+.chip__copy.is-copied{background:#fff;color:#000;border-color:#fff;}
 
 /* ---------- Methods ---------- */
 .section-title{margin:22px 2px 10px;font-size:13px;font-weight:600;color:var(--muted);letter-spacing:.4px;}
@@ -183,9 +191,9 @@ button{cursor:pointer;background:none;border:none;}
 
 /* ---------- Toast ---------- */
 .toast{
-  position:fixed;left:50%;bottom:max(24px,env(safe-area-inset-bottom));transform:translate(-50%,20px);
+  position:fixed;left:50%;top:max(24px,env(safe-area-inset-top));transform:translate(-50%,-20px);
   background:#fff;color:#000;font-weight:600;font-size:14px;padding:10px 18px;border-radius:999px;
-  opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:50;max-width:90vw;text-align:center;
+  opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:50;text-align:center;
 }
 .toast.show{opacity:1;transform:translate(-50%,0);}
 
@@ -252,8 +260,8 @@ button{cursor:pointer;background:none;border:none;}
       </div>
       <div class="amount__hint" id="amountHint">The amount can be edited if necessary.</div>
       <div class="chips hide" id="chips">
-        <span class="chip hide" id="invChip"><i class="fa-solid fa-file-invoice"></i> Invoice <b id="invValue"></b></span>
-        <span class="chip hide" id="payeeChip"><i class="fa-solid fa-store"></i> <b id="payeeValue"></b></span>
+        <span class="chip hide" id="invChip"><i class="fa-solid fa-file-invoice"></i> <b id="invValue"></b></span>
+        <span class="chip chip--upi hide" id="upiChip"><i class="fa-solid fa-at"></i> <b id="upiValue"></b><button type="button" class="chip__copy" id="btnCopyUpi" aria-label="Copy UPI ID"><i class="fa-regular fa-copy"></i></button></span>
       </div>
     </section>
 
@@ -592,8 +600,8 @@ button{cursor:pointer;background:none;border:none;}
 
     /* chips */
     if(invoiceNo){$('invValue').textContent='#'+invoiceNo;$('invChip').classList.remove('hide');}
-    if(payeeName){$('payeeValue').textContent=payeeName;$('payeeChip').classList.remove('hide');}
-    $('chips').classList.toggle('hide',!invoiceNo&&!payeeName);
+    if(upiId){$('upiValue').textContent=upiId;$('upiChip').classList.remove('hide');}
+    $('chips').classList.toggle('hide',!invoiceNo&&!upiId);
 
     $('thanksLine').textContent=(CONFIG.footer&&CONFIG.footer.thankYouMessage)||'';
 
@@ -630,6 +638,15 @@ button{cursor:pointer;background:none;border:none;}
       window.location.href=buildUpiUri(amount);
     });
     $('btnDone').addEventListener('click',handleDone);
+    $('btnCopyUpi').addEventListener('click',async()=>{
+      if(!upiId)return;
+      const btn=$('btnCopyUpi');
+      if(await copyText(upiId)){
+        btn.classList.add('is-copied');btn.innerHTML='<i class="fa-solid fa-check"></i>';
+        setTimeout(()=>{btn.classList.remove('is-copied');btn.innerHTML='<i class="fa-regular fa-copy"></i>';},1400);
+        toast('UPI ID copied');
+      }else toast('Could not copy. Press and hold to select.');
+    });
   }
 
   function boot(){
